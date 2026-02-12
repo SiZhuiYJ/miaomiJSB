@@ -1,0 +1,294 @@
+<script setup lang="ts">
+import { ref } from 'vue';
+import { onLoad } from '@dcloudio/uni-app';
+import { useCheckinsStore } from '../../stores/checkins';
+import { useAuthStore } from '../../stores/auth';
+import { useThemeStore } from '../../stores/theme';
+import { API_BASE_URL } from '../../config';
+import { compressImageToWebP } from '@/utils/image';
+
+const checkinsStore = useCheckinsStore();
+const authStore = useAuthStore();
+const themeStore = useThemeStore();
+
+const planId = ref<number | null>(null);
+const dateStr = ref('');
+const note = ref('');
+const images = ref<{ path: string; url?: string }[]>([]);
+const loading = ref(false);
+
+onLoad((options: any) => {
+  if (options) {
+    planId.value = Number(options.planId);
+    dateStr.value = options.date;
+
+    const today = new Date().toISOString().split('T')[0];
+    const isRetro = dateStr.value < today;
+    uni.setNavigationBarTitle({
+      title: isRetro ? '补卡' : '打卡'
+    });
+  }
+});
+
+function handleChooseImage() {
+  uni.chooseImage({
+    count: 3 - images.value.length,
+    success: (res) => {
+      // res.tempFilePaths can be string or string[] in some typings, but in success callback it's usually string[]
+      // We force cast it to string[] to satisfy typescript or handle it safely
+      const paths = Array.isArray(res.tempFilePaths) ? res.tempFilePaths : [res.tempFilePaths as string];
+      const newImages = paths.map((path) => ({ path }));
+      images.value.push(...newImages);
+    },
+  });
+}
+
+function handleRemoveImage(index: number) {
+  images.value.splice(index, 1);
+}
+
+function handlePreviewImage(current: string) {
+  uni.previewImage({
+    current,
+    urls: images.value.map((img) => img.path),
+  });
+}
+
+async function uploadFile(filePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: `${API_BASE_URL}/mm/Files/images`,
+      filePath: filePath,
+      name: 'file',
+      header: {
+        Authorization: `Bearer ${authStore.accessToken}`,
+      },
+      success: (uploadFileRes) => {
+        if (uploadFileRes.statusCode === 200) {
+          const data = JSON.parse(uploadFileRes.data);
+          resolve(data.url);
+        } else {
+          reject(new Error('Upload failed'));
+        }
+      },
+      fail: (err) => {
+        reject(err);
+      },
+    });
+  });
+}
+
+async function handleSubmit() {
+  if (!planId.value || !dateStr.value) return;
+
+  if (images.value.length === 0) {
+    uni.showToast({ title: '请至少上传一张图片', icon: 'none' });
+    return;
+  }
+
+  loading.value = true;
+  uni.showLoading({ title: '提交中' });
+
+  try {
+    // Upload images
+    const uploadedUrls: string[] = [];
+    for (const img of images.value) {
+      if (img.url) {
+        uploadedUrls.push(img.url);
+      } else {
+        const url = await uploadFile(img.path);
+        uploadedUrls.push(url);
+      }
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const isRetro = dateStr.value < today;
+
+    if (isRetro) {
+      await checkinsStore.retroCheckin({
+        planId: planId.value,
+        date: dateStr.value,
+        imageUrls: uploadedUrls,
+        note: note.value || undefined,
+      });
+      uni.hideLoading();
+      uni.showToast({ title: '补签成功' });
+    } else {
+      await checkinsStore.dailyCheckin({
+        planId: planId.value,
+        imageUrls: uploadedUrls,
+        note: note.value || undefined,
+      });
+      uni.hideLoading();
+      uni.showToast({ title: '打卡成功' });
+    }
+
+    setTimeout(() => {
+      uni.navigateBack();
+    }, 1500);
+  } catch (error) {
+    uni.hideLoading();
+    uni.showToast({ title: '提交失败', icon: 'none' });
+  } finally {
+    loading.value = false;
+  }
+}
+</script>
+
+<template>
+  <view class="container" :style="themeStore.themeStyle">
+    <NotificationSystem />
+    <view class="header">
+      <text class="date-label">日期：{{ dateStr }}</text>
+    </view>
+
+    <view class="card">
+      <view class="form-group">
+        <text class="label">备注</text>
+        <textarea class="textarea" v-model="note" placeholder="写点什么..." auto-height />
+      </view>
+
+      <view class="form-group">
+        <text class="label">图片（{{ images.length }}/3）</text>
+        <view class="image-grid">
+          <view v-for="(img, index) in images" :key="index" class="image-item">
+            <image :src="img.path" mode="aspectFill" class="image" @click="handlePreviewImage(img.path)" />
+            <view class="remove-btn" @click.stop="handleRemoveImage(index)">×</view>
+          </view>
+          <view v-if="images.length < 3" class="add-btn" @click="handleChooseImage">
+            <text>+</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <button class="submit-btn" :disabled="loading" @click="handleSubmit">提交</button>
+  </view>
+</template>
+
+<style scoped lang="scss">
+.container {
+  padding: var(--uni-container-padding);
+  background-color: var(--bg-color);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.header {
+  margin-bottom: var(--uni-header-margin-bottom);
+  padding: var(--uni-header-padding);
+  background-color: var(--bg-elevated);
+  border-radius: var(--uni-header-border-radius);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.date-label {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.card {
+  background-color: var(--bg-elevated);
+  border-radius: var(--uni-card-border-radius);
+  padding: var(--uni-card-padding);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  margin-bottom: var(--uni-card-margin-bottom);
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 100px;
+  background-color: var(--bg-color); /* Slightly different from elevated if possible, or just transparent/grey */
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 16px;
+  color: var(--text-color);
+  box-sizing: border-box;
+}
+
+.image-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.image-item {
+  width: 80px;
+  height: 80px;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+}
+
+.remove-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  border-bottom-left-radius: 8px;
+}
+
+.add-btn {
+  width: 80px;
+  height: 80px;
+  background-color: var(--bg-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-btn text {
+  font-size: 32px;
+  color: var(--text-muted);
+  font-weight: 300;
+}
+
+.submit-btn {
+  background-color: var(--theme-primary);
+  color: #fff;
+  border-radius: 24px;
+  height: 48px;
+  line-height: 48px;
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 32px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.submit-btn[disabled] {
+  opacity: 0.7;
+}
+
+.submit-btn::after {
+  border: none;
+}
+</style>

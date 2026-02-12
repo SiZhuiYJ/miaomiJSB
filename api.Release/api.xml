@@ -1,0 +1,1184 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>api</name>
+    </assembly>
+    <members>
+        <member name="T:api.Controllers.AuthController">
+            <summary>
+            认证相关接口，包括注册、登录和刷新令牌。
+            </summary>
+        </member>
+        <member name="M:api.Controllers.AuthController.#ctor(api.Data.DailyCheckDbContext,api.Infrastructure.IJwtTokenService,api.Infrastructure.IVerificationCodeService)">
+            <summary>
+            认证相关接口，包括注册、登录和刷新令牌。
+            </summary>
+        </member>
+        <member name="M:api.Controllers.AuthController.Register(api.Models.RegisterRequest,System.Threading.CancellationToken)">
+            <summary>
+            用户注册，创建新账号并返回访问令牌和刷新令牌。
+            </summary>
+            <param name="request">注册请求参数。</param>
+            <param name="cancellationToken">取消操作标记。</param>
+            <returns>包含用户信息、访问令牌及刷新令牌的响应。</returns>
+        </member>
+        <member name="M:api.Controllers.AuthController.Login(api.Models.LoginRequest)">
+            <summary>
+            用户登录，校验邮箱和密码并返回访问令牌和刷新令牌。
+            </summary>
+            <param name="request">登录请求参数。</param>
+            <returns>包含用户信息、访问令牌及刷新令牌的响应。</returns>
+        </member>
+        <member name="M:api.Controllers.AuthController.LoginByAccount(api.Models.AccountLoginRequest)">
+            <summary>
+            用户登录，校验账号和密码并返回访问令牌和刷新令牌。
+            </summary>
+            <param name="request">登录请求参数。</param>
+            <returns>包含用户信息、访问令牌及刷新令牌的响应。</returns>
+        </member>
+        <member name="M:api.Controllers.AuthController.Refresh(api.Models.RefreshTokenRequest)">
+            <summary>
+            使用刷新令牌获取新的访问令牌和刷新令牌，实现双 token 单点登录。
+            </summary>
+            <param name="request">包含刷新令牌的请求。</param>
+            <returns>新的访问令牌、刷新令牌及过期时间。</returns>
+        </member>
+        <member name="M:api.Controllers.AuthController.SendEmailCode(api.Models.SendEmailCodeRequest,System.Threading.CancellationToken)">
+            <summary>
+            发送注册或登录使用的邮箱验证码。
+            </summary>
+            <param name="request">包含目标邮箱地址的请求参数。</param>
+            <param name="cancellationToken">取消操作标记。</param>
+            <returns>发送结果。</returns>
+        </member>
+        <member name="M:api.Controllers.AuthController.DeactivateAccount(api.Models.DeactivateAccountRequest,System.Threading.CancellationToken)">
+            <summary>
+            用户自行注销账号。
+            </summary>
+            <param name="request">注销请求参数。</param>
+            <param name="cancellationToken">取消操作标记。</param>
+            <returns>注销结果。</returns>
+        </member>
+        <member name="M:api.Controllers.AuthController.ChangePassword(api.Models.ChangePasswordRequest,System.Threading.CancellationToken)">
+            <summary>
+            修改当前登录用户的密码。
+            </summary>
+            <param name="request">修改密码请求参数。</param>
+            <param name="cancellationToken">取消操作标记。</param>
+            <returns>修改结果。</returns>
+        </member>
+        <member name="M:api.Controllers.AuthController.UpdateProfile(api.Models.UpdateUserProfileRequest,System.Threading.CancellationToken)">
+            <summary>
+            更新当前登录用户的个人资料（只能更新昵称和头像）。
+            </summary>
+            <param name="request">更新个人资料的请求参数。</param>
+            <param name="cancellationToken">取消操作标记。</param>
+            <returns>更新结果。</returns>
+        </member>
+        <member name="M:api.Controllers.AuthController.GetCurrentUser(System.Threading.CancellationToken)">
+            <summary>
+            获取当前登录用户的基本信息。
+            </summary>
+            <returns>当前用户的基本信息。</returns>
+        </member>
+        <member name="M:api.Controllers.AuthController.CheckAccountUpdateStatus">
+            <summary>
+            检查当前用户是否可以修改账号名。
+            规则：一年内只能修改一次。
+            </summary>
+            <returns>包含是否可修改及下次可修改时间的响应。</returns>
+        </member>
+        <member name="M:api.Controllers.AuthController.UpdateUserAccount(api.Models.UpdateUserAccountRequest,System.Threading.CancellationToken)">
+            <summary>
+            更新用户账号名（一年一次）。
+            </summary>
+            <param name="request">包含新账号名的请求。</param>
+            <param name="cancellationToken">取消操作标记。</param>
+            <returns>更新结果。</returns>
+        </member>
+        <member name="M:api.Controllers.AuthController.CreateAuthResponse(api.Data.User,api.Infrastructure.TokenPair)">
+            <summary>
+            根据用户信息和令牌对构建认证响应模型。
+            </summary>
+            <param name="user">当前用户实体。</param>
+            <param name="tokens">访问令牌和刷新令牌信息。</param>
+            <returns>认证响应 DTO。</returns>
+        </member>
+        <member name="M:api.Controllers.AuthController.ValidateAccount(System.String,System.Threading.CancellationToken)">
+            <summary>
+            验证用户名是否已存在。
+            </summary>
+            <param name="UserAccount">用户名</param>
+            <param name="cancellationToken">取消操作标记。</param>
+            <returns></returns>
+        </member>
+        <member name="T:api.Controllers.CheckinsController">
+            <summary>
+            打卡记录相关接口，包括当天打卡、补打卡和打卡日历。
+            </summary>
+            <remarks>
+            初始化打卡控制器。
+            </remarks>
+            <param name="db">打卡系统数据库上下文。</param>
+        </member>
+        <member name="M:api.Controllers.CheckinsController.#ctor(api.Data.DailyCheckDbContext)">
+            <summary>
+            打卡记录相关接口，包括当天打卡、补打卡和打卡日历。
+            </summary>
+            <remarks>
+            初始化打卡控制器。
+            </remarks>
+            <param name="db">打卡系统数据库上下文。</param>
+        </member>
+        <member name="M:api.Controllers.CheckinsController.Daily(api.Models.DailyCheckinRequest)">
+            <summary>
+            用户当天打卡接口。
+            </summary>
+            <param name="request">打卡请求参数。</param>
+            <returns>操作结果。</returns>
+        </member>
+        <member name="M:api.Controllers.CheckinsController.Retro(api.Models.RetroCheckinRequest)">
+            <summary>
+            补打卡接口。
+            </summary>
+            <param name="request">补打卡请求参数。</param>
+            <returns>操作结果。</returns>
+        </member>
+        <member name="M:api.Controllers.CheckinsController.GetCalendar(System.Int64,System.Int32,System.Int32)">
+            <summary>
+            获取指定打卡计划在某年某月的日历打卡状态。
+            </summary>
+            <param name="planId">打卡计划 ID。</param>
+            <param name="year">年份。</param>
+            <param name="month">月份。</param>
+            <returns>日历打卡状态列表。</returns>
+        </member>
+        <member name="M:api.Controllers.CheckinsController.GetDetail(System.Int64,System.DateOnly)">
+            <summary>
+            获取某个打卡计划在指定日期的打卡详情。
+            </summary>
+            <param name="planId">打卡计划 ID。</param>
+            <param name="date">需要查询的日期。</param>
+            <returns>打卡详情。</returns>
+        </member>
+        <member name="M:api.Controllers.CheckinsController.GetUserId">
+            <summary>
+            从当前访问令牌中解析用户 ID。
+            </summary>
+            <returns>当前登录用户的 ID。</returns>
+        </member>
+        <member name="T:api.Controllers.FilesController">
+            <summary>
+            文件相关接口，提供按用户隔离的图片上传与访问能力。
+            </summary>
+        </member>
+        <member name="M:api.Controllers.FilesController.#ctor(api.Infrastructure.IFileService,api.Data.DailyCheckDbContext)">
+            <summary>
+            文件相关接口，提供按用户隔离的图片上传与访问能力。
+            </summary>
+        </member>
+        <member name="M:api.Controllers.FilesController.UploadUserAvatar(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            上传当前登录用户的头像（公开访问）。
+            上传成功后会自动更新该用户的头像链接。
+            </summary>
+            <param name="file">待上传的图片文件。</param>
+            <returns>包含图片文件 Key 的响应。</returns>
+        </member>
+        <member name="M:api.Controllers.FilesController.GetUserAvatar(System.UInt64,System.String)">
+            <summary>
+            获取指定用户的头像（公开接口）。
+            </summary>
+            <param name="userId">指定的用户ID。</param>
+            <param name="key">图片文件 Key。</param>
+            <returns>图片二进制内容。</returns>
+        </member>
+        <member name="M:api.Controllers.FilesController.UploadImage(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            上传单张图片文件并返回仅当前用户可访问的图片 URL。
+            所有上传的图片都将自动转换为 WebP 格式存储。
+            </summary>
+            <param name="file">待上传的图片文件。</param>
+            <returns>包含图片访问 URL 的响应。</returns>
+        </member>
+        <member name="M:api.Controllers.FilesController.GetImage(System.String)">
+            <summary>
+            获取当前用户已上传的图片内容，仅可访问自己的图片。
+            </summary>
+            <param name="fileKey">上传时返回的图片标识。</param>
+            <returns>图片二进制内容。</returns>
+        </member>
+        <member name="M:api.Controllers.FilesController.GetUserId">
+            <summary>
+            从当前访问令牌中解析用户 ID。
+            </summary>
+            <returns>当前登录用户的 ID。</returns>
+        </member>
+        <member name="T:api.Controllers.PlansController">
+            <summary>
+            打卡计划相关接口，包含查询和创建计划。
+            </summary>
+        </member>
+        <member name="M:api.Controllers.PlansController.#ctor(api.Data.DailyCheckDbContext)">
+            <summary>
+            打卡计划相关接口，包含查询和创建计划。
+            </summary>
+        </member>
+        <member name="M:api.Controllers.PlansController.GetMyPlans">
+            <summary>
+            获取当前登录用户的打卡计划列表。
+            </summary>
+            <returns>当前用户的计划概要列表。</returns>
+        </member>
+        <member name="M:api.Controllers.PlansController.CreatePlan(api.Models.CreatePlanRequest)">
+            <summary>
+            为当前登录用户创建新的打卡计划。
+            </summary>
+            <param name="request">创建计划的请求参数。</param>
+            <returns>新创建的计划概要信息。</returns>
+        </member>
+        <member name="M:api.Controllers.PlansController.UpdatePlan(api.Models.UpdatePlanRequest)">
+            <summary>
+            更新指定的打卡计划。
+            </summary>
+            <param name="request">更新计划的请求参数。</param>
+            <returns></returns>
+        </member>
+        <member name="M:api.Controllers.PlansController.DeletePlan(System.UInt64)">
+            <summary>
+            删除指定的打卡计划。
+            </summary>
+            <param name="PlanId">打卡计划ID</param>
+            <returns></returns>
+        </member>
+        <member name="M:api.Controllers.PlansController.GetUserId">
+            <summary>
+            从当前访问令牌中解析用户 ID。
+            </summary>
+            <returns>当前登录用户的 ID。</returns>
+        </member>
+        <member name="T:api.Data.Checkin">
+            <summary>
+            打卡记录表
+            </summary>
+        </member>
+        <member name="P:api.Data.Checkin.Id">
+            <summary>
+            主键ID
+            </summary>
+        </member>
+        <member name="P:api.Data.Checkin.PlanId">
+            <summary>
+            所属打卡计划ID
+            </summary>
+        </member>
+        <member name="P:api.Data.Checkin.UserId">
+            <summary>
+            打卡用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.Checkin.CheckDate">
+            <summary>
+            打卡日期（仅日期）
+            </summary>
+        </member>
+        <member name="P:api.Data.Checkin.Images">
+            <summary>
+            打卡图片URL数组(JSON)
+            </summary>
+        </member>
+        <member name="P:api.Data.Checkin.Note">
+            <summary>
+            打卡备注
+            </summary>
+        </member>
+        <member name="P:api.Data.Checkin.Status">
+            <summary>
+            打卡状态：0错过(红)、1成功(绿)、2补签(黄)
+            </summary>
+        </member>
+        <member name="P:api.Data.Checkin.IsDeleted">
+            <summary>
+            是否伪删除：0正常，1已删除
+            </summary>
+        </member>
+        <member name="P:api.Data.Checkin.DeletedAt">
+            <summary>
+            伪删除时间
+            </summary>
+        </member>
+        <member name="P:api.Data.Checkin.CreatedAt">
+            <summary>
+            创建时间
+            </summary>
+        </member>
+        <member name="P:api.Data.Checkin.UpdatedAt">
+            <summary>
+            更新时间
+            </summary>
+        </member>
+        <member name="T:api.Data.CheckinPlan">
+            <summary>
+            打卡计划表
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlan.Id">
+            <summary>
+            主键ID
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlan.UserId">
+            <summary>
+            计划所属用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlan.Title">
+            <summary>
+            打卡计划标题
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlan.Description">
+            <summary>
+            打卡计划描述
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlan.StartDate">
+            <summary>
+            计划开始日期
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlan.EndDate">
+            <summary>
+            计划结束日期（可选）
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlan.IsActive">
+            <summary>
+            是否启用：1启用，0停用
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlan.IsDeleted">
+            <summary>
+            是否伪删除：0正常，1已删除
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlan.DeletedAt">
+            <summary>
+            伪删除时间
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlan.CreatedAt">
+            <summary>
+            创建时间
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlan.UpdatedAt">
+            <summary>
+            更新时间
+            </summary>
+        </member>
+        <member name="T:api.Data.SoftDeleteLog">
+            <summary>
+            伪删除操作日志表
+            </summary>
+        </member>
+        <member name="P:api.Data.SoftDeleteLog.Id">
+            <summary>
+            主键ID
+            </summary>
+        </member>
+        <member name="P:api.Data.SoftDeleteLog.TableName">
+            <summary>
+            伪删除记录所属表名
+            </summary>
+        </member>
+        <member name="P:api.Data.SoftDeleteLog.RecordId">
+            <summary>
+            被伪删除记录的主键ID
+            </summary>
+        </member>
+        <member name="P:api.Data.SoftDeleteLog.DeleterUserId">
+            <summary>
+            执行伪删除操作的用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.SoftDeleteLog.Reason">
+            <summary>
+            伪删除原因
+            </summary>
+        </member>
+        <member name="P:api.Data.SoftDeleteLog.DeletedAt">
+            <summary>
+            伪删除时间
+            </summary>
+        </member>
+        <member name="P:api.Data.SoftDeleteLog.Extra">
+            <summary>
+            扩展信息(JSON)，如数据快照等
+            </summary>
+        </member>
+        <member name="T:api.Data.User">
+            <summary>
+            用户表（支持伪删除与黑名单冻结）
+            </summary>
+        </member>
+        <member name="P:api.Data.User.Id">
+            <summary>
+            主键ID
+            </summary>
+        </member>
+        <member name="P:api.Data.User.Email">
+            <summary>
+            用户邮箱（唯一）
+            </summary>
+        </member>
+        <member name="P:api.Data.User.PasswordHash">
+            <summary>
+            密码哈希（如bcrypt）
+            </summary>
+        </member>
+        <member name="P:api.Data.User.NickName">
+            <summary>
+            用户昵称
+            </summary>
+        </member>
+        <member name="P:api.Data.User.AvatarKey">
+            <summary>
+            头像图片URL
+            </summary>
+        </member>
+        <member name="P:api.Data.User.IsDeleted">
+            <summary>
+            是否伪删除：0正常，1已删除
+            </summary>
+        </member>
+        <member name="P:api.Data.User.DeletedAt">
+            <summary>
+            伪删除时间
+            </summary>
+        </member>
+        <member name="P:api.Data.User.Status">
+            <summary>
+            账户状态：1正常，0冻结
+            </summary>
+        </member>
+        <member name="P:api.Data.User.Role">
+            <summary>
+            用户角色：user普通用户，admin管理员
+            </summary>
+        </member>
+        <member name="P:api.Data.User.FrozenAt">
+            <summary>
+            账户冻结时间
+            </summary>
+        </member>
+        <member name="P:api.Data.User.FrozenReason">
+            <summary>
+            账户冻结原因
+            </summary>
+        </member>
+        <member name="P:api.Data.User.FreezeOperatorId">
+            <summary>
+            执行冻结操作的管理员用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.User.CreatedAt">
+            <summary>
+            创建时间
+            </summary>
+        </member>
+        <member name="P:api.Data.User.UpdatedAt">
+            <summary>
+            更新时间
+            </summary>
+        </member>
+        <member name="P:api.Data.User.UserAccount">
+            <summary>
+            用户账号（唯一）
+            </summary>
+        </member>
+        <member name="P:api.Data.User.AccountUpdatedAt">
+            <summary>
+            username更新时间
+            </summary>
+        </member>
+        <member name="T:api.Data.UserActivity">
+            <summary>
+            用户行为埋点日志表
+            </summary>
+        </member>
+        <member name="P:api.Data.UserActivity.Id">
+            <summary>
+            主键ID
+            </summary>
+        </member>
+        <member name="P:api.Data.UserActivity.UserId">
+            <summary>
+            用户ID（匿名操作可为空）
+            </summary>
+        </member>
+        <member name="P:api.Data.UserActivity.Action">
+            <summary>
+            操作名称/事件标识
+            </summary>
+        </member>
+        <member name="P:api.Data.UserActivity.Path">
+            <summary>
+            页面路径或操作路径
+            </summary>
+        </member>
+        <member name="P:api.Data.UserActivity.Metadata">
+            <summary>
+            扩展元数据(JSON)，参数等
+            </summary>
+        </member>
+        <member name="P:api.Data.UserActivity.Ip">
+            <summary>
+            IP地址
+            </summary>
+        </member>
+        <member name="P:api.Data.UserActivity.UserAgent">
+            <summary>
+            User-Agent信息
+            </summary>
+        </member>
+        <member name="P:api.Data.UserActivity.CreatedAt">
+            <summary>
+            记录时间
+            </summary>
+        </member>
+        <member name="T:api.Data.UserBlacklistRecord">
+            <summary>
+            用户黑名单记录表
+            </summary>
+        </member>
+        <member name="P:api.Data.UserBlacklistRecord.Id">
+            <summary>
+            主键ID
+            </summary>
+        </member>
+        <member name="P:api.Data.UserBlacklistRecord.UserId">
+            <summary>
+            被拉黑的用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.UserBlacklistRecord.OperatorUserId">
+            <summary>
+            执行操作的管理员用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.UserBlacklistRecord.Reason">
+            <summary>
+            拉黑或解封原因
+            </summary>
+        </member>
+        <member name="P:api.Data.UserBlacklistRecord.Status">
+            <summary>
+            状态：1拉黑，0解封（历史记录）
+            </summary>
+        </member>
+        <member name="P:api.Data.UserBlacklistRecord.OccurredAt">
+            <summary>
+            操作发生时间
+            </summary>
+        </member>
+        <member name="T:api.Data.UserOauthAccount">
+            <summary>
+            用户第三方登录账号绑定表
+            </summary>
+        </member>
+        <member name="P:api.Data.UserOauthAccount.Id">
+            <summary>
+            主键ID
+            </summary>
+        </member>
+        <member name="P:api.Data.UserOauthAccount.UserId">
+            <summary>
+            关联用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.UserOauthAccount.Provider">
+            <summary>
+            第三方登录平台类型
+            </summary>
+        </member>
+        <member name="P:api.Data.UserOauthAccount.OpenId">
+            <summary>
+            第三方平台open_id
+            </summary>
+        </member>
+        <member name="P:api.Data.UserOauthAccount.UnionId">
+            <summary>
+            第三方平台union_id（可选）
+            </summary>
+        </member>
+        <member name="P:api.Data.UserOauthAccount.CreatedAt">
+            <summary>
+            绑定时间
+            </summary>
+        </member>
+        <member name="P:api.Data.UserOauthAccount.UpdatedAt">
+            <summary>
+            更新时间
+            </summary>
+        </member>
+        <member name="T:api.Infrastructure.IEmailService">
+            <summary>
+            邮件发送服务接口。
+            </summary>
+        </member>
+        <member name="M:api.Infrastructure.IEmailService.SendVerificationCodeAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            发送邮箱验证码邮件。
+            </summary>
+            <param name="toEmail">接收验证码的目标邮箱地址。</param>
+            <param name="code">要发送的验证码内容。</param>
+            <param name="actionType">验证码用途提示。</param>
+            <param name="cancellationToken">取消操作标记。</param>
+        </member>
+        <member name="T:api.Infrastructure.EmailService">
+            <summary>
+            基于 SMTP 的邮件发送服务实现。
+            </summary>
+        </member>
+        <member name="M:api.Infrastructure.EmailService.#ctor(Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            使用应用配置初始化邮件发送服务。
+            </summary>
+            <param name="configuration">应用配置对象。</param>
+        </member>
+        <member name="M:api.Infrastructure.EmailService.SendVerificationCodeAsync(System.String,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            发送邮箱验证码邮件。
+            </summary>
+            <param name="toEmail">接收验证码的目标邮箱地址。</param>
+            <param name="code">要发送的验证码内容。</param>
+            <param name="cancellationToken">取消操作标记。</param>
+        </member>
+        <member name="T:api.Infrastructure.IFileService">
+            <summary>
+            文件存储与访问服务接口，按用户隔离图片的物理存储路径。
+            </summary>
+        </member>
+        <member name="M:api.Infrastructure.IFileService.SaveImageAsync(System.UInt64,Microsoft.AspNetCore.Http.IFormFile,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            为指定用户保存图片文件并返回文件标识。
+            </summary>
+            <param name="userId">当前登录用户的 ID。</param>
+            <param name="file">待保存的图片文件。</param>
+            <param name="isPublic">是否为公开文件（公开文件存储在公共路径，私有文件存储在加密路径）。</param>
+            <param name="cancellationToken">取消操作的标记。</param>
+            <returns>用于后续访问该图片的文件标识（不含扩展名，默认访问 .webp）。</returns>
+        </member>
+        <member name="M:api.Infrastructure.IFileService.GetImageAsync(System.UInt64,System.String,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            为指定用户读取图片文件内容。
+            </summary>
+            <param name="userId">当前登录用户的 ID。</param>
+            <param name="fileKey">图片文件标识。</param>
+            <param name="isPublic">是否为公开文件。</param>
+            <param name="cancellationToken">取消操作的标记。</param>
+            <returns>若存在则返回文件流和内容类型，否则返回 null。</returns>
+        </member>
+        <member name="T:api.Infrastructure.LocalFileService">
+            <summary>
+            基于本地文件系统的图片存储实现，每个用户使用独立目录隔离访问。
+            </summary>
+        </member>
+        <member name="M:api.Infrastructure.LocalFileService.#ctor(Microsoft.AspNetCore.Hosting.IWebHostEnvironment)">
+            <summary>
+            基于本地文件系统的图片存储实现，每个用户使用独立目录隔离访问。
+            </summary>
+        </member>
+        <member name="M:api.Infrastructure.LocalFileService.SaveImageAsync(System.UInt64,Microsoft.AspNetCore.Http.IFormFile,System.Boolean,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="M:api.Infrastructure.LocalFileService.GetImageAsync(System.UInt64,System.String,System.Boolean,System.Threading.CancellationToken)">
+            <inheritdoc />
+        </member>
+        <member name="T:api.Infrastructure.GlobalExceptionMiddleware">
+            <summary>
+            全局异常处理中间件，用于捕获并未处理的异常并记录到文件日志。
+            </summary>
+        </member>
+        <member name="T:api.Infrastructure.JwtOptions">
+            <summary>
+            JWT 相关配置选项。
+            </summary>
+        </member>
+        <member name="P:api.Infrastructure.JwtOptions.Issuer">
+            <summary>
+            令牌签发者。
+            </summary>
+        </member>
+        <member name="P:api.Infrastructure.JwtOptions.Audience">
+            <summary>
+            令牌受众。
+            </summary>
+        </member>
+        <member name="P:api.Infrastructure.JwtOptions.Key">
+            <summary>
+            对称加密密钥。
+            </summary>
+        </member>
+        <member name="P:api.Infrastructure.JwtOptions.AccessTokenMinutes">
+            <summary>
+            访问令牌有效分钟数。
+            </summary>
+        </member>
+        <member name="P:api.Infrastructure.JwtOptions.RefreshTokenDays">
+            <summary>
+            刷新令牌有效天数。
+            </summary>
+        </member>
+        <member name="T:api.Infrastructure.TokenPair">
+            <summary>
+            访问令牌与刷新令牌的组合。
+            </summary>
+        </member>
+        <member name="P:api.Infrastructure.TokenPair.AccessToken">
+            <summary>
+            访问令牌字符串。
+            </summary>
+        </member>
+        <member name="P:api.Infrastructure.TokenPair.RefreshToken">
+            <summary>
+            刷新令牌字符串。
+            </summary>
+        </member>
+        <member name="P:api.Infrastructure.TokenPair.AccessTokenExpiresAt">
+            <summary>
+            访问令牌过期时间（UTC）。
+            </summary>
+        </member>
+        <member name="P:api.Infrastructure.TokenPair.RefreshTokenExpiresAt">
+            <summary>
+            刷新令牌过期时间（UTC）。
+            </summary>
+        </member>
+        <member name="T:api.Infrastructure.IJwtTokenService">
+            <summary>
+            JWT 令牌服务接口。
+            </summary>
+        </member>
+        <member name="M:api.Infrastructure.IJwtTokenService.GenerateTokens(api.Data.User)">
+            <summary>
+            为指定用户生成访问令牌和刷新令牌。
+            </summary>
+            <param name="user">用户实体。</param>
+            <returns>访问令牌与刷新令牌组合。</returns>
+        </member>
+        <member name="M:api.Infrastructure.IJwtTokenService.ValidateRefreshToken(System.String)">
+            <summary>
+            验证刷新令牌有效性并返回声明主体。
+            </summary>
+            <param name="refreshToken">刷新令牌字符串。</param>
+            <returns>验证通过返回声明主体，否则返回 null。</returns>
+        </member>
+        <member name="T:api.Infrastructure.JwtTokenService">
+            <summary>
+            默认的 JWT 令牌服务实现，支持双 token 和单点登录。
+            </summary>
+            <remarks>
+            使用配置选项初始化 JWT 令牌服务。
+            </remarks>
+            <param name="options">JWT 配置选项。</param>
+        </member>
+        <member name="M:api.Infrastructure.JwtTokenService.#ctor(Microsoft.Extensions.Options.IOptions{api.Infrastructure.JwtOptions})">
+            <summary>
+            默认的 JWT 令牌服务实现，支持双 token 和单点登录。
+            </summary>
+            <remarks>
+            使用配置选项初始化 JWT 令牌服务。
+            </remarks>
+            <param name="options">JWT 配置选项。</param>
+        </member>
+        <member name="M:api.Infrastructure.JwtTokenService.GenerateTokens(api.Data.User)">
+            <summary>
+            为指定用户生成新的访问令牌和刷新令牌，并更新单点登录状态。
+            </summary>
+            <param name="user">用户实体。</param>
+            <returns>访问令牌与刷新令牌组合。</returns>
+        </member>
+        <member name="M:api.Infrastructure.JwtTokenService.ValidateRefreshToken(System.String)">
+            <summary>
+            验证刷新令牌是否有效且未被替换。
+            </summary>
+            <param name="refreshToken">刷新令牌字符串。</param>
+            <returns>验证通过的声明主体，否则为 null。</returns>
+        </member>
+        <member name="M:api.Infrastructure.JwtTokenService.CreateToken(api.Data.User,System.String,System.DateTime,System.String)">
+            <summary>
+            创建包含基本声明和类型信息的 JWT 令牌。
+            </summary>
+            <param name="user">用户实体。</param>
+            <param name="jti">令牌唯一标识。</param>
+            <param name="expires">过期时间。</param>
+            <param name="tokenType">令牌类型：access 或 refresh。</param>
+            <returns>序列化后的 JWT 字符串。</returns>
+        </member>
+        <member name="T:api.Infrastructure.PasswordHasher">
+            <summary>
+            提供基于 PBKDF2 的密码哈希与验证功能。
+            </summary>
+        </member>
+        <member name="M:api.Infrastructure.PasswordHasher.Hash(System.String)">
+            <summary>
+            计算密码哈希并返回包含盐值的字符串表示。
+            </summary>
+            <param name="password">明文密码。</param>
+            <returns>包含盐值和密钥的 Base64 串，使用冒号分隔。</returns>
+        </member>
+        <member name="M:api.Infrastructure.PasswordHasher.Verify(System.String,System.String)">
+            <summary>
+            验证明文密码是否与已存储的哈希匹配。
+            </summary>
+            <param name="hash">存储的哈希字符串。</param>
+            <param name="password">待验证的明文密码。</param>
+            <returns>匹配返回 true，否则返回 false。</returns>
+        </member>
+        <member name="T:api.Infrastructure.SendCodeStatus">
+            <summary>
+            发送验证码结果状态。
+            </summary>
+        </member>
+        <member name="F:api.Infrastructure.SendCodeStatus.Success">
+            <summary>
+            发送成功。
+            </summary>
+        </member>
+        <member name="F:api.Infrastructure.SendCodeStatus.TooFrequent">
+            <summary>
+            请求过于频繁，被限流。
+            </summary>
+        </member>
+        <member name="T:api.Infrastructure.VerifyCodeStatus">
+            <summary>
+            校验验证码结果状态。
+            </summary>
+        </member>
+        <member name="F:api.Infrastructure.VerifyCodeStatus.Success">
+            <summary>
+            验证通过。
+            </summary>
+        </member>
+        <member name="F:api.Infrastructure.VerifyCodeStatus.NotFoundOrExpired">
+            <summary>
+            验证码不存在或已过期。
+            </summary>
+        </member>
+        <member name="F:api.Infrastructure.VerifyCodeStatus.CodeMismatch">
+            <summary>
+            验证码不匹配。
+            </summary>
+        </member>
+        <member name="T:api.Infrastructure.IVerificationCodeService">
+            <summary>
+            邮箱验证码发送与校验服务接口。
+            </summary>
+        </member>
+        <member name="M:api.Infrastructure.IVerificationCodeService.SendCodeAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            发送邮箱验证码并应用频率限制。
+            </summary>
+            <param name="email">目标邮箱地址。</param>
+            <param name="cancellationToken">取消操作标记。</param>
+            <returns>发送结果状态。</returns>
+        </member>
+        <member name="M:api.Infrastructure.IVerificationCodeService.VerifyCodeAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            校验指定邮箱的验证码是否有效。
+            </summary>
+            <param name="email">目标邮箱地址。</param>
+            <param name="code">用户提交的验证码。</param>
+            <param name="cancellationToken">取消操作标记。</param>
+            <returns>校验结果状态。</returns>
+        </member>
+        <member name="T:api.Infrastructure.VerificationCodeService">
+            <summary>
+            支持 Redis 与内存双实现的邮箱验证码服务。
+            </summary>
+        </member>
+        <member name="M:api.Infrastructure.VerificationCodeService.#ctor(api.Infrastructure.IEmailService,Microsoft.Extensions.Caching.Memory.IMemoryCache,Microsoft.Extensions.Configuration.IConfiguration,StackExchange.Redis.IConnectionMultiplexer)">
+            <summary>
+            初始化验证码服务实例。
+            </summary>
+            <param name="emailService">邮件发送服务。</param>
+            <param name="memoryCache">内存缓存实例。</param>
+            <param name="configuration">应用配置对象。</param>
+            <param name="redis">可选的 Redis 连接多路复用器。</param>
+        </member>
+        <member name="M:api.Infrastructure.VerificationCodeService.SendCodeAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            发送邮箱验证码并应用频率限制。
+            </summary>
+            <param name="email">目标邮箱地址。</param>
+            <param name="cancellationToken">取消操作标记。</param>
+            <returns>发送结果状态。</returns>
+        </member>
+        <member name="M:api.Infrastructure.VerificationCodeService.VerifyCodeAsync(System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            校验指定邮箱的验证码是否有效。
+            </summary>
+            <param name="email">目标邮箱地址。</param>
+            <param name="code">用户提交的验证码。</param>
+            <param name="cancellationToken">取消操作标记。</param>
+            <returns>校验结果状态。</returns>
+        </member>
+        <member name="T:api.Models.RegisterRequest">
+            <summary>
+            用户注册请求参数。
+            </summary>
+        </member>
+        <member name="T:api.Models.LoginRequest">
+            <summary>
+            用户登录请求参数。
+            </summary>
+        </member>
+        <member name="P:api.Models.LoginRequest.Email">
+            <summary>
+            用户邮箱地址。
+            </summary>
+        </member>
+        <member name="P:api.Models.LoginRequest.Password">
+            <summary>
+            登录密码明文，将在服务端进行哈希验证。
+            </summary>
+        </member>
+        <member name="T:api.Models.AuthResponse">
+            <summary>
+            认证响应数据，包含用户信息和双 token 信息。
+            </summary>
+        </member>
+        <member name="T:api.Models.UpdateUserAccountRequest">
+            <summary>
+            更新用户账号请求参数。
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdateUserAccountRequest.UserAccount">
+            <summary>
+            新的用户账号名。
+            </summary>
+        </member>
+        <member name="T:api.Models.RefreshTokenRequest">
+            <summary>
+            刷新令牌请求参数。
+            </summary>
+        </member>
+        <member name="P:api.Models.RefreshTokenRequest.RefreshToken">
+            <summary>
+            长期刷新令牌字符串。
+            </summary>
+        </member>
+        <member name="T:api.Models.SendEmailCodeRequest">
+            <summary>
+            发送邮箱验证码请求参数。
+            </summary>
+        </member>
+        <member name="P:api.Models.SendEmailCodeRequest.Email">
+            <summary>
+            接收验证码的邮箱地址。
+            </summary>
+        </member>
+        <member name="T:api.Models.VerifyEmailCodeRequest">
+            <summary>
+            校验邮箱验证码请求参数（当前预留，未公开为独立接口）。
+            </summary>
+        </member>
+        <member name="P:api.Models.VerifyEmailCodeRequest.Email">
+            <summary>
+            接收验证码的邮箱地址。
+            </summary>
+        </member>
+        <member name="P:api.Models.VerifyEmailCodeRequest.Code">
+            <summary>
+            用户提交的邮箱验证码。
+            </summary>
+        </member>
+        <member name="T:api.Models.DailyCheckinRequest">
+            <summary>
+            当日打卡请求参数。
+            </summary>
+        </member>
+        <member name="P:api.Models.DailyCheckinRequest.PlanId">
+            <summary>
+            对应的打卡计划 ID。
+            </summary>
+        </member>
+        <member name="P:api.Models.DailyCheckinRequest.ImageUrls">
+            <summary>
+            打卡图片 URL 列表，可为空。
+            </summary>
+        </member>
+        <member name="P:api.Models.DailyCheckinRequest.Note">
+            <summary>
+            打卡备注信息，可为空。
+            </summary>
+        </member>
+        <member name="T:api.Models.RetroCheckinRequest">
+            <summary>
+            补打卡请求参数。
+            </summary>
+        </member>
+        <member name="P:api.Models.RetroCheckinRequest.PlanId">
+            <summary>
+            对应的打卡计划 ID。
+            </summary>
+        </member>
+        <member name="P:api.Models.RetroCheckinRequest.Date">
+            <summary>
+            需要补打卡的日期。
+            </summary>
+        </member>
+        <member name="P:api.Models.RetroCheckinRequest.ImageUrls">
+            <summary>
+            打卡图片 URL 列表，可为空。
+            </summary>
+        </member>
+        <member name="P:api.Models.RetroCheckinRequest.Note">
+            <summary>
+            补打卡备注信息，可为空。
+            </summary>
+        </member>
+        <member name="T:api.Models.CalendarStatusItem">
+            <summary>
+            日历打卡状态项。
+            </summary>
+        </member>
+        <member name="P:api.Models.CalendarStatusItem.Date">
+            <summary>
+            日期。
+            </summary>
+        </member>
+        <member name="P:api.Models.CalendarStatusItem.Status">
+            <summary>
+            打卡状态：1=正常打卡，2=补打卡等。
+            </summary>
+        </member>
+        <member name="T:api.Models.CheckinDetailResponse">
+            <summary>
+            某一天的打卡详情返回结果。
+            </summary>
+        </member>
+        <member name="P:api.Models.CheckinDetailResponse.Date">
+            <summary>
+            打卡日期。
+            </summary>
+        </member>
+        <member name="P:api.Models.CheckinDetailResponse.Status">
+            <summary>
+            打卡状态：0错过、1正常打卡、2补打卡。
+            </summary>
+        </member>
+        <member name="P:api.Models.CheckinDetailResponse.Note">
+            <summary>
+            打卡备注信息，可为空。
+            </summary>
+        </member>
+        <member name="P:api.Models.CheckinDetailResponse.ImageUrls">
+            <summary>
+            打卡图片 URL 列表。
+            </summary>
+        </member>
+        <member name="T:api.Models.CreatePlanRequest">
+            <summary>
+            创建打卡计划的请求参数。
+            </summary>
+        </member>
+        <member name="P:api.Models.CreatePlanRequest.Title">
+            <summary>
+            打卡计划标题。
+            </summary>
+        </member>
+        <member name="P:api.Models.CreatePlanRequest.Description">
+            <summary>
+            计划描述，可为空。
+            </summary>
+        </member>
+        <member name="P:api.Models.CreatePlanRequest.StartDate">
+            <summary>
+            计划开始日期，不传则默认为当天。
+            </summary>
+        </member>
+        <member name="P:api.Models.CreatePlanRequest.EndDate">
+            <summary>
+            计划结束日期，可为空。
+            </summary>
+        </member>
+        <member name="T:api.Models.UpdatePlanRequest">
+            <summary>
+            更新打卡计划的请求参数。
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdatePlanRequest.Id">
+            <summary>
+            打卡计划唯一标识。
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdatePlanRequest.Title">
+            <summary>
+            打卡计划标题。
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdatePlanRequest.Description">
+            <summary>
+            计划描述，可为空。
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdatePlanRequest.IsActive">
+            <summary>
+            是否处于启用状态。
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdatePlanRequest.StartDate">
+            <summary>
+            计划开始日期，不传则默认为当天。
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdatePlanRequest.EndDate">
+            <summary>
+            计划结束日期，可为空。
+            </summary>
+        </member>
+        <member name="T:api.Models.PlanSummary">
+            <summary>
+            打卡计划概要信息，用于列表展示。
+            </summary>
+        </member>
+        <member name="P:api.Models.PlanSummary.Id">
+            <summary>
+            计划唯一标识。
+            </summary>
+        </member>
+        <member name="P:api.Models.PlanSummary.Title">
+            <summary>
+            计划标题。
+            </summary>
+        </member>
+        <member name="P:api.Models.PlanSummary.Description">
+            <summary>
+            计划描述，可为空。
+            </summary>
+        </member>
+        <member name="P:api.Models.PlanSummary.StartDate">
+            <summary>
+            计划开始日期。
+            </summary>
+        </member>
+        <member name="P:api.Models.PlanSummary.EndDate">
+            <summary>
+            计划结束日期，可为空。
+            </summary>
+        </member>
+        <member name="P:api.Models.PlanSummary.IsActive">
+            <summary>
+            是否处于启用状态。
+            </summary>
+        </member>
+        <member name="T:Program">
+            <summary>
+            Auto-generated public partial Program class for top-level statement apps.
+            </summary>
+        </member>
+    </members>
+</doc>
