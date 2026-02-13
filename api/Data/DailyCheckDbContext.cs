@@ -54,7 +54,7 @@ public partial class DailyCheckDbContext : DbContext
 
             entity.HasIndex(e => new { e.UserId, e.CheckDate }, "idx_checkins_user_date");
 
-            // entity.HasIndex(e => new { e.PlanId, e.CheckDate }, "ux_checkins_plan_date").IsUnique();
+            entity.HasIndex(e => new { e.PlanId, e.CheckDate }, "ux_checkins_plan_date").IsUnique();
 
             entity.HasIndex(e => new { e.PlanId, e.CheckDate, e.TimeSlotId }, "ux_checkins_plan_date_slot").IsUnique();
 
