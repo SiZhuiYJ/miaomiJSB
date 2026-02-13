@@ -6,20 +6,42 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.log.*
 
-api.Release
+# Dependencies and build outputs
 node_modules
 dist
 dist-ssr
-*.local
+build
+coverage
+*.tgz
+*.zip
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
+*.swp
+*.swo
+*~
+
+# OS generated files
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Environment variables and local configs
+.env
+.env.local
+.env.*.local
+config.local.json
+
+# Temp files and caches
+tmp/
+temp/
+.cache/
+*.tmp
+
+# Exclude api.Release folder
+api.Release

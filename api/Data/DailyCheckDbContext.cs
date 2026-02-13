@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore.MySql.Scaffolding.Internal;
@@ -20,6 +20,8 @@ public partial class DailyCheckDbContext : DbContext
 
     public virtual DbSet<CheckinPlan> CheckinPlans { get; set; }
 
+    public virtual DbSet<CheckinPlanTimeSlot> CheckinPlanTimeSlots { get; set; }
+
     public virtual DbSet<SoftDeleteLog> SoftDeleteLogs { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
@@ -29,10 +31,6 @@ public partial class DailyCheckDbContext : DbContext
     public virtual DbSet<UserBlacklistRecord> UserBlacklistRecords { get; set; }
 
     public virtual DbSet<UserOauthAccount> UserOauthAccounts { get; set; }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseMySql("server=8.137.127.7;database=dailycheck;charset=utf8;uid=dailycheck;pwd=CjxCewwA7CiMk4ce;port=3306", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.36-mysql"));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -48,13 +46,17 @@ public partial class DailyCheckDbContext : DbContext
                 .ToTable("checkins", tb => tb.HasComment("打卡记录表"))
                 .UseCollation("utf8mb4_unicode_ci");
 
+            entity.HasIndex(e => e.TimeSlotId, "fk_checkins_time_slot");
+
             entity.HasIndex(e => e.IsDeleted, "idx_checkins_is_deleted");
 
             entity.HasIndex(e => e.Status, "idx_checkins_status");
 
             entity.HasIndex(e => new { e.UserId, e.CheckDate }, "idx_checkins_user_date");
 
-            entity.HasIndex(e => new { e.PlanId, e.CheckDate, e.TimeSlotIndex }, "ux_checkins_plan_date_slot").IsUnique();
+            entity.HasIndex(e => new { e.PlanId, e.CheckDate }, "ux_checkins_plan_date").IsUnique();
+
+            entity.HasIndex(e => new { e.PlanId, e.CheckDate, e.TimeSlotId }, "ux_checkins_plan_date_slot").IsUnique();
 
             entity.Property(e => e.Id)
                 .HasComment("主键ID")
@@ -62,9 +64,6 @@ public partial class DailyCheckDbContext : DbContext
             entity.Property(e => e.CheckDate)
                 .HasComment("打卡日期（仅日期）")
                 .HasColumnName("check_date");
-            entity.Property(e => e.TimeSlotIndex)
-                .HasComment("时间段索引")
-                .HasColumnName("time_slot_index");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasComment("创建时间")
@@ -91,6 +90,9 @@ public partial class DailyCheckDbContext : DbContext
             entity.Property(e => e.Status)
                 .HasComment("打卡状态：0错过(红)、1成功(绿)、2补签(黄)")
                 .HasColumnName("status");
+            entity.Property(e => e.TimeSlotId)
+                .HasComment("关联的打卡时间段ID")
+                .HasColumnName("time_slot_id");
             entity.Property(e => e.UpdatedAt)
                 .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -105,6 +107,10 @@ public partial class DailyCheckDbContext : DbContext
                 .HasForeignKey(d => d.PlanId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_checkins_plan");
+
+            entity.HasOne(d => d.TimeSlot).WithMany(p => p.Checkins)
+                .HasForeignKey(d => d.TimeSlotId)
+                .HasConstraintName("fk_checkins_time_slot");
 
             entity.HasOne(d => d.User).WithMany(p => p.Checkins)
                 .HasForeignKey(d => d.UserId)
@@ -144,10 +150,6 @@ public partial class DailyCheckDbContext : DbContext
                 .HasComment("打卡计划描述")
                 .HasColumnType("text")
                 .HasColumnName("description");
-            entity.Property(e => e.DailyTimeSlots)
-                .HasComment("每日打卡时间段(JSON)")
-                .HasColumnType("json")
-                .HasColumnName("daily_time_slots");
             entity.Property(e => e.EndDate)
                 .HasComment("计划结束日期（可选）")
                 .HasColumnName("end_date");
@@ -180,6 +182,61 @@ public partial class DailyCheckDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_plans_user");
+        });
+
+        modelBuilder.Entity<CheckinPlanTimeSlot>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity
+                .ToTable("checkin_plan_time_slots", tb => tb.HasComment("打卡计划时间段配置表（每日重复）"))
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => e.IsActive, "idx_slots_active");
+
+            entity.HasIndex(e => e.PlanId, "idx_slots_plan");
+
+            entity.Property(e => e.Id)
+                .HasComment("主键ID")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("创建时间")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EndTime)
+                .HasComment("结束时间（如 10:00:00）")
+                .HasColumnType("time")
+                .HasColumnName("end_time");
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("'1'")
+                .HasComment("是否启用：1启用，0停用")
+                .HasColumnName("is_active");
+            entity.Property(e => e.OrderNum)
+                .HasComment("排序序号，用于界面展示顺序")
+                .HasColumnName("order_num");
+            entity.Property(e => e.PlanId)
+                .HasComment("所属打卡计划ID")
+                .HasColumnName("plan_id");
+            entity.Property(e => e.SlotName)
+                .HasMaxLength(64)
+                .HasComment("时间段名称，如“早晨”、“下午”")
+                .HasColumnName("slot_name");
+            entity.Property(e => e.StartTime)
+                .HasComment("开始时间（如 09:00:00）")
+                .HasColumnType("time")
+                .HasColumnName("start_time");
+            entity.Property(e => e.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("更新时间")
+                .HasColumnType("datetime")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Plan).WithMany(p => p.CheckinPlanTimeSlots)
+                .HasForeignKey(d => d.PlanId)
+                .HasConstraintName("fk_slots_plan");
         });
 
         modelBuilder.Entity<SoftDeleteLog>(entity =>

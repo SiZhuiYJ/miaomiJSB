@@ -30,6 +30,7 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
     {
         var userId = GetUserId();
         var plans = await _db.CheckinPlans
+            .Include(x => x.CheckinPlanTimeSlots)
             .Where(x => x.UserId == userId && !x.IsDeleted)
             .OrderBy(x => x.StartDate)
             .Select(x => new PlanSummary
@@ -39,7 +40,20 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
                 Description = x.Description,
                 StartDate = x.StartDate,
                 EndDate = x.EndDate,
-                IsActive = x.IsActive
+                IsActive = x.IsActive,
+                TimeSlots = x.CheckinPlanTimeSlots
+                    .Where(ts => ts.IsActive == true)
+                    .OrderBy(ts => ts.OrderNum)
+                    .ThenBy(ts => ts.StartTime)
+                    .Select(ts => new TimeSlotDto
+                    {
+                        Id = ts.Id,
+                        SlotName = ts.SlotName,
+                        StartTime = ts.StartTime,
+                        EndTime = ts.EndTime,
+                        OrderNum = ts.OrderNum,
+                        IsActive = ts.IsActive ?? true
+                    }).ToList()
             })
             .ToListAsync();
 
@@ -57,6 +71,27 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
         var userId = GetUserId();
         var startDate = request.StartDate ?? DateOnly.FromDateTime(DateTime.UtcNow.Date);
 
+        // 验证时间段
+        if (request.TimeSlots != null && request.TimeSlots.Count > 0)
+        {
+            foreach (var slot in request.TimeSlots)
+            {
+                if (slot.StartTime >= slot.EndTime)
+                {
+                    return BadRequest(new { message = $"时间段 {slot.SlotName} 开始时间必须早于结束时间" });
+                }
+            }
+            
+            var sortedSlots = request.TimeSlots.OrderBy(s => s.StartTime).ToList();
+            for (int i = 0; i < sortedSlots.Count - 1; i++)
+            {
+                if (sortedSlots[i].EndTime > sortedSlots[i+1].StartTime)
+                {
+                     return BadRequest(new { message = "时间段存在重叠，请检查设置" });
+                }
+            }
+        }
+
         var plan = new CheckinPlan
         {
             UserId = (ulong)userId,
@@ -70,6 +105,23 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
             UpdatedAt = DateTime.UtcNow
         };
 
+        if (request.TimeSlots != null)
+        {
+            foreach (var slotDto in request.TimeSlots)
+            {
+                plan.CheckinPlanTimeSlots.Add(new CheckinPlanTimeSlot
+                {
+                    SlotName = slotDto.SlotName,
+                    StartTime = slotDto.StartTime,
+                    EndTime = slotDto.EndTime,
+                    OrderNum = slotDto.OrderNum,
+                    IsActive = slotDto.IsActive,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
         _db.CheckinPlans.Add(plan);
         await _db.SaveChangesAsync();
 
@@ -80,7 +132,16 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
             Description = plan.Description,
             StartDate = plan.StartDate,
             EndDate = plan.EndDate,
-            IsActive = plan.IsActive
+            IsActive = plan.IsActive,
+            TimeSlots = plan.CheckinPlanTimeSlots.Select(ts => new TimeSlotDto
+            {
+                Id = ts.Id,
+                SlotName = ts.SlotName,
+                StartTime = ts.StartTime,
+                EndTime = ts.EndTime,
+                OrderNum = ts.OrderNum,
+                IsActive = ts.IsActive ?? true
+            }).ToList()
         };
 
         return CreatedAtAction(nameof(GetMyPlans), new { id = plan.Id }, result);
@@ -97,11 +158,55 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
     {
         var userId = GetUserId();
         var plan = await _db.CheckinPlans
+            .Include(x => x.CheckinPlanTimeSlots)
             .FirstOrDefaultAsync(x => x.Id == request.Id && x.UserId == userId && !x.IsDeleted);
         if (plan == null)
         {
             return NotFound(new { message = "未找到计划" });
         }
+
+        // 验证时间段
+        if (request.TimeSlots != null)
+        {
+            if (request.TimeSlots.Count > 0)
+            {
+                foreach (var slot in request.TimeSlots)
+                {
+                    if (slot.StartTime >= slot.EndTime)
+                    {
+                        return BadRequest(new { message = $"时间段 {slot.SlotName} 开始时间必须早于结束时间" });
+                    }
+                }
+
+                var sortedSlots = request.TimeSlots.OrderBy(s => s.StartTime).ToList();
+                for (int i = 0; i < sortedSlots.Count - 1; i++)
+                {
+                    if (sortedSlots[i].EndTime > sortedSlots[i + 1].StartTime)
+                    {
+                        return BadRequest(new { message = "时间段存在重叠，请检查设置" });
+                    }
+                }
+            }
+            
+            // 更新时间段：先清除旧的（或者标记删除），这里选择物理删除重建，简单有效
+            _db.CheckinPlanTimeSlots.RemoveRange(plan.CheckinPlanTimeSlots);
+            
+            foreach (var slotDto in request.TimeSlots)
+            {
+                plan.CheckinPlanTimeSlots.Add(new CheckinPlanTimeSlot
+                {
+                    PlanId = plan.Id,
+                    SlotName = slotDto.SlotName,
+                    StartTime = slotDto.StartTime,
+                    EndTime = slotDto.EndTime,
+                    OrderNum = slotDto.OrderNum,
+                    IsActive = slotDto.IsActive,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
         plan.Title = request.Title ?? plan.Title;
         plan.Description = request.Description ?? plan.Description;
         plan.StartDate = request.StartDate ?? plan.StartDate;

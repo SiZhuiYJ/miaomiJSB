@@ -1,6 +1,15 @@
 import { defineStore } from 'pinia';
 import { http } from '../utils/http';
 
+export interface TimeSlotDto {
+  id?: number;
+  slotName?: string;
+  startTime: string; // HH:mm:ss
+  endTime: string; // HH:mm:ss
+  orderNum?: number;
+  isActive?: boolean;
+}
+
 export interface PlanSummary {
   id: number;
   title: string;
@@ -8,6 +17,7 @@ export interface PlanSummary {
   startDate: string;
   endDate: string | null;
   isActive: boolean;
+  timeSlots?: TimeSlotDto[];
 }
 
 interface PlansState {
@@ -35,6 +45,7 @@ export const usePlansStore = defineStore('plans', {
       description?: string;
       startDate?: string | null;
       endDate?: string | null;
+      timeSlots?: TimeSlotDto[];
     }): Promise<PlanSummary> {
       const response = await http.post<PlanSummary>('/mm/Plans', payload);
       const created = response.data;
@@ -48,6 +59,7 @@ export const usePlansStore = defineStore('plans', {
       startDate?: string | null;
       endDate?: string | null;
       isActive: boolean;
+      timeSlots?: TimeSlotDto[];
     }): Promise<void> {
       await http.post('/mm/Plans/update', payload);
       const index = this.items.findIndex((x) => x.id === payload.id);
@@ -56,6 +68,9 @@ export const usePlansStore = defineStore('plans', {
         const updated = { ...this.items[index], ...payload };
         if (updated.startDate === null || updated.startDate === undefined) {
           updated.startDate = this.items[index].startDate;
+        }
+        if (payload.timeSlots) {
+          updated.timeSlots = payload.timeSlots;
         }
         this.items[index] = updated as PlanSummary;
       }

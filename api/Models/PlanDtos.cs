@@ -27,7 +27,10 @@ public class CreatePlanRequest
     /// </summary>
     public DateOnly? EndDate { get; set; }
 
-    public List<PlanTimeSlot>? DailyTimeSlots { get; set; }
+    /// <summary>
+    /// 打卡时间段列表
+    /// </summary>
+    public List<TimeSlotDto>? TimeSlots { get; set; }
 }
 /// <summary>
 /// 更新打卡计划的请求参数。
@@ -63,7 +66,10 @@ public class UpdatePlanRequest
     /// </summary>
     public DateOnly? EndDate { get; set; }
 
-    public List<PlanTimeSlot>? DailyTimeSlots { get; set; }
+    /// <summary>
+    /// 打卡时间段列表
+    /// </summary>
+    public List<TimeSlotDto>? TimeSlots { get; set; }
 }
 /// <summary>
 /// 打卡计划概要信息，用于列表展示。
@@ -100,11 +106,44 @@ public class PlanSummary
     /// </summary>
     public bool? IsActive { get; set; }
 
-    public List<PlanTimeSlot>? DailyTimeSlots { get; set; }
+    /// <summary>
+    /// 打卡时间段列表
+    /// </summary>
+    public List<TimeSlotDto> TimeSlots { get; set; } = new();
 }
 
-public class PlanTimeSlot
+/// <summary>
+/// 打卡时间段数据传输对象
+/// </summary>
+public class TimeSlotDto
 {
-    public string Start { get; set; } = string.Empty;
-    public string End { get; set; } = string.Empty;
+    /// <summary>
+    /// 时间段ID（创建时为空，更新时必填）
+    /// </summary>
+    public ulong? Id { get; set; }
+
+    /// <summary>
+    /// 时间段名称，如“早晨”
+    /// </summary>
+    public string? SlotName { get; set; }
+
+    /// <summary>
+    /// 开始时间（HH:mm:ss）
+    /// </summary>
+    public TimeOnly StartTime { get; set; }
+
+    /// <summary>
+    /// 结束时间（HH:mm:ss）
+    /// </summary>
+    public TimeOnly EndTime { get; set; }
+
+    /// <summary>
+    /// 排序序号
+    /// </summary>
+    public ushort OrderNum { get; set; }
+
+    /// <summary>
+    /// 是否启用
+    /// </summary>
+    public bool IsActive { get; set; } = true;
 }

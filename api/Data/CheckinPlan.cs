@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace api.Data;
@@ -38,8 +38,6 @@ public partial class CheckinPlan
     /// </summary>
     public DateOnly? EndDate { get; set; }
 
-    public string? DailyTimeSlots { get; set; }
-
     /// <summary>
     /// 是否启用：1启用，0停用
     /// </summary>
@@ -64,6 +62,8 @@ public partial class CheckinPlan
     /// 更新时间
     /// </summary>
     public DateTime UpdatedAt { get; set; }
+
+    public virtual ICollection<CheckinPlanTimeSlot> CheckinPlanTimeSlots { get; set; } = new List<CheckinPlanTimeSlot>();
 
     public virtual ICollection<Checkin> Checkins { get; set; } = new List<Checkin>();
 

@@ -272,6 +272,11 @@
             所属打卡计划ID
             </summary>
         </member>
+        <member name="P:api.Data.Checkin.TimeSlotId">
+            <summary>
+            关联的打卡时间段ID
+            </summary>
+        </member>
         <member name="P:api.Data.Checkin.UserId">
             <summary>
             打卡用户ID
@@ -373,6 +378,56 @@
             </summary>
         </member>
         <member name="P:api.Data.CheckinPlan.UpdatedAt">
+            <summary>
+            更新时间
+            </summary>
+        </member>
+        <member name="T:api.Data.CheckinPlanTimeSlot">
+            <summary>
+            打卡计划时间段配置表（每日重复）
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlanTimeSlot.Id">
+            <summary>
+            主键ID
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlanTimeSlot.PlanId">
+            <summary>
+            所属打卡计划ID
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlanTimeSlot.SlotName">
+            <summary>
+            时间段名称，如“早晨”、“下午”
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlanTimeSlot.StartTime">
+            <summary>
+            开始时间（如 09:00:00）
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlanTimeSlot.EndTime">
+            <summary>
+            结束时间（如 10:00:00）
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlanTimeSlot.OrderNum">
+            <summary>
+            排序序号，用于界面展示顺序
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlanTimeSlot.IsActive">
+            <summary>
+            是否启用：1启用，0停用
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlanTimeSlot.CreatedAt">
+            <summary>
+            创建时间
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlanTimeSlot.UpdatedAt">
             <summary>
             更新时间
             </summary>
@@ -1105,6 +1160,11 @@
             计划结束日期，可为空。
             </summary>
         </member>
+        <member name="P:api.Models.CreatePlanRequest.TimeSlots">
+            <summary>
+            打卡时间段列表
+            </summary>
+        </member>
         <member name="T:api.Models.UpdatePlanRequest">
             <summary>
             更新打卡计划的请求参数。
@@ -1140,6 +1200,11 @@
             计划结束日期，可为空。
             </summary>
         </member>
+        <member name="P:api.Models.UpdatePlanRequest.TimeSlots">
+            <summary>
+            打卡时间段列表
+            </summary>
+        </member>
         <member name="T:api.Models.PlanSummary">
             <summary>
             打卡计划概要信息，用于列表展示。
@@ -1173,6 +1238,46 @@
         <member name="P:api.Models.PlanSummary.IsActive">
             <summary>
             是否处于启用状态。
+            </summary>
+        </member>
+        <member name="P:api.Models.PlanSummary.TimeSlots">
+            <summary>
+            打卡时间段列表
+            </summary>
+        </member>
+        <member name="T:api.Models.TimeSlotDto">
+            <summary>
+            打卡时间段数据传输对象
+            </summary>
+        </member>
+        <member name="P:api.Models.TimeSlotDto.Id">
+            <summary>
+            时间段ID（创建时为空，更新时必填）
+            </summary>
+        </member>
+        <member name="P:api.Models.TimeSlotDto.SlotName">
+            <summary>
+            时间段名称，如“早晨”
+            </summary>
+        </member>
+        <member name="P:api.Models.TimeSlotDto.StartTime">
+            <summary>
+            开始时间（HH:mm:ss）
+            </summary>
+        </member>
+        <member name="P:api.Models.TimeSlotDto.EndTime">
+            <summary>
+            结束时间（HH:mm:ss）
+            </summary>
+        </member>
+        <member name="P:api.Models.TimeSlotDto.OrderNum">
+            <summary>
+            排序序号
+            </summary>
+        </member>
+        <member name="P:api.Models.TimeSlotDto.IsActive">
+            <summary>
+            是否启用
             </summary>
         </member>
         <member name="T:Program">

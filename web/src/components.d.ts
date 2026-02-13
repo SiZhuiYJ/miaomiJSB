@@ -25,9 +25,10 @@ declare module 'vue' {
     ElImage: typeof import('element-plus/es')['ElImage']
     ElProgress: typeof import('element-plus/es')['ElProgress']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
+    ElTimePicker: typeof import('element-plus/es')['ElTimePicker']
     ImagePreviewList: typeof import('./components/ImagePreviewList.vue')['default']
     NotificationSystem: typeof import('./components/NotificationSystem.vue')['default']
-    PlanSidebar: typeof import('./compo./components/ProgressBar.vue]
+    PlanSidebar: typeof import('./components/PlanSidebar.vue')['default']
     ProgressBar: typeof import('./components/ProgressBar.vue')['default']
     Topbar: typeof import('./components/Topbar.vue')['default']
   }

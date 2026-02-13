@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace api.Data;
@@ -19,6 +19,11 @@ public partial class Checkin
     public ulong PlanId { get; set; }
 
     /// <summary>
+    /// 关联的打卡时间段ID
+    /// </summary>
+    public ulong? TimeSlotId { get; set; }
+
+    /// <summary>
     /// 打卡用户ID
     /// </summary>
     public ulong UserId { get; set; }
@@ -27,8 +32,6 @@ public partial class Checkin
     /// 打卡日期（仅日期）
     /// </summary>
     public DateOnly CheckDate { get; set; }
-
-    public int TimeSlotIndex { get; set; }
 
     /// <summary>
     /// 打卡图片URL数组(JSON)
@@ -66,6 +69,8 @@ public partial class Checkin
     public DateTime UpdatedAt { get; set; }
 
     public virtual CheckinPlan Plan { get; set; } = null!;
+
+    public virtual CheckinPlanTimeSlot? TimeSlot { get; set; }
 
     public virtual User User { get; set; } = null!;
 }

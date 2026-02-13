@@ -1074,6 +1074,14 @@
             "description": "计划结束日期，可为空。",
             "format": "date",
             "nullable": true
+          },
+          "timeSlots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeSlotDto"
+            },
+            "description": "打卡时间段列表",
+            "nullable": true
           }
         },
         "additionalProperties": false,
@@ -1163,6 +1171,14 @@
           "isActive": {
             "type": "boolean",
             "description": "是否处于启用状态。",
+            "nullable": true
+          },
+          "timeSlots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeSlotDto"
+            },
+            "description": "打卡时间段列表",
             "nullable": true
           }
         },
@@ -1254,6 +1270,43 @@
         "additionalProperties": false,
         "description": "发送邮箱验证码请求参数。"
       },
+      "TimeSlotDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "时间段ID（创建时为空，更新时必填）",
+            "format": "int64",
+            "nullable": true
+          },
+          "slotName": {
+            "type": "string",
+            "description": "时间段名称，如“早晨”",
+            "nullable": true
+          },
+          "startTime": {
+            "type": "string",
+            "description": "开始时间（HH:mm:ss）",
+            "format": "time"
+          },
+          "endTime": {
+            "type": "string",
+            "description": "结束时间（HH:mm:ss）",
+            "format": "time"
+          },
+          "orderNum": {
+            "type": "integer",
+            "description": "排序序号",
+            "format": "int32"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "是否启用"
+          }
+        },
+        "additionalProperties": false,
+        "description": "打卡时间段数据传输对象"
+      },
       "UpdatePlanRequest": {
         "type": "object",
         "properties": {
@@ -1286,6 +1339,14 @@
             "type": "string",
             "description": "计划结束日期，可为空。",
             "format": "date",
+            "nullable": true
+          },
+          "timeSlots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeSlotDto"
+            },
+            "description": "打卡时间段列表",
             "nullable": true
           }
         },

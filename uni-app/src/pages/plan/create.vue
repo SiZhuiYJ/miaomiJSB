@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { usePlansStore } from '../../stores/plans';
+import { usePlansStore, type TimeSlotDto } from '../../stores/plans';
 import { useThemeStore } from '../../stores/theme';
 import { notifyError, notifySuccess, notifyWarning } from '../../utils/notification';
 
@@ -15,6 +15,8 @@ const description = ref('');
 const startDate = ref('');
 const endDate = ref('');
 const isActive = ref(true);
+const enableTimeSlots = ref(false);
+const timeSlots = ref<TimeSlotDto[]>([]);
 
 const today = new Date().toISOString().split('T')[0];
 
@@ -29,6 +31,10 @@ onLoad((options: any) => {
       startDate.value = plan.startDate;
       endDate.value = plan.endDate || '';
       isActive.value = plan.isActive;
+      if (plan.timeSlots && plan.timeSlots.length > 0) {
+        enableTimeSlots.value = true;
+        timeSlots.value = JSON.parse(JSON.stringify(plan.timeSlots));
+      }
       uni.setNavigationBarTitle({ title: '编辑计划' });
     }
   }
@@ -44,6 +50,30 @@ function handleEndDateChange(e: any) {
 
 function handleIsActiveChange(e: any) {
   isActive.value = e.detail.value;
+}
+
+function handleEnableTimeSlotsChange(e: any) {
+  enableTimeSlots.value = e.detail.value;
+  if (enableTimeSlots.value && timeSlots.value.length === 0) {
+    addTimeSlot();
+  }
+}
+
+function addTimeSlot() {
+  timeSlots.value.push({
+    startTime: '09:00:00',
+    endTime: '10:00:00',
+    slotName: '',
+    isActive: true,
+  });
+}
+
+function removeTimeSlot(index: number) {
+  timeSlots.value.splice(index, 1);
+}
+
+function handleTimeChange(index: number, field: 'startTime' | 'endTime', e: any) {
+  timeSlots.value[index][field] = e.detail.value + ':00'; // uni-app picker returns HH:mm, backend needs HH:mm:ss
 }
 
 async function handleDelete() {
@@ -97,6 +127,40 @@ async function handleSubmit() {
     return;
   }
 
+  // Time slots validation
+  if (enableTimeSlots.value) {
+    if (timeSlots.value.length === 0) {
+      notifyWarning('请至少添加一个打卡时间段');
+      return;
+    }
+    for (const slot of timeSlots.value) {
+      if (!slot.startTime || !slot.endTime) {
+        notifyWarning('请填写完整的时间段信息');
+        return;
+      }
+      if (slot.startTime >= slot.endTime) {
+        notifyWarning(`时间段 ${slot.slotName || ''} 开始时间必须早于结束时间`);
+        return;
+      }
+    }
+    // Check overlaps
+    const sorted = [...timeSlots.value].sort((a, b) => a.startTime.localeCompare(b.startTime));
+    for (let i = 0; i < sorted.length - 1; i++) {
+      if (sorted[i].endTime > sorted[i + 1].startTime) {
+        notifyWarning('时间段存在重叠，请检查设置');
+        return;
+      }
+    }
+  }
+
+  const payloadTimeSlots = enableTimeSlots.value
+    ? timeSlots.value.map((ts, index) => ({
+      ...ts,
+      orderNum: index + 1,
+      isActive: true,
+    }))
+    : undefined;
+
   try {
     if (isEdit.value && planId.value) {
       await plansStore.updatePlan({
@@ -105,7 +169,8 @@ async function handleSubmit() {
         description: description.value || undefined,
         startDate: startDate.value || null,
         endDate: endDate.value || null,
-        isActive: isActive.value
+        isActive: isActive.value,
+        timeSlots: payloadTimeSlots,
       });
       notifySuccess('更新成功');
     } else {
@@ -114,6 +179,7 @@ async function handleSubmit() {
         description: description.value || undefined,
         startDate: startDate.value || null,
         endDate: endDate.value || null,
+        timeSlots: payloadTimeSlots,
       });
       notifySuccess('创建成功');
     }
@@ -168,6 +234,39 @@ async function handleSubmit() {
         </picker>
       </view>
 
+      <view class="form-group">
+        <view class="label-row">
+          <view class="label">开启分时段打卡</view>
+          <switch :checked="enableTimeSlots" @change="handleEnableTimeSlotsChange" color="var(--accent-color)" />
+        </view>
+
+        <view v-if="enableTimeSlots" class="time-slots-list">
+          <view v-for="(slot, index) in timeSlots" :key="index" class="time-slot-item">
+            <view class="slot-header">
+              <text>时间段 {{ index + 1 }}</text>
+              <text class="delete-text" @click="removeTimeSlot(index)">删除</text>
+            </view>
+            <view class="slot-content">
+              <input class="input slot-name" v-model="slot.slotName" placeholder="名称 (如: 早晨)" />
+              <view class="time-range">
+                <picker mode="time" :value="slot.startTime.substring(0, 5)"
+                  @change="(e) => handleTimeChange(index, 'startTime', e)">
+                  <view class="time-picker">{{ slot.startTime.substring(0, 5) }}</view>
+                </picker>
+                <text class="separator">至</text>
+                <picker mode="time" :value="slot.endTime.substring(0, 5)"
+                  @change="(e) => handleTimeChange(index, 'endTime', e)">
+                  <view class="time-picker">{{ slot.endTime.substring(0, 5) }}</view>
+                </picker>
+              </view>
+            </view>
+          </view>
+          <view class="add-slot-btn" @click="addTimeSlot">
+            <text>+ 添加打卡时间段</text>
+          </view>
+        </view>
+      </view>
+
       <view class="form-group" v-if="isEdit">
         <view class="label">是否启用</view>
         <switch :checked="isActive" @change="handleIsActiveChange" color="var(--accent-color)" />
@@ -197,6 +296,93 @@ async function handleSubmit() {
 
 .form-group {
   margin-bottom: 20px;
+}
+
+.label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+
+  .label {
+    margin-bottom: 0;
+  }
+}
+
+.time-slots-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.time-slot-item {
+  background-color: var(--bg-color);
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.slot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.delete-text {
+  color: #ff4d4f;
+  padding: 4px;
+}
+
+.slot-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.slot-name {
+  font-size: 14px;
+  background-color: var(--bg-elevated);
+}
+
+.time-range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.time-picker {
+  background-color: var(--bg-elevated);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text-primary);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  min-width: 80px;
+  text-align: center;
+}
+
+.separator {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.add-slot-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+
+  &:active {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
 }
 
 .form-group:last-child {
