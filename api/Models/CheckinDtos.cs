@@ -22,6 +22,11 @@ public class DailyCheckinRequest
     /// 打卡备注信息，可为空。
     /// </summary>
     public string? Note { get; set; }
+
+    /// <summary>
+    /// 打卡时间段 ID，如果计划开启了分时段打卡则必填。
+    /// </summary>
+    public ulong? TimeSlotId { get; set; }
 }
 
 /// <summary>
@@ -90,4 +95,14 @@ public class CheckinDetailResponse
     /// 打卡图片 URL 列表。
     /// </summary>
     public List<string> ImageUrls { get; set; } = new();
+
+    /// <summary>
+    /// 打卡时间段 ID。
+    /// </summary>
+    public ulong? TimeSlotId { get; set; }
+
+    /// <summary>
+    /// 打卡时间段名称。
+    /// </summary>
+    public string? SlotName { get; set; }
 }
