@@ -49,3 +49,4 @@ api/bin/Release/**/*
 
 # Exclude api.Release folder
 api.Release
+.vs
