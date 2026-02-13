@@ -43,5 +43,9 @@ temp/
 .cache/
 *.tmp
 
+# 忽略发布目录
+api/bin/Release/
+api/bin/Release/**/*
+
 # Exclude api.Release folder
 api.Release
