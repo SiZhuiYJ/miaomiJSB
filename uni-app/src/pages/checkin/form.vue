@@ -24,19 +24,40 @@ const currentPlan = computed(() => {
     return plansStore.items.find(p => p.id === planId.value);
 });
 
+const isSlotLocked = ref(false);
+
 onLoad(async (options: any) => {
   if (options) {
     planId.value = Number(options.planId);
     dateStr.value = options.date;
+    if (options.slotId) {
+        selectedTimeSlotId.value = Number(options.slotId);
+        isSlotLocked.value = true;
+    }
 
     const today = new Date().toISOString().split('T')[0];
     const isRetro = dateStr.value < today;
-    uni.setNavigationBarTitle({
-      title: isRetro ? '补卡' : '打卡'
-    });
-    
-    // Always fetch plans to ensure we have the latest time slots configuration
+
+    // Wait for plans to be loaded
     await plansStore.fetchMyPlans();
+
+    // Re-evaluate retro status if needed based on slot time
+    if (dateStr.value === today && selectedTimeSlotId.value) {
+         const slot = currentPlan.value?.timeSlots?.find(s => s.id === selectedTimeSlotId.value);
+         if (slot) {
+              const now = new Date();
+              const nowTimeStr = now.toTimeString().split(' ')[0];
+              if (nowTimeStr > slot.endTime) {
+                  uni.setNavigationBarTitle({ title: '补卡' });
+              } else {
+                  uni.setNavigationBarTitle({ title: '打卡' });
+              }
+         } else {
+             uni.setNavigationBarTitle({ title: isRetro ? '补卡' : '打卡' });
+         }
+    } else {
+        uni.setNavigationBarTitle({ title: isRetro ? '补卡' : '打卡' });
+    }
   }
 });
 
@@ -120,7 +141,24 @@ async function handleSubmit() {
     const today = new Date().toISOString().split('T')[0];
     const isRetro = dateStr.value < today;
 
-    if (isRetro) {
+    // Additional Logic: If it's today but user selected a slot that is "missed" (past end time), use retro
+    let forceRetro = false;
+    if (dateStr.value === today && selectedTimeSlotId.value && currentPlan.value?.timeSlots) {
+        const slot = currentPlan.value.timeSlots.find(s => s.id === selectedTimeSlotId.value);
+        if (slot) {
+            const now = new Date();
+            const nowTimeStr = now.toTimeString().split(' ')[0];
+            // Compare HH:mm:ss strings
+            if (nowTimeStr > slot.endTime) {
+                forceRetro = true;
+            }
+        }
+    }
+
+    // Force retro if title says so (fallback)
+    // Actually, title is set by same logic, so redundant but safe
+    
+    if (isRetro || forceRetro) {
       await checkinsStore.retroCheckin({
         planId: planId.value,
         date: dateStr.value,
@@ -162,18 +200,33 @@ async function handleSubmit() {
 
     <view class="card">
       <view class="form-group" v-if="currentPlan && currentPlan.timeSlots && currentPlan.timeSlots.length > 0">
-        <text class="label">选择时间段</text>
+        <text class="label">当前打卡时间段</text>
         <view class="slots-grid">
-          <view
-            v-for="slot in currentPlan.timeSlots"
-            :key="slot.id"
-            class="slot-item"
-            :class="{ active: selectedTimeSlotId === slot.id }"
-            @click="selectedTimeSlotId = slot.id || null"
-          >
-            <text class="slot-name">{{ slot.slotName }}</text>
-            <text class="slot-time">{{ slot.startTime.slice(0, 5) }} - {{ slot.endTime.slice(0, 5) }}</text>
-          </view>
+            <template v-for="slot in currentPlan.timeSlots" :key="slot.id">
+                <view
+                    v-if="selectedTimeSlotId === slot.id"
+                    class="slot-item active"
+                    @click="isSlotLocked ? null : (selectedTimeSlotId = slot.id || null)"
+                    :style="{ 
+                        opacity: 1,
+                        pointerEvents: isSlotLocked ? 'none' : 'auto'
+                    }"
+                >
+                    <text class="slot-name">{{ slot.slotName }}</text>
+                    <text class="slot-time">{{ slot.startTime.slice(0, 5) }} - {{ slot.endTime.slice(0, 5) }}</text>
+                </view>
+                <!-- If not locked, we could show others, but user request "don't show others" -->
+                <!-- However, if user came without slotId (isSlotLocked=false), they need to see options -->
+                <view
+                    v-else-if="!isSlotLocked"
+                    class="slot-item"
+                    :class="{ active: selectedTimeSlotId === slot.id }"
+                    @click="selectedTimeSlotId = slot.id || null"
+                >
+                    <text class="slot-name">{{ slot.slotName }}</text>
+                    <text class="slot-time">{{ slot.startTime.slice(0, 5) }} - {{ slot.endTime.slice(0, 5) }}</text>
+                </view>
+            </template>
         </view>
       </view>
 

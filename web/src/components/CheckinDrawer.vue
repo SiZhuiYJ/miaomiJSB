@@ -95,8 +95,27 @@ async function handleSubmit(): Promise<void> {
     };
 
     if (targetOnly.getTime() === todayOnly.getTime()) {
-      await checkinsStore.dailyCheckin(payload);
-      notifySuccess('今日打卡成功');
+      // Check if force retro needed for today
+      let forceRetro = false;
+      if (selectedTimeSlotId.value && currentPlan.value?.timeSlots) {
+        const slot = currentPlan.value.timeSlots.find(s => s.id === selectedTimeSlotId.value);
+        if (slot) {
+          const now = new Date();
+          const nowTimeStr = now.toTimeString().split(' ')[0];
+          if (nowTimeStr > slot.endTime) {
+            forceRetro = true;
+          }
+        }
+      }
+
+      if (forceRetro) {
+        const isoDate = formatDateOnly(target);
+        await checkinsStore.retroCheckin({ ...payload, date: isoDate });
+        notifySuccess('补签成功');
+      } else {
+        await checkinsStore.dailyCheckin(payload);
+        notifySuccess('今日打卡成功');
+      }
     } else if (targetOnly.getTime() < todayOnly.getTime()) {
       const isoDate = formatDateOnly(target);
       await checkinsStore.retroCheckin({ ...payload, date: isoDate });
