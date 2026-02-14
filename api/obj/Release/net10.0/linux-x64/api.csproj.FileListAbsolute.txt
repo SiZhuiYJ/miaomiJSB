@@ -144,3 +144,4 @@ E:\SignIn\api\obj\Release\net10.0\linux-x64\refint\api.dll
 E:\SignIn\api\obj\Release\net10.0\linux-x64\api.pdb
 E:\SignIn\api\obj\Release\net10.0\linux-x64\api.genruntimeconfig.cache
 E:\SignIn\api\obj\Release\net10.0\linux-x64\ref\api.dll
+E:\SignIn\api\obj\Release\net10.0\linux-x64\api.sourcelink.json
