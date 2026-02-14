@@ -62,16 +62,8 @@ export const usePlansStore = defineStore('plans', {
       timeSlots?: TimeSlotDto[];
     }): Promise<void> {
       await http.post('/mm/Plans/update', payload);
-      const index = this.items.findIndex((x) => x.id === payload.id);
-      if (index === -1) return;
-      const current = this.items[index]!;
-      if (payload.title !== undefined) current.title = payload.title;
-      if (payload.description !== undefined) current.description = payload.description;
-      if (payload.startDate !== undefined && payload.startDate !== null) current.startDate = payload.startDate;
-      if (payload.endDate !== undefined) current.endDate = payload.endDate;
-      current.isActive = payload.isActive;
-      // We should ideally reload the list or update timeSlots locally, but for now this is fine as the list view doesn't show slots detailedly
-      if (payload.timeSlots) current.timeSlots = payload.timeSlots;
+      // Ideally we should just refetch to get updated server state (especially IDs for new time slots)
+      await this.fetchMyPlans();
     },
     async deletePlan(id: number): Promise<void> {
       await http.post(`/mm/Plans/delete?PlanId=${id}`);

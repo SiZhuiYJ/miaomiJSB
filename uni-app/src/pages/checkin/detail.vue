@@ -13,7 +13,7 @@ const themeStore = useThemeStore();
 
 const planId = ref<number | null>(null);
 const dateStr = ref('');
-const detail = ref<CheckinDetail | null>(null);
+const detail = ref<CheckinDetail[]>([]);
 const loading = ref(true);
 const imageBlobMap = ref<Record<string, string>>({});
 
@@ -76,27 +76,25 @@ async function fetchDetail() {
   loading.value = true;
   try {
     const res = await checkinsStore.getCheckinDetail(planId.value, dateStr.value);
-    // Process image URLs to be absolute if needed, or handle in <image>
-    // Assuming backend returns relative paths like "/api/files/..."
-    const processedUrls = res.imageUrls.map(url => {
-      if (url.startsWith('http')) return url;
-      return API_BASE_URL + url;
+    
+    // Process results
+    const processedDetails = res.map(item => {
+        const processedUrls = item.imageUrls.map(url => {
+            if (url.startsWith('http')) return url;
+            return API_BASE_URL + url;
+        });
+        return {
+            ...item,
+            imageUrls: processedUrls
+        };
     });
 
-    detail.value = {
-      ...res,
-      imageUrls: processedUrls
-    };
-
-    // Update title based on status
-    if (detail.value.status === 1) {
-      uni.setNavigationBarTitle({ title: '打卡' });
-    } else if (detail.value.status === 2) {
-      uni.setNavigationBarTitle({ title: '补卡' });
-    }
+    detail.value = processedDetails;
 
     // Load images
-    processedUrls.forEach(url => loadImage(url));
+    processedDetails.forEach(item => {
+        item.imageUrls.forEach(url => loadImage(url));
+    });
 
   } catch (e) {
     notifyError('加载失败');
@@ -106,9 +104,11 @@ async function fetchDetail() {
 }
 
 function handlePreviewImage(originalUrl: string) {
-  if (!detail.value?.imageUrls) return;
-  // Use blob URLs for preview if available
-  const urls = detail.value.imageUrls.map(url => imageBlobMap.value[url] || url);
+  if (!detail.value.length) return;
+  
+  // Collect all images from all details for the preview
+  const allImages = detail.value.flatMap(d => d.imageUrls);
+  const urls = allImages.map(url => imageBlobMap.value[url] || url);
   const current = imageBlobMap.value[originalUrl] || originalUrl;
 
   uni.previewImage({
@@ -123,41 +123,71 @@ function handlePreviewImage(originalUrl: string) {
     <NotificationSystem />
     <view class="header">
       <text class="date-label">日期：{{ dateStr }}</text>
-      <view class="status-badge" v-if="detail">
-        <text v-if="detail.status === 1" class="status-text success">正常打卡</text>
-        <text v-else-if="detail.status === 2" class="status-text retro">补签</text>
-        <text v-else class="status-text missed">错过</text>
-      </view>
     </view>
 
     <view v-if="loading" class="loading-state">
       <text>加载中...</text>
     </view>
 
-    <view v-else-if="detail" class="detail-content">
-      <view class="card">
+    <view v-else-if="detail && detail.length > 0" class="detail-content">
+      <view v-for="(item, index) in detail" :key="index" class="card">
+        <view class="card-header">
+           <view class="status-badge">
+            <text v-if="item.status === 1" class="status-text success">正常打卡</text>
+            <text v-else-if="item.status === 2" class="status-text retro">补签</text>
+            <text v-else class="status-text missed">错过</text>
+           </view>
+           <view v-if="item.timeSlotId" class="time-slot-tag">
+             <text class="time-slot-text">时段 {{ item.timeSlotId }}</text>
+           </view>
+        </view>
+      
         <view class="section">
           <text class="label">备注</text>
           <view class="note-box">
-            <text class="note-text">{{ detail.note || '无备注' }}</text>
+            <text class="note-text">{{ item.note || '无备注' }}</text>
           </view>
         </view>
 
         <view class="section">
           <text class="label">图片</text>
-          <view class="image-grid" v-if="detail.imageUrls && detail.imageUrls.length > 0">
-            <image v-for="(url, index) in detail.imageUrls" :key="index" :src="imageBlobMap[url]" mode="aspectFill"
+          <view class="image-grid" v-if="item.imageUrls && item.imageUrls.length > 0">
+            <image v-for="(url, imgIndex) in item.imageUrls" :key="imgIndex" :src="imageBlobMap[url]" mode="aspectFill"
               class="detail-image" @click="handlePreviewImage(url)" />
           </view>
           <text v-else class="empty-text">无图片</text>
         </view>
       </view>
     </view>
+    <view v-else class="empty-state">
+        <text>暂无打卡记录</text>
+    </view>
 
   </view>
 </template>
 
 <style scoped lang="scss">
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.time-slot-tag {
+    background-color: var(--primary-color-light, #e0f2fe);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+.time-slot-text {
+    font-size: 12px;
+    color: var(--primary-color, #0284c7);
+}
+.empty-state {
+    display: flex;
+    justify-content: center;
+    padding: 40px;
+    color: var(--text-secondary);
+}
 .container {
   padding: var(--uni-container-padding);
   background-color: var(--bg-color);

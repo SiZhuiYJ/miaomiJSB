@@ -22,6 +22,11 @@ public class DailyCheckinRequest
     /// 打卡备注信息，可为空。
     /// </summary>
     public string? Note { get; set; }
+
+    /// <summary>
+    /// 时间段 ID（可选，用于分时段打卡）
+    /// </summary>
+    public ulong? TimeSlotId { get; set; }
 }
 
 /// <summary>
@@ -48,6 +53,11 @@ public class RetroCheckinRequest
     /// 补打卡备注信息，可为空。
     /// </summary>
     public string? Note { get; set; }
+
+    /// <summary>
+    /// 时间段 ID（可选，用于分时段打卡）
+    /// </summary>
+    public ulong? TimeSlotId { get; set; }
 }
 
 /// <summary>
@@ -90,4 +100,9 @@ public class CheckinDetailResponse
     /// 打卡图片 URL 列表。
     /// </summary>
     public List<string> ImageUrls { get; set; } = new();
+
+    /// <summary>
+    /// 关联的时间段ID（如果有）
+    /// </summary>
+    public ulong? TimeSlotId { get; set; }
 }

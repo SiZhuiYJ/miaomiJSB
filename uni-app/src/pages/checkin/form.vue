@@ -1,23 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useCheckinsStore } from '../../stores/checkins';
 import { useAuthStore } from '../../stores/auth';
 import { useThemeStore } from '../../stores/theme';
+import { usePlansStore } from '../../stores/plans';
 import { API_BASE_URL } from '../../config';
 import { compressImageToWebP } from '@/utils/image';
 
 const checkinsStore = useCheckinsStore();
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
+const plansStore = usePlansStore();
 
 const planId = ref<number | null>(null);
 const dateStr = ref('');
 const note = ref('');
 const images = ref<{ path: string; url?: string }[]>([]);
 const loading = ref(false);
+const selectedTimeSlotId = ref<number | null>(null);
 
-onLoad((options: any) => {
+const currentPlan = computed(() => {
+    return plansStore.items.find(p => p.id === planId.value);
+});
+
+onLoad(async (options: any) => {
   if (options) {
     planId.value = Number(options.planId);
     dateStr.value = options.date;
@@ -27,6 +34,9 @@ onLoad((options: any) => {
     uni.setNavigationBarTitle({
       title: isRetro ? '补卡' : '打卡'
     });
+    
+    // Always fetch plans to ensure we have the latest time slots configuration
+    await plansStore.fetchMyPlans();
   }
 });
 
@@ -81,6 +91,12 @@ async function uploadFile(filePath: string): Promise<string> {
 async function handleSubmit() {
   if (!planId.value || !dateStr.value) return;
 
+  // Validate time slot if required
+  if (currentPlan.value?.timeSlots && currentPlan.value.timeSlots.length > 0 && !selectedTimeSlotId.value) {
+    uni.showToast({ title: '请选择打卡时间段', icon: 'none' });
+    return;
+  }
+
   if (images.value.length === 0) {
     uni.showToast({ title: '请至少上传一张图片', icon: 'none' });
     return;
@@ -110,6 +126,7 @@ async function handleSubmit() {
         date: dateStr.value,
         imageUrls: uploadedUrls,
         note: note.value || undefined,
+        timeSlotId: selectedTimeSlotId.value || undefined
       });
       uni.hideLoading();
       uni.showToast({ title: '补签成功' });
@@ -118,6 +135,7 @@ async function handleSubmit() {
         planId: planId.value,
         imageUrls: uploadedUrls,
         note: note.value || undefined,
+        timeSlotId: selectedTimeSlotId.value || undefined
       });
       uni.hideLoading();
       uni.showToast({ title: '打卡成功' });
@@ -143,6 +161,22 @@ async function handleSubmit() {
     </view>
 
     <view class="card">
+      <view class="form-group" v-if="currentPlan && currentPlan.timeSlots && currentPlan.timeSlots.length > 0">
+        <text class="label">选择时间段</text>
+        <view class="slots-grid">
+          <view
+            v-for="slot in currentPlan.timeSlots"
+            :key="slot.id"
+            class="slot-item"
+            :class="{ active: selectedTimeSlotId === slot.id }"
+            @click="selectedTimeSlotId = slot.id || null"
+          >
+            <text class="slot-name">{{ slot.slotName }}</text>
+            <text class="slot-time">{{ slot.startTime.slice(0, 5) }} - {{ slot.endTime.slice(0, 5) }}</text>
+          </view>
+        </view>
+      </view>
+
       <view class="form-group">
         <text class="label">备注</text>
         <textarea class="textarea" v-model="note" placeholder="写点什么..." auto-height />
@@ -202,6 +236,52 @@ async function handleSubmit() {
 
 .form-group:last-child {
   margin-bottom: 0;
+}
+
+.slots-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.slot-item {
+  width: calc(50% - 5px);
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.slot-item.active {
+  background-color: var(--primary-color-light, #e0f2fe);
+  border-color: var(--primary-color, #0284c7);
+}
+
+.slot-name {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.slot-item.active .slot-name {
+  color: var(--primary-color, #0284c7);
+}
+
+.slot-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.slot-item.active .slot-time {
+  color: var(--primary-color, #0284c7);
 }
 
 .label {

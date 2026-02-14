@@ -637,17 +637,26 @@
             "content": {
               "text/plain": {
                 "schema": {
-                  "$ref": "#/components/schemas/CheckinDetailResponse"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CheckinDetailResponse"
+                  }
                 }
               },
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CheckinDetailResponse"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CheckinDetailResponse"
+                  }
                 }
               },
               "text/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CheckinDetailResponse"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CheckinDetailResponse"
+                  }
                 }
               }
             }
@@ -1045,6 +1054,12 @@
             },
             "description": "打卡图片 URL 列表。",
             "nullable": true
+          },
+          "timeSlotId": {
+            "type": "integer",
+            "description": "关联的时间段ID（如果有）",
+            "format": "int64",
+            "nullable": true
           }
         },
         "additionalProperties": false,
@@ -1106,6 +1121,12 @@
           "note": {
             "type": "string",
             "description": "打卡备注信息，可为空。",
+            "nullable": true
+          },
+          "timeSlotId": {
+            "type": "integer",
+            "description": "时间段 ID（可选，用于分时段打卡）",
+            "format": "int64",
             "nullable": true
           }
         },
@@ -1248,6 +1269,12 @@
           "note": {
             "type": "string",
             "description": "补打卡备注信息，可为空。",
+            "nullable": true
+          },
+          "timeSlotId": {
+            "type": "integer",
+            "description": "时间段 ID（可选，用于分时段打卡）",
+            "format": "int64",
             "nullable": true
           }
         },

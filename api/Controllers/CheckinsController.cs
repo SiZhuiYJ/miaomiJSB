@@ -35,16 +35,42 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
         var userId = GetUserId();
         var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
 
-        var plan = await db.CheckinPlans.SingleOrDefaultAsync(x => x.Id == (ulong)request.PlanId && x.UserId == userId && !x.IsDeleted && x.IsActive == true);
+        var plan = await db.CheckinPlans
+            .Include(p => p.CheckinPlanTimeSlots)
+            .SingleOrDefaultAsync(x => x.Id == (ulong)request.PlanId && x.UserId == userId && !x.IsDeleted && x.IsActive == true);
         if (plan == null)
             return NotFound("Plan not found");
 
         if (plan.StartDate > today)
             return BadRequest("Plan has not started yet");
 
-        var existing = await db.Checkins.SingleOrDefaultAsync(x => x.PlanId == plan.Id && x.CheckDate == today && !x.IsDeleted);
+        // 分时段打卡逻辑
+        CheckinPlanTimeSlot? timeSlot = null;
+        if (request.TimeSlotId.HasValue)
+        {
+            timeSlot = plan.CheckinPlanTimeSlots.FirstOrDefault(ts => ts.Id == request.TimeSlotId.Value && ts.IsActive == true);
+            if (timeSlot == null)
+                return BadRequest("Invalid time slot");
+            
+            // 验证时间是否在范围内
+            // 假设服务器时区与用户一致，或用户接受服务器时间。这里使用 DateTime.UtcNow + 8 (CST)
+            var now = DateTime.UtcNow.AddHours(8); 
+            var currentTime = TimeOnly.FromDateTime(now);
+            
+            if (currentTime < timeSlot.StartTime)
+                return BadRequest($"Time slot {timeSlot.SlotName} has not started yet ({timeSlot.StartTime})");
+            if (currentTime > timeSlot.EndTime)
+                return BadRequest($"Time slot {timeSlot.SlotName} has ended ({timeSlot.EndTime}), please use retro checkin");
+        }
+        else if (plan.CheckinPlanTimeSlots.Any(ts => ts.IsActive == true))
+        {
+             return BadRequest("Time slot is required for this plan");
+        }
+
+        var existing = await db.Checkins
+            .SingleOrDefaultAsync(x => x.PlanId == plan.Id && x.CheckDate == today && x.TimeSlotId == request.TimeSlotId && !x.IsDeleted);
         if (existing != null)
-            return Conflict("Already checked in for today");
+            return Conflict("Already checked in for today" + (request.TimeSlotId.HasValue ? " in this time slot" : ""));
 
         if (request.ImageUrls == null || request.ImageUrls.Count < 1 || request.ImageUrls.Count > 3)
             return BadRequest("Daily checkin must include between 1 and 3 images");
@@ -54,6 +80,7 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
             PlanId = plan.Id,
             UserId = userId,
             CheckDate = today,
+            TimeSlotId = request.TimeSlotId,
             Images = request.ImageUrls != null && request.ImageUrls.Count > 0 ? JsonSerializer.Serialize(request.ImageUrls) : null,
             Note = request.Note,
             Status = 1,
@@ -82,16 +109,40 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
         if (request.Date >= today)
             return BadRequest("Retro checkin date must be in the past");
 
-        var plan = await db.CheckinPlans.SingleOrDefaultAsync(x => x.Id == (ulong)request.PlanId && x.UserId == userId && !x.IsDeleted && x.IsActive == true);
+        var plan = await db.CheckinPlans
+            .Include(p => p.CheckinPlanTimeSlots)
+            .SingleOrDefaultAsync(x => x.Id == (ulong)request.PlanId && x.UserId == userId && !x.IsDeleted && x.IsActive == true);
         if (plan == null)
             return NotFound("Plan not found");
 
         if (plan.StartDate > request.Date)
             return BadRequest("Plan was not active on that date");
 
-        var existing = await db.Checkins.SingleOrDefaultAsync(x => x.PlanId == plan.Id && x.CheckDate == request.Date && !x.IsDeleted);
+        // 分时段逻辑
+        if (request.TimeSlotId.HasValue)
+        {
+             var slot = plan.CheckinPlanTimeSlots.FirstOrDefault(ts => ts.Id == request.TimeSlotId.Value && ts.IsActive == true);
+             if (slot == null)
+                return BadRequest("Invalid time slot");
+             
+             // 如果是补签当天的卡，必须是已经过期的时间段
+             if (request.Date == today)
+             {
+                 var now = DateTime.UtcNow.AddHours(8);
+                 var currentTime = TimeOnly.FromDateTime(now);
+                 if (currentTime <= slot.EndTime)
+                     return BadRequest($"Current time is within time slot {slot.SlotName}, please use daily checkin");
+             }
+        }
+        else if (plan.CheckinPlanTimeSlots.Any(ts => ts.IsActive == true))
+        {
+             return BadRequest("Time slot is required for this plan");
+        }
+
+        var existing = await db.Checkins
+            .SingleOrDefaultAsync(x => x.PlanId == plan.Id && x.CheckDate == request.Date && x.TimeSlotId == request.TimeSlotId && !x.IsDeleted);
         if (existing != null)
-            return Conflict("Already checked in for that date");
+            return Conflict("Already checked in for that date" + (request.TimeSlotId.HasValue ? " in this time slot" : ""));
 
         if (request.ImageUrls == null || request.ImageUrls.Count < 1 || request.ImageUrls.Count > 3)
             return BadRequest("Retro checkin must include between 1 and 3 images");
@@ -101,6 +152,7 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
             PlanId = plan.Id,
             UserId = userId,
             CheckDate = request.Date,
+            TimeSlotId = request.TimeSlotId,
             Images = request.ImageUrls != null && request.ImageUrls.Count > 0 ? JsonSerializer.Serialize(request.ImageUrls) : null,
             Note = request.Note,
             Status = 2,
@@ -133,16 +185,44 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
         var firstDay = new DateOnly(year, month, 1);
         var lastDay = firstDay.AddMonths(1).AddDays(-1);
 
-        var items = await db.Checkins
+        var checkins = await db.Checkins
             .Where(x => x.PlanId == (ulong)planId && x.CheckDate >= firstDay && x.CheckDate <= lastDay && !x.IsDeleted)
-            .Select(x => new CalendarStatusItem
-            {
-                Date = x.CheckDate,
-                Status = x.Status
-            })
             .ToListAsync();
+        
+        var activeSlotsCount = plan.CheckinPlanTimeSlots.Count(x => x.IsActive == true);
+        var result = new List<CalendarStatusItem>();
 
-        return Ok(items);
+        var grouped = checkins.GroupBy(x => x.CheckDate);
+        foreach(var g in grouped)
+        {
+            var date = g.Key;
+            sbyte status = 1;
+            bool isComplete = false;
+
+            if (activeSlotsCount == 0)
+            {
+                isComplete = true;
+                status = g.Max(x => x.Status); 
+            }
+            else
+            {
+                var checkedSlots = g.Select(x => x.TimeSlotId).Where(x => x.HasValue).Distinct().Count();
+                if (checkedSlots >= activeSlotsCount)
+                {
+                    isComplete = true;
+                    // If any is retro (2), the day status is 2 (Retro/Yellow)
+                    if (g.Any(x => x.Status == 2)) status = 2;
+                    else status = 1;
+                }
+            }
+
+            if (isComplete)
+            {
+                result.Add(new CalendarStatusItem { Date = date, Status = status });
+            }
+        }
+
+        return Ok(result);
     }
 
     /// <summary>
@@ -152,7 +232,7 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
     /// <param name="date">需要查询的日期。</param>
     /// <returns>打卡详情。</returns>
     [HttpGet("detail")]
-    public async Task<ActionResult<CheckinDetailResponse>> GetDetail(long planId, DateOnly date)
+    public async Task<ActionResult<List<CheckinDetailResponse>>> GetDetail(long planId, DateOnly date)
     {
         var userId = GetUserId();
 
@@ -160,33 +240,39 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
         if (plan == null)
             return NotFound("Plan not found");
 
-        var checkin = await db.Checkins.SingleOrDefaultAsync(x => x.PlanId == plan.Id && x.CheckDate == date && !x.IsDeleted);
-        if (checkin == null)
-            return NotFound("Checkin not found");
+        var checkins = await db.Checkins
+            .Where(x => x.PlanId == plan.Id && x.CheckDate == date && !x.IsDeleted)
+            .ToListAsync();
+            
+        if (checkins.Count == 0)
+             return NotFound("Checkin not found"); // 或者返回空列表，视前端需求而定，这里保持原有一致性可能返回 404
 
-        var images = new List<string>();
-        if (!string.IsNullOrWhiteSpace(checkin.Images))
-        {
-            try
+        var result = checkins.Select(checkin => {
+            var images = new List<string>();
+            if (!string.IsNullOrWhiteSpace(checkin.Images))
             {
-                var parsed = JsonSerializer.Deserialize<List<string>>(checkin.Images);
-                if (parsed != null)
-                    images = parsed;
+                try
+                {
+                    var parsed = JsonSerializer.Deserialize<List<string>>(checkin.Images);
+                    if (parsed != null)
+                        images = parsed;
+                }
+                catch
+                {
+                }
             }
-            catch
+
+            return new CheckinDetailResponse
             {
-            }
-        }
+                Date = checkin.CheckDate,
+                Status = checkin.Status,
+                Note = checkin.Note,
+                ImageUrls = images,
+                TimeSlotId = checkin.TimeSlotId
+            };
+        }).ToList();
 
-        var result = new CheckinDetailResponse
-        {
-            Date = checkin.CheckDate,
-            Status = checkin.Status,
-            Note = checkin.Note,
-            ImageUrls = images
-        };
-
-        return Ok(result);
+        return Ok(result); // 注意：这里返回类型变为了 List，前端需要适配
     }
 
     /// <summary>

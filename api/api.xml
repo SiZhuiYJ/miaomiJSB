@@ -1070,6 +1070,11 @@
             打卡备注信息，可为空。
             </summary>
         </member>
+        <member name="P:api.Models.DailyCheckinRequest.TimeSlotId">
+            <summary>
+            时间段 ID（可选，用于分时段打卡）
+            </summary>
+        </member>
         <member name="T:api.Models.RetroCheckinRequest">
             <summary>
             补打卡请求参数。
@@ -1093,6 +1098,11 @@
         <member name="P:api.Models.RetroCheckinRequest.Note">
             <summary>
             补打卡备注信息，可为空。
+            </summary>
+        </member>
+        <member name="P:api.Models.RetroCheckinRequest.TimeSlotId">
+            <summary>
+            时间段 ID（可选，用于分时段打卡）
             </summary>
         </member>
         <member name="T:api.Models.CalendarStatusItem">
@@ -1133,6 +1143,11 @@
         <member name="P:api.Models.CheckinDetailResponse.ImageUrls">
             <summary>
             打卡图片 URL 列表。
+            </summary>
+        </member>
+        <member name="P:api.Models.CheckinDetailResponse.TimeSlotId">
+            <summary>
+            关联的时间段ID（如果有）
             </summary>
         </member>
         <member name="T:api.Models.CreatePlanRequest">

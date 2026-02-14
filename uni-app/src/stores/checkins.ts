@@ -11,6 +11,7 @@ export interface CheckinDetail {
   status: number;
   note?: string;
   imageUrls: string[];
+  timeSlotId?: number;
 }
 
 interface CheckinsState {
@@ -126,6 +127,7 @@ export const useCheckinsStore = defineStore('checkins', {
       planId: number;
       imageUrls?: string[];
       note?: string;
+      timeSlotId?: number;
     }): Promise<void> {
       await http.post('/mm/Checkins/daily', payload);
     },
@@ -134,11 +136,12 @@ export const useCheckinsStore = defineStore('checkins', {
       date: string;
       imageUrls?: string[];
       note?: string;
+      timeSlotId?: number;
     }): Promise<void> {
       await http.post('/mm/Checkins/retro', payload);
     },
-    async getCheckinDetail(planId: number, date: string): Promise<CheckinDetail> {
-      const response = await http.get<CheckinDetail>(
+    async getCheckinDetail(planId: number, date: string): Promise<CheckinDetail[]> {
+      const response = await http.get<CheckinDetail[]>(
         '/mm/Checkins/detail',
         { params: { planId, date } },
       );
