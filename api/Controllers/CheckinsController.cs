@@ -51,12 +51,12 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
             timeSlot = plan.CheckinPlanTimeSlots.FirstOrDefault(ts => ts.Id == request.TimeSlotId.Value && ts.IsActive == true);
             if (timeSlot == null)
                 return BadRequest("Invalid time slot");
-            
+
             // 验证时间是否在范围内
             // 假设服务器时区与用户一致，或用户接受服务器时间。这里使用 DateTime.UtcNow + 8 (CST)
-            var now = DateTime.UtcNow.AddHours(8); 
+            var now = DateTime.UtcNow.AddHours(8);
             var currentTime = TimeOnly.FromDateTime(now);
-            
+
             if (currentTime < timeSlot.StartTime)
                 return BadRequest($"Time slot {timeSlot.SlotName} has not started yet ({timeSlot.StartTime})");
             if (currentTime > timeSlot.EndTime)
@@ -64,7 +64,7 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
         }
         else if (plan.CheckinPlanTimeSlots.Any(ts => ts.IsActive == true))
         {
-             return BadRequest("Time slot is required for this plan");
+            return BadRequest("Time slot is required for this plan");
         }
 
         var existing = await db.Checkins
@@ -104,10 +104,11 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
     public async Task<ActionResult> Retro(RetroCheckinRequest request)
     {
         var userId = GetUserId();
-        var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
+        var now = DateTime.UtcNow.AddHours(8);
+        var today = DateOnly.FromDateTime(now.Date);
 
-        if (request.Date >= today)
-            return BadRequest("Retro checkin date must be in the past");
+        if (request.Date > today)
+            return BadRequest("Retro checkin date cannot be in the future");
 
         var plan = await db.CheckinPlans
             .Include(p => p.CheckinPlanTimeSlots)
@@ -121,22 +122,26 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
         // 分时段逻辑
         if (request.TimeSlotId.HasValue)
         {
-             var slot = plan.CheckinPlanTimeSlots.FirstOrDefault(ts => ts.Id == request.TimeSlotId.Value && ts.IsActive == true);
-             if (slot == null)
+            var slot = plan.CheckinPlanTimeSlots.FirstOrDefault(ts => ts.Id == request.TimeSlotId.Value && ts.IsActive == true);
+            if (slot == null)
                 return BadRequest("Invalid time slot");
-             
-             // 如果是补签当天的卡，必须是已经过期的时间段
-             if (request.Date == today)
-             {
-                 var now = DateTime.UtcNow.AddHours(8);
-                 var currentTime = TimeOnly.FromDateTime(now);
-                 if (currentTime <= slot.EndTime)
-                     return BadRequest($"Current time is within time slot {slot.SlotName}, please use daily checkin");
-             }
+
+            if (request.Date == today)
+            {
+                var slotEnd = request.Date.ToDateTime(slot.EndTime);
+                if (now <= slotEnd)
+                    return BadRequest($"Current time is within time slot {slot.SlotName}, please use daily checkin");
+            }
         }
         else if (plan.CheckinPlanTimeSlots.Any(ts => ts.IsActive == true))
         {
-             return BadRequest("Time slot is required for this plan");
+            return BadRequest("Time slot is required for this plan");
+        }
+        else if (request.Date == today)
+        {
+            var dayEnd = request.Date.ToDateTime(new TimeOnly(23, 59, 59));
+            if (now <= dayEnd)
+                return BadRequest("Current time is within checkin day, please use daily checkin");
         }
 
         var existing = await db.Checkins
@@ -188,12 +193,12 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
         var checkins = await db.Checkins
             .Where(x => x.PlanId == (ulong)planId && x.CheckDate >= firstDay && x.CheckDate <= lastDay && !x.IsDeleted)
             .ToListAsync();
-        
+
         var activeSlotsCount = plan.CheckinPlanTimeSlots.Count(x => x.IsActive == true);
         var result = new List<CalendarStatusItem>();
 
         var grouped = checkins.GroupBy(x => x.CheckDate);
-        foreach(var g in grouped)
+        foreach (var g in grouped)
         {
             var date = g.Key;
             sbyte status = 1;
@@ -202,7 +207,7 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
             if (activeSlotsCount == 0)
             {
                 isComplete = true;
-                status = g.Max(x => x.Status); 
+                status = g.Max(x => x.Status);
             }
             else
             {
@@ -243,11 +248,12 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
         var checkins = await db.Checkins
             .Where(x => x.PlanId == plan.Id && x.CheckDate == date && !x.IsDeleted)
             .ToListAsync();
-            
-        if (checkins.Count == 0)
-             return NotFound("Checkin not found"); // 或者返回空列表，视前端需求而定，这里保持原有一致性可能返回 404
 
-        var result = checkins.Select(checkin => {
+        if (checkins.Count == 0)
+            return NotFound("Checkin not found"); // 或者返回空列表，视前端需求而定，这里保持原有一致性可能返回 404
+
+        var result = checkins.Select(checkin =>
+        {
             var images = new List<string>();
             if (!string.IsNullOrWhiteSpace(checkin.Images))
             {

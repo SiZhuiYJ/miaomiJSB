@@ -980,6 +980,18 @@
             <param name="cancellationToken">取消操作标记。</param>
             <returns>校验结果状态。</returns>
         </member>
+        <member name="T:api.Migrations.RemovePlanDateUniqueIndex">
+            <inheritdoc />
+        </member>
+        <member name="M:api.Migrations.RemovePlanDateUniqueIndex.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:api.Migrations.RemovePlanDateUniqueIndex.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:api.Migrations.RemovePlanDateUniqueIndex.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
         <member name="T:api.Models.RegisterRequest">
             <summary>
             用户注册请求参数。

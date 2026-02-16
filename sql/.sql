@@ -27,6 +27,7 @@ CREATE TABLE `users` (
     CONSTRAINT `fk_users_freeze_operator` FOREIGN KEY (`freeze_operator_id`) REFERENCES `users` (`id`)
 ) ENGINE = InnoDB AUTO_INCREMENT = 13 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户表（支持伪删除与黑名单冻结）'
 
+
 CREATE TABLE user_oauth_accounts (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
     user_id BIGINT UNSIGNED NOT NULL COMMENT '关联用户ID',

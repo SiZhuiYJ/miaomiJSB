@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore.MySql.Scaffolding.Internal;
@@ -22,6 +22,8 @@ public partial class DailyCheckDbContext : DbContext
 
     public virtual DbSet<CheckinPlanTimeSlot> CheckinPlanTimeSlots { get; set; }
 
+    public virtual DbSet<Efmigrationshistory> Efmigrationshistories { get; set; }
+
     public virtual DbSet<SoftDeleteLog> SoftDeleteLogs { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
@@ -32,10 +34,14 @@ public partial class DailyCheckDbContext : DbContext
 
     public virtual DbSet<UserOauthAccount> UserOauthAccounts { get; set; }
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseMySql("server=8.137.127.7;database=dailycheck;charset=utf8;uid=dailycheck;pwd=CjxCewwA7CiMk4ce;port=3306", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.36-mysql"));
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
-            .UseCollation("utf8mb4_general_ci")
+            .UseCollation("utf8mb4_0900_ai_ci")
             .HasCharSet("utf8mb4");
 
         modelBuilder.Entity<Checkin>(entity =>
@@ -53,8 +59,6 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasIndex(e => e.Status, "idx_checkins_status");
 
             entity.HasIndex(e => new { e.UserId, e.CheckDate }, "idx_checkins_user_date");
-
-            entity.HasIndex(e => new { e.PlanId, e.CheckDate }, "ux_checkins_plan_date").IsUnique();
 
             entity.HasIndex(e => new { e.PlanId, e.CheckDate, e.TimeSlotId }, "ux_checkins_plan_date_slot").IsUnique();
 
@@ -237,6 +241,16 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasOne(d => d.Plan).WithMany(p => p.CheckinPlanTimeSlots)
                 .HasForeignKey(d => d.PlanId)
                 .HasConstraintName("fk_slots_plan");
+        });
+
+        modelBuilder.Entity<Efmigrationshistory>(entity =>
+        {
+            entity.HasKey(e => e.MigrationId).HasName("PRIMARY");
+
+            entity.ToTable("__efmigrationshistory");
+
+            entity.Property(e => e.MigrationId).HasMaxLength(150);
+            entity.Property(e => e.ProductVersion).HasMaxLength(32);
         });
 
         modelBuilder.Entity<SoftDeleteLog>(entity =>
