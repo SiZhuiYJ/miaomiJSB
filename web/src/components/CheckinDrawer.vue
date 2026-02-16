@@ -2,27 +2,26 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { http } from '../api/http';
 import { useCheckinsStore } from '../stores/checkins';
-import { usePlansStore, type PlanSummary, type TimeSlotDto } from '../stores/plans';
+import { usePlansStore } from '../stores/plans';
 import ImagePreviewList from './ImagePreviewList.vue';
 import { notifySuccess, notifyError, notifyWarning } from '../utils/notification';
-import { compressImageToWebP } from '../utils/image';
 
-const props = defineProps({
-  modelValue: {
-    type: Boolean,
-    required: true,
-  },
-  planId: {
-    type: Number,
-    default: null,
-  },
-  date: {
-    type: Date,
-    default: null,
-  },
+const props = defineProps<{
+  modelValue: boolean;
+  planId?: number;
+  date?: Date;
+}>();
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: boolean): void;
+  (e: 'success'): void;
+  (e: 'closed'): void;
+}>();
+
+const visible = computed({
+  get: () => props.modelValue,
+  set: (val) => emit('update:modelValue', val),
 });
-
-// ... emit and visible ...
 
 const checkinsStore = useCheckinsStore();
 const plansStore = usePlansStore();
@@ -51,7 +50,46 @@ function resetForm(): void {
   clearPreviews();
 }
 
-// ... handleFilesChange, removeImage, formatDateOnly, uploadImages ...
+function formatDateOnly(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+async function uploadImages(): Promise<string[]> {
+  const urls: string[] = [];
+  for (const file of images.value) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await http.post<{ url: string }>('/mm/Files/images', formData);
+    urls.push(res.data.url);
+  }
+  return urls;
+}
+
+function handleFilesChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (input.files) {
+    const newFiles = Array.from(input.files);
+    if (images.value.length + newFiles.length > 3) {
+      notifyWarning('最多只能上传三张图片');
+      return;
+    }
+    images.value.push(...newFiles);
+    newFiles.forEach(file => {
+      previewSrcs.value.push(URL.createObjectURL(file));
+    });
+  }
+  input.value = '';
+}
+
+function removeImage(index: number) {
+  images.value.splice(index, 1);
+  const src = previewSrcs.value[index];
+  if (src) URL.revokeObjectURL(src);
+  previewSrcs.value.splice(index, 1);
+}
 
 async function handleSubmit(): Promise<void> {
   if (!props.planId || !props.date) return;
@@ -101,7 +139,7 @@ async function handleSubmit(): Promise<void> {
         const slot = currentPlan.value.timeSlots.find(s => s.id === selectedTimeSlotId.value);
         if (slot) {
           const now = new Date();
-          const nowTimeStr = now.toTimeString().split(' ')[0];
+          const nowTimeStr = now.toTimeString().split(' ')[0] || '';
           if (nowTimeStr > slot.endTime) {
             forceRetro = true;
           }

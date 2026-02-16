@@ -5,41 +5,33 @@ import { useCheckinsStore, type CheckinDetail } from '../stores/checkins';
 import ImagePreviewList from './ImagePreviewList.vue';
 import { notifyError } from '../utils/notification';
 
-const props = defineProps({
-  // ... (keep props same)
-});
+const props = defineProps<{
+  modelValue: boolean;
+  planId?: number;
+  date?: Date;
+}>();
 
-// ... (keep emit and visible same)
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: boolean): void;
+  (e: 'closed'): void;
+}>();
+
+const visible = computed({
+  get: () => props.modelValue,
+  set: (val) => emit('update:modelValue', val),
+});
 
 const checkinsStore = useCheckinsStore();
 
 function formatDateOnly(date: Date): string {
-  // ... (keep same)
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
 
 const detailLoading = ref(false);
-const detail = ref<CheckinDetail[] | null>(null); // Changed to array
-// const imageSrcs = ref<string[]>([]); // Removed, handle in template or helper
-
-function getImageUrl(relativeUrl: string): string {
-  // Assuming relativeUrl is like /mm/files/images/key
-  // We need to fetch blob and create object URL or use direct URL if auth handled by cookie/header
-  // For simplicity here, let's assume we need to load them. 
-  // Actually, CheckinDetailDrawer logic for loading images was complex (blob).
-  // To support list, we might need a better way or component.
-  // Let's rely on ImagePreviewList handling URLs or refactor loadImages.
-  // Given current implementation of loadImages clears previous ones, it's not suitable for list.
-  // Let's change ImagePreviewList to accept direct URLs if possible, or we fetch all blobs.
-  return relativeUrl;
-}
-
-// Since we changed to list, the old logic of `loadImages` and `imageSrcs` is tricky.
-// We should probably just pass the relative URLs to ImagePreviewList and let it handle authentication?
-// Or we fetch all blobs and map them.
-// Let's try to adapt `loadImages` to map specific item's images.
-// Actually, `ImagePreviewList` takes `sources`.
-// Let's refactor: store objectUrls in a map keyed by something or just fetch all.
-
+const detail = ref<CheckinDetail[] | null>(null);
 const imageObjectUrls = ref<Map<string, string>>(new Map());
 
 async function loadImagesForList(details: CheckinDetail[]): Promise<void> {
@@ -92,11 +84,20 @@ watch(
   (open) => {
     if (!open) {
       handleClosed();
+    } else {
+      fetchDetail();
     }
   },
 );
 
-// ... (keep watch date same)
+watch(
+  () => [props.planId, props.date],
+  () => {
+    if (visible.value) {
+      fetchDetail();
+    }
+  }
+);
 
 onBeforeUnmount(() => {
   handleClosed();
