@@ -15,5 +15,15 @@ export default defineConfig({
     Components({
       resolvers: [ElementPlusResolver()],
       dts: 'src/components.d.ts',
-    }),],
+    }),
+  ],
+  server: {
+    proxy: {
+      '/mm': {
+        target: "https://check.meowmemoirs.cn",
+        changeOrigin: true,
+        secure: false
+      }
+    }
+  }
 })

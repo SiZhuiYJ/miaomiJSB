@@ -6,15 +6,24 @@ import ImagePreviewList from './ImagePreviewList.vue';
 import { notifyError } from '../utils/notification';
 
 const props = defineProps({
+  planId: {
+    type: Number,
+    default: null,
+  },
+    date: {
+    type: Date,
+    default: null,
+  },
   // ... (keep props same)
 });
 
-// ... (keep emit and visible same)
+const visible = ref<boolean>(true);
 
 const checkinsStore = useCheckinsStore();
 
 function formatDateOnly(date: Date): string {
   // ... (keep same)
+  return ""
 }
 
 const detailLoading = ref(false);

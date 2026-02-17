@@ -221,6 +221,7 @@ function getDayStatusClass(date: Date): string {
 }
 
 function handleDateClick(date: Date): void {
+    console.log("打卡抽屉ling……")
     const now = new Date();
     const todayOnly = new Date(
         now.getFullYear(),
@@ -238,6 +239,7 @@ function handleDateClick(date: Date): void {
         return;
     }
 
+    console.log(selectedPlanId.value, date)
     const status = getPlanStatusCode(selectedPlanId.value, date);
     checkinDate.value = date;
 
