@@ -239,7 +239,8 @@ function handleDateClick(date: Date): void {
         return;
     }
 
-    console.log(selectedPlanId.value, date)
+    console.log("计划ID", selectedPlanId.value)
+    console.log("时间", date)
     const status = getPlanStatusCode(selectedPlanId.value, date);
     checkinDate.value = date;
 
@@ -247,9 +248,10 @@ function handleDateClick(date: Date): void {
         if (!selectedPlanId.value) return;
         showCheckinDrawer.value = false;
         showDetailDrawer.value = true;
+        console.log("打开打卡详情")
         return;
     }
-
+    console.log("打开打卡")
     showDetailDrawer.value = false;
     showCheckinDrawer.value = true;
 }
@@ -323,7 +325,7 @@ function handleMobileCalendarBack(): void {
                         <div :class="getDayStatusClass(data.date)" @click.stop="handleDateClick(data.date)">
                             <span class="day-label">{{
                                 formatDayLabel(data.day)
-                                }}</span>
+                            }}</span>
                         </div>
                     </template>
                 </el-calendar>
@@ -344,7 +346,7 @@ function handleMobileCalendarBack(): void {
                 <div class="mobile-card-header">
                     <div>
                         <div class="mobile-title">{{ plan.title }} <span class="mobile-description">{{ plan.description
-                                }}</span></div>
+                        }}</span></div>
                         <div class="mobile-subtitle">
                             {{ plan.startDate }}
                             {{ plan.endDate ? "到 " + plan.endDate : "开始" }}
@@ -410,7 +412,7 @@ function handleMobileCalendarBack(): void {
                     <div :class="getDayStatusClass(data.date)" @click.stop="handleDateClick(data.date)">
                         <span class="day-label">{{
                             formatDayLabel(data.day)
-                            }}</span>
+                        }}</span>
                     </div>
                 </template>
             </el-calendar>
