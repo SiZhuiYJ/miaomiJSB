@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { http } from '../api/http';
+import { API_BASE_URL } from '../config';
 import { useCheckinsStore } from '../stores/checkins';
-import { usePlansStore } from '../stores/plans';
+import { usePlansStore, type PlanSummary, type TimeSlotDto } from '../stores/plans';
+import { useAuthStore } from "../stores/auth"
 import ImagePreviewList from './ImagePreviewList.vue';
 import { notifySuccess, notifyError, notifyWarning } from '../utils/notification';
 
@@ -25,6 +27,9 @@ const visible = computed({
 
 const checkinsStore = useCheckinsStore();
 const plansStore = usePlansStore();
+const authStore = useAuthStore();
+
+// const visible = ref<boolean>(false);
 
 const note = ref('');
 const images = ref<File[]>([]);
@@ -196,19 +201,16 @@ onBeforeUnmount(() => {
     @closed="handleClosed">
     <div class="drawer-body">
       <p v-if="props.date" class="drawer-date">
-        目标日期：{{ formatDateOnly(props.date) }}
+        <!-- 目标日期：{{ formatDateOnly(props.date) }} -->
+        目标日期：{{ props.date }}
+
       </p>
 
       <div v-if="currentPlan?.timeSlots?.length" class="time-slot-selection">
         <p class="section-label">选择打卡时间段</p>
         <div class="slots-grid">
-          <div
-            v-for="slot in currentPlan.timeSlots"
-            :key="slot.id"
-            class="slot-option"
-            :class="{ active: selectedTimeSlotId === slot.id }"
-            @click="selectedTimeSlotId = slot.id || null"
-          >
+          <div v-for="slot in currentPlan.timeSlots" :key="slot.id" class="slot-option"
+            :class="{ active: selectedTimeSlotId === slot.id }" @click="selectedTimeSlotId = slot.id || null">
             <span class="slot-name">{{ slot.slotName }}</span>
             <span class="slot-time">{{ slot.startTime.slice(0, 5) }} - {{ slot.endTime.slice(0, 5) }}</span>
           </div>
@@ -278,16 +280,19 @@ textarea {
 .time-slot-selection {
   margin-bottom: 16px;
 }
+
 .section-label {
   font-size: 14px;
   color: var(--text-muted);
   margin-bottom: 8px;
 }
+
 .slots-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
+
 .slot-option {
   display: flex;
   flex-direction: column;
@@ -299,15 +304,18 @@ textarea {
   transition: all 0.2s;
   background-color: var(--bg-primary);
 }
+
 .slot-option.active {
   border-color: var(--accent-color);
   background-color: rgba(var(--accent-color-rgb), 0.05);
   color: var(--accent-color);
 }
+
 .slot-name {
   font-weight: 500;
   font-size: 14px;
 }
+
 .slot-time {
   font-size: 12px;
   color: var(--text-muted);

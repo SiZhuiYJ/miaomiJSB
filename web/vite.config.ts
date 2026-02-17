@@ -15,16 +15,16 @@ export default defineConfig({
     }),
     Components({
       resolvers: [ElementPlusResolver()],
-      dts: "src/components.d.ts",
+      dts: 'src/components.d.ts',
     }),
   ],
   server: {
     proxy: {
-      "/mm": {
-        target: API_BASE_URL,
+      '/mm': {
+        target: "https://check.meowmemoirs.cn",
         changeOrigin: true,
-        secure: false,
-      },
-    },
-  },
-});
+        secure: false
+      }
+    }
+  }
+})

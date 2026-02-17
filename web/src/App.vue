@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// 2495550774@qq.com
 import { computed, ref, onMounted } from 'vue';
 import { useAuthStore } from './stores/auth';
 import AuthView from './views/AuthView.vue';
