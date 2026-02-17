@@ -339,18 +339,18 @@ function handleMobileCalendarBack(): void {
         </main>
 
         <main class="mobile-main mobile-only" v-if="mobileMode === 'card'">
-            <section v-for="plan in plansStore.items" :key="plan.id" class="mobile-card" @click="
-                selectedPlanId = plan.id;
-            handleMobileCardClick();
-            ">
+            <section v-for="plan in plansStore.items" :key="plan.id" class="mobile-card"
+                @click="selectedPlanId = plan.id; handleMobileCardClick();">
                 <div class="mobile-card-header">
                     <div>
-                        <div class="mobile-title">{{ plan.title }} <span class="mobile-description">{{ plan.description
-                        }}</span></div>
+                        <div class="mobile-title">{{ plan.title }}
+                            <span class="mobile-description">
+                                {{ plan.description }}
+                            </span>
+                        </div>
                         <div class="mobile-subtitle">
                             {{ plan.startDate }}
                             {{ plan.endDate ? "到 " + plan.endDate : "开始" }}
-                            <!--{{ currentYear }} 年 {{ currentMonth }} 月-->
                         </div>
                     </div>
                     <div class="mobile-progress">
@@ -510,14 +510,29 @@ function handleMobileCalendarBack(): void {
     font-size: 13px;
 }
 
+:deep(.prev) div .day.success {
+    background: rgba(202, 255, 222, 0.2);
+    color: #89ffb6;
+}
+
 .day.success {
     background: rgba(34, 197, 94, 0.2);
     color: #166534;
 }
 
+:deep(.prev) div .day.retro {
+    background: rgba(255, 246, 217, 0.2);
+    color: #ffc685;
+}
+
 .day.retro {
     background: rgba(234, 179, 8, 0.2);
     color: #854d0e;
+}
+
+:deep(.prev) div .day.missed {
+    background: rgba(255, 211, 211, 0.2);
+    color: #ff7f7f;
 }
 
 .day.missed {

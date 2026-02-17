@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { http } from '../api/http';
-import { API_BASE_URL } from '../config';
 import { useCheckinsStore } from '../stores/checkins';
-import { usePlansStore, type PlanSummary, type TimeSlotDto } from '../stores/plans';
-import { useAuthStore } from "../stores/auth"
+import { usePlansStore } from '../stores/plans';
 import ImagePreviewList from './ImagePreviewList.vue';
 import { notifySuccess, notifyError, notifyWarning } from '../utils/notification';
 
@@ -27,9 +25,6 @@ const visible = computed({
 
 const checkinsStore = useCheckinsStore();
 const plansStore = usePlansStore();
-const authStore = useAuthStore();
-
-// const visible = ref<boolean>(false);
 
 const note = ref('');
 const images = ref<File[]>([]);
@@ -201,9 +196,7 @@ onBeforeUnmount(() => {
     @closed="handleClosed">
     <div class="drawer-body">
       <p v-if="props.date" class="drawer-date">
-        <!-- 目标日期：{{ formatDateOnly(props.date) }} -->
-        目标日期：{{ props.date }}
-
+        目标日期：{{ formatDateOnly(props.date) }}
       </p>
 
       <div v-if="currentPlan?.timeSlots?.length" class="time-slot-selection">
