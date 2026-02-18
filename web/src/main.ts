@@ -24,10 +24,4 @@ initTheme();
 const app = createApp(App);
 app.use(createPinia());
 
-// import VConsole from 'vconsole';
-
-// if (process.env.NODE_ENV === 'development') {
-//   new VConsole();
-// }
-
 app.mount('#app');
