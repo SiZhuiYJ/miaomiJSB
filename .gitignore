@@ -19,6 +19,7 @@ coverage
 
 # 编辑器相关文件和目录
 .vscode/*
+*.vscode/*
 !.vscode/extensions.json
 .idea
 *.swp
@@ -45,7 +46,7 @@ temp/
 
 # 项目特定的忽略目录
 # Visual Studio 相关目录
-.api/.vs
+*.vs/
 .vscode
 api/obj_build
 api/obj
@@ -94,6 +95,7 @@ bld/
 
 # Visual Studio 2015/2017 缓存/选项目录
 .vs/
+*/.vs/
 
 # Visual Studio 2017 自动生成的文件
 Generated\ Files/
