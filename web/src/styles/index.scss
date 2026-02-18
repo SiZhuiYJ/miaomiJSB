@@ -1,0 +1,129 @@
+@use './element.scss';
+@use './progressive.scss';
+@use './nprogress.scss';
+
+/* 小可奶酪体 */
+// @font-face {
+//   font-family: "MyFont";
+//   src: url("../assets//fonts//XKNNL.ttf") format('truetype');
+//   font-weight: normal;
+//   font-style: normal;
+//   font-display: swap;
+// }
+
+* {
+  margin: 0;
+  padding: 0;
+  // font-family: "MyFont", Inter, 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
+  /* cursor: url("@/assets/mouse/Work.ani"), default; */
+  word-break: break-word;
+}
+
+
+:root {
+  // --foreground-color: #e3c0df;
+  --foreground-color: rgba(246, 249, 254, 1);
+  --background-color: rgba(255, 255, 255, 0.8);
+  // 项目提供scss全局变量
+
+  /** 滚动条相关变量-开始 [滚动条在@/assets/index.scss] */
+  // 横部滚动条宽，纵向滚动条高
+  --webkit-scrollbar-width: 6px;
+  --webkit-scrollbar-height: 6px;
+
+  // 滚动条圆角
+  --webkit-scrollbar-border-radius: 10px;
+
+  // 滚动条颜色[已使用]
+  --webkit-scrollbar-color: var(--el-border-color-darker); // [已使用]
+  --webkit-scrollbar-hover-color: var(--el-color-primary); // [已使用]
+
+  /** 滚动条相关变量-结束 */
+
+  /** Aside左侧布局相关变量-开始 */
+  // 左侧布局层级
+  --layout-aside-z-index: 10;
+
+  // Logo和标题高度
+  --aside-header-height: 44px;
+
+  // 左侧菜单高度
+  --aside-menu-height: 40px; // [已使用][页面：@/layouts/components/Menu/SubMenu.vue]
+  // 左侧菜单字体 AND 图标左侧偏移
+  --aside-menu-font-icon-translate: -10px; // [已使用][页面：@/layouts/components/Menu/SubMenu.vue]
+  // 左侧菜单菜单字体加粗
+  --aside-menu-font-weight: 500;
+
+  // 左侧菜单间隔
+  --aside-menu-margin-bottom: 3px;
+
+  // 左侧菜单边框圆角配置
+  --aside-menu-border-left: 4px;
+
+  // 左侧菜单左内边框宽度
+  --aside-menu-padding-left: 6px;
+
+  // 左侧菜单右内边框宽度
+  --aside-menu-padding-right: 6px;
+
+  // 左侧菜单右阴影
+  --aside-menu-box-shadow: 2px 0 12px #1d23290d;
+
+  /** Aside左侧布局相关变量-结束 */
+
+  /** Column双栏布局相关变量-开始 */
+  // 左侧菜单左内边框宽度[双栏布局]
+  --column-menu-padding-left: 6px;
+
+  // 左侧菜单右内边框宽度[双栏布局]
+  --column-menu-padding-right: 6px;
+
+  // 双栏布局最左侧第一个右阴影
+  --column-menu-box-shadow: 2px 0 12px #1d23290d inset;
+
+  /** Column双栏布局相关变量-结束 */
+}
+
+#app {
+  background-color: var(--foreground-color);
+  width: 100vw;
+  // height: 100vh;
+
+
+}
+
+.el-menu--horizontal {
+  --el-menu-horizontal-height: 100px;
+}
+
+html {
+
+  body {
+    padding: 0;
+    margin: 0;
+    height: 100vh;
+    width: 100vw;
+
+    /* 为webkit浏览器设置纵向和横向滚动条宽度和高度 */
+    &::-webkit-scrollbar {
+      display: none;
+
+    }
+
+    // 滚动条轨道
+    &::-webkit-scrollbar-track {
+      display: none;
+
+    }
+
+    // 滚动条滑块
+    &::-webkit-scrollbar-thumb {
+      display: none;
+    }
+
+    /* 悬浮在滑块上时为滑块设置背景颜色 */
+    &::-webkit-scrollbar-thumb:hover {
+      background: #fff222;
+    }
+  }
+}

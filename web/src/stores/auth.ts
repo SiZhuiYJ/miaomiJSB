@@ -1,20 +1,7 @@
 import { defineStore } from 'pinia';
+import type { AuthData, AuthState } from '@/libs/api/auth/type';
 
-export interface AuthUser {
-  userId: number;
-  email: string;
-  nickName: string | null;
-  userAccount: string | null;
-  avatarKey: string | null;
-}
-
-export interface AuthState {
-  user: AuthUser | null;
-  accessToken: string | null;
-  refreshToken: string | null;
-}
-
-const STORAGE_KEY = 'dailycheck_auth';
+const STORAGE_KEY = 'mm_auth';
 
 function loadInitialState(): AuthState {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -37,61 +24,70 @@ function loadInitialState(): AuthState {
   }
 }
 
-export const useAuthStore = defineStore('auth', {
-  state: (): AuthState => loadInitialState(),
-  getters: {
-    isAuthenticated(state): boolean {
-      return !!state.accessToken;
-    },
-  },
-  actions: {
-    setSession(payload: {
-      userId: number;
-      email: string;
-      nickName: string | null;
-      userAccount: string | null;
-      token: string;
-      refreshToken: string;
-      avatarKey?: string | null;
-    }): void {
-      this.user = {
-        userId: payload.userId,
-        email: payload.email,
-        nickName: payload.nickName,
-        userAccount: payload.userAccount,
-        avatarKey: payload.avatarKey || null,
-      };
-      this.accessToken = payload.token;
-      this.refreshToken = payload.refreshToken;
-      this.persist();
-    },
-    updateUser(payload: {
-      userAccount?: string | null;
-      nickName?: string | null;
-    }): void {
-      if (this.user) {
-        if (payload.userAccount !== undefined) this.user.userAccount = payload.userAccount;
-        if (payload.nickName !== undefined) this.user.nickName = payload.nickName;
-        this.persist();
-      }
-    },
-    clear(): void {
-      this.user = null;
-      this.accessToken = null;
-      this.refreshToken = null;
-      try {
-        localStorage.clear();
-        sessionStorage.clear();
-      } catch {
-      }
-    },
-    persist(): void {
-      const data: AuthState = {
-        user: this.user,
-        accessToken: this.accessToken,
-        refreshToken: this.refreshToken,
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    },
-  },
+export const useAuthStore = defineStore('auth', () => {
+  const state = loadInitialState();
+
+  const user = ref(state.user);
+  const accessToken = ref(state.accessToken);
+  const refreshToken = ref(state.refreshToken);
+
+  const isAuthenticated = computed(() => {
+    return !!accessToken.value;
+  });
+
+  function setSession(payload: AuthData): void {
+    user.value = {
+      userId: payload.userId,
+      email: payload.email,
+      nickName: payload.nickName,
+      userAccount: payload.userAccount,
+      avatarKey: payload.avatarKey || null,
+      avatarUrl: payload.avatarUrl || null,
+    };
+    accessToken.value = payload.token;
+    refreshToken.value = payload.refreshToken;
+    persist();
+  }
+
+  function updateUser(payload: {
+    userAccount?: string | null;
+    nickName?: string | null;
+  }): void {
+    if (user.value) {
+      if (payload.userAccount !== undefined) user.value.userAccount = payload.userAccount;
+      if (payload.nickName !== undefined) user.value.nickName = payload.nickName;
+      persist();
+    }
+  }
+
+  function clear(): void {
+    user.value = null;
+    accessToken.value = null;
+    refreshToken.value = null;
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch {
+    }
+  }
+
+  function persist(): void {
+    const data: AuthState = {
+      user: user.value,
+      accessToken: accessToken.value,
+      refreshToken: refreshToken.value,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  return {
+    user,
+    accessToken,
+    refreshToken,
+    isAuthenticated,
+    setSession,
+    updateUser,
+    clear,
+    persist,
+  };
 });

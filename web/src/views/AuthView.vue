@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onUnmounted, ref, watch } from 'vue';
 import { useAuthStore } from '../stores/auth';
-import { http } from '../api/http';
 import { notifySuccess, notifyError } from '../utils/notification';
 
 const mode = ref<'login' | 'register'>('login');

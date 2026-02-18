@@ -1,0 +1,15 @@
+.main-content {
+    height: 100%;
+    display: flex;
+    flex: 1 1 0%;
+    flex-direction: column;
+}
+
+.main-error {
+    height: 100vh;
+    display: flex;
+
+    >div {
+        justify-content: center;
+    }
+}
