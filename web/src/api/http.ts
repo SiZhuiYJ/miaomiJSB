@@ -1,6 +1,7 @@
-import axios, { AxiosError } from 'axios';
-import { API_BASE_URL } from '../config';
-import { useAuthStore } from '../stores/auth';
+import type { AxiosError, AxiosResponse } from "axios";
+import axios from "axios";
+import { API_BASE_URL } from "../config";
+import { useAuthStore } from "../stores/auth";
 
 export const http = axios.create({
   baseURL: API_BASE_URL,
@@ -20,16 +21,24 @@ const refreshClient = axios.create({
 });
 
 http.interceptors.response.use(
-  (response) => response,
+  async (response: AxiosResponse) => {
+    console.log("响应数据", response);
+    return response;
+  },
   async (error: AxiosError) => {
     const auth = useAuthStore();
     const status = error.response?.status;
     const originalRequest = error.config;
 
-    if (status === 401 && auth.refreshToken && originalRequest && !(originalRequest as any)._retry) {
+    if (
+      status === 401 &&
+      auth.refreshToken &&
+      originalRequest &&
+      !(originalRequest as any)._retry
+    ) {
       (originalRequest as any)._retry = true;
       try {
-        const refreshResponse = await refreshClient.post('/mm/Auth/refresh', {
+        const refreshResponse = await refreshClient.post("/mm/Auth/refresh", {
           refreshToken: auth.refreshToken,
         });
         auth.setSession(refreshResponse.data);
