@@ -196,37 +196,103 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
 
         var activeSlotsCount = plan.CheckinPlanTimeSlots.Count(x => x.IsActive == true);
         var result = new List<CalendarStatusItem>();
-
         var grouped = checkins.GroupBy(x => x.CheckDate);
-        foreach (var g in grouped)
+        if (plan.CheckinMode == 0)
         {
-            var date = g.Key;
-            sbyte status = 1;
-            bool isComplete = false;
 
-            if (activeSlotsCount == 0)
+            foreach (var g in grouped)
             {
-                isComplete = true;
-                status = g.Max(x => x.Status);
-            }
-            else
-            {
-                var checkedSlots = g.Select(x => x.TimeSlotId).Where(x => x.HasValue).Distinct().Count();
-                if (checkedSlots >= activeSlotsCount)
+                var date = g.Key;
+                sbyte status = 1;
+                bool isComplete = false;
+
+                if (activeSlotsCount == 0)
                 {
                     isComplete = true;
-                    // If any is retro (2), the day status is 2 (Retro/Yellow)
-                    if (g.Any(x => x.Status == 2)) status = 2;
-                    else status = 1;
+                    status = g.Max(x => x.Status);
+                }
+                else
+                {
+                    var checkedSlots = g.Select(x => x.TimeSlotId).Where(x => x.HasValue).Distinct().Count();
+                    if (checkedSlots >= activeSlotsCount)
+                    {
+                        isComplete = true;
+                        // If any is retro (2), the day status is 2 (Retro/Yellow)
+                        if (g.Any(x => x.Status == 2)) status = 2;
+                        else status = 1;
+                    }
+                }
+
+                if (isComplete)
+                {
+                    result.Add(new CalendarStatusItem { Date = date, Status = status });
                 }
             }
-
-            if (isComplete)
-            {
-                result.Add(new CalendarStatusItem { Date = date, Status = status });
-            }
         }
+        else if (plan.CheckinMode == 1)
+        {
+            // 获取该计划的所有时间段
+            var allSlots = await db.CheckinPlanTimeSlots
+                .Where(ts => ts.PlanId == plan.Id && ts.IsActive == true)
+                .ToListAsync();
 
+            // 按日期分组处理每段时间的打卡情况
+            var startDate = plan.StartDate;
+            var currentDate = firstDay;
+
+            // 遍历该月的每一天
+            while (currentDate <= lastDay)
+            {
+                var dayCheckins = grouped.FirstOrDefault(g => g.Key == currentDate);
+
+                // 获取当天所有时间段的打卡状态
+                var timeSlotStatuses = new List<TimeSlotStatusItem>();
+
+                foreach (var slot in allSlots)
+                {
+                    var slotCheckin = dayCheckins?.FirstOrDefault(c => c.TimeSlotId == slot.Id);
+
+                    if (slotCheckin != null)
+                    {
+                        timeSlotStatuses.Add(new TimeSlotStatusItem
+                        {
+                            CheckinId = (int)slotCheckin.Id,
+                            TimeSlotId = slot.Id,
+                            Status = slotCheckin.Status
+                        });
+                    }
+                }
+
+                // 判断当天是否完成全部打卡
+                var completedSlots = timeSlotStatuses.Count(t => t.Status > 0);
+                if (completedSlots > 0)
+                {
+                    var totalSlots = allSlots.Count;
+
+                    sbyte overallStatus = 0; // 默认未完成
+                    if (completedSlots == totalSlots)
+                    {
+                        // 全部完成，取最高状态（如果有补打卡则显示补打卡状态）
+                        overallStatus = (sbyte)(timeSlotStatuses.Any(t => t.Status == 2) ? 2 : 1);
+                    }
+                    else if (completedSlots > 0)
+                    {
+                        // 部分完成
+                        overallStatus = (sbyte)(timeSlotStatuses.Any(t => t.Status == 2) ? 2 : 1);
+                    }
+
+                    result.Add(new CalendarStatusItem
+                    {
+                        Date = currentDate,
+                        Status = overallStatus,
+                        CheckinMode = plan.CheckinMode,
+                        TimeSlots = timeSlotStatuses
+                    });
+                }
+                currentDate = currentDate.AddDays(1);
+            }
+
+        }
         return Ok(result);
     }
 

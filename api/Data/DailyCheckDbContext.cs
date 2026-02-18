@@ -141,6 +141,9 @@ public partial class DailyCheckDbContext : DbContext
             entity.Property(e => e.Id)
                 .HasComment("主键ID")
                 .HasColumnName("id");
+            entity.Property(e => e.CheckinMode)
+                .HasComment("打卡模式：0-默认模式，1-时间段打卡模式")
+                .HasColumnName("checkin_mode");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasComment("创建时间")

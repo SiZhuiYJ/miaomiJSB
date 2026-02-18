@@ -63,6 +63,11 @@ public partial class CheckinPlan
     /// </summary>
     public DateTime UpdatedAt { get; set; }
 
+    /// <summary>
+    /// 打卡模式：0-默认模式，1-时间段打卡模式
+    /// </summary>
+    public byte CheckinMode { get; set; }
+
     public virtual ICollection<CheckinPlanTimeSlot> CheckinPlanTimeSlots { get; set; } = new List<CheckinPlanTimeSlot>();
 
     public virtual ICollection<Checkin> Checkins { get; set; } = new List<Checkin>();

@@ -9,7 +9,7 @@
             认证相关接口，包括注册、登录和刷新令牌。
             </summary>
         </member>
-        <member name="M:api.Controllers.AuthController.#ctor(api.Data.DailyCheckDbContext,api.Infrastructure.IJwtTokenService,api.Infrastructure.IVerificationCodeService)">
+        <member name="M:api.Controllers.AuthController.#ctor(api.Data.DailyCheckDbContext,api.Infrastructure.IJwtTokenService,api.Infrastructure.IVerificationCodeService,StackExchange.Redis.IConnectionMultiplexer)">
             <summary>
             认证相关接口，包括注册、登录和刷新令牌。
             </summary>
@@ -110,6 +110,22 @@
             </summary>
             <param name="UserAccount">用户名</param>
             <param name="cancellationToken">取消操作标记。</param>
+            <returns></returns>
+        </member>
+        <member name="M:api.Controllers.AuthController.StoreTokensInRedis(System.UInt64,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+            将访问令牌和刷新令牌存储到Redis
+            </summary>
+            <param name="userId">用户ID</param>
+            <param name="accessToken">访问令牌</param>
+            <param name="refreshToken">刷新令牌</param>
+            <param name="cancellationToken">取消操作标记</param>
+        </member>
+        <member name="M:api.Controllers.AuthController.DeleteTokensFromRedis(System.UInt64)">
+            <summary>
+            从Redis删除用户的令牌
+            </summary>
+            <param name="userId">用户ID</param>
             <returns></returns>
         </member>
         <member name="T:api.Controllers.CheckinsController">
@@ -380,6 +396,11 @@
         <member name="P:api.Data.CheckinPlan.UpdatedAt">
             <summary>
             更新时间
+            </summary>
+        </member>
+        <member name="P:api.Data.CheckinPlan.CheckinMode">
+            <summary>
+            打卡模式：0-默认模式，1-时间段打卡模式
             </summary>
         </member>
         <member name="T:api.Data.CheckinPlanTimeSlot">
@@ -937,6 +958,7 @@
             发送邮箱验证码并应用频率限制。
             </summary>
             <param name="email">目标邮箱地址。</param>
+            <param name="actionType">操作类型（如：注册、登录等）。</param>
             <param name="cancellationToken">取消操作标记。</param>
             <returns>发送结果状态。</returns>
         </member>
@@ -968,6 +990,7 @@
             发送邮箱验证码并应用频率限制。
             </summary>
             <param name="email">目标邮箱地址。</param>
+            <param name="actionType">操作类型（如：注册、登录等）。</param>
             <param name="cancellationToken">取消操作标记。</param>
             <returns>发送结果状态。</returns>
         </member>
@@ -1117,6 +1140,26 @@
             时间段 ID（可选，用于分时段打卡）
             </summary>
         </member>
+        <member name="T:api.Models.TimeSlotStatusItem">
+            <summary>
+            时间段打卡详情请求参数。
+            </summary>
+        </member>
+        <member name="P:api.Models.TimeSlotStatusItem.CheckinId">
+            <summary>
+            对应的打卡记录 ID。
+            </summary>
+        </member>
+        <member name="P:api.Models.TimeSlotStatusItem.TimeSlotId">
+            <summary>
+            打卡时间段ID。
+            </summary>
+        </member>
+        <member name="P:api.Models.TimeSlotStatusItem.Status">
+            <summary>
+            时间段打卡状态：1=正常打卡，2=补打卡等。
+            </summary>
+        </member>
         <member name="T:api.Models.CalendarStatusItem">
             <summary>
             日历打卡状态项。
@@ -1127,9 +1170,19 @@
             日期。
             </summary>
         </member>
+        <member name="P:api.Models.CalendarStatusItem.CheckinMode">
+            <summary>
+            打卡模式：0-默认模式，1-时间段打卡模式
+            </summary>
+        </member>
         <member name="P:api.Models.CalendarStatusItem.Status">
             <summary>
             打卡状态：1=正常打卡，2=补打卡等。
+            </summary>
+        </member>
+        <member name="P:api.Models.CalendarStatusItem.TimeSlots">
+            <summary>
+            时间段打卡详情列表（仅时间段打卡模式会有）
             </summary>
         </member>
         <member name="T:api.Models.CheckinDetailResponse">

@@ -51,6 +51,7 @@ public interface IVerificationCodeService
     /// 发送邮箱验证码并应用频率限制。
     /// </summary>
     /// <param name="email">目标邮箱地址。</param>
+    /// <param name="actionType">操作类型（如：注册、登录等）。</param>
     /// <param name="cancellationToken">取消操作标记。</param>
     /// <returns>发送结果状态。</returns>
     Task<SendCodeStatus> SendCodeAsync(string email, string? actionType, CancellationToken cancellationToken = default);
@@ -107,6 +108,7 @@ public class VerificationCodeService : IVerificationCodeService
     /// 发送邮箱验证码并应用频率限制。
     /// </summary>
     /// <param name="email">目标邮箱地址。</param>
+    /// <param name="actionType">操作类型（如：注册、登录等）。</param>
     /// <param name="cancellationToken">取消操作标记。</param>
     /// <returns>发送结果状态。</returns>
     public async Task<SendCodeStatus> SendCodeAsync(string email, string? actionType, CancellationToken cancellationToken = default)

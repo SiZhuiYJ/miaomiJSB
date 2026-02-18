@@ -59,6 +59,26 @@ public class RetroCheckinRequest
     /// </summary>
     public ulong? TimeSlotId { get; set; }
 }
+/// <summary>
+/// 时间段打卡详情请求参数。
+/// </summary>
+public class TimeSlotStatusItem
+{
+    /// <summary>
+    /// 对应的打卡记录 ID。
+    /// </summary>
+    public long CheckinId { get; set; }
+
+    /// <summary>
+    /// 打卡时间段ID。
+    /// </summary>
+    public ulong? TimeSlotId { get; set; }
+
+    /// <summary>
+    /// 时间段打卡状态：1=正常打卡，2=补打卡等。
+    /// </summary>
+    public sbyte Status { get; set; }
+}
 
 /// <summary>
 /// 日历打卡状态项。
@@ -71,9 +91,19 @@ public class CalendarStatusItem
     public DateOnly Date { get; set; }
 
     /// <summary>
+    /// 打卡模式：0-默认模式，1-时间段打卡模式
+    /// </summary>
+    public byte CheckinMode { get; set; }
+
+    /// <summary>
     /// 打卡状态：1=正常打卡，2=补打卡等。
     /// </summary>
-    public short Status { get; set; }
+    public short? Status { get; set; }
+
+    /// <summary>
+    /// 时间段打卡详情列表（仅时间段打卡模式会有）
+    /// </summary>
+    public List<TimeSlotStatusItem>? TimeSlots { get; set; }
 }
 
 /// <summary>

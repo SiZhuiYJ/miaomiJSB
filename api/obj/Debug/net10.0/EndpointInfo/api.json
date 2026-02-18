@@ -1002,10 +1002,24 @@
             "description": "日期。",
             "format": "date"
           },
+          "checkinMode": {
+            "type": "integer",
+            "description": "打卡模式：0-默认模式，1-时间段打卡模式",
+            "format": "int32"
+          },
           "status": {
             "type": "integer",
             "description": "打卡状态：1=正常打卡，2=补打卡等。",
-            "format": "int32"
+            "format": "int32",
+            "nullable": true
+          },
+          "timeSlots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TimeSlotStatusItem"
+            },
+            "description": "时间段打卡详情列表（仅时间段打卡模式会有）",
+            "nullable": true
           }
         },
         "additionalProperties": false,
@@ -1333,6 +1347,29 @@
         },
         "additionalProperties": false,
         "description": "打卡时间段数据传输对象"
+      },
+      "TimeSlotStatusItem": {
+        "type": "object",
+        "properties": {
+          "checkinId": {
+            "type": "integer",
+            "description": "对应的打卡记录 ID。",
+            "format": "int64"
+          },
+          "timeSlotId": {
+            "type": "integer",
+            "description": "打卡时间段ID。",
+            "format": "int64",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "description": "时间段打卡状态：1=正常打卡，2=补打卡等。",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "时间段打卡详情请求参数。"
       },
       "UpdatePlanRequest": {
         "type": "object",

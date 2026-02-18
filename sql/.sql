@@ -27,7 +27,6 @@ CREATE TABLE `users` (
     CONSTRAINT `fk_users_freeze_operator` FOREIGN KEY (`freeze_operator_id`) REFERENCES `users` (`id`)
 ) ENGINE = InnoDB AUTO_INCREMENT = 13 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '用户表（支持伪删除与黑名单冻结）'
 
-
 CREATE TABLE user_oauth_accounts (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
     user_id BIGINT UNSIGNED NOT NULL COMMENT '关联用户ID',
@@ -62,26 +61,26 @@ CREATE TABLE checkin_plans (
     CONSTRAINT fk_plans_user FOREIGN KEY (user_id) REFERENCES users (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '打卡计划表';
 
-CREATE TABLE checkins (
-    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-    plan_id BIGINT UNSIGNED NOT NULL COMMENT '所属打卡计划ID',
-    user_id BIGINT UNSIGNED NOT NULL COMMENT '打卡用户ID',
-    check_date DATE NOT NULL COMMENT '打卡日期（仅日期）',
-    images JSON NULL COMMENT '打卡图片URL数组(JSON)',
-    note TEXT NULL COMMENT '打卡备注',
-    status TINYINT NOT NULL COMMENT '打卡状态：0错过(红)、1成功(绿)、2补签(黄)',
-    is_deleted TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否伪删除：0正常，1已删除',
-    deleted_at DATETIME NULL COMMENT '伪删除时间',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    PRIMARY KEY (id),
-    UNIQUE KEY ux_checkins_plan_date (plan_id, check_date),
-    KEY idx_checkins_user_date (user_id, check_date),
-    KEY idx_checkins_status (status),
-    KEY idx_checkins_is_deleted (is_deleted),
-    CONSTRAINT fk_checkins_plan FOREIGN KEY (plan_id) REFERENCES checkin_plans (id),
-    CONSTRAINT fk_checkins_user FOREIGN KEY (user_id) REFERENCES users (id)
-) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '打卡记录表';
+CREATE TABLE `checkin_plans` (
+    `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    `user_id` bigint unsigned NOT NULL COMMENT '计划所属用户ID',
+    `title` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '打卡计划标题',
+    `description` text COLLATE utf8mb4_unicode_ci COMMENT '打卡计划描述',
+    `start_date` date NOT NULL COMMENT '计划开始日期',
+    `end_date` date DEFAULT NULL COMMENT '计划结束日期（可选）',
+    `is_active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否启用：1启用，0停用',
+    `is_deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否伪删除：0正常，1已删除',
+    `deleted_at` datetime DEFAULT NULL COMMENT '伪删除时间',
+    `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `checkin_mode` tinyint unsigned NOT NULL DEFAULT '0' COMMENT '打卡模式：0-默认模式，1-时间段打卡模式',
+    PRIMARY KEY (`id`),
+    KEY `idx_plans_user` (`user_id`),
+    KEY `idx_plans_start_date` (`start_date`),
+    KEY `idx_plans_is_active` (`is_active`),
+    KEY `idx_plans_is_deleted` (`is_deleted`),
+    CONSTRAINT `fk_plans_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
+) ENGINE = InnoDB AUTO_INCREMENT = 36 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '打卡计划表'
 
 CREATE TABLE user_activity (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
