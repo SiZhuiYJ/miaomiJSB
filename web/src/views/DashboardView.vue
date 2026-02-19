@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useCheckinsStore } from "@/features/checkin/stores";
 import { usePlansStore } from "@/features/plans/stores";
-import type {PlanSummary} from "@/features/plans/types"
+import type { PlanSummary } from "@/features/plans/types";
 import { notifyWarning } from "../utils/notification";
 import Topbar from "../components/Topbar.vue";
 import PlanSidebar from "../components/PlanSidebar.vue";
@@ -536,10 +536,12 @@ function handleMobileCalendarBack(): void {
 .calendar-header {
   margin-bottom: 8px;
 }
-
+:deep(.el-calendar-day) {
+  height: 46px;
+}
 .day {
   width: 100%;
-  height: 32px;
+  height: 100%;
   border-radius: 8px;
   display: flex;
   align-items: center;
