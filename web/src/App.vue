@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // 2495550774@qq.com
 import { computed, ref, onMounted } from 'vue';
-import { useAuthStore } from './stores/auth';
+import { useAuthStore } from '@/features/auth/stores';
 import AuthView from './views/AuthView.vue';
 import DashboardView from './views/DashboardView.vue';
 import { ElConfigProvider, dayjs } from 'element-plus'

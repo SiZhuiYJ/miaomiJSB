@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { http } from '../api/http';
-import { useCheckinsStore, type CheckinDetail } from '../stores/checkins';
-import ImagePreviewList from './ImagePreviewList.vue';
-import { notifyError } from '../utils/notification';
+import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { FileApi } from "@/features/file/api/index";
+import { useCheckinsStore } from "@/features/checkin/stores";
+import type { CheckinDetail } from "@/features/checkin/types";
+import ImagePreviewList from "./ImagePreviewList.vue";
+import { notifyError } from "../utils/notification";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -12,21 +13,21 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void;
-  (e: 'closed'): void;
+  (e: "update:modelValue", value: boolean): void;
+  (e: "closed"): void;
 }>();
 
 const visible = computed({
   get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val),
+  set: (val) => emit("update:modelValue", val),
 });
 
 const checkinsStore = useCheckinsStore();
 
 function formatDateOnly(date: Date): string {
   const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
 
@@ -45,10 +46,10 @@ async function loadImagesForList(details: CheckinDetail[]): Promise<void> {
     for (const url of item.imageUrls) {
       if (!imageObjectUrls.value.has(url)) {
         try {
-          const response = await http.get<Blob>(url, { responseType: 'blob' });
+          const response = await FileApi.GetImage(url);
           const objectUrl = URL.createObjectURL(response.data);
           imageObjectUrls.value.set(url, objectUrl);
-        } catch { }
+        } catch {}
       }
     }
   }
@@ -64,7 +65,7 @@ async function fetchDetail(): Promise<void> {
     detail.value = result; // result is now CheckinDetail[]
     await loadImagesForList(result);
   } catch {
-    notifyError('加载打卡详情失败');
+    notifyError("加载打卡详情失败");
     visible.value = false;
   } finally {
     detailLoading.value = false;
@@ -96,7 +97,7 @@ watch(
     if (visible.value) {
       fetchDetail();
     }
-  }
+  },
 );
 
 onBeforeUnmount(() => {
@@ -105,12 +106,18 @@ onBeforeUnmount(() => {
 
 // Helper for template
 function getBlobUrl(url: string): string {
-  return imageObjectUrls.value.get(url) || '';
+  return imageObjectUrls.value.get(url) || "";
 }
 </script>
 
 <template>
-  <el-drawer v-model="visible" direction="btt" size="auto" title="打卡详情" @closed="handleClosed">
+  <el-drawer
+    v-model="visible"
+    direction="btt"
+    size="auto"
+    title="打卡详情"
+    @closed="handleClosed"
+  >
     <div class="drawer-body">
       <p v-if="props.date" class="drawer-date">
         打卡日期：{{ formatDateOnly(props.date) }}
@@ -122,11 +129,17 @@ function getBlobUrl(url: string): string {
             <span v-if="item.status === 1">正常打卡</span>
             <span v-else-if="item.status === 2">补签</span>
             <span v-else>未知</span>
-            <span v-if="item.timeSlotId" class="time-slot-tag"> (时间段 {{ item.timeSlotId }})</span>
+            <span v-if="item.timeSlotId" class="time-slot-tag">
+              (时间段 {{ item.timeSlotId }})</span
+            >
           </p>
           <p v-if="item.note" class="drawer-note">备注：{{ item.note }}</p>
           <div v-if="item.imageUrls.length">
-            <ImagePreviewList :sources="item.imageUrls.map(url => getBlobUrl(url)).filter(Boolean)" />
+            <ImagePreviewList
+              :sources="
+                item.imageUrls.map((url) => getBlobUrl(url)).filter(Boolean)
+              "
+            />
           </div>
           <p v-else class="no-images">无图片</p>
         </div>

@@ -1,10 +1,14 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { http } from '../api/http';
-import { useCheckinsStore } from '../stores/checkins';
-import { usePlansStore } from '../stores/plans';
-import ImagePreviewList from './ImagePreviewList.vue';
-import { notifySuccess, notifyError, notifyWarning } from '../utils/notification';
+import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { FileApi } from "@/features/file/api/index";
+import { useCheckinsStore } from "@/features/checkin/stores";
+import { usePlansStore } from "@/features/plans/stores";
+import ImagePreviewList from "./ImagePreviewList.vue";
+import {
+  notifySuccess,
+  notifyError,
+  notifyWarning,
+} from "../utils/notification";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -13,27 +17,27 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void;
-  (e: 'success'): void;
-  (e: 'closed'): void;
+  (e: "update:modelValue", value: boolean): void;
+  (e: "success"): void;
+  (e: "closed"): void;
 }>();
 
 const visible = computed({
   get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val),
+  set: (val) => emit("update:modelValue", val),
 });
 
 const checkinsStore = useCheckinsStore();
 const plansStore = usePlansStore();
 
-const note = ref('');
+const note = ref("");
 const images = ref<File[]>([]);
 const previewSrcs = ref<string[]>([]);
 const loading = ref(false);
 const selectedTimeSlotId = ref<number | null>(null);
 
 const currentPlan = computed(() => {
-  return plansStore.items.find(p => p.id === props.planId);
+  return plansStore.items.find((p) => p.id === props.planId);
 });
 
 function clearPreviews(): void {
@@ -44,7 +48,7 @@ function clearPreviews(): void {
 }
 
 function resetForm(): void {
-  note.value = '';
+  note.value = "";
   images.value = [];
   selectedTimeSlotId.value = null;
   clearPreviews();
@@ -52,8 +56,8 @@ function resetForm(): void {
 
 function formatDateOnly(date: Date): string {
   const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
 
@@ -61,8 +65,8 @@ async function uploadImages(): Promise<string[]> {
   const urls: string[] = [];
   for (const file of images.value) {
     const formData = new FormData();
-    formData.append('file', file);
-    const res = await http.post<{ url: string }>('/mm/Files/images', formData);
+    formData.append("file", file);
+    const res = await FileApi.UploadImage(formData);
     urls.push(res.data.url);
   }
   return urls;
@@ -73,15 +77,15 @@ function handleFilesChange(event: Event) {
   if (input.files) {
     const newFiles = Array.from(input.files);
     if (images.value.length + newFiles.length > 3) {
-      notifyWarning('最多只能上传三张图片');
+      notifyWarning("最多只能上传三张图片");
       return;
     }
     images.value.push(...newFiles);
-    newFiles.forEach(file => {
+    newFiles.forEach((file) => {
       previewSrcs.value.push(URL.createObjectURL(file));
     });
   }
-  input.value = '';
+  input.value = "";
 }
 
 function removeImage(index: number) {
@@ -94,17 +98,21 @@ function removeImage(index: number) {
 async function handleSubmit(): Promise<void> {
   if (!props.planId || !props.date) return;
   if (images.value.length < 1) {
-    notifyWarning('请至少上传一张图片');
+    notifyWarning("请至少上传一张图片");
     return;
   }
   if (images.value.length > 3) {
-    notifyWarning('最多只能上传三张图片');
+    notifyWarning("最多只能上传三张图片");
     return;
   }
 
   // Check time slot requirement
-  if (currentPlan.value?.timeSlots && currentPlan.value.timeSlots.length > 0 && !selectedTimeSlotId.value) {
-    notifyWarning('请选择打卡时间段');
+  if (
+    currentPlan.value?.timeSlots &&
+    currentPlan.value.timeSlots.length > 0 &&
+    !selectedTimeSlotId.value
+  ) {
+    notifyWarning("请选择打卡时间段");
     return;
   }
 
@@ -136,10 +144,12 @@ async function handleSubmit(): Promise<void> {
       // Check if force retro needed for today
       let forceRetro = false;
       if (selectedTimeSlotId.value && currentPlan.value?.timeSlots) {
-        const slot = currentPlan.value.timeSlots.find(s => s.id === selectedTimeSlotId.value);
+        const slot = currentPlan.value.timeSlots.find(
+          (s) => s.id === selectedTimeSlotId.value,
+        );
         if (slot) {
           const now = new Date();
-          const nowTimeStr = now.toTimeString().split(' ')[0] || '';
+          const nowTimeStr = now.toTimeString().split(" ")[0] || "";
           if (nowTimeStr > slot.endTime) {
             forceRetro = true;
           }
@@ -149,25 +159,25 @@ async function handleSubmit(): Promise<void> {
       if (forceRetro) {
         const isoDate = formatDateOnly(target);
         await checkinsStore.retroCheckin({ ...payload, date: isoDate });
-        notifySuccess('补签成功');
+        notifySuccess("补签成功");
       } else {
         await checkinsStore.dailyCheckin(payload);
-        notifySuccess('今日打卡成功');
+        notifySuccess("今日打卡成功");
       }
     } else if (targetOnly.getTime() < todayOnly.getTime()) {
       const isoDate = formatDateOnly(target);
       await checkinsStore.retroCheckin({ ...payload, date: isoDate });
-      notifySuccess('补签成功');
+      notifySuccess("补签成功");
     } else {
-      notifyError('仅支持今日打卡或过去日期补签');
+      notifyError("仅支持今日打卡或过去日期补签");
       return;
     }
 
     resetForm();
     visible.value = false;
-    emit('success');
+    emit("success");
   } catch {
-    notifyError('打卡失败，请稍后重试');
+    notifyError("打卡失败，请稍后重试");
   } finally {
     loading.value = false;
   }
@@ -192,8 +202,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <el-drawer v-model="visible" direction="btt" size="auto" :title="props.date ? '打卡 / 补签' : '打卡'"
-    @closed="handleClosed">
+  <el-drawer
+    v-model="visible"
+    direction="btt"
+    size="auto"
+    :title="props.date ? '打卡 / 补签' : '打卡'"
+    @closed="handleClosed"
+  >
     <div class="drawer-body">
       <p v-if="props.date" class="drawer-date">
         目标日期：{{ formatDateOnly(props.date) }}
@@ -202,10 +217,18 @@ onBeforeUnmount(() => {
       <div v-if="currentPlan?.timeSlots?.length" class="time-slot-selection">
         <p class="section-label">选择打卡时间段</p>
         <div class="slots-grid">
-          <div v-for="slot in currentPlan.timeSlots" :key="slot.id" class="slot-option"
-            :class="{ active: selectedTimeSlotId === slot.id }" @click="selectedTimeSlotId = slot.id || null">
+          <div
+            v-for="slot in currentPlan.timeSlots"
+            :key="slot.id"
+            class="slot-option"
+            :class="{ active: selectedTimeSlotId === slot.id }"
+            @click="selectedTimeSlotId = slot.id || null"
+          >
             <span class="slot-name">{{ slot.slotName }}</span>
-            <span class="slot-time">{{ slot.startTime.slice(0, 5) }} - {{ slot.endTime.slice(0, 5) }}</span>
+            <span class="slot-time"
+              >{{ slot.startTime.slice(0, 5) }} -
+              {{ slot.endTime.slice(0, 5) }}</span
+            >
           </div>
         </div>
       </div>
@@ -216,11 +239,25 @@ onBeforeUnmount(() => {
       </label>
       <label class="field">
         <span>上传图片（至少 1 张，最多 3 张）</span>
-        <input type="file" accept="image/*" multiple @change="handleFilesChange" />
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          @change="handleFilesChange"
+        />
       </label>
-      <ImagePreviewList :sources="previewSrcs" removable @remove="removeImage" />
-      <button type="button" class="primary" :disabled="loading" @click="handleSubmit">
-        {{ loading ? '提交中...' : '提交打卡' }}
+      <ImagePreviewList
+        :sources="previewSrcs"
+        removable
+        @remove="removeImage"
+      />
+      <button
+        type="button"
+        class="primary"
+        :disabled="loading"
+        @click="handleSubmit"
+      >
+        {{ loading ? "提交中..." : "提交打卡" }}
       </button>
     </div>
   </el-drawer>

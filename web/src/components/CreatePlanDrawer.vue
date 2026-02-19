@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, watch, type PropType } from 'vue';
-import { ElMessageBox } from 'element-plus';
-import { usePlansStore, type PlanSummary, type TimeSlotDto } from '../stores/plans';
-import { notifySuccess, notifyWarning } from '../utils/notification';
+import { computed, ref, watch, type PropType } from "vue";
+import { ElMessageBox } from "element-plus";
+import { usePlansStore } from "@/features/plans/stores";
+import type { PlanSummary, TimeSlotDto } from "@/features/plans/types";
+import { notifySuccess, notifyWarning } from "../utils/notification";
 
 const props = defineProps({
   modelValue: {
@@ -16,21 +17,21 @@ const props = defineProps({
 });
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void;
-  (e: 'created', id: number): void;
-  (e: 'updated', id: number): void;
-  (e: 'deleted', id: number): void;
+  (e: "update:modelValue", value: boolean): void;
+  (e: "created", id: number): void;
+  (e: "updated", id: number): void;
+  (e: "deleted", id: number): void;
 }>();
 
 const visible = computed({
   get: () => props.modelValue,
-  set: (value: boolean) => emit('update:modelValue', value),
+  set: (value: boolean) => emit("update:modelValue", value),
 });
 
 const plansStore = usePlansStore();
 
-const title = ref('');
-const description = ref('');
+const title = ref("");
+const description = ref("");
 const startDate = ref<string | null>(null);
 const endDate = ref<string | null>(null);
 const isActive = ref(true);
@@ -39,8 +40,8 @@ const enableTimeSlots = ref(false);
 const timeSlots = ref<TimeSlotDto[]>([]);
 
 function resetForm(): void {
-  title.value = '';
-  description.value = '';
+  title.value = "";
+  description.value = "";
   startDate.value = null;
   endDate.value = null;
   isActive.value = true;
@@ -53,7 +54,7 @@ watch(
   (newVal) => {
     if (newVal) {
       title.value = newVal.title;
-      description.value = newVal.description ?? '';
+      description.value = newVal.description ?? "";
       startDate.value = newVal.startDate;
       endDate.value = newVal.endDate;
       isActive.value = newVal.isActive;
@@ -69,41 +70,47 @@ watch(
       resetForm();
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 async function handleSubmit(): Promise<void> {
   if (!title.value.trim()) {
-    notifyWarning('请输入计划标题');
+    notifyWarning("请输入计划标题");
     return;
   }
 
-  if (startDate.value && endDate.value && new Date(endDate.value) < new Date(startDate.value)) {
-    notifyWarning('结束日期不能早于开始日期');
+  if (
+    startDate.value &&
+    endDate.value &&
+    new Date(endDate.value) < new Date(startDate.value)
+  ) {
+    notifyWarning("结束日期不能早于开始日期");
     return;
   }
 
   // Time slots validation
   if (enableTimeSlots.value) {
     if (timeSlots.value.length === 0) {
-      notifyWarning('请至少添加一个打卡时间段');
+      notifyWarning("请至少添加一个打卡时间段");
       return;
     }
     for (const slot of timeSlots.value) {
       if (!slot.startTime || !slot.endTime) {
-        notifyWarning('请填写完整的时间段信息');
+        notifyWarning("请填写完整的时间段信息");
         return;
       }
       if (slot.startTime >= slot.endTime) {
-        notifyWarning(`时间段 ${slot.slotName || ''} 开始时间必须早于结束时间`);
+        notifyWarning(`时间段 ${slot.slotName || ""} 开始时间必须早于结束时间`);
         return;
       }
     }
     // Check overlaps
-    const sorted = [...timeSlots.value].sort((a, b) => a.startTime.localeCompare(b.startTime));
+    const sorted = [...timeSlots.value].sort((a, b) =>
+      a.startTime.localeCompare(b.startTime),
+    );
     for (let i = 0; i < sorted.length - 1; i++) {
       if (sorted[i].endTime > sorted[i + 1].startTime) {
-        notifyWarning('时间段存在重叠，请检查设置');
+        notifyWarning("时间段存在重叠，请检查设置");
         return;
       }
     }
@@ -121,24 +128,24 @@ async function handleSubmit(): Promise<void> {
     await plansStore.updatePlan({
       id: props.editPlan.id,
       title: title.value.trim(),
-      description: description.value || undefined,
+      description: description.value || null,
       startDate: startDate.value ?? null,
       endDate: endDate.value ?? null,
       isActive: isActive.value,
       timeSlots: payloadTimeSlots,
     });
-    notifySuccess('修改计划成功');
-    emit('updated', props.editPlan.id);
+    notifySuccess("修改计划成功");
+    emit("updated", props.editPlan.id);
   } else {
     const created = await plansStore.createPlan({
       title: title.value.trim(),
-      description: description.value || undefined,
+      description: description.value || null,
       startDate: startDate.value ?? null,
       endDate: endDate.value ?? null,
       timeSlots: payloadTimeSlots,
     });
-    notifySuccess('创建计划成功');
-    emit('created', created.id);
+    notifySuccess("创建计划成功");
+    emit("created", created.id);
   }
 
   visible.value = false;
@@ -147,14 +154,18 @@ async function handleSubmit(): Promise<void> {
 async function handleDelete(): Promise<void> {
   if (!props.editPlan) return;
   try {
-    await ElMessageBox.confirm('确定要删除这个计划吗？此操作无法撤销。', '删除确认', {
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-      type: 'warning',
-    });
+    await ElMessageBox.confirm(
+      "确定要删除这个计划吗？此操作无法撤销。",
+      "删除确认",
+      {
+        confirmButtonText: "删除",
+        cancelButtonText: "取消",
+        type: "warning",
+      },
+    );
     await plansStore.deletePlan(props.editPlan.id);
-    notifySuccess('删除计划成功');
-    emit('deleted', props.editPlan.id);
+    notifySuccess("删除计划成功");
+    emit("deleted", props.editPlan.id);
     visible.value = false;
   } catch {
     // Cancelled
@@ -167,9 +178,9 @@ function handleClosed(): void {
 
 function addTimeSlot() {
   timeSlots.value.push({
-    startTime: '09:00:00',
-    endTime: '10:00:00',
-    slotName: '',
+    startTime: "09:00:00",
+    endTime: "10:00:00",
+    slotName: "",
     isActive: true,
   });
 }
@@ -222,13 +233,23 @@ function removeTimeSlot(index: number) {
       </label>
 
       <div v-if="enableTimeSlots" class="time-slots-container">
-        <div v-for="(slot, index) in timeSlots" :key="index" class="time-slot-item">
+        <div
+          v-for="(slot, index) in timeSlots"
+          :key="index"
+          class="time-slot-item"
+        >
           <div class="slot-header">
             <span>时间段 {{ index + 1 }}</span>
-            <button class="icon-btn danger" @click="removeTimeSlot(index)">删除</button>
+            <button class="icon-btn danger" @click="removeTimeSlot(index)">
+              删除
+            </button>
           </div>
           <div class="slot-row">
-            <input v-model="slot.slotName" placeholder="名称 (如: 早晨)" class="slot-name-input" />
+            <input
+              v-model="slot.slotName"
+              placeholder="名称 (如: 早晨)"
+              class="slot-name-input"
+            />
           </div>
           <div class="slot-row time-range">
             <el-time-picker
@@ -258,9 +279,14 @@ function removeTimeSlot(index: number) {
 
       <div class="actions">
         <button type="button" class="primary" @click="handleSubmit">
-          {{ props.editPlan ? '保存修改' : '创建' }}
+          {{ props.editPlan ? "保存修改" : "创建" }}
         </button>
-        <button v-if="props.editPlan" type="button" class="danger" @click="handleDelete">
+        <button
+          v-if="props.editPlan"
+          type="button"
+          class="danger"
+          @click="handleDelete"
+        >
           删除计划
         </button>
       </div>
@@ -290,7 +316,8 @@ function removeTimeSlot(index: number) {
   font-size: 14px;
 }
 
-.field span, .field-row span {
+.field span,
+.field-row span {
   color: var(--text-muted);
 }
 

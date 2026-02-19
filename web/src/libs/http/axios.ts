@@ -6,9 +6,9 @@ import axios, {
   type InternalAxiosRequestConfig,
   type AxiosError,
 } from "axios";
-import type { AuthData } from "@/libs/api/auth/type";
+import type { AuthData } from "@/features/auth/types";
 import http from "./index";
-import { useAuthStore } from "@/stores/auth";
+import { useAuthStore } from "@/features/auth/stores";
 // 只有请求封装用的MM，方便简写
 class MM {
   private instance: AxiosInstance;
@@ -26,12 +26,12 @@ class MM {
     // @ts-ignore
     this.instance.interceptors.request.use(
       (config) => this.handleRequest(config),
-      (error) => this.handleRequestError(error)
+      (error) => this.handleRequestError(error),
     );
 
     this.instance.interceptors.response.use(
       (response) => this.handleResponse(response),
-      (error) => this.handleResponseError(error)
+      (error) => this.handleResponseError(error),
     );
   }
   private async handleRequest(config: InternalAxiosRequestConfig) {
@@ -80,8 +80,8 @@ class MM {
     return Promise.reject(error);
   }
   // Get请求
-  async get<T>(url: string, params?: object): Promise<AxiosResponse<T>> {
-    return await this.instance.get(url, { params });
+  async get<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
+    return await this.instance.get(url, data);
   }
   // Post请求
   async post<T>(url: string, data?: object): Promise<AxiosResponse<T>> {

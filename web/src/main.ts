@@ -27,7 +27,7 @@ const app = createApp(App);
 
 
 // 状态管理 - Pinia
-// import pinia from "./stores";
+import pinia from "./stores";
 
 // 路由管理 - Vue Router
 // import router from "./routers";
@@ -39,7 +39,7 @@ const app = createApp(App);
 // import "virtual:svg-icons-register";
 
 // 注册Pinia状态管理
-// app.use(pinia);
+app.use(pinia);
 
 // 注册Vue Router路由系统
 // app.use(router);

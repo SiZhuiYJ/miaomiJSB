@@ -32,6 +32,8 @@ declare module 'vue' {
     NotificationSystem: typeof import('./components/NotificationSystem.vue')['default']
     PlanSidebar: typeof import('./components/PlanSidebar.vue')['default']
     ProgressBar: typeof import('./components/ProgressBar.vue')['default']
+    RouterLink: typeof import('vue-router')['RouterLink']
+    RouterView: typeof import('vue-router')['RouterView']
     Topbar: typeof import('./components/Topbar.vue')['default']
   }
 }

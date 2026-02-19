@@ -1,7 +1,7 @@
-import { defineStore } from 'pinia';
-import type { AuthData, AuthState } from '@/libs/api/auth/type';
+import { defineStore } from "pinia";
+import type { AuthData, AuthState, AuthUser } from "@/features/auth/types";
 
-const STORAGE_KEY = 'mm_auth';
+const STORAGE_KEY = "mm_auth";
 
 function loadInitialState(): AuthState {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -24,12 +24,12 @@ function loadInitialState(): AuthState {
   }
 }
 
-export const useAuthStore = defineStore('auth', () => {
+export const useAuthStore = defineStore("auth", () => {
   const state = loadInitialState();
 
-  const user = ref(state.user);
-  const accessToken = ref(state.accessToken);
-  const refreshToken = ref(state.refreshToken);
+  const user = ref<AuthUser | null>(state.user);
+  const accessToken = ref<string | null>(state.accessToken);
+  const refreshToken = ref<string | null>(state.refreshToken);
 
   const isAuthenticated = computed(() => {
     return !!accessToken.value;
@@ -54,8 +54,10 @@ export const useAuthStore = defineStore('auth', () => {
     nickName?: string | null;
   }): void {
     if (user.value) {
-      if (payload.userAccount !== undefined) user.value.userAccount = payload.userAccount;
-      if (payload.nickName !== undefined) user.value.nickName = payload.nickName;
+      if (payload.userAccount !== undefined)
+        user.value.userAccount = payload.userAccount;
+      if (payload.nickName !== undefined)
+        user.value.nickName = payload.nickName;
       persist();
     }
   }
@@ -67,8 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       localStorage.clear();
       sessionStorage.clear();
-    } catch {
-    }
+    } catch {}
   }
 
   function persist(): void {
