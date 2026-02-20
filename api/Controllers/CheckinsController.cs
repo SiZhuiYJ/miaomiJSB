@@ -267,24 +267,11 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
                 var completedSlots = timeSlotStatuses.Count(t => t.Status > 0);
                 if (completedSlots > 0)
                 {
-                    var totalSlots = allSlots.Count;
-
-                    sbyte overallStatus = 0; // 默认未完成
-                    if (completedSlots == totalSlots)
-                    {
-                        // 全部完成，取最高状态（如果有补打卡则显示补打卡状态）
-                        overallStatus = (sbyte)(timeSlotStatuses.Any(t => t.Status == 2) ? 2 : 1);
-                    }
-                    else if (completedSlots > 0)
-                    {
-                        // 部分完成
-                        overallStatus = (sbyte)(timeSlotStatuses.Any(t => t.Status == 2) ? 2 : 1);
-                    }
-
+                    int overallStatus = allSlots.Count; ; // 默认未完成
                     result.Add(new CalendarStatusItem
                     {
                         Date = currentDate,
-                        Status = overallStatus,
+                        Status = (sbyte)overallStatus,
                         CheckinMode = plan.CheckinMode,
                         TimeSlots = timeSlotStatuses
                     });

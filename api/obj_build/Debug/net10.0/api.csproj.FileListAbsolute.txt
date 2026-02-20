@@ -1,8 +1,0 @@
-E:\SignIn\api\obj_build\Debug\net10.0\api.csproj.AssemblyReference.cache
-E:\SignIn\api\obj_build\Debug\net10.0\rpswa.dswa.cache.json
-E:\SignIn\api\obj_build\Debug\net10.0\api.GeneratedMSBuildEditorConfig.editorconfig
-E:\SignIn\api\obj_build\Debug\net10.0\api.AssemblyInfoInputs.cache
-E:\SignIn\api\obj_build\Debug\net10.0\api.AssemblyInfo.cs
-E:\SignIn\api\obj_build\Debug\net10.0\api.csproj.CoreCompileInputs.cache
-E:\SignIn\api\obj_build\Debug\net10.0\api.MvcApplicationPartsAssemblyInfo.cs
-E:\SignIn\api\obj_build\Debug\net10.0\api.MvcApplicationPartsAssemblyInfo.cache

@@ -57,17 +57,140 @@ api/.config
 web/.vscode
 web/.vite
 
+# Vite 依赖缓存目录
+web/.vite/deps/
+
 # 发布目录
 api/bin/Release/
 api/bin/Release/*
 api/bin/Release/**
-api/bin/Release/**/*
 api.Release
+# 忽略构建输出
+api/bin/Release/
+api/bin/Release/**/*
+api/obj/
+api/obj/**/*
+api/bin/Debug/
+api/bin/Debug/**/*
 # 忽略构建输出
 api/obj/
 api/obj/**/*
 api/bin/Debug/
 api/bin/Debug/**/*
+
+# .NET 编译输出目录
+api/bin/Debug/net10.0/
+api/obj/Debug/net10.0/
+api/obj/Release/net10.0/
+api/obj_build/Debug/net10.0/
+
+# .NET 编译输出中的各种 DLL 文件和资源
+api/bin/Debug/net10.0/BouncyCastle.Cryptography.dll
+api/bin/Debug/net10.0/CoverletSourceRootsMapping_api.Tests
+api/bin/Debug/net10.0/Humanizer.dll
+api/bin/Debug/net10.0/MailKit.dll
+api/bin/Debug/net10.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
+api/bin/Debug/net10.0/Microsoft.Bcl.AsyncInterfaces.dll
+api/bin/Debug/net10.0/Microsoft.Bcl.TimeProvider.dll
+api/bin/Debug/net10.0/Microsoft.Build.Locator.dll
+api/bin/Debug/net10.0/Microsoft.CodeAnalysis.CSharp.Workspaces.dll
+api/bin/Debug/net10.0/Microsoft.CodeAnalysis.CSharp.dll
+api/bin/Debug/net10.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.dll
+api/bin/Debug/net10.0/Microsoft.CodeAnalysis.Workspaces.MSBuild.dll
+api/bin/Debug/net10.0/Microsoft.CodeAnalysis.Workspaces.dll
+api/bin/Debug/net10.0/Microsoft.CodeAnalysis.dll
+api/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.Abstractions.dll
+api/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.Design.dll
+api/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.Relational.dll
+api/bin/Debug/net10.0/Microsoft.EntityFrameworkCore.dll
+api/bin/Debug/net10.0/Microsoft.Extensions.DependencyModel.dll
+api/bin/Debug/net10.0/Microsoft.IdentityModel.Abstractions.dll
+api/bin/Debug/net10.0/Microsoft.IdentityModel.JsonWebTokens.dll
+api/bin/Debug/net10.0/Microsoft.IdentityModel.Logging.dll
+api/bin/Debug/net10.0/Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+api/bin/Debug/net10.0/Microsoft.IdentityModel.Protocols.dll
+api/bin/Debug/net10.0/Microsoft.IdentityModel.Tokens.dll
+api/bin/Debug/net10.0/Microsoft.OpenApi.dll
+api/bin/Debug/net10.0/MimeKit.dll
+api/bin/Debug/net10.0/MySqlConnector.dll
+api/bin/Debug/net10.0/Pipelines.Sockets.Unofficial.dll
+api/bin/Debug/net10.0/Pomelo.EntityFrameworkCore.MySql.dll
+api/bin/Debug/net10.0/Resources/EmailTemplates/verification_code.html
+api/bin/Debug/net10.0/SixLabors.ImageSharp.dll
+api/bin/Debug/net10.0/StackExchange.Redis.dll
+api/bin/Debug/net10.0/Swashbuckle.AspNetCore.Swagger.dll
+api/bin/Debug/net10.0/Swashbuckle.AspNetCore.SwaggerGen.dll
+api/bin/Debug/net10.0/Swashbuckle.AspNetCore.SwaggerUI.dll
+api/bin/Debug/net10.0/System.CodeDom.dll
+api/bin/Debug/net10.0/System.Composition.AttributedModel.dll
+api/bin/Debug/net10.0/System.Composition.Convention.dll
+api/bin/Debug/net10.0/System.Composition.Hosting.dll
+api/bin/Debug/net10.0/System.Composition.Runtime.dll
+api/bin/Debug/net10.0/System.Composition.TypedParts.dll
+api/bin/Debug/net10.0/System.IO.Hashing.dll
+api/bin/Debug/net10.0/System.IdentityModel.Tokens.Jwt.dll
+api/bin/Debug/net10.0/api.Tests.deps.json
+api/bin/Debug/net10.0/api.Tests.dll
+api/bin/Debug/net10.0/api.Tests.pdb
+api/bin/Debug/net10.0/api.Tests.runtimeconfig.json
+api/bin/Debug/net10.0/api.deps.json
+api/bin/Debug/net10.0/api.dll
+api/bin/Debug/net10.0/api.exe
+api/bin/Debug/net10.0/api.pdb
+api/bin/Debug/net10.0/api.runtimeconfig.json
+api/bin/Debug/net10.0/api.staticwebassets.endpoints.json
+api/bin/Debug/net10.0/api.staticwebassets.runtime.json
+api/bin/Debug/net10.0/api.xml
+api/bin/Debug/net10.0/appsettings.Development.json
+api/bin/Debug/net10.0/appsettings.json
+
+# .NET 本地化资源文件
+api/bin/Debug/net10.0/cs/
+api/bin/Debug/net10.0/de/
+api/bin/Debug/net10.0/es/
+api/bin/Debug/net10.0/fr/
+api/bin/Debug/net10.0/it/
+api/bin/Debug/net10.0/ja/
+api/bin/Debug/net10.0/ko/
+api/bin/Debug/net10.0/pl/
+api/bin/Debug/net10.0/pt-BR/
+api/bin/Debug/net10.0/ru/
+api/bin/Debug/net10.0/tr/
+api/bin/Debug/net10.0/zh-Hans/
+api/bin/Debug/net10.0/zh-Hant/
+
+# .NET 临时和对象文件
+api/bin/Debug/net10.0/obj_build/
+api/bin/Debug/net10.0/testhost.exe
+api/bin/Debug/net10.0/xunit.runner.reporters.netcoreapp10.dll
+api/bin/Debug/net10.0/xunit.runner.utility.netcoreapp10.dll
+api/bin/Debug/net10.0/xunit.runner.visualstudio.testadapter.dll
+
+# .NET 对象文件目录
+api/obj/Debug/net10.0/
+api/obj/Release/net10.0/
+api/obj_build/Debug/net10.0/
+
+# .NET vs配置文件
+api/.vs/
+
+# 错误日志
+api/errorLog/
+
+# Visual Studio 项目评估缓存文件
+api/.vs/ProjectEvaluation/
+api/.vs/api.slnx/DesignTimeBuild/
+api/.vs/api.slnx/v18/
+api/obj/project.nuget.cache
+api/obj/Debug/net10.0/api.AssemblyInfoInputs.cache
+api/obj/Debug/net10.0/rpswa.dswa.cache.json
+api/obj/Release/net10.0/api.AssemblyInfoInputs.cache
+api/obj/Release/net10.0/linux-x64/PubTmp/Out/
+api/obj/Release/net10.0/linux-x64/api.AssemblyInfoInputs.cache
+api/obj/Release/net10.0/linux-x64/rjsmcshtml.dswa.cache.json
+api/obj/Release/net10.0/linux-x64/rjsmrazor.dswa.cache.json
+api/obj/Release/net10.0/rjsmcshtml.dswa.cache.json
+api/obj/Release/net10.0/rjsmrazor.dswa.cache.json
 
 # Visual Studio 项目相关文件和目录
 # 用户特定文件
