@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, type PropType } from "vue";
 import { ElMessageBox } from "element-plus";
-import { usePlansStore } from "@/features/plans/stores";
+import { usePlansStore } from "@/stores";
 import type { PlanSummary, TimeSlotDto } from "@/features/plans/types";
 import { notifySuccess, notifyWarning } from "../utils/notification";
 
@@ -105,11 +105,13 @@ async function handleSubmit(): Promise<void> {
       }
     }
     // Check overlaps
-    const sorted = [...timeSlots.value].sort((a, b) =>
+    const sorted: TimeSlotDto[] = [...timeSlots.value].sort((a, b) =>
       a.startTime.localeCompare(b.startTime),
     );
     for (let i = 0; i < sorted.length - 1; i++) {
-      if (sorted[i].endTime > sorted[i + 1].startTime) {
+      const current = sorted[i];
+      const next = sorted[i + 1];
+      if (current && next && current.endTime > next.startTime) {
         notifyWarning("时间段存在重叠，请检查设置");
         return;
       }

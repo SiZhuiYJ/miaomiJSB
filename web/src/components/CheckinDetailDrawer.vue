@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { FileApi } from "@/features/file/api/index";
-import { useCheckinsStore } from "@/features/checkin/stores";
+import { useCheckinsStore } from "@/stores";
 import type { CheckinDetail } from "@/features/checkin/types";
 import ImagePreviewList from "./ImagePreviewList.vue";
 import { notifyError } from "../utils/notification";

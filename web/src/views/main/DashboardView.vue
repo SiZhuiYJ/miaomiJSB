@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { useCheckinsStore } from "@/features/checkin/stores";
-import { usePlansStore } from "@/features/plans/stores";
+import { usePlansStore,useCheckinsStore } from "@/stores";
 import type { PlanSummary } from "@/features/plans/types";
-import { notifyWarning } from "../utils/notification";
-import Topbar from "../components/Topbar.vue";
-import PlanSidebar from "../components/PlanSidebar.vue";
-import CreatePlanDrawer from "../components/CreatePlanDrawer.vue";
-import CheckinDrawer from "../components/CheckinDrawer.vue";
-import CheckinDetailDrawer from "../components/CheckinDetailDrawer.vue";
+import { notifyWarning } from "@/utils/notification";
+import Topbar from "@/components/Topbar.vue";
+import PlanSidebar from "@/components/PlanSidebar.vue";
+import CreatePlanDrawer from "@/components/CreatePlanDrawer.vue";
+import CheckinDrawer from "@/components/CheckinDrawer.vue";
+import CheckinDetailDrawer from "@/components/CheckinDetailDrawer.vue";
 
 const plansStore = usePlansStore();
 const checkinsStore = useCheckinsStore();
@@ -552,7 +551,8 @@ function handleMobileCalendarBack(): void {
   font-size: 13px;
 }
 
-:deep(.prev) div .day.success {
+:deep(.prev) div .day.success,
+:deep(.next) div .day.success {
   background: rgba(202, 255, 222, 0.2);
   color: #89ffb6;
 }
@@ -562,7 +562,8 @@ function handleMobileCalendarBack(): void {
   color: #166534;
 }
 
-:deep(.prev) div .day.retro {
+:deep(.prev) div .day.retro,
+:deep(.next) div .day.retro {
   background: rgba(255, 246, 217, 0.2);
   color: #ffc685;
 }
@@ -572,7 +573,8 @@ function handleMobileCalendarBack(): void {
   color: #854d0e;
 }
 
-:deep(.prev) div .day.missed {
+:deep(.prev) div .day.missed,
+:deep(.next) div .day.missed {
   background: rgba(255, 211, 211, 0.2);
   color: #ff7f7f;
 }

@@ -1,5 +1,5 @@
 import type { App } from "vue";
-import auth from "./modules/auth";
+// import auth from "./modules/auth";
 import waterMarker from "./modules/waterMarker";
 import draggable from "./modules/draggable";
 import debounce from "./modules/debounce";
@@ -14,7 +14,7 @@ import slideIn from "./modules/slideIn";
 import progressive from "./modules/progressive";
 
 const directivesList: any = {
-  auth,
+  // auth,
   waterMarker,
   draggable,
   debounce,

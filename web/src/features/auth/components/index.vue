@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { onUnmounted, ref, watch } from "vue";
 import { useAuthStore } from "@/features/auth/stores";
-import { notifySuccess, notifyError } from "../utils/notification";
+import { notifySuccess, notifyError } from "@/utils/notification";
 import { authApi } from "@/features/auth/api";
+import { useRouter } from "vue-router";
+const router = useRouter();
 
 const mode = ref<"login" | "register">("login");
 const loginMethod = ref<"email" | "account">("email");
@@ -120,6 +122,7 @@ async function handleSubmit(): Promise<void> {
         auth.setSession(response.data);
       }
       notifySuccess("登录成功");
+      router.push("/home");
     } else {
       const response = await authApi.Register({
         email: email.value,
@@ -130,6 +133,7 @@ async function handleSubmit(): Promise<void> {
       });
       auth.setSession(response.data);
       notifySuccess("注册并登录成功");
+      router.push("/home");
     }
   } catch (error: any) {
     if (error.response?.status === 401) {

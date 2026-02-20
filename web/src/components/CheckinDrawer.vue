@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { FileApi } from "@/features/file/api/index";
-import { useCheckinsStore } from "@/features/checkin/stores";
-import { usePlansStore } from "@/features/plans/stores";
+import { useCheckinsStore, usePlansStore } from "@/stores";
 import ImagePreviewList from "./ImagePreviewList.vue";
 import {
   notifySuccess,
@@ -206,7 +205,7 @@ onBeforeUnmount(() => {
     v-model="visible"
     direction="btt"
     size="auto"
-    :title="props.date ? '打卡 / 补签' : '打卡'"
+    :title="props.date ? '补签' : '打卡'"
     @closed="handleClosed"
   >
     <div class="drawer-body">
@@ -318,8 +317,7 @@ textarea {
 }
 
 .slots-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
   gap: 8px;
 }
 

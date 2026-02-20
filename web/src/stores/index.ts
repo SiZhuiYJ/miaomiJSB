@@ -10,5 +10,9 @@ pinia.use(persist);
 // 导出 Pinia 实例
 export default pinia;
 
-// 导出 userStore 模块
-// export * from "./modules/userStores";
+// 导出 auth 模块
+export * from "@/features/auth/stores";
+// 导出 checkin 模块
+export * from "@/features/checkin/stores";
+// 导出 plans 模块
+export * from "@/features/plans/stores";

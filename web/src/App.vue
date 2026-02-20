@@ -1,18 +1,12 @@
 <script setup lang="ts">
 // 2495550774@qq.com
-import { computed, ref, onMounted } from 'vue';
-import { useAuthStore } from '@/features/auth/stores';
-import AuthView from './views/AuthView.vue';
-import DashboardView from './views/DashboardView.vue';
-import { ElConfigProvider, dayjs } from 'element-plus'
-import { setNotificationInstance } from './utils/notification';
+import { ref, onMounted } from "vue";
+import { ElConfigProvider, dayjs } from "element-plus";
+import { setNotificationInstance } from "./utils/notification";
 // @ts-ignore
-import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+import zhCn from "element-plus/dist/locale/zh-cn.mjs";
 // @ts-ignore
-dayjs.en.weekStart = 1
-const auth = useAuthStore();
-
-const isAuthenticated = computed(() => auth.isAuthenticated);
+dayjs.en.weekStart = 1;
 
 const notificationSystemRef = ref(null);
 
@@ -22,9 +16,10 @@ onMounted(() => {
 </script>
 
 <template>
+  <!-- Element Plus全局配置组件 -->
   <el-config-provider :locale="zhCn">
+    <!-- 路由视图容器 -->
+    <router-view></router-view>
     <NotificationSystem ref="notificationSystemRef" />
-    <AuthView v-if="!isAuthenticated" />
-    <DashboardView v-else />
   </el-config-provider>
 </template>

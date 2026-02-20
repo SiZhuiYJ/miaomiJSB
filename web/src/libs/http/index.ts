@@ -1,6 +1,6 @@
 // @/libs/http/index.ts
 import Http from "./axios";
-import { API_BASE_URL } from "@/config.ts";
+import { API_BASE_URL } from "@/config/index";
 import type { AxiosRequestConfig } from "axios";
 
 const defaultConfig: AxiosRequestConfig = {

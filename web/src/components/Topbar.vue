@@ -4,9 +4,11 @@ import { useAuthStore } from "@/features/auth/stores";
 import { authApi } from "@/features/auth/api/index";
 import type { PasswordPayload } from "@/features/auth/types";
 import { ElMessageBox } from "element-plus";
-import { notifySuccess, notifyError } from "../utils/notification";
-import { APP_TITLE, API_BASE_URL } from "../config";
+import { notifySuccess, notifyError } from "@/utils/notification";
+import { APP_TITLE, API_BASE_URL } from "@/config";
 import { storeToRefs } from "pinia";
+import { useRouter } from "vue-router";
+const router = useRouter();
 const { user } = storeToRefs(useAuthStore());
 
 // SVG Icons
@@ -59,8 +61,10 @@ function toggleTheme(): void {
 function handleCommand(command: string): void {
   if (command === "logout") {
     authStore.clear();
+    router.push("/login");
   } else if (command === "profile") {
-    openProfileDialog();
+    // openProfileDialog();
+    router.push("/setting");
   } else if (command === "changePassword") {
     openChangePasswordDialog();
   } else if (command === "deactivate") {

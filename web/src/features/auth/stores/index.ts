@@ -1,10 +1,9 @@
 import { defineStore } from "pinia";
 import type { AuthData, AuthState, AuthUser } from "@/features/auth/types";
-
-const STORAGE_KEY = "mm_auth";
+import { CACHE_PREFIX } from "@/config";
 
 function loadInitialState(): AuthState {
-  const raw = localStorage.getItem(STORAGE_KEY);
+  const raw = localStorage.getItem(CACHE_PREFIX + "auth");
   if (!raw) {
     return {
       user: null,
@@ -32,6 +31,7 @@ export const useAuthStore = defineStore("auth", () => {
   const refreshToken = ref<string | null>(state.refreshToken);
 
   const isAuthenticated = computed(() => {
+    console.log(!!accessToken.value, accessToken.value);
     return !!accessToken.value;
   });
 
@@ -78,7 +78,7 @@ export const useAuthStore = defineStore("auth", () => {
       accessToken: accessToken.value,
       refreshToken: refreshToken.value,
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(CACHE_PREFIX + "auth", JSON.stringify(data));
   }
 
   return {
