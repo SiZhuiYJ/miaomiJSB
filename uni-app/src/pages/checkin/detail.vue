@@ -60,7 +60,13 @@ async function loadImage(url: string) {
   // #ifndef MP-WEIXIN
   try {
     // Fetch image as arraybuffer with token
-    const res = await http.get<ArrayBuffer>(url, { responseType: 'arraybuffer' });
+    const authStore = useAuthStore();
+    const res = await http.get<ArrayBuffer>(url, { 
+      responseType: 'arraybuffer',
+      headers: {
+        'Authorization': `Bearer ${authStore.accessToken}`
+      }
+    });
     // In UniApp H5, res.data is ArrayBuffer
     const blob = new Blob([res.data]);
     const blobUrl = URL.createObjectURL(blob);

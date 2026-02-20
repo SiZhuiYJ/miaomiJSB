@@ -93,11 +93,11 @@ export const authApi = {
 /**
  * 导出所有认证相关的类型
  */
-export type { 
+export type {
   ActionType,
-  AuthData, 
-  PasswordPayload, 
-  RegisterRecord 
+  AuthData,
+  PasswordPayload,
+  RegisterRecord
 } from "../types";
 
 /**

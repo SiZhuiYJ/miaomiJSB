@@ -114,14 +114,14 @@ async function handleRegisterSubmit(): Promise<void> {
     registerFormRef.value?.setLoading(false);
     return;
   }
-  
+
   // Ensure userAccount is validated
   if (userAccountError.value) {
     notifyError(userAccountError.value);
     registerFormRef.value?.setLoading(false);
     return;
   }
-  
+
   // Optional: Double check if validation wasn't triggered
   await validateUserAccount();
   if (userAccountError.value) {
@@ -135,13 +135,13 @@ async function handleRegisterSubmit(): Promise<void> {
     registerFormRef.value?.setLoading(false);
     return;
   }
-  
+
   if (password.value.length < 6) {
     notifyError("密码长度至少为 6 位");
     registerFormRef.value?.setLoading(false);
     return;
   }
-  
+
   if (password.value !== confirmPassword.value) {
     notifyError("两次输入的密码不一致");
     registerFormRef.value?.setLoading(false);
@@ -218,50 +218,22 @@ onUnmounted(() => {
   <div class="auth-container">
     <div class="auth-card">
       <h1 class="title">DailyCheck 每日打卡</h1>
-      
-      <AuthTabs 
-        :model-value="mode" 
-        @update:model-value="switchMode"
-      />
-      
-      <LoginForm
-        v-if="mode === 'login'"
-        ref="loginFormRef"
-        :email="email"
-        :user-account="userAccount"
-        :password="password"
-        :login-method="loginMethod"
-        @update:email="email = $event"
-        @update:user-account="userAccount = $event"
-        @update:password="password = $event"
-        @update:login-method="loginMethod = $event"
-        @submit="handleLoginSubmit"
-      />
-      
-      <RegisterForm
-        v-else
-        ref="registerFormRef"
-        :email="email"
-        :user-account="userAccount"
-        :password="password"
-        :confirm-password="confirmPassword"
-        :nick-name="nickName"
-        :code="code"
-        :sending-code="sendingCode"
-        :countdown="countdown"
-        :user-account-error="userAccountError"
-        @update:email="email = $event"
-        @update:user-account="userAccount = $event"
-        @update:password="password = $event"
-        @update:confirm-password="confirmPassword = $event"
-        @update:nick-name="nickName = $event"
-        @update:code="code = $event"
-        @update:user-account-error="userAccountError = $event"
-        @send-code="handleSendCode"
-        @generate-random-account="generateRandomuserAccount"
-        @validate-account="validateUserAccount"
-        @submit="handleRegisterSubmit"
-      />
+
+      <AuthTabs :model-value="mode" @update:model-value="switchMode" />
+
+      <LoginForm v-if="mode === 'login'" ref="loginFormRef" :email="email" :user-account="userAccount"
+        :password="password" :login-method="loginMethod" @update:email="email = $event"
+        @update:user-account="userAccount = $event" @update:password="password = $event"
+        @update:login-method="loginMethod = $event" @submit="handleLoginSubmit" />
+
+      <RegisterForm v-else ref="registerFormRef" :email="email" :user-account="userAccount" :password="password"
+        :confirm-password="confirmPassword" :nick-name="nickName" :code="code" :sending-code="sendingCode"
+        :countdown="countdown" :user-account-error="userAccountError" @update:email="email = $event"
+        @update:user-account="userAccount = $event" @update:password="password = $event"
+        @update:confirm-password="confirmPassword = $event" @update:nick-name="nickName = $event"
+        @update:code="code = $event" @update:user-account-error="userAccountError = $event" @send-code="handleSendCode"
+        @generate-random-account="generateRandomuserAccount" @validate-account="validateUserAccount"
+        @submit="handleRegisterSubmit" />
     </div>
   </div>
 </template>
@@ -272,11 +244,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(
-    circle at top,
-    var(--surface-soft),
-    var(--bg-color)
-  );
+  background: radial-gradient(circle at top,
+      var(--surface-soft),
+      var(--bg-color));
 }
 
 .auth-card {

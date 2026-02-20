@@ -1,20 +1,24 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { FileApi } from "@/features/file/api/index";
-import { useCheckinsStore } from "@/stores";
+import { useCheckinsStore, usePlansStore } from "@/stores";
 import type { CheckinDetail } from "@/features/checkin/types";
+import type { TimeSlotDto } from "@/features/plans/types";
 import ImagePreviewList from "./ImagePreviewList.vue";
+import SimpleTimeSlotCard from "./SimpleTimeSlotCard.vue";
 import { notifyError } from "../utils/notification";
 
 const props = defineProps<{
   modelValue: boolean;
   planId?: number;
   date?: Date;
+  mode?: 'default' | 'timeSlot'; // 添加模式控制
 }>();
 
 const emit = defineEmits<{
   (e: "update:modelValue", value: boolean): void;
   (e: "closed"): void;
+  (e: "open-checkin"): void;
 }>();
 
 const visible = computed({
@@ -23,12 +27,41 @@ const visible = computed({
 });
 
 const checkinsStore = useCheckinsStore();
+const plansStore = usePlansStore();
+
+const currentPlan = computed(() => {
+  return props.planId ? plansStore.items.find(p => p.id === props.planId) : null;
+});
 
 function formatDateOnly(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+// 时间段模式下的状态计算
+const timeSlotCheckinStatus = computed(() => {
+  if (!detail.value || !Array.isArray(detail.value)) return null;
+  // 如果有任何打卡记录，则认为已打卡
+  return detail.value.some(item => item.status === 1) ? 1 :
+    detail.value.some(item => item.status === 2) ? 2 : null;
+});
+
+const hasTimeSlots = computed(() => {
+  return currentPlan.value?.timeSlots && currentPlan.value.timeSlots.length > 0;
+});
+
+function getTimeSlots() {
+  if (!currentPlan.value?.timeSlots) return [];
+  return currentPlan.value.timeSlots
+    .filter(slot => slot.id !== undefined)
+    .map(slot => ({
+      id: slot.id!,
+      slotName: slot.slotName || '',
+      startTime: slot.startTime,
+      endTime: slot.endTime
+    }));
 }
 
 const detailLoading = ref(false);
@@ -46,10 +79,46 @@ async function loadImagesForList(details: CheckinDetail[]): Promise<void> {
     for (const url of item.imageUrls) {
       if (!imageObjectUrls.value.has(url)) {
         try {
-          const response = await FileApi.GetImage(url);
-          const objectUrl = URL.createObjectURL(response.data);
+          // 确保URL是完整的（添加基础URL）
+          let fullUrl = url;
+          if (!url.startsWith('http') && !url.startsWith('//')) {
+            // 如果是相对路径，添加基础URL
+            const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5210';
+            // 如果baseUrl以/结尾且url以/开头，避免重复斜杠
+            if (baseUrl.endsWith('/') && url.startsWith('/')) {
+              fullUrl = baseUrl + url.slice(1);
+            } else {
+              fullUrl = baseUrl + (baseUrl.endsWith('/') ? '' : '/') + url;
+            }
+          }
+
+
+          const response = await FileApi.GetImage(fullUrl);
+
+          // 将 ArrayBuffer 转换为 Blob
+          let blob: Blob;
+          if (response.data instanceof ArrayBuffer) {
+            blob = new Blob([response.data], { type: 'image/webp' });
+          } else if (response.data instanceof Blob) {
+            blob = response.data;
+          } else {
+            // 如果是其他类型，尝试转换
+            try {
+              blob = new Blob([new Uint8Array(response.data as unknown as ArrayBuffer)], { type: 'image/webp' });
+            } catch (convertError) {
+              console.error('Failed to convert data to Blob:', convertError);
+              // 作为 fallback，创建一个空的 Blob
+              blob = new Blob([], { type: 'image/webp' });
+            }
+          }
+
+          const objectUrl = URL.createObjectURL(blob);
           imageObjectUrls.value.set(url, objectUrl);
-        } catch {}
+        } catch (error) {
+          console.error('Failed to load image:', url, error);
+          // 在失败时设置一个占位符URL
+          imageObjectUrls.value.set(url, '');
+        }
       }
     }
   }
@@ -111,41 +180,47 @@ function getBlobUrl(url: string): string {
 </script>
 
 <template>
-  <el-drawer
-    v-model="visible"
-    direction="btt"
-    size="auto"
-    title="打卡详情"
-    @closed="handleClosed"
-  >
+  <el-drawer v-model="visible" direction="btt" size="auto" title="打卡详情" @closed="handleClosed">
     <div class="drawer-body">
-      <p v-if="props.date" class="drawer-date">
-        打卡日期：{{ formatDateOnly(props.date) }}
-      </p>
-      <div v-if="detail && Array.isArray(detail)" class="detail-list">
-        <div v-for="(item, index) in detail" :key="index" class="detail-item">
-          <p class="drawer-status">
-            状态：
-            <span v-if="item.status === 1">正常打卡</span>
-            <span v-else-if="item.status === 2">补签</span>
-            <span v-else>未知</span>
-            <span v-if="item.timeSlotId" class="time-slot-tag">
-              (时间段 {{ item.timeSlotId }})</span
-            >
-          </p>
-          <p v-if="item.note" class="drawer-note">备注：{{ item.note }}</p>
-          <div v-if="item.imageUrls.length">
-            <ImagePreviewList
-              :sources="
-                item.imageUrls.map((url) => getBlobUrl(url)).filter(Boolean)
-              "
-            />
+      <!-- 默认模式 -->
+      <template v-if="!props.mode || props.mode === 'default'">
+        <p v-if="props.date" class="drawer-date">
+          打卡日期：{{ formatDateOnly(props.date) }}
+        </p>
+        <div v-if="detail && Array.isArray(detail)" class="detail-list">
+          <div v-for="(item, index) in detail" :key="index" class="detail-item">
+            <p class="drawer-status">
+              状态：
+              <span v-if="item.status === 1">正常打卡</span>
+              <span v-else-if="item.status === 2">补签</span>
+              <span v-else>未知</span>
+              <span v-if="item.timeSlotId" class="time-slot-tag">
+                (时间段 {{ item.timeSlotId }})</span>
+            </p>
+            <p v-if="item.note" class="drawer-note">备注：{{ item.note }}</p>
+            <div v-if="item.imageUrls.length">
+              <ImagePreviewList :sources="item.imageUrls.map((url) => getBlobUrl(url)).filter(Boolean)
+                " />
+            </div>
+            <p v-else class="no-images">无图片</p>
           </div>
-          <p v-else class="no-images">无图片</p>
         </div>
-      </div>
-      <div v-else-if="detailLoading" class="detail-loading">加载中...</div>
-      <div v-else class="no-data">暂无打卡记录</div>
+        <div v-else-if="detailLoading" class="detail-loading">加载中...</div>
+        <div v-else class="no-data">暂无打卡记录</div>
+      </template>
+
+      <!-- 时间段模式 -->
+      <template v-else-if="props.mode === 'timeSlot'">
+        <SimpleTimeSlotCard 
+          v-if="props.planId && props.date && detail" 
+          :plan-id="props.planId" 
+          :date="props.date"
+          :checkin-details="(detail as any).value || []"
+          :time-slots="getTimeSlots()"
+          :note="((detail as any).value?.[0]?.note) ?? ''"
+          @open="$emit('open-checkin')"
+        />
+      </template>
     </div>
   </el-drawer>
 </template>

@@ -116,11 +116,21 @@ class MM {
   // 下载
   async download<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
     const auth = useAuthStore();
-    return await axios.post(import.meta.env.VITE_SERVER + url, data, {
+    return await this.instance.post(url, data, {
       headers: {
-        Authorization: "Bearer " + auth.accessToken || "",
+        Authorization: "Bearer " + (auth.accessToken || ""),
       },
       responseType: "blob",
+    });
+  }
+
+  async getImage<T>(url: string): Promise<AxiosResponse<T>> {
+    const auth = useAuthStore();
+    return await this.instance.get(url, {
+      headers: {
+        Authorization: "Bearer " + (auth.accessToken || ""),
+      },
+      responseType: "arraybuffer",
     });
   }
 }

@@ -118,7 +118,7 @@ function handlePlanCreated(id: number): void {
   mobileMode.value = "card";
 }
 
-function handlePlanUpdated(): void {}
+function handlePlanUpdated(): void { }
 
 function handlePlanDeleted(id: number): void {
   if (selectedPlanId.value === id) {
@@ -152,73 +152,50 @@ function handleMobileCardClick(): void {
 function handleMobileCalendarBack(): void {
   mobileMode.value = "card";
 }
+
+function getTimeSlotMode(): 'default' | 'timeSlot' {
+  // 根据选中的计划是否有时段来决定模式
+  const plan = selectedPlan.value;
+  return plan?.timeSlots && plan.timeSlots.length > 0 ? 'timeSlot' : 'default';
+}
+
+function handleOpenCheckinFromDetail(): void {
+  // 从详情页打开打卡页面
+  showDetailDrawer.value = false;
+  showCheckinDrawer.value = true;
+}
 </script>
 
 <template>
   <div class="dashboard">
     <Topbar />
 
-    <DesktopMainView
-      :selected-plan-id="selectedPlanId"
-      :checkin-date="checkinDate"
-      :get-day-status-class="getDayStatusClass"
-      @update:selected-plan-id="(v) => (selectedPlanId = v)"
-      @update:checkin-date="(v) => (checkinDate = v)"
-      @create="handleCreatePlan"
-      @edit="handleEditPlan"
-      @date-click="handleDateClick"
-    />
+    <DesktopMainView :selected-plan-id="selectedPlanId" :checkin-date="checkinDate"
+      :get-day-status-class="getDayStatusClass" @update:selected-plan-id="(v) => (selectedPlanId = v)"
+      @update:checkin-date="(v) => (checkinDate = v)" @create="handleCreatePlan" @edit="handleEditPlan"
+      @date-click="handleDateClick" />
 
-    <MobilePlanCards
-      :mobile-mode="mobileMode"
-      :progress-percent-by-plan="progressPercentByPlan"
-      :month-stats-by-plan="monthStatsByPlan"
-      :mini-calendar-cells="miniCalendarCells"
-      :get-mini-day-class-for-plan="getMiniDayClassForPlan"
-      :is-in-plan-range-for-plan="isInPlanRangeForPlan"
-      @select-plan="handleMobileCardSelect"
-      @create="handleCreatePlan"
-    />
+    <MobilePlanCards :mobile-mode="mobileMode" :progress-percent-by-plan="progressPercentByPlan"
+      :month-stats-by-plan="monthStatsByPlan" :mini-calendar-cells="miniCalendarCells"
+      :get-mini-day-class-for-plan="getMiniDayClassForPlan" :is-in-plan-range-for-plan="isInPlanRangeForPlan"
+      @select-plan="handleMobileCardSelect" @create="handleCreatePlan" />
 
-    <MobileCalendarPage
-      :selected-plan-id="selectedPlanId"
-      :checkin-date="checkinDate"
-      :mobile-mode="mobileMode"
-      :get-day-status-class="getDayStatusClass"
-      @update:checkin-date="(v) => (checkinDate = v)"
-      @back="handleMobileCalendarBack"
-      @edit="handleEditPlan"
-      @date-click="handleDateClick"
-    />
+    <MobileCalendarPage :selected-plan-id="selectedPlanId" :checkin-date="checkinDate" :mobile-mode="mobileMode"
+      :get-day-status-class="getDayStatusClass" @update:checkin-date="(v) => (checkinDate = v)"
+      @back="handleMobileCalendarBack" @edit="handleEditPlan" @date-click="handleDateClick" />
 
-    <button
-      type="button"
-      class="mobile-create-fab mobile-only"
-      @click="handleCreatePlan"
-    >
+    <button type="button" class="mobile-create-fab mobile-only" @click="handleCreatePlan">
       ＋ 新建计划
     </button>
 
-    <CreatePlanDrawer
-      v-model="showPlanDrawer"
-      :edit-plan="drawerPlan"
-      @created="handlePlanCreated"
-      @updated="handlePlanUpdated"
-      @deleted="handlePlanDeleted"
-    />
+    <CreatePlanDrawer v-model="showPlanDrawer" :edit-plan="drawerPlan" @created="handlePlanCreated"
+      @updated="handlePlanUpdated" @deleted="handlePlanDeleted" />
 
-    <CheckinDrawer
-      v-model="showCheckinDrawer"
-      :plan-id="selectedPlanId ?? undefined"
-      :date="checkinDate ?? undefined"
-      @success="handleCheckinSuccess"
-    />
+    <CheckinDrawer v-model="showCheckinDrawer" :plan-id="selectedPlanId ?? undefined" :date="checkinDate ?? undefined"
+      @success="handleCheckinSuccess" />
 
-    <CheckinDetailDrawer
-      v-model="showDetailDrawer"
-      :plan-id="selectedPlanId ?? undefined"
-      :date="checkinDate ?? undefined"
-    />
+    <CheckinDetailDrawer v-model="showDetailDrawer" :plan-id="selectedPlanId ?? undefined"
+      :date="checkinDate ?? undefined" :mode="getTimeSlotMode()" @open-checkin="handleOpenCheckinFromDetail" />
   </div>
 </template>
 

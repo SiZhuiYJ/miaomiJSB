@@ -12,7 +12,6 @@ export interface CheckinDetail {
 }
 export interface CheckinRecord {
   planId: number;
-  status: number;
   imageUrls?: string[];
   note?: string;
   timeSlotId?: number;

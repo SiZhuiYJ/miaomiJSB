@@ -77,9 +77,9 @@ function getDayStatusClass(date: Date): string {
             </el-calendar>
 
             <div class="legend">
-                <span class="day success"></span> 正常打卡
-                <span class="day retro"></span> 补签
-                <span class="day missed"></span> 错过
+                <span class="dot success"></span> 正常打卡
+                <span class="dot retro"></span> 补签
+                <span class="dot missed"></span> 错过
             </div>
         </section>
     </main>
@@ -149,6 +149,26 @@ function getDayStatusClass(date: Date): string {
     }
 }
 
+.dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    margin-right: 4px;
+}
+
+.dot.success {
+    background: #22c55e;
+}
+
+.dot.retro {
+    background: #eab308;
+}
+
+.dot.missed {
+    background: #f87171;
+}
+
 .desktop-only {
 
     /* 手机端 */
@@ -156,6 +176,7 @@ function getDayStatusClass(date: Date): string {
         display: block;
     }
 }
+
 :deep(.prev) div .day.success,
 :deep(.next) div .day.success {
     background: rgba(202, 255, 222, 0.2);
