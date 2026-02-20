@@ -46,7 +46,7 @@ temp/
 
 # 项目特定的忽略目录
 # Visual Studio 相关目录
-*.vs/
+*.vs/*
 .vscode
 api/obj_build
 api/obj
@@ -59,6 +59,8 @@ web/.vite
 
 # 发布目录
 api/bin/Release/
+api/bin/Release/*
+api/bin/Release/**
 api/bin/Release/**/*
 api.Release
 # 忽略构建输出
