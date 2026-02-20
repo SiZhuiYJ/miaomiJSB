@@ -61,6 +61,11 @@ web/.vite
 api/bin/Release/
 api/bin/Release/**/*
 api.Release
+# 忽略构建输出
+api/obj/
+api/obj/**/*
+api/bin/Debug/
+api/bin/Debug/**/*
 
 # Visual Studio 项目相关文件和目录
 # 用户特定文件
