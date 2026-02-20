@@ -1,4 +1,6 @@
-// @/libs/api/auth/index.ts
+// @/features/auth/api/index.ts
+// 认证相关API的统一出口
+
 import http from "@/libs/http";
 import type {
   ActionType,
@@ -7,36 +9,98 @@ import type {
   RegisterRecord,
 } from "../types";
 
+/**
+ * 认证API服务
+ * 包含用户登录、注册、账户管理等相关接口
+ */
 export const authApi = {
-  async SendEmilCode(data: { email: string; actionType: ActionType }) {
+  /**
+   * 发送邮箱验证码
+   * @param data 包含邮箱和操作类型的对象
+   * @returns Promise<void>
+   */
+  async sendEmailCode(data: { email: string; actionType: ActionType }) {
     return await http.post("/mm/Auth/email-code", data);
   },
-  async UpdateProfile(data: {
+
+  /**
+   * 更新用户资料
+   * @param data 包含昵称和头像key的对象
+   * @returns Promise<AuthData>
+   */
+  async updateProfile(data: {
     nickName: string | null;
     avatarKey: string | null;
   }) {
     return await http.post<AuthData>("/mm/Auth/profile", data);
   },
 
-  async UpdatePassword(data: PasswordPayload) {
+  /**
+   * 更新用户密码
+   * @param data 密码更新数据
+   * @returns Promise<void>
+   */
+  async updatePassword(data: PasswordPayload) {
     return await http.post("/mm/Auth/change-password", data);
   },
-  async DeactivateConfirm(data: { code: string }) {
+
+  /**
+   * 确认账号注销
+   * @param data 包含验证码的对象
+   * @returns Promise<void>
+   */
+  async deactivateConfirm(data: { code: string }) {
     return await http.post("/mm/Auth/deactivate", data);
   },
-  async ValidateUserAccount(userAccount: string) {
+
+  /**
+   * 验证用户名是否可用
+   * @param userAccount 用户名
+   * @returns Promise<void>
+   */
+  async validateUserAccount(userAccount: string) {
     return http.post("/mm/Auth/validate-account?userAccount=" + userAccount);
   },
-  async LoginWithEmail(data: { email: string; password: string }) {
+
+  /**
+   * 邮箱登录
+   * @param data 包含邮箱和密码的对象
+   * @returns Promise<AuthData>
+   */
+  async loginWithEmail(data: { email: string; password: string }) {
     return await http.post<AuthData>("/mm/Auth/login", data);
   },
-  // async LoginWithEmailCode(data: { userAccount: string; password: string }) {
-  //   return await http.post<AuthData>("/mm/Auth/login-account", data);
-  // },
-  async LoginWithAccount(data: { userAccount: string; password: string }) {
+
+  /**
+   * 账号登录
+   * @param data 包含用户名和密码的对象
+   * @returns Promise<AuthData>
+   */
+  async loginWithAccount(data: { userAccount: string; password: string }) {
     return await http.post<AuthData>("/mm/Auth/login-account", data);
   },
-  async Register(data: RegisterRecord) {
+
+  /**
+   * 用户注册
+   * @param data 注册信息
+   * @returns Promise<AuthData>
+   */
+  async register(data: RegisterRecord) {
     return await http.post<AuthData>("/mm/Auth/register", data);
   },
 };
+
+/**
+ * 导出所有认证相关的类型
+ */
+export type { 
+  ActionType,
+  AuthData, 
+  PasswordPayload, 
+  RegisterRecord 
+} from "../types";
+
+/**
+ * 默认导出authApi
+ */
+export default authApi;

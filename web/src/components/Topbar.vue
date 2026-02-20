@@ -104,7 +104,7 @@ async function handleSendVerificationCode(
   sendingCode.value = true;
   try {
     if (user.value) {
-      authApi.SendEmilCode({ email: user.value.email, actionType });
+      authApi.sendEmailCode({ email: user.value.email, actionType });
       notifySuccess("验证码已发送");
       startCodeCountdown();
     } else {
@@ -140,7 +140,7 @@ function openProfileDialog(): void {
 async function handleUpdateProfile(): Promise<void> {
   profileLoading.value = true;
   try {
-    const response = await authApi.UpdateProfile({
+    const response = await authApi.updateProfile({
       nickName: profileForm.nickName || null,
       avatarKey: profileForm.avatarKey || null,
     });
@@ -211,7 +211,7 @@ async function handleChangePassword() {
       payload.code = changePasswordForm.code;
     }
 
-    await authApi.UpdatePassword(payload);
+    await authApi.updatePassword(payload);
     notifySuccess("密码修改成功");
     changePasswordVisible.value = false;
     authStore.clear();
@@ -253,7 +253,7 @@ async function handleDeactivateConfirm(): Promise<void> {
     );
 
     deactivateLoading.value = true;
-    await authApi.DeactivateConfirm({ code: deactivateCode.value });
+    await authApi.deactivateConfirm({ code: deactivateCode.value });
     notifySuccess("账号已注销");
     deactivateVisible.value = false;
     authStore.clear();

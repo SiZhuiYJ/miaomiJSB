@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    CalendarCell: typeof import('./components/CalendarCell.vue')['default']
     CheckinDetailDrawer: typeof import('./components/CheckinDetailDrawer.vue')['default']
     CheckinDrawer: typeof import('./components/CheckinDrawer.vue')['default']
     copy: typeof import('./components/ProgressBar copy.vue')['default']
@@ -34,6 +35,9 @@ declare module 'vue' {
     ProgressBar: typeof import('./components/ProgressBar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SectorBackground: typeof import('./components/SectorBackground.vue')['default']
+    TimeSlotDetails: typeof import('./components/TimeSlotDetails.vue')['default']
+    TimeSlotStatusIndicator: typeof import('./components/TimeSlotStatusIndicator.vue')['default']
     Topbar: typeof import('./components/Topbar.vue')['default']
   }
 }

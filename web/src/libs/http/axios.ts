@@ -9,6 +9,8 @@ import axios, {
 import type { AuthData } from "@/features/auth/types";
 import http from "./index";
 import { useAuthStore } from "@/features/auth/stores";
+import { useRouter } from "vue-router";
+const router = useRouter();
 // 只有请求封装用的MM，方便简写
 class MM {
   private instance: AxiosInstance;
@@ -64,6 +66,7 @@ class MM {
       !(originalRequest as any)._retry
     ) {
       (originalRequest as any)._retry = true;
+
       try {
         const refreshResponse = await http.post<AuthData>("/mm/Auth/refresh", {
           refreshToken: auth.refreshToken,
@@ -72,8 +75,13 @@ class MM {
         originalRequest.headers = originalRequest.headers ?? {};
         originalRequest.headers.Authorization = `Bearer ${auth.accessToken}`;
         return this.instance(originalRequest);
-      } catch {
+      } catch (refreshError) {
+        console.error("刷新token失败:", refreshError);
+        // 刷新失败，清除认证信息并跳转到登录页
         auth.clear();
+        // 如果在浏览器环境中，可以跳转到登录页面
+        router.push("/login");
+        return Promise.reject({ ...error, hasClearedAuth: true });
       }
     }
 

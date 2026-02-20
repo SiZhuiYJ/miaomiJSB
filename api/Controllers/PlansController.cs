@@ -12,7 +12,9 @@ using Microsoft.EntityFrameworkCore;
 namespace api.Controllers;
 
 /// <summary>
-/// 打卡计划相关接口，包含查询和创建计划。
+/// 打卡计划管理接口，提供完整的计划生命周期管理功能。
+/// 支持创建、查询、更新、删除打卡计划，以及时间段配置管理。
+/// 实现计划的启用/禁用控制，支持灵活的时间段设置和排序。
 /// </summary>
 [ApiController]
 [Route("mm/[controller]")]
@@ -22,9 +24,15 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
     readonly DailyCheckDbContext _db = db;
 
     /// <summary>
-    /// 获取当前登录用户的打卡计划列表。
+    /// 获取当前登录用户的打卡计划列表接口。
+    /// 返回用户所有未删除的打卡计划，按开始日期升序排列。
+    /// 每个计划包含关联的时间段配置信息。
     /// </summary>
-    /// <returns>当前用户的计划概要列表。</returns>
+    /// <returns>
+    /// 成功时返回200 OK，包含计划概要列表；
+    /// 每个计划项包含基本属性和时间段详情。
+    /// </returns>
+    /// <response code="200">获取计划列表成功</response>
     [HttpGet]
     public async Task<ActionResult<List<PlanSummary>>> GetMyPlans()
     {
@@ -61,10 +69,18 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
     }
 
     /// <summary>
-    /// 为当前登录用户创建新的打卡计划。
+    /// 创建新的打卡计划接口。
+    /// 支持设置计划标题、描述、时间范围和时间段配置。
+    /// 自动验证时间段的有效性和无重叠性。
+    /// 新创建的计划默认处于启用状态。
     /// </summary>
-    /// <param name="request">创建计划的请求参数。</param>
-    /// <returns>新创建的计划概要信息。</returns>
+    /// <param name="request">创建计划请求参数，包含计划基本信息和时间段配置。</param>
+    /// <returns>
+    /// 成功时返回201 Created，包含新创建的计划概要信息；
+    /// 失败时返回相应错误状态码。
+    /// </returns>
+    /// <response code="201">计划创建成功</response>
+    /// <response code="400">请求参数错误，如时间段设置无效</response>
     [HttpPost]
     public async Task<ActionResult<PlanSummary>> CreatePlan(CreatePlanRequest request)
     {
@@ -148,10 +164,19 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
     }
 
     /// <summary>
-    /// 更新指定的打卡计划。
+    /// 更新指定打卡计划接口。
+    /// 支持更新计划的基本信息和时间段配置。
+    /// 时间段更新采用全量替换策略，会删除原有配置并重建。
+    /// 自动验证时间段的有效性和无重叠性。
     /// </summary>
-    /// <param name="request">更新计划的请求参数。</param>
-    /// <returns></returns>
+    /// <param name="request">更新计划请求参数，包含计划ID和需要更新的属性。</param>
+    /// <returns>
+    /// 成功时返回204 No Content；
+    /// 失败时返回相应错误状态码。
+    /// </returns>
+    /// <response code="204">计划更新成功</response>
+    /// <response code="400">请求参数错误或时间段设置无效</response>
+    /// <response code="404">计划不存在或无权限访问</response>
     [HttpPost]
     [Route("update")]
     public async Task<ActionResult> UpdatePlan(UpdatePlanRequest request)
@@ -218,10 +243,17 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
     }
 
     /// <summary>
-    /// 删除指定的打卡计划。
+    /// 删除指定打卡计划接口。
+    /// 采用软删除机制，仅标记计划为已删除状态。
+    /// 不会影响已存在的打卡记录，但计划将不再显示在列表中。
     /// </summary>
-    /// <param name="PlanId">打卡计划ID</param>
-    /// <returns></returns>
+    /// <param name="PlanId">要删除的打卡计划ID。</param>
+    /// <returns>
+    /// 成功时返回204 No Content；
+    /// 失败时返回相应错误状态码。
+    /// </returns>
+    /// <response code="204">计划删除成功</response>
+    /// <response code="404">计划不存在或无权限访问</response>
     [HttpPost]
     [Route("delete")]
     public async Task<ActionResult> DeletePlan(ulong PlanId)

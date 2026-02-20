@@ -412,6 +412,8 @@ api/.vs/
 api/.config/
 web/.vscode/
 web/.vite/
+api.Release/
+.lingma/
 
 # Vite 依赖缓存目录
 web/.vite/deps/
