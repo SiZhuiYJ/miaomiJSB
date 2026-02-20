@@ -60,6 +60,10 @@ web/.vite
 # Vite 依赖缓存目录
 web/.vite/deps/
 
+# 添加对 api/.config 和 web/.vscode 的明确忽略
+api/.config/
+web/.vscode/
+
 # 发布目录
 api/bin/Release/
 api/bin/Release/*
