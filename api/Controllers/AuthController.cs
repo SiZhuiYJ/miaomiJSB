@@ -21,12 +21,14 @@ namespace api.Controllers;
 [ApiController]
 [Route("mm/[controller]")]
 public class AuthController(
-    DailyCheckDbContext db, 
-    IJwtTokenService jwtTokenService, 
+    DailyCheckDbContext db,
+    IConfiguration config,
+    IJwtTokenService jwtTokenService,
     IVerificationCodeService verificationCodeService,
     IConnectionMultiplexer redis) : ControllerBase
 {
     readonly DailyCheckDbContext _db = db;
+    readonly IConfiguration _config = config;
     readonly IJwtTokenService _jwtTokenService = jwtTokenService;
     readonly IVerificationCodeService _verificationCodeService = verificationCodeService;
     readonly IDatabase _redisDb = redis.GetDatabase();
@@ -93,7 +95,7 @@ public class AuthController(
         await _db.SaveChangesAsync(cancellationToken);
 
         var tokens = _jwtTokenService.GenerateTokens(user);
-        
+
         // 将令牌存储到Redis
         await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, cancellationToken);
 
@@ -128,7 +130,7 @@ public class AuthController(
             return Unauthorized("邮箱或密码错误");
 
         var tokens = _jwtTokenService.GenerateTokens(user);
-        
+
         // 将令牌存储到Redis
         await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, CancellationToken.None);
 
@@ -167,7 +169,7 @@ public class AuthController(
             return Unauthorized("邮箱或密码错误");
 
         var tokens = _jwtTokenService.GenerateTokens(user);
-        
+
         // 将令牌存储到Redis
         await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, CancellationToken.None);
 
@@ -332,10 +334,10 @@ public class AuthController(
         };
 
         _db.SoftDeleteLogs.Add(log);
-        
+
         // 从Redis中删除用户的令牌
         await DeleteTokensFromRedis(userId);
-        
+
         await _db.SaveChangesAsync(cancellationToken);
 
         return NoContent();
@@ -448,7 +450,7 @@ public class AuthController(
         user.UpdatedAt = DateTime.UtcNow;
 
         var tokens = _jwtTokenService.GenerateTokens(user);
-        
+
         // 更新Redis中的令牌
         await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, cancellationToken);
 
@@ -590,7 +592,7 @@ public class AuthController(
         user.UpdatedAt = DateTime.UtcNow;
 
         var tokens = _jwtTokenService.GenerateTokens(user);
-        
+
         // 更新Redis中的令牌
         await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, cancellationToken);
 
@@ -655,7 +657,7 @@ public class AuthController(
         var value = idClaim ?? subClaim;
         return value == null ? throw new InvalidOperationException("User id not found in token") : ulong.Parse(value);
     }
-    
+
     /// <summary>
     /// 将访问令牌和刷新令牌存储到Redis
     /// </summary>
@@ -665,15 +667,15 @@ public class AuthController(
     /// <param name="cancellationToken">取消操作标记</param>
     private async Task StoreTokensInRedis(ulong userId, string accessToken, string refreshToken, CancellationToken cancellationToken)
     {
-        // 存储访问令牌，设置过期时间
-        var accessTokenExpiry = TimeSpan.FromMinutes(30); // 假设访问令牌30分钟过期
-        await _redisDb.StringSetAsync($"access_token:{userId}", accessToken, accessTokenExpiry);
+        // 存储访问令牌，设置过期时间 从appsettings获取更合理的过期时间
+        var accessTokenExpiry = _config.GetValue<int>("jwt:AccessTokenMinutes", 1); // 默认值30
+        await _redisDb.StringSetAsync($"access_token:{userId}", accessToken, TimeSpan.FromMinutes(accessTokenExpiry));
 
         // 存储刷新令牌，设置过期时间
-        var refreshTokenExpiry = TimeSpan.FromDays(7); // 假设刷新令牌7天过期
-        await _redisDb.StringSetAsync($"refresh_token:{userId}", refreshToken, refreshTokenExpiry);
+        var refreshTokenExpiry = _config.GetValue<int>("jwt:RefreshTokenDays", 7); // 默认值7
+        await _redisDb.StringSetAsync($"refresh_token:{userId}", refreshToken, TimeSpan.FromDays(refreshTokenExpiry));
     }
-    
+
     /// <summary>
     /// 从Redis删除用户的令牌
     /// </summary>

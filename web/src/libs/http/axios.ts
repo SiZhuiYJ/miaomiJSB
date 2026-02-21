@@ -57,14 +57,31 @@ class MM {
     const auth = useAuthStore();
     const status = error.response?.status;
     const originalRequest = error.config;
-    console.log(!(originalRequest as any)._retry);
+
+    // 检查是否是刷新请求本身
+    const isRefreshRequest = originalRequest?.url?.includes('/mm/Auth/refresh');
+    const retry = (error.config as any)._retry;
+    console.log("刷新token", retry, "isRefreshRequest:", isRefreshRequest);
+
+    // 如果是刷新请求且返回401，直接清除认证并跳转登录
+    if (isRefreshRequest && status === 401) {
+      console.warn("刷新请求返回401，清除认证信息");
+      auth.clear();
+      notifyWarning("登录过期，请重新登录");
+      router.push("/login");
+      return Promise.reject({ ...error, hasClearedAuth: true });
+    }
+
+    // 正常的401处理：检查是否需要刷新token
     if (
       status === 401 &&
       auth.refreshToken &&
       originalRequest &&
-      !(originalRequest as any)._retry
+      !retry
     ) {
-      (originalRequest as any)._retry = true;
+      // 显式设置_retry属性，确保类型安全
+      (error.config as any)._retry = true;
+      console.log("刷新token", (error.config as any)._retry);
 
       try {
         console.log("尝试刷新token");
@@ -72,6 +89,7 @@ class MM {
         const refreshResponse = await this.post<AuthData>("/mm/Auth/refresh", {
           refreshToken: auth.refreshToken,
         });
+        auth.clear();
         auth.setSession(refreshResponse.data);
         originalRequest.headers = originalRequest.headers ?? {};
         originalRequest.headers.Authorization = `Bearer ${auth.accessToken}`;

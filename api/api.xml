@@ -11,7 +11,7 @@
             包含邮箱验证码发送与验证、密码修改、账号注销、个人信息更新等完整认证流程。
             </summary>
         </member>
-        <member name="M:api.Controllers.AuthController.#ctor(api.Data.DailyCheckDbContext,api.Infrastructure.IJwtTokenService,api.Infrastructure.IVerificationCodeService,StackExchange.Redis.IConnectionMultiplexer)">
+        <member name="M:api.Controllers.AuthController.#ctor(api.Data.DailyCheckDbContext,Microsoft.Extensions.Configuration.IConfiguration,api.Infrastructure.IJwtTokenService,api.Infrastructure.IVerificationCodeService,StackExchange.Redis.IConnectionMultiplexer)">
             <summary>
             认证相关接口，提供用户注册、登录、登出、刷新令牌、账号管理等功能。
             支持邮箱密码登录、账号密码登录两种方式，实现双Token单点登录机制。
@@ -1082,14 +1082,14 @@
         </member>
         <member name="M:api.Infrastructure.JwtTokenService.GenerateTokens(api.Data.User)">
             <summary>
-            为指定用户生成新的访问令牌和刷新令牌，并更新单点登录状态。
+            为指定用户生成新的访问令牌和刷新令牌。
             </summary>
             <param name="user">用户实体。</param>
             <returns>访问令牌与刷新令牌组合。</returns>
         </member>
         <member name="M:api.Infrastructure.JwtTokenService.ValidateRefreshToken(System.String)">
             <summary>
-            验证刷新令牌是否有效且未被替换。
+            验证刷新令牌是否有效。
             </summary>
             <param name="refreshToken">刷新令牌字符串。</param>
             <returns>验证通过的声明主体，否则为 null。</returns>
@@ -1123,6 +1123,12 @@
             <param name="hash">存储的哈希字符串。</param>
             <param name="password">待验证的明文密码。</param>
             <returns>匹配返回 true，否则返回 false。</returns>
+        </member>
+        <member name="T:api.Infrastructure.RedisTokenValidationMiddleware">
+            <summary>
+            Redis Token验证中间件，在每个请求前检查Redis中的token状态
+            确保访问令牌在Redis中仍然有效，避免JWT过期时间与Redis状态不一致的问题
+            </summary>
         </member>
         <member name="T:api.Infrastructure.SendCodeStatus">
             <summary>

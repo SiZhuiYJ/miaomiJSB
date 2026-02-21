@@ -18,6 +18,8 @@ export interface AuthData {
   userAccount: string | null;
   token: string;
   refreshToken: string;
+  accessTokenExpiresAt: string;
+  refreshTokenExpiresAt: string;
   avatarKey?: string | null;
   avatarUrl?: string | null;
 }

@@ -127,15 +127,6 @@ const profileForm = reactive({
 });
 const profileLoading = ref(false);
 
-function openProfileDialog(): void {
-  if (authStore.user) {
-    profileForm.userAccount = authStore.user.userAccount || "";
-    profileForm.nickName = authStore.user.nickName || "";
-    profileForm.avatarKey = "";
-  }
-  profileVisible.value = true;
-}
-
 async function handleUpdateProfile(): Promise<void> {
   profileLoading.value = true;
   try {

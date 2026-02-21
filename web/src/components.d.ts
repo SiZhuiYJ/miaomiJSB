@@ -11,12 +11,10 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    CheckinDetailDrawer: typeof import('./components/CheckinDetailDrawer.vue')['default']
-    'CheckinDetailDrawer copy': typeof import('./components/CheckinDetailDrawer copy.vue')['default']
-    CheckinDrawer: typeof import('./components/CheckinDrawer.vue')['default']
-    copy: typeof import('./components/CheckinDetailDrawer copy.vue')['default']
-    CreatePlanDrawer: typeof import('./components/CreatePlanDrawer.vue')['default']
+    ElButton: typeof import('element-plus/es')['ElButton']
     ElCalendar: typeof import('element-plus/es')['ElCalendar']
+    ElCollapse: typeof import('element-plus/es')['ElCollapse']
+    ElCollapseItem: typeof import('element-plus/es')['ElCollapseItem']
     ElDatePicker: typeof import('element-plus/es')['ElDatePicker']
     ElDialog: typeof import('element-plus/es')['ElDialog']
     ElDrawer: typeof import('element-plus/es')['ElDrawer']
@@ -25,16 +23,13 @@ declare module 'vue' {
     ElDropdownMenu: typeof import('element-plus/es')['ElDropdownMenu']
     ElImage: typeof import('element-plus/es')['ElImage']
     ElProgress: typeof import('element-plus/es')['ElProgress']
+    ElSkeleton: typeof import('element-plus/es')['ElSkeleton']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTimePicker: typeof import('element-plus/es')['ElTimePicker']
-    ImagePreviewList: typeof import('./components/ImagePreviewList.vue')['default']
     NotificationSystem: typeof import('./components/NotificationSystem.vue')['default']
-    PlanSidebar: typeof import('./components/PlanSidebar.vue')['default']
     ProgressBar: typeof import('./components/ProgressBar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    SimpleTimeSlotCard: typeof import('./components/SimpleTimeSlotCard.vue')['default']
-    TimeSlotCheckinCard: typeof import('./components/TimeSlotCheckinCard.vue')['default']
     Topbar: typeof import('./components/Topbar.vue')['default']
   }
 }

@@ -4,8 +4,7 @@ import { usePlansStore, useCheckinsStore } from "@/stores";
 import type { PlanSummary } from "../types";
 import { notifyWarning } from "@/utils/notification";
 import Topbar from "@/components/Topbar.vue";
-import CreatePlanDrawer from "@/components/CreatePlanDrawer.vue";
-import CheckinDrawer from "@/components/CheckinDrawer.vue";
+import CreatePlanDrawer from "@/features/plans/components/CreatePlanDrawer.vue";
 import CheckinDetailDrawer from "@/features/checkin/components/CheckinDetailDrawer.vue";
 import DesktopMainView from "./DesktopMainView.vue";
 import MobilePlanCards from "./MobilePlanCards.vue";
@@ -22,15 +21,12 @@ const {
   selectedPlanId,
   checkinDate,
   selectedPlan,
-  monthDays,
   miniCalendarCells,
   monthStatsByPlan,
   progressPercentByPlan,
   isInPlanRangeForPlan,
   getPlanStatusCode,
-  getPlanDayStatusClass,
   getMiniDayClassForPlan,
-  formatDayLabel,
   getDayStatusClass,
 } = usePlanCalendar();
 
@@ -72,7 +68,6 @@ watch(
 );
 
 function handleDateClick(date: Date): void {
-  console.log("打卡抽屉ling……");
   const now = new Date();
   const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const targetOnly = new Date(
@@ -86,8 +81,6 @@ function handleDateClick(date: Date): void {
     return;
   }
 
-  console.log("计划ID", selectedPlanId.value);
-  console.log("时间", date);
   const status = getPlanStatusCode(selectedPlanId.value, date);
   checkinDate.value = date;
 
@@ -95,10 +88,8 @@ function handleDateClick(date: Date): void {
     if (!selectedPlanId.value) return;
     showCheckinDrawer.value = false;
     showDetailDrawer.value = true;
-    console.log("打开打卡详情");
     return;
   }
-  console.log("打开打卡");
   showDetailDrawer.value = false;
   showCheckinDrawer.value = true;
 }
@@ -119,7 +110,7 @@ function handlePlanCreated(id: number): void {
   mobileMode.value = "card";
 }
 
-function handlePlanUpdated(): void {}
+function handlePlanUpdated(): void { }
 
 function handlePlanDeleted(id: number): void {
   if (selectedPlanId.value === id) {
@@ -129,15 +120,6 @@ function handlePlanDeleted(id: number): void {
       mobileMode.value = "card";
     }
   }
-}
-
-async function handleCheckinSuccess(): Promise<void> {
-  if (!selectedPlanId.value) return;
-  await checkinsStore.loadCalendar(
-    selectedPlanId.value,
-    currentYear.value,
-    currentMonth.value,
-  );
 }
 
 function handleMobileCardSelect(planId: number): void {
@@ -171,70 +153,34 @@ function handleOpenCheckinFromDetail(): void {
   <div class="dashboard">
     <Topbar />
 
-    <DesktopMainView
-      :selected-plan-id="selectedPlanId"
-      :checkin-date="checkinDate"
-      :get-day-status-class="getDayStatusClass"
-      @update:selected-plan-id="(v) => (selectedPlanId = v)"
-      @update:checkin-date="(v) => (checkinDate = v)"
-      @create="handleCreatePlan"
-      @edit="handleEditPlan"
-      @date-click="handleDateClick"
-    />
+    <DesktopMainView :selected-plan-id="selectedPlanId" :checkin-date="checkinDate"
+      :get-day-status-class="getDayStatusClass" @update:selected-plan-id="(v) => (selectedPlanId = v)"
+      @update:checkin-date="(v) => (checkinDate = v)" @create="handleCreatePlan" @edit="handleEditPlan"
+      @date-click="handleDateClick" />
 
-    <MobilePlanCards
-      :mobile-mode="mobileMode"
-      :progress-percent-by-plan="progressPercentByPlan"
-      :month-stats-by-plan="monthStatsByPlan"
-      :mini-calendar-cells="miniCalendarCells"
-      :get-mini-day-class-for-plan="getMiniDayClassForPlan"
-      :is-in-plan-range-for-plan="isInPlanRangeForPlan"
-      @select-plan="handleMobileCardSelect"
-      @create="handleCreatePlan"
-    />
+    <MobilePlanCards :mobile-mode="mobileMode" :progress-percent-by-plan="progressPercentByPlan"
+      :month-stats-by-plan="monthStatsByPlan" :mini-calendar-cells="miniCalendarCells"
+      :get-mini-day-class-for-plan="getMiniDayClassForPlan" :is-in-plan-range-for-plan="isInPlanRangeForPlan"
+      @select-plan="handleMobileCardSelect" @create="handleCreatePlan" />
 
-    <MobileCalendarPage
-      :selected-plan-id="selectedPlanId"
-      :checkin-date="checkinDate"
-      :mobile-mode="mobileMode"
-      :get-day-status-class="getDayStatusClass"
-      @update:checkin-date="(v) => (checkinDate = v)"
-      @back="handleMobileCalendarBack"
-      @edit="handleEditPlan"
-      @date-click="handleDateClick"
-    />
+    <MobileCalendarPage :selected-plan-id="selectedPlanId" :checkin-date="checkinDate" :mobile-mode="mobileMode"
+      :get-day-status-class="getDayStatusClass" @update:checkin-date="(v) => (checkinDate = v)"
+      @back="handleMobileCalendarBack" @edit="handleEditPlan" @date-click="handleDateClick" />
 
-    <button
-      type="button"
-      class="mobile-create-fab mobile-only"
-      @click="handleCreatePlan"
-    >
+    <button type="button" class="mobile-create-fab mobile-only" @click="handleCreatePlan">
       ＋ 新建计划
     </button>
 
-    <CreatePlanDrawer
-      v-model="showPlanDrawer"
-      :edit-plan="drawerPlan"
-      @created="handlePlanCreated"
-      @updated="handlePlanUpdated"
-      @deleted="handlePlanDeleted"
-    />
+    <CreatePlanDrawer v-model="showPlanDrawer" :edit-plan="drawerPlan" @created="handlePlanCreated"
+      @updated="handlePlanUpdated" @deleted="handlePlanDeleted" />
 
-    <CheckinDrawer
-      v-model="showCheckinDrawer"
-      :plan-id="selectedPlanId ?? undefined"
-      :date="checkinDate ?? undefined"
-      @success="handleCheckinSuccess"
-    />
+    <CheckinDetailDrawer v-model="showCheckinDrawer" :plan-id="selectedPlanId ?? undefined"
+      :date="checkinDate ?? undefined" :time-slots="selectedPlan?.timeSlots" :mode="getTimeSlotMode()"
+      @open-checkin="handleOpenCheckinFromDetail" />
 
-    <CheckinDetailDrawer
-      v-model="showDetailDrawer"
-      :plan-id="selectedPlanId ?? undefined"
-      :date="checkinDate ?? undefined"
-      :time-slots="selectedPlan?.timeSlots"
-      :mode="getTimeSlotMode()"
-      @open-checkin="handleOpenCheckinFromDetail"
-    />
+    <CheckinDetailDrawer v-model="showDetailDrawer" :plan-id="selectedPlanId ?? undefined"
+      :date="checkinDate ?? undefined" :time-slots="selectedPlan?.timeSlots" :mode="getTimeSlotMode()"
+      @open-checkin="handleOpenCheckinFromDetail" />
   </div>
 </template>
 
@@ -254,7 +200,7 @@ function handleOpenCheckinFromDetail(): void {
   border-radius: 999px;
   border: none;
   padding: 10px 16px;
-  background: linear-gradient(to right, var(--accent-color), var(--accent-alt));
+  background: var(--accent-alt);
   color: var(--accent-on);
   font-size: 14px;
   cursor: pointer;

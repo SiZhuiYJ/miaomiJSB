@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SixLabors.ImageSharp;
 using StackExchange.Redis;
 using System;
+using api.Infrastructure;
 using System.Text;
 
 
@@ -21,6 +23,9 @@ var builder = WebApplication.CreateBuilder(args);
 #region 跨域配置
 builder.Services.AddCors(o => o.AddPolicy("MyCors", b => b.AllowAnyHeader().AllowAnyOrigin().AllowAnyMethod()));
 #endregion
+
+//则是自动初始化AppSettings实例并且映射appSettings里的配置
+//builder.Services.Configure<AppSettingModel>(Configuration.GetSection("Appsettings"));
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -148,6 +153,7 @@ app.UseCors("MyCors");
 #endregion
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseMiddleware<RedisTokenValidationMiddleware>();
 
 #region 配置HTTP请求管道
 if (app.Environment.IsDevelopment())

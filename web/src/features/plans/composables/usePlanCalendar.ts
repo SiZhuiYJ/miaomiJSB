@@ -1,6 +1,5 @@
 import { computed, ref } from "vue";
 import { usePlansStore, useCheckinsStore } from "@/stores";
-import type { PlanSummary } from "../types";
 import { storeToRefs } from "pinia";
 export function usePlanCalendar() {
   const { items } = storeToRefs(usePlansStore());

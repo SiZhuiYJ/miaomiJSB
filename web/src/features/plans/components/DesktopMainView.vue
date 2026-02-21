@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import PlanSidebar from "@/components/PlanSidebar.vue";
+import PlanSidebar from "@/features/plans/components/PlanSidebar.vue";
 import { usePlansStore } from "@/stores";
-import type { PlanSummary } from "../types";
 
 interface Props {
     selectedPlanId: number | null;

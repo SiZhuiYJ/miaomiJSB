@@ -343,7 +343,7 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
             .ToListAsync();
 
         if (checkins.Count == 0)
-            return NotFound("Checkin not found"); // 或者返回空列表，视前端需求而定，这里保持原有一致性可能返回 404
+            return Ok(new List<CheckinDetailResponse>());// 这里改为返回空列表，前端适配后可以区分无记录和404错误
 
         var result = checkins.Select(checkin =>
         {

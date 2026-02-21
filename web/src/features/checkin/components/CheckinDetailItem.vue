@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import ImagePreviewList from "@/components/ImagePreviewList.vue";
+import ImagePreviewList from "@/features/file/components/ImagePreviewList.vue";
 import type { CheckinDetail } from "@/features/checkin/types";
-const detailLoading = ref(false);
 const props = defineProps<{
-  checkinDetail?: CheckinDetail;
+  checkinDetail: CheckinDetail;
   imageObjectUrls?: Map<string, string>;
+  noStatus?: boolean;
+}>();
+const emit = defineEmits<{
+  // 补卡
+  (e: "retro"): void;
 }>();
 function getBlobUrl(url: string): string {
   return props.imageObjectUrls?.get(url) || "";
@@ -14,42 +17,36 @@ function getBlobUrl(url: string): string {
 
 <template>
   <div v-if="checkinDetail" class="detail-item">
-    <p class="drawer-status">
+    <p v-if="!props.noStatus" class="drawer-status">
       状态：
-      <span v-if="checkinDetail.status === 1">正常打卡</span>
-      <span v-else-if="checkinDetail.status === 2">补签</span>
-      <span v-else>未知</span>
+      <span v-if="checkinDetail.status === 1" class="dot success">
+        已打卡
+      </span>
+      <span v-else-if="checkinDetail.status === 2" class="dot retro">已补签</span>
+      <span v-else class="dot unknown">未知</span>
     </p>
     <p v-if="checkinDetail.note" class="drawer-note">
       备注：{{ checkinDetail.note }}
     </p>
     <div v-if="checkinDetail.imageUrls.length">
-      <ImagePreviewList
-        :sources="
-          checkinDetail.imageUrls.map((url) => getBlobUrl(url)).filter(Boolean)
-        "
-      />
+      <ImagePreviewList :sources="checkinDetail.imageUrls.map((url) => getBlobUrl(url)).filter(Boolean)
+        " />
     </div>
     <p v-else class="no-images">无图片</p>
   </div>
-  <div v-else-if="detailLoading" class="detail-loading">加载中...</div>
-  <div v-else class="no-data">暂无打卡记录</div>
+  <div v-else class="no-data">暂无打卡记录
+    <el-button type="warning" size="small" @click="emit('retro')" color="#ffc685" plain>补卡</el-button>
+  </div>
 </template>
 
 <style scoped lang="scss">
 .detail-item {
   border-bottom: 1px solid var(--border-color);
-  padding-bottom: 16px;
+  padding: 0 12px;
 }
 
 .detail-item:last-child {
   border-bottom: none;
-}
-
-.time-slot-tag {
-  color: var(--text-muted);
-  font-size: 12px;
-  margin-left: 8px;
 }
 
 .no-data {
@@ -57,29 +54,33 @@ function getBlobUrl(url: string): string {
   color: var(--text-muted);
   padding: 20px 0;
 }
-.drawer-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding-bottom: 12px;
-}
 
-.drawer-date {
-  font-size: 14px;
-  color: var(--text-muted);
-}
 
 .drawer-status {
   font-size: 14px;
 }
 
-.drawer-note {
-  font-size: 14px;
+.dot {
+  padding: 4px;
+  border-radius: 8px;
 }
 
-.detail-loading {
+.dot.success {
+  background: rgba(202, 255, 222, 0.5);
+  color: #89ffb6;
+}
+
+.dot.retro {
+  background: rgba(255, 246, 217, 0.5);
+  color: #ffc685;
+}
+
+.dot.unknown {
+  background: #94a3b8;
+}
+
+.drawer-note {
   font-size: 14px;
-  color: var(--text-muted);
 }
 
 .no-images {

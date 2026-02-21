@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { usePlansStore } from "@/stores";
-import type { PlanSummary } from "../types";
 
 interface Props {
     mobileMode: "card" | "calendar";

@@ -34,7 +34,7 @@ public class JwtOptions
     /// <summary>
     /// 访问令牌有效分钟数。
     /// </summary>
-    public int AccessTokenMinutes { get; set; } = 30;
+    public int AccessTokenMinutes { get; set; } = 1;
 
     /// <summary>
     /// 刷新令牌有效天数。
@@ -98,19 +98,20 @@ public interface IJwtTokenService
 public class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenService
 {
     readonly JwtOptions _options = options.Value;
-    static readonly ConcurrentDictionary<string, string> RefreshTokenJtiByUserId = new();
+    
+    // 移除内存存储，完全依赖Redis
+    // static readonly ConcurrentDictionary<string, string> RefreshTokenJtiByUserId = new();
 
     /// <summary>
-    /// 为指定用户生成新的访问令牌和刷新令牌，并更新单点登录状态。
+    /// 为指定用户生成新的访问令牌和刷新令牌。
     /// </summary>
     /// <param name="user">用户实体。</param>
     /// <returns>访问令牌与刷新令牌组合。</returns>
     public TokenPair GenerateTokens(User user)
     {
         var jti = Guid.NewGuid().ToString("N");
-        var userId = user.Id.ToString();
-        RefreshTokenJtiByUserId[userId] = jti;
-
+        // 不再使用内存字典存储，完全由Redis管理
+        
         var accessExpires = DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes);
         var refreshExpires = DateTime.UtcNow.AddDays(_options.RefreshTokenDays);
 
@@ -127,7 +128,7 @@ public class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenService
     }
 
     /// <summary>
-    /// 验证刷新令牌是否有效且未被替换。
+    /// 验证刷新令牌是否有效。
     /// </summary>
     /// <param name="refreshToken">刷新令牌字符串。</param>
     /// <returns>验证通过的声明主体，否则为 null。</returns>
@@ -162,16 +163,17 @@ public class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenService
             if (!string.Equals(type, "refresh", StringComparison.OrdinalIgnoreCase))
                 return null;
 
-            var sub = jwt.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
-            var jti = jwt.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value;
-            if (string.IsNullOrWhiteSpace(sub) || string.IsNullOrWhiteSpace(jti))
-                return null;
+            // 不再检查内存字典，完全依赖Redis验证
+            // var sub = jwt.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
+            // var jti = jwt.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value;
+            // if (string.IsNullOrWhiteSpace(sub) || string.IsNullOrWhiteSpace(jti))
+            //     return null;
 
-            if (!RefreshTokenJtiByUserId.TryGetValue(sub, out var currentJti))
-                return null;
+            // if (!RefreshTokenJtiByUserId.TryGetValue(sub, out var currentJti))
+            //     return null;
 
-            if (!string.Equals(currentJti, jti, StringComparison.Ordinal))
-                return null;
+            // if (!string.Equals(currentJti, jti, StringComparison.Ordinal))
+            //     return null;
 
             return principal;
         }

@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch, onMounted } from "vue";
+import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { FileApi } from "@/features/file/api/index";
-import { useCheckinsStore, usePlansStore } from "@/stores";
+import { useCheckinsStore } from "@/stores";
 import type { CheckinDetail } from "@/features/checkin/types";
 import type { TimeSlotDto } from "@/features/plans/types";
 import { notifyError } from "@/utils/notification";
 import CheckinDetailItem from "./CheckinDetailItem.vue";
+import CheckinForm from "./CheckinForm.vue";
 
 const props = defineProps<{
   modelValue: boolean;
@@ -26,45 +27,11 @@ const visible = computed({
   set: (val) => emit("update:modelValue", val),
 });
 
-const { items } = storeToRefs(usePlansStore());
-const { calendarByPlan } = storeToRefs(useCheckinsStore());
-
-const currentPlan = computed(() => {
-  return props.planId ? items.value.find((p) => p.id === props.planId) : null;
-});
-
 function formatDateOnly(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
-}
-
-// 时间段模式下的状态计算
-const timeSlotCheckinStatus = computed(() => {
-  if (!detail.value || !Array.isArray(detail.value)) return null;
-  // 如果有任何打卡记录，则认为已打卡
-  return detail.value.some((item) => item.status === 1)
-    ? 1
-    : detail.value.some((item) => item.status === 2)
-      ? 2
-      : null;
-});
-
-const hasTimeSlots = computed(() => {
-  return currentPlan.value?.timeSlots && currentPlan.value.timeSlots.length > 0;
-});
-
-function getTimeSlots() {
-  if (!currentPlan.value?.timeSlots) return [];
-  return currentPlan.value.timeSlots
-    .filter((slot) => slot.id !== undefined)
-    .map((slot) => ({
-      id: slot.id!,
-      slotName: slot.slotName || "",
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-    }));
 }
 
 const detailLoading = ref(false);
@@ -122,7 +89,6 @@ async function fetchDetail(): Promise<void> {
   const iso = formatDateOnly(props.date);
   detailLoading.value = true;
   try {
-    console.log("iso", iso);
     const result = await useCheckinsStore().getCheckinDetail(props.planId, iso);
     detail.value = result;
     console.log("加载打卡详情", detail.value);
@@ -143,6 +109,17 @@ function handleClosed(): void {
   detail.value = null;
 }
 
+// 判断date是否为今天
+function isToday(date: Date): boolean {
+  const today = new Date();
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  );
+}
+
+
 watch(
   () => visible.value,
   (open) => {
@@ -162,82 +139,97 @@ watch(
     }
   },
 );
-watch(
-  () => props.timeSlots,
-  () => {
-    console.log("timeSlots", props.timeSlots);
-  },
-);
-onMounted(() => {
-  console.log("timeSlots", props.timeSlots);
-});
 onBeforeUnmount(() => {
   handleClosed();
 });
-
-// Helper for template
-function getBlobUrl(url: string): string {
-  return imageObjectUrls.value.get(url) || "";
-}
 const findDetailById = (id: number): CheckinDetail | undefined => {
   return detail.value?.find((c) => c.timeSlotId === id);
 };
 </script>
 
 <template>
-  <el-drawer
-    v-model="visible"
-    direction="btt"
-    size="auto"
-    :title="'打卡详情' + (props.date ? ' · ' + formatDateOnly(props.date) : '')"
-    @closed="handleClosed"
-  >
+  <el-drawer v-model="visible" direction="btt" size="auto" @closed="handleClosed">
+    <template #header="{ titleId, titleClass }">
+      <h1 :id="titleId" :class="titleClass">
+        打卡详情
+        {{ props.date ? ' · ' + formatDateOnly(props.date) : '' }}
+        <template v-if="props.mode == 'default' && !detail?.length">
+          {{ props.date ? (isToday(props.date) ? ' · 打卡' : ' · 补卡') : '' }}
+        </template>
+      </h1>
+    </template>
     <div class="drawer-body">
-      <div v-if="props.mode == 'default'" class="detail">
-        <CheckinDetailItem
-          :checkin-detail="detail[0]!"
-          :image-object-urls="imageObjectUrls"
-        />
+      <el-skeleton v-if="detailLoading" class="detail" :rows="3" animated />
+      <div v-else-if="!detail" class="detail">
+        <p>暂无打卡记录</p>
       </div>
-      <div
-        v-if="props.mode == 'timeSlot'"
-        v-for="(item, index) in timeSlots"
-        :key="index"
-        class="detail-list"
-      >
-        <div>
-          <p class="time-slot">
-            时间段：
-            <span class="time-slot-tag">
-              {{ item.startTime }}-{{ item.endTime }}</span
-            >
-          </p>
-          <p class="drawer-status">
-            状态：
-            <span v-if="!findDetailById(item.id)">未打卡</span>
-            <span v-else-if="findDetailById(item.id)?.status === 1">
-              正常打卡
-            </span>
-            <span v-else-if="findDetailById(item.id)?.status === 2">补签</span>
-            <span v-else>未知</span>
-          </p>
-        </div>
-        <CheckinDetailItem
-          :checkin-detail="findDetailById(item.id)"
-          :image-object-urls="imageObjectUrls"
-        />
+      <div v-else-if="props.mode == 'default'" class="detail">
+        <CheckinForm v-if="!detail[0]" :plan-id="props.planId" :date="props.date" @success="fetchDetail" />
+        <CheckinDetailItem v-else :checkin-detail="detail[0]" :image-object-urls="imageObjectUrls" />
+      </div>
+      <div v-else-if="props.mode == 'timeSlot'" v-for="(item, index) in timeSlots" :key="index" class="detail-list">
+        <el-collapse expand-icon-position="left">
+          <el-collapse-item title="Consistency" name="1">
+            <template #title>
+              <div class="time-slot-container">
+                <span class="time-slot-tag">
+                  {{ item.slotName }} · {{ item.startTime }}-{{ item.endTime }}</span>
+                <div>
+                  <span v-if="!findDetailById(item.id)" class="dot missed">未打卡</span>
+                  <span v-else-if="findDetailById(item.id)?.status === 1" class="dot success">
+                    已打卡
+                  </span>
+                  <span v-else-if="findDetailById(item.id)?.status === 2" class="dot retro">已补签</span>
+                  <span v-else class="dot unknown">未知</span>
+                </div>
+              </div>
+            </template>
+            <CheckinForm v-if="!findDetailById(item.id)" :plan-id="props.planId" :date="props.date"
+              :time-slot-id="item.id" @success="fetchDetail" />
+            <CheckinDetailItem v-else noStatus :checkin-detail="findDetailById(item.id)!"
+              :image-object-urls="imageObjectUrls" />
+          </el-collapse-item>
+        </el-collapse>
       </div>
     </div>
   </el-drawer>
 </template>
 
-<style scoped>
-:deep(.el-drawer__header) {
-  margin-bottom: 0px;
-}
-.detail-list {
+<style scoped lang="scss">
+.time-slot-container {
+  width: 100%;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.drawer-body {
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+
+.dot {
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.dot.success {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.dot.retro {
+  background: rgba(234, 179, 8, 0.2);
+  color: #eab308;
+}
+
+.dot.missed {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+.dot.unknown {
+  background: #94a3b8;
 }
 </style>
