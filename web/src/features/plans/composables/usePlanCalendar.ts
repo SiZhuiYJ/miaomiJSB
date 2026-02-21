@@ -1,199 +1,206 @@
 import { computed, ref } from "vue";
 import { usePlansStore, useCheckinsStore } from "@/stores";
 import type { PlanSummary } from "../types";
-
+import { storeToRefs } from "pinia";
 export function usePlanCalendar() {
-    const plansStore = usePlansStore();
-    const checkinsStore = useCheckinsStore();
+  const { items } = storeToRefs(usePlansStore());
+  const { calendarByPlan } = storeToRefs(useCheckinsStore());
 
-    const today = new Date();
-    const currentYear = ref(today.getFullYear());
-    const currentMonth = ref(today.getMonth() + 1);
-    const selectedPlanId = ref<number | null>(null);
-    const checkinDate = ref<Date>(new Date());
+  const today = new Date();
+  const currentYear = ref(today.getFullYear());
+  const currentMonth = ref(today.getMonth() + 1);
+  const selectedPlanId = ref<number | null>(null);
+  const checkinDate = ref<Date>(new Date());
 
-    const selectedPlan = computed(() => {
-        if (selectedPlanId.value == null) return null;
-        return plansStore.items.find((x) => x.id === selectedPlanId.value) ?? null;
-    });
+  const selectedPlan = computed(() => {
+    if (selectedPlanId.value == null) return null;
+    console.log("items", items.value);
+    const data = items.value.find((x) => x.id === selectedPlanId.value) ?? null;
+    console.log("plan", data);
+    return data;
+  });
 
-    const monthDays = computed(() => {
-        const days: Date[] = [];
-        const year = currentYear.value;
-        const month = currentMonth.value - 1;
-        const cursor = new Date(year, month, 1);
-        while (cursor.getMonth() === month) {
-            days.push(
-                new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()),
-            );
-            cursor.setDate(cursor.getDate() + 1);
+  const monthDays = computed(() => {
+    const days: Date[] = [];
+    const year = currentYear.value;
+    const month = currentMonth.value - 1;
+    const cursor = new Date(year, month, 1);
+    while (cursor.getMonth() === month) {
+      days.push(
+        new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()),
+      );
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return days;
+  });
+
+  const miniCalendarCells = computed(() => {
+    const source = monthDays.value;
+    if (source.length === 0) return [] as Array<Date | null>;
+    const cells: Array<Date | null> = [];
+    const firstDay = source[0];
+    const weekday = firstDay ? firstDay.getDay() : 1; // 0=Sun
+    const offset = (weekday + 6) % 7; // Monday=0
+    for (let i = 0; i < offset; i += 1) {
+      cells.push(null);
+    }
+    for (const d of source) {
+      cells.push(d);
+    }
+    return cells;
+  });
+
+  function toLocalDateOnlyString(date: Date): string {
+    const y = date.getFullYear();
+    const m = `${date.getMonth() + 1}`.padStart(2, "0");
+    const d = `${date.getDate()}`.padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  function parseDateOnly(input: string): Date {
+    const parts = input.split("-");
+    const y = Number(parts[0] ?? "0") || 0;
+    const m = Number(parts[1] ?? "1") || 1;
+    const d = Number(parts[2] ?? "1") || 1;
+    return new Date(y, m - 1, d);
+  }
+
+  function isInPlanRangeForPlan(planId: number | null, date: Date): boolean {
+    if (planId == null) return false;
+    const plan = items.value.find((x) => x.id === planId);
+    if (!plan) return false;
+    const cellDate = parseDateOnly(toLocalDateOnlyString(date));
+    const startDate = parseDateOnly(plan.startDate);
+    const endDate = plan.endDate ? parseDateOnly(plan.endDate) : null;
+    if (cellDate < startDate) return false;
+    if (endDate && cellDate > endDate) return false;
+    return true;
+  }
+
+  function getPlanStatusCode(
+    planId: number | null,
+    date: Date,
+  ): number | undefined {
+    if (planId == null) return undefined;
+    const list = calendarByPlan.value[planId] ?? [];
+    const key = toLocalDateOnlyString(date);
+    const found = list.find((item) => item.date === key);
+    return found?.status;
+  }
+
+  function getPlanDayStatusClass(planId: number | null, date: Date): string {
+    const status = getPlanStatusCode(planId, date);
+    if (status === 1) return "day success";
+    if (status === 2) return "day retro";
+
+    const cellDate = parseDateOnly(toLocalDateOnlyString(date));
+    const now = new Date();
+    const todayOnly = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+
+    const inPlanRange = isInPlanRangeForPlan(planId, date);
+    const isPastDay = cellDate < todayOnly;
+
+    if (inPlanRange && isPastDay && (status === undefined || status === null)) {
+      return "day missed";
+    }
+
+    return "day";
+  }
+
+  function getMiniDayClassForPlan(planId: number, date: Date | null): string[] {
+    if (!date || !isInPlanRangeForPlan(planId, date)) {
+      return ["mini-day", "mini-day-empty"];
+    }
+    const cls = getPlanDayStatusClass(planId, date);
+    const classes: string[] = ["mini-day", cls];
+
+    if (cls === "day") {
+      const now = new Date();
+      const todayOnly = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+      );
+      const targetOnly = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate(),
+      );
+      if (targetOnly.getTime() === todayOnly.getTime()) {
+        classes.push("mini-day-today");
+      } else if (targetOnly > todayOnly) {
+        classes.push("mini-day-future");
+      }
+    }
+
+    return classes;
+  }
+
+  const monthStatsByPlan = computed(() => {
+    return (planId: number) => {
+      let totalCheckins = 0;
+      let activeDays = 0;
+      for (const day of monthDays.value) {
+        const cls = getPlanDayStatusClass(planId, day);
+        if (cls.includes("success") || cls.includes("retro")) {
+          totalCheckins += 1;
         }
-        return days;
-    });
-
-    const miniCalendarCells = computed(() => {
-        const source = monthDays.value;
-        if (source.length === 0) return [] as Array<Date | null>;
-        const cells: Array<Date | null> = [];
-        const firstDay = source[0];
-        const weekday = firstDay ? firstDay.getDay() : 1; // 0=Sun
-        const offset = (weekday + 6) % 7; // Monday=0
-        for (let i = 0; i < offset; i += 1) {
-            cells.push(null);
+        if (
+          cls.includes("success") ||
+          cls.includes("retro") ||
+          cls.includes("missed")
+        ) {
+          activeDays += 1;
         }
-        for (const d of source) {
-            cells.push(d);
-        }
-        return cells;
-    });
-
-    function toLocalDateOnlyString(date: Date): string {
-        const y = date.getFullYear();
-        const m = `${date.getMonth() + 1}`.padStart(2, "0");
-        const d = `${date.getDate()}`.padStart(2, "0");
-        return `${y}-${m}-${d}`;
-    }
-
-    function parseDateOnly(input: string): Date {
-        const parts = input.split("-");
-        const y = Number(parts[0] ?? "0") || 0;
-        const m = Number(parts[1] ?? "1") || 1;
-        const d = Number(parts[2] ?? "1") || 1;
-        return new Date(y, m - 1, d);
-    }
-
-    function isInPlanRangeForPlan(planId: number | null, date: Date): boolean {
-        if (planId == null) return false;
-        const plan = plansStore.items.find((x) => x.id === planId);
-        if (!plan) return false;
-        const cellDate = parseDateOnly(toLocalDateOnlyString(date));
-        const startDate = parseDateOnly(plan.startDate);
-        const endDate = plan.endDate ? parseDateOnly(plan.endDate) : null;
-        if (cellDate < startDate) return false;
-        if (endDate && cellDate > endDate) return false;
-        return true;
-    }
-
-    function getPlanStatusCode(
-        planId: number | null,
-        date: Date,
-    ): number | undefined {
-        if (planId == null) return undefined;
-        const list = checkinsStore.calendarByPlan[planId] ?? [];
-        const key = toLocalDateOnlyString(date);
-        const found = list.find((item) => item.date === key);
-        return found?.status;
-    }
-
-    function getPlanDayStatusClass(planId: number | null, date: Date): string {
-        const status = getPlanStatusCode(planId, date);
-        if (status === 1) return "day success";
-        if (status === 2) return "day retro";
-
-        const cellDate = parseDateOnly(toLocalDateOnlyString(date));
-        const now = new Date();
-        const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-        const inPlanRange = isInPlanRangeForPlan(planId, date);
-        const isPastDay = cellDate < todayOnly;
-
-        if (inPlanRange && isPastDay && (status === undefined || status === null)) {
-            return "day missed";
-        }
-
-        return "day";
-    }
-
-    function getMiniDayClassForPlan(planId: number, date: Date | null): string[] {
-        if (!date || !isInPlanRangeForPlan(planId, date)) {
-            return ["mini-day", "mini-day-empty"];
-        }
-        const cls = getPlanDayStatusClass(planId, date);
-        const classes: string[] = ["mini-day", cls];
-
-        if (cls === "day") {
-            const now = new Date();
-            const todayOnly = new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                now.getDate(),
-            );
-            const targetOnly = new Date(
-                date.getFullYear(),
-                date.getMonth(),
-                date.getDate(),
-            );
-            if (targetOnly.getTime() === todayOnly.getTime()) {
-                classes.push("mini-day-today");
-            } else if (targetOnly > todayOnly) {
-                classes.push("mini-day-future");
-            }
-        }
-
-        return classes;
-    }
-
-    const monthStatsByPlan = computed(() => {
-        return (planId: number) => {
-            let totalCheckins = 0;
-            let activeDays = 0;
-            for (const day of monthDays.value) {
-                const cls = getPlanDayStatusClass(planId, day);
-                if (cls.includes("success") || cls.includes("retro")) {
-                    totalCheckins += 1;
-                }
-                if (
-                    cls.includes("success") ||
-                    cls.includes("retro") ||
-                    cls.includes("missed")
-                ) {
-                    activeDays += 1;
-                }
-            }
-            return { totalCheckins, activeDays };
-        };
-    });
-
-    const progressPercentByPlan = computed(() => {
-        return (planId: number) => {
-            const stats = monthStatsByPlan.value(planId);
-            if (stats.activeDays === 0) return 0;
-            const ratio = (stats.totalCheckins / stats.activeDays) * 100;
-            return Math.round(ratio);
-        };
-    });
-
-    function formatDayLabel(value: string): string {
-        const parts = value.split("-");
-        return parts[2]?.replace(/^0/, "") ?? value;
-    }
-
-    function getDayStatusClass(date: Date): string {
-        return getPlanDayStatusClass(selectedPlanId.value, date);
-    }
-
-    return {
-        // 响应式数据
-        currentYear,
-        currentMonth,
-        selectedPlanId,
-        checkinDate,
-        selectedPlan,
-
-        // 计算属性
-        monthDays,
-        miniCalendarCells,
-        monthStatsByPlan,
-        progressPercentByPlan,
-
-        // 方法
-        toLocalDateOnlyString,
-        parseDateOnly,
-        isInPlanRangeForPlan,
-        getPlanStatusCode,
-        getPlanDayStatusClass,
-        getMiniDayClassForPlan,
-        formatDayLabel,
-        getDayStatusClass,
+      }
+      return { totalCheckins, activeDays };
     };
+  });
+
+  const progressPercentByPlan = computed(() => {
+    return (planId: number) => {
+      const stats = monthStatsByPlan.value(planId);
+      if (stats.activeDays === 0) return 0;
+      const ratio = (stats.totalCheckins / stats.activeDays) * 100;
+      return Math.round(ratio);
+    };
+  });
+
+  function formatDayLabel(value: string): string {
+    const parts = value.split("-");
+    return parts[2]?.replace(/^0/, "") ?? value;
+  }
+
+  function getDayStatusClass(date: Date): string {
+    return getPlanDayStatusClass(selectedPlanId.value, date);
+  }
+
+  return {
+    // 响应式数据
+    currentYear,
+    currentMonth,
+    selectedPlanId,
+    checkinDate,
+    selectedPlan,
+
+    // 计算属性
+    monthDays,
+    miniCalendarCells,
+    monthStatsByPlan,
+    progressPercentByPlan,
+
+    // 方法
+    toLocalDateOnlyString,
+    parseDateOnly,
+    isInPlanRangeForPlan,
+    getPlanStatusCode,
+    getPlanDayStatusClass,
+    getMiniDayClassForPlan,
+    formatDayLabel,
+    getDayStatusClass,
+  };
 }

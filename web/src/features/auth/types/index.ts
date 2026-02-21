@@ -4,7 +4,6 @@ export interface AuthUser {
   nickName: string | null;
   userAccount: string | null;
   avatarKey: string | null;
-  avatarUrl: string | null;
 }
 
 export interface AuthState {

@@ -7,10 +7,9 @@ import axios, {
   type AxiosError,
 } from "axios";
 import type { AuthData } from "@/features/auth/types";
-import http from "./index";
 import { useAuthStore } from "@/features/auth/stores";
-import { useRouter } from "vue-router";
-const router = useRouter();
+import { notifyWarning } from "@/utils/notification";
+import router from "@/routers/index";
 // 只有请求封装用的MM，方便简写
 class MM {
   private instance: AxiosInstance;
@@ -46,19 +45,19 @@ class MM {
     return Promise.resolve(config);
   }
   private async handleRequestError(error: AxiosError) {
-    console.log("请求错误", error);
+    console.log("请求错误", error.config);
     return Promise.reject(error);
   }
   private async handleResponse(response: AxiosResponse) {
     console.log("获得数据", response);
     return Promise.resolve(response);
   }
-  private async handleResponseError(error: any) {
-    console.log("获取错误", error);
+  private async handleResponseError(error: AxiosError) {
+    console.log("获取错误", error.config);
     const auth = useAuthStore();
     const status = error.response?.status;
     const originalRequest = error.config;
-
+    console.log(!(originalRequest as any)._retry);
     if (
       status === 401 &&
       auth.refreshToken &&
@@ -68,7 +67,9 @@ class MM {
       (originalRequest as any)._retry = true;
 
       try {
-        const refreshResponse = await http.post<AuthData>("/mm/Auth/refresh", {
+        console.log("尝试刷新token");
+
+        const refreshResponse = await this.post<AuthData>("/mm/Auth/refresh", {
           refreshToken: auth.refreshToken,
         });
         auth.setSession(refreshResponse.data);
@@ -80,6 +81,7 @@ class MM {
         // 刷新失败，清除认证信息并跳转到登录页
         auth.clear();
         // 如果在浏览器环境中，可以跳转到登录页面
+        notifyWarning("登录过期，请重新登录");
         router.push("/login");
         return Promise.reject({ ...error, hasClearedAuth: true });
       }
@@ -89,49 +91,77 @@ class MM {
   }
   // Get请求
   async get<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
-    return await this.instance.get(url, data);
+    try {
+      return await this.instance.get(url, data);
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
   // Post请求
   async post<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
-    return await this.instance.post(url, data);
+    try {
+      return await this.instance.post(url, data);
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
   // Put请求
   async put<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
-    return await this.instance.put(url, data);
+    try {
+      return await this.instance.put(url, data);
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
   // Delete请求
   async delete<T>(url: string): Promise<AxiosResponse<T>> {
-    return await this.instance.delete(url);
+    try {
+      return await this.instance.delete(url);
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
   // 图片上传
   async upload<T>(url: string, formData?: object): Promise<AxiosResponse<T>> {
     const auth = useAuthStore();
-    return await this.instance.post(url, formData, {
-      headers: {
-        Authorization: "Bearer " + auth.accessToken || "",
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    try {
+      return await this.instance.post(url, formData, {
+        headers: {
+          Authorization: "Bearer " + auth.accessToken || "",
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
   // 下载
   async download<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
     const auth = useAuthStore();
-    return await this.instance.post(url, data, {
-      headers: {
-        Authorization: "Bearer " + (auth.accessToken || ""),
-      },
-      responseType: "blob",
-    });
+    try {
+      return await this.instance.post(url, data, {
+        headers: {
+          Authorization: "Bearer " + (auth.accessToken || ""),
+        },
+        responseType: "blob",
+      });
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
 
   async getImage<T>(url: string): Promise<AxiosResponse<T>> {
     const auth = useAuthStore();
-    return await this.instance.get(url, {
-      headers: {
-        Authorization: "Bearer " + (auth.accessToken || ""),
-      },
-      responseType: "arraybuffer",
-    });
+    try {
+      return await this.instance.get(url, {
+        headers: {
+          Authorization: "Bearer " + (auth.accessToken || ""),
+        },
+        responseType: "arraybuffer",
+      });
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
 }
 

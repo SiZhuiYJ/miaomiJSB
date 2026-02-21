@@ -5,10 +5,10 @@ import http from "@/libs/http";
 import type {
   ActionType,
   AuthData,
+  AuthUser,
   PasswordPayload,
   RegisterRecord,
 } from "../types";
-
 /**
  * 认证API服务
  * 包含用户登录、注册、账户管理等相关接口
@@ -61,6 +61,13 @@ export const authApi = {
   async validateUserAccount(userAccount: string) {
     return http.post("/mm/Auth/validate-account?userAccount=" + userAccount);
   },
+  /**
+   * 获取用户信息
+   * @returns Promise<AuthData>
+   */
+  async getAuthData() {
+    return await http.get<AuthUser>("/mm/Auth/me");
+  },
 
   /**
    * 邮箱登录
@@ -97,7 +104,7 @@ export type {
   ActionType,
   AuthData,
   PasswordPayload,
-  RegisterRecord
+  RegisterRecord,
 } from "../types";
 
 /**

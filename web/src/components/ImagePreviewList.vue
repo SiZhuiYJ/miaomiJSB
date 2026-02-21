@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PropType } from 'vue';
+import { watch, type PropType } from "vue";
 
 const props = defineProps({
   sources: {
@@ -13,21 +13,17 @@ const props = defineProps({
 });
 
 const emit = defineEmits<{
-  (e: 'remove', index: number): void;
+  (e: "remove", index: number): void;
 }>();
 
 function handleRemove(index: number): void {
-  emit('remove', index);
+  emit("remove", index);
 }
 </script>
 
 <template>
   <div v-if="props.sources.length" class="image-list">
-    <div
-      v-for="(src, index) in props.sources"
-      :key="src"
-      class="image-item"
-    >
+    <div v-for="(src, index) in props.sources" :key="src" class="image-item">
       <el-image
         :src="src"
         :preview-src-list="props.sources"
@@ -86,4 +82,3 @@ function handleRemove(index: number): void {
   cursor: pointer;
 }
 </style>
-

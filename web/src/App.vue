@@ -2,7 +2,7 @@
 // 2495550774@qq.com
 import { ref, onMounted } from "vue";
 import { ElConfigProvider, dayjs } from "element-plus";
-import { setNotificationInstance } from "./utils/notification";
+import { setNotificationInstance } from "@/utils/notification";
 // @ts-ignore
 import zhCn from "element-plus/dist/locale/zh-cn.mjs";
 // @ts-ignore
@@ -10,7 +10,7 @@ dayjs.en.weekStart = 1;
 
 const notificationSystemRef = ref(null);
 
-onMounted(() => {
+onMounted(async () => {
   setNotificationInstance(notificationSystemRef.value);
 });
 </script>

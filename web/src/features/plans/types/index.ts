@@ -1,5 +1,5 @@
 export interface TimeSlotDto {
-  id?: number;
+  id: number;
   slotName?: string;
   startTime: string; // HH:mm:ss
   endTime: string; // HH:mm:ss

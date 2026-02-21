@@ -12,7 +12,9 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     CheckinDetailDrawer: typeof import('./components/CheckinDetailDrawer.vue')['default']
+    'CheckinDetailDrawer copy': typeof import('./components/CheckinDetailDrawer copy.vue')['default']
     CheckinDrawer: typeof import('./components/CheckinDrawer.vue')['default']
+    copy: typeof import('./components/CheckinDetailDrawer copy.vue')['default']
     CreatePlanDrawer: typeof import('./components/CreatePlanDrawer.vue')['default']
     ElCalendar: typeof import('element-plus/es')['ElCalendar']
     ElDatePicker: typeof import('element-plus/es')['ElDatePicker']

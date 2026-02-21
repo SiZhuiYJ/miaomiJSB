@@ -1,94 +1,78 @@
 import { defineStore } from "pinia";
-import type { AuthData, AuthState, AuthUser } from "@/features/auth/types";
+import type { AuthData, AuthUser } from "@/features/auth/types";
 import { CACHE_PREFIX } from "@/config";
+import { authApi } from "../api";
 
-function loadInitialState(): AuthState {
-  const raw = localStorage.getItem(CACHE_PREFIX + "auth");
-  if (!raw) {
-    return {
-      user: null,
-      accessToken: null,
-      refreshToken: null,
-    };
-  }
-  try {
-    const parsed = JSON.parse(raw) as AuthState;
-    return parsed;
-  } catch {
-    return {
-      user: null,
-      accessToken: null,
-      refreshToken: null,
-    };
-  }
-}
+export const useAuthStore = defineStore(
+  "auth",
+  () => {
+    const user = ref<AuthUser | null>();
+    const accessToken = ref<string | null>();
+    const refreshToken = ref<string | null>();
 
-export const useAuthStore = defineStore("auth", () => {
-  const state = loadInitialState();
+    const isAuthenticated = computed(() => {
+      return !!accessToken.value;
+    });
 
-  const user = ref<AuthUser | null>(state.user);
-  const accessToken = ref<string | null>(state.accessToken);
-  const refreshToken = ref<string | null>(state.refreshToken);
-
-  const isAuthenticated = computed(() => {
-    console.log(!!accessToken.value, accessToken.value);
-    return !!accessToken.value;
-  });
-
-  function setSession(payload: AuthData): void {
-    user.value = {
-      userId: payload.userId,
-      email: payload.email,
-      nickName: payload.nickName,
-      userAccount: payload.userAccount,
-      avatarKey: payload.avatarKey || null,
-      avatarUrl: payload.avatarUrl || null,
-    };
-    accessToken.value = payload.token;
-    refreshToken.value = payload.refreshToken;
-    persist();
-  }
-
-  function updateUser(payload: {
-    userAccount?: string | null;
-    nickName?: string | null;
-  }): void {
-    if (user.value) {
-      if (payload.userAccount !== undefined)
-        user.value.userAccount = payload.userAccount;
-      if (payload.nickName !== undefined)
-        user.value.nickName = payload.nickName;
-      persist();
+    async function initialAuth() {
+      const { data } = await authApi.getAuthData();
+      user.value = data;
     }
-  }
 
-  function clear(): void {
-    user.value = null;
-    accessToken.value = null;
-    refreshToken.value = null;
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-    } catch {}
-  }
+    function setSession(payload: AuthData): void {
+      user.value = {
+        userId: payload.userId,
+        email: payload.email,
+        nickName: payload.nickName,
+        userAccount: payload.userAccount,
+        avatarKey: payload.avatarKey || null,
+      };
+      accessToken.value = payload.token;
+      refreshToken.value = payload.refreshToken;
+    }
 
-  function persist(): void {
-    const data: AuthState = {
-      user: user.value,
-      accessToken: accessToken.value,
-      refreshToken: refreshToken.value,
+    function updateUser(payload: {
+      userAccount?: string | null;
+      nickName?: string | null;
+    }): void {
+      if (user.value) {
+        if (payload.userAccount !== undefined)
+          user.value.userAccount = payload.userAccount;
+        if (payload.nickName !== undefined)
+          user.value.nickName = payload.nickName;
+      }
+    }
+
+    function clear(): void {
+      user.value = null;
+      accessToken.value = null;
+      refreshToken.value = null;
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch {}
+    }
+
+    return {
+      user,
+      accessToken,
+      refreshToken,
+      initialAuth,
+      isAuthenticated,
+      setSession,
+      updateUser,
+      clear,
     };
-    localStorage.setItem(CACHE_PREFIX + "auth", JSON.stringify(data));
-  }
-
-  return {
-    user,
-    accessToken,
-    refreshToken,
-    isAuthenticated,
-    setSession,
-    updateUser,
-    clear,
-    persist,
-  };
-});
+  },
+  {
+    // 持久化配置
+    persist: {
+      // 持久化存储的键名
+      key: CACHE_PREFIX + "auth",
+      // 存储方式：localStorage
+      storage: localStorage,
+      // 指定持久化字段
+      pick: ["accessToken", "refreshToken"],
+    },
+  },
+);

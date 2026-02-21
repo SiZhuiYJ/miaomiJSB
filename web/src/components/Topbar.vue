@@ -7,8 +7,7 @@ import { ElMessageBox } from "element-plus";
 import { notifySuccess, notifyError } from "@/utils/notification";
 import { APP_TITLE, API_BASE_URL } from "@/config";
 import { storeToRefs } from "pinia";
-import { useRouter } from "vue-router";
-const router = useRouter();
+import router from "@/routers/index";
 const { user } = storeToRefs(useAuthStore());
 
 // SVG Icons

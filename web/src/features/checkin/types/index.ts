@@ -4,6 +4,7 @@ export interface CalendarItem {
 }
 
 export interface CheckinDetail {
+  id: number;
   date: string;
   status: number;
   note?: string;
