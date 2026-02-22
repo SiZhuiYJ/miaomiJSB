@@ -180,12 +180,7 @@ const slotStatuses = (slot: TimeSlotDto): CheckinStatus => {
 </script>
 
 <template>
-  <el-drawer
-    v-model="visible"
-    direction="btt"
-    size="auto"
-    @closed="handleClosed"
-  >
+  <el-drawer v-model="visible" direction="btt" size="auto" @closed="handleClosed">
     <template #header="{ titleId, titleClass }">
       <h1 :id="titleId" :class="titleClass">
         打卡详情
@@ -195,31 +190,15 @@ const slotStatuses = (slot: TimeSlotDto): CheckinStatus => {
         </template>
       </h1>
     </template>
-    <div class="drawer-body">
+    <el-scrollbar wrap-style="max-height: calc(100vh - 80px);" view-class="drawer-body">
       <el-skeleton v-if="detailLoading" class="detail" :rows="3" animated />
       <div v-else-if="props.mode == 'default'" class="detail">
-        <CheckinForm
-          v-if="!detail || !detail[0]"
-          :plan-id="props.planId"
-          :date="props.date"
-          @success="fetchDetail"
-        />
-        <CheckinDetailItem
-          v-else
-          :checkin-detail="detail[0]"
-          :image-object-urls="imageObjectUrls"
-        />
+        <CheckinForm v-if="!detail || !detail[0]" :plan-id="props.planId" :date="props.date" @success="fetchDetail" />
+        <CheckinDetailItem v-else :checkin-detail="detail[0]" :image-object-urls="imageObjectUrls" />
       </div>
-      <el-collapse
-        v-else-if="props.mode == 'timeSlot'"
-        expand-icon-position="left"
-      >
-        <el-collapse-item
-          v-for="(item, index) in timeSlots"
-          :key="index"
-          :name="index"
-          :disabled="slotStatuses(item) == 'future'"
-        >
+      <el-collapse v-else-if="props.mode == 'timeSlot'" expand-icon-position="left">
+        <el-collapse-item v-for="(item, index) in timeSlots" :key="index" :name="index"
+          :disabled="slotStatuses(item) == 'future'">
           <template #title>
             <div class="time-slot-container">
               <span class="time-slot-tag">
@@ -230,62 +209,43 @@ const slotStatuses = (slot: TimeSlotDto): CheckinStatus => {
                 <span v-if="slotStatuses(item) == 'missed'" class="dot missed">
                   未打卡
                 </span>
-                <span
-                  v-else-if="slotStatuses(item) == 'done'"
-                  class="dot success"
-                >
+                <span v-else-if="slotStatuses(item) == 'done'" class="dot success">
                   已打卡
                 </span>
                 <span v-else-if="slotStatuses(item) == 'made'" class="dot made">
                   已补签
                 </span>
-                <span
-                  v-else-if="slotStatuses(item) == 'pending'"
-                  class="dot pending"
-                >
+                <span v-else-if="slotStatuses(item) == 'pending'" class="dot pending">
                   进行中
                 </span>
-                <span
-                  v-else-if="slotStatuses(item) == 'future'"
-                  class="dot future"
-                >
+                <span v-else-if="slotStatuses(item) == 'future'" class="dot future">
                   未开始
                 </span>
                 <span v-else class="dot unknown">未知</span>
               </div>
             </div>
           </template>
-          <CheckinForm
-            v-if="!findDetailById(item.id)"
-            :plan-id="props.planId"
-            :date="props.date"
-            :time-slot-id="item.id"
-            @success="fetchDetail"
-          />
-          <CheckinDetailItem
-            v-else
-            noStatus
-            :checkin-detail="findDetailById(item.id)!"
-            :image-object-urls="imageObjectUrls"
-          />
+          <CheckinForm v-if="!findDetailById(item.id)" :plan-id="props.planId" :date="props.date"
+            :time-slot-id="item.id" @success="fetchDetail" />
+          <CheckinDetailItem v-else noStatus :checkin-detail="findDetailById(item.id)!"
+            :image-object-urls="imageObjectUrls" />
         </el-collapse-item>
       </el-collapse>
-    </div>
+    </el-scrollbar>
   </el-drawer>
 </template>
 
 <style scoped lang="scss">
+:deep(.drawer-body) {
+  padding: 12px;
+}
+
 .time-slot-container {
   width: 100%;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-}
-
-.drawer-body {
-  max-height: calc(100vh - 80px);
-  overflow-y: auto;
 }
 
 .dot {
@@ -307,14 +267,17 @@ const slotStatuses = (slot: TimeSlotDto): CheckinStatus => {
   background: rgba(248, 113, 113, 0.2);
   color: #f87171;
 }
+
 .dot.future {
   background: rgba(129, 129, 129, 0.2);
   color: #353535;
 }
+
 .dot.pending {
   background: rgba(122, 175, 255, 0.2);
   color: #3b82f6;
 }
+
 .dot.unknown {
   background: #94a3b8;
 }

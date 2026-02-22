@@ -1,6 +1,13 @@
 import { defineConfig } from "vite";
+// 引入Vue插件
 import vue from "@vitejs/plugin-vue";
+// 引入路径别名解析插件
 import path from "path";
+
+// 引入rollup打包可视化分析插件
+import { visualizer } from "rollup-plugin-visualizer";
+
+// 引入自动导入插件和组件自动注册插件
 import AutoImport from "unplugin-auto-import/vite";
 import Components from "unplugin-vue-components/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
@@ -8,17 +15,23 @@ import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
+    // 引入Vue插件
     vue(),
+    // 打包可视化分析插件，用于分析打包文件大小
+    visualizer({ open: true }),
+    // 自动导入插件，自动导入Vue和Pinia相关函数，并自动注册Element Plus组件
     AutoImport({
       imports: ["vue", "pinia"],
       resolvers: [ElementPlusResolver()],
       dts: "src/auto-imports.d.ts",
     }),
+    // 组件自动注册插件，自动注册Element Plus组件
     Components({
       resolvers: [ElementPlusResolver()],
       dts: "src/components.d.ts",
     }),
   ],
+  // 开发服务器配置
   server: {
     proxy: {
       "/mm": {
@@ -27,7 +40,9 @@ export default defineConfig({
         headers: {
           host: "check.meowmemoirs.cn",
         },
+        //* 忽略https证书错误 */
         changeOrigin: true,
+        // 允许代理服务器使用自签名证书
         secure: false,
       },
     },
@@ -36,48 +51,30 @@ export default defineConfig({
    * 构建配置
    */
   build: {
-    // 指定生成静态资源的存放目录
-    assetsDir: "assets",
-    // 指定输出目录
-    outDir: "dist",
-    // 指定压缩器
-    minify: "terser",
-    // 启用CSS代码分割
-    cssCodeSplit: true,
-
-    /**
-     * Rollup打包选项
-     */
     rollupOptions: {
       output: {
-        /**
-         * 自定义chunks分组策略
-         * 将node_modules中的依赖分别打包成独立文件
-         */
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            // 让每个插件都打包成独立的文件
-            return id
-              .toString()
-              .split("node_modules/")[1]
-              .split("/")[0]
-              .toString();
-          }
-        },
-      },
-    },
+        chunkFileNames: 'js/[name]-[hash].js', // 引入文件名的名称
+        entryFileNames: 'js/[name]-[hash].js', // 包的入口文件名称
+        assetFileNames: '[ext]/[name]-[hash].[ext]', // 资源文件像 字体，图片等
 
-    /**
-     * Terser压缩选项
-     */
-    // terserOptions: {
-    //   compress: {
-    //     // 是否删除console语句
-    //     drop_console: false,
-    //     // 是否删除debugger语句
-    //     drop_debugger: true,
-    //   },
-    // },
+        // 最小化拆分包
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return id.toString().split('node_modules/')[1].split('/')[0].toString();
+          }
+        }
+      }
+    },
+    minify: 'terser', // 启用 terser 压缩  
+    terserOptions: {
+      compress: {
+        pure_funcs: ['console.log'], // 只删除 console.log  
+        drop_debugger: true, // 删除 debugger  
+      }
+    }
+  },
+  esbuild: {
+    drop: ['console', 'debugger'], // 删除 所有的console 和 debugger
   },
   /**
    * 路径解析配置

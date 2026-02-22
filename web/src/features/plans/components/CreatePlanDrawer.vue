@@ -196,9 +196,9 @@ function removeTimeSlot(index: number) {
 <template>
   <el-drawer v-model="visible" direction="btt" size="auto" @closed="handleClosed">
     <template #header="{ titleId, titleClass }">
-      <h1 :id="titleId" :class="titleClass">{{ props.editPlan ? ' · 修改打卡计划' : ' · 创建打卡计划' }}</h1>
+      <h1 :id="titleId" :class="titleClass">{{ props.editPlan ? '修改打卡计划' : '创建打卡计划' }}</h1>
     </template>
-    <div class="drawer-body">
+    <el-scrollbar wrap-style="max-height: calc(100vh - 80px);" view-class="drawer-body">
       <label class="field">
         <span>计划标题</span>
         <input v-model="title" type="text" />
@@ -257,18 +257,16 @@ function removeTimeSlot(index: number) {
           删除计划
         </button>
       </div>
-    </div>
+    </el-scrollbar>
   </el-drawer>
 </template>
 
 <style scoped>
-.drawer-body {
+:deep(.drawer-body) {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-bottom: 12px;
-  max-height: calc(100vh - 80px);
-  overflow-y: auto;
+  padding: 12px;
 }
 
 .field {
