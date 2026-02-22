@@ -36,7 +36,7 @@ import pinia from "./stores";
 import directives from "./directives";
 
 // 注册SVG图标（Vite插件生成的虚拟模块）
-// import "virtual:svg-icons-register";
+import "virtual:svg-icons-register";
 
 // 注册Vue Router路由系统
 app.use(router);

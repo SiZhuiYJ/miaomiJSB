@@ -2,6 +2,7 @@
 import { ref, computed, nextTick, reactive } from "vue";
 import { toRgba } from "@/utils/color";
 import gsap from "gsap";
+import SvgIcon from "@/components/SvgIcon/index.vue";
 
 // import {Close} from ""
 /**
@@ -34,15 +35,15 @@ export interface NotificationMessage {
   duration?: number;
   closable?: boolean;
   direction?:
-    | "ltr"
-    | "rtl"
-    | "ttb"
-    | "btt"
-    | "center"
-    | "vSplit"
-    | "ripple"
-    | "spotlight"
-    | "fade";
+  | "ltr"
+  | "rtl"
+  | "ttb"
+  | "btt"
+  | "center"
+  | "vSplit"
+  | "ripple"
+  | "spotlight"
+  | "fade";
   count: number;
   progress: number;
   isRemoving: boolean;
@@ -68,7 +69,8 @@ const getLuminance = (hex: string) => {
 
 const getDynamicTextColor = (msg: NotificationMessage) => {
   const luminance = getLuminance(msg.color);
-  return luminance < 0.6 ? "#ffffff" : "#1e293b";
+  // return luminance < 0.6 ? "#ffffff" : "#1e293b";
+  return luminance < 0.6 ? "#ffffff" : "#ffffff";
 };
 
 const getBadgeBg = (msg: NotificationMessage) => {
@@ -81,6 +83,7 @@ const getItemBaseStyle = (msg: NotificationMessage, index: number) => ({
   background: toRgba(msg.color, 0.5),
   color: msg.color,
   zIndex: 100 - index,
+  "--bgc": toRgba(msg.color, 0.5),
 });
 
 const getProgressStyle = (msg: NotificationMessage) => {
@@ -284,41 +287,23 @@ defineExpose({
 
 <template>
   <div class="notification-container">
-    <div
-      v-for="(msg, index) in activeMessages"
-      :key="msg.id"
-      :ref="(el) => setItemRef(el, msg.id)"
-      class="notification-item"
-      :style="getItemBaseStyle(msg, index)"
-    >
+    <div v-for="(msg, index) in activeMessages" :key="msg.id" :ref="(el) => setItemRef(el, msg.id)"
+      class="notification-item" :style="getItemBaseStyle(msg, index)">
       <div class="bg-layer-persistent"></div>
 
       <div class="fg-layer-progress" :style="getProgressStyle(msg)"></div>
 
       <!-- Spotlight 额外光晕 -->
-      <div
-        v-if="msg.direction === 'spotlight'"
-        class="spotlight-glow"
-        :style="getSpotlightStyle(msg)"
-      ></div>
+      <div v-if="msg.direction === 'spotlight'" class="spotlight-glow" :style="getSpotlightStyle(msg)"></div>
 
       <div class="content-wrapper" :style="{ color: getDynamicTextColor(msg) }">
         <div v-if="msg.closable" class="spacer"></div>
         <span class="text-content" :title="msg.content">{{ msg.content }}</span>
-        <span
-          v-if="msg.count > 1"
-          class="count-badge"
-          :style="{ backgroundColor: getBadgeBg(msg) }"
-        >
+        <span v-if="msg.count > 1" class="count-badge" :style="{ backgroundColor: getBadgeBg(msg) }">
+          <p>*</p>
           {{ msg.count }}
         </span>
-        <el-icon
-          v-if="msg.closable"
-          @click="removeMessage(msg.id)"
-          class="close-btn"
-        >
-          <Close />
-        </el-icon>
+        <SvgIcon v-if="msg.closable" icon-class="close" class="close-btn" size="18px" @click="removeMessage(msg.id)" />
       </div>
     </div>
 
@@ -328,7 +313,7 @@ defineExpose({
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 :root {
   --item-height: 44px;
   --main-radius: 22px;
@@ -367,7 +352,15 @@ defineExpose({
   background: rgba(0, 0, 0, 0.12);
   overflow: hidden;
   will-change: transform, opacity;
-  border: 2px solid currentColor; /* Added border */
+  border: 2px solid currentColor;
+  transition: all .1s ease;
+
+  /* Added border */
+  &:hover {
+    box-shadow: 0 0 20px 2px var(--bgc);
+    border: 3px solid currentColor;
+
+  }
 }
 
 @media (max-width: 640px) {
@@ -401,12 +394,10 @@ defineExpose({
   top: 0;
   bottom: 0;
   width: 60px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.6),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.6),
+      transparent);
   z-index: 3;
   pointer-events: none;
 }
@@ -439,12 +430,44 @@ defineExpose({
 }
 
 .count-badge {
+  display: flex;
   font-weight: 900;
   padding: 1px 6px;
   border-radius: 8px;
   font-size: 0.7rem;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 2px rgb(255 255 255);
   flex-shrink: 0;
+  transition: all 0.2s;
+
+  >p {
+    font-weight: 400;
+  }
+
+  &:hover {
+    opacity: 1;
+    // 添加抖动动画
+    animation: shake 0.5s infinite;
+  }
+}
+
+// 抖动动画
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: rotate(9deg) scale(1.2);
+  }
+
+  20%,
+  60% {
+    transform: rotate(-9deg) scale(1.2);
+  }
+
+  40%,
+  80% {
+    transform: rotate(9deg) scale(1.2);
+  }
+
 }
 
 .close-btn {
@@ -462,7 +485,7 @@ defineExpose({
 
 .close-btn:hover {
   opacity: 1;
-  transform: rotate(90deg) scale(1);
+  transform: rotate(90deg) scale(1.2);
 }
 
 .hidden-count-badge {

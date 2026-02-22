@@ -10,6 +10,9 @@ import MobilePlanCards from "./MobilePlanCards.vue";
 import MobileCalendarPage from "./MobileCalendarPage.vue";
 import { usePlanCalendar } from "../composables/usePlanCalendar";
 
+// 解构获取工具函数
+const { parseDateOnly } = usePlanCalendar();
+
 const plansStore = usePlansStore();
 const checkinsStore = useCheckinsStore();
 
@@ -63,32 +66,24 @@ watch(
 );
 
 function handleDateClick(date: Date): void {
-  const now = new Date();
-  const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const targetOnly = new Date(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-  );
+  const todayOnly = getDateWithoutTime(new Date());
+  const targetOnly = getDateWithoutTime(date);
+
+  // 检查计划范围
   if (selectedPlan.value) {
     const plan = selectedPlan.value;
-    const startDate = new Date(plan.startDate);
-    const startOnly = new Date(
-      startDate.getFullYear(),
-      startDate.getMonth(),
-      startDate.getDate(),
-    );
+    const startDate = parseDateOnly(plan.startDate);
+    const startOnly = getDateWithoutTime(startDate);
+
     if (targetOnly < startOnly) {
       notifyWarning("所选日期计划未开始");
       return;
     }
+
     if (plan.endDate) {
-      const endDate = new Date(plan.endDate);
-      const endOnly = new Date(
-        endDate.getFullYear(),
-        endDate.getMonth(),
-        endDate.getDate(),
-      );
+      const endDate = parseDateOnly(plan.endDate);
+      const endOnly = getDateWithoutTime(endDate);
+
       if (targetOnly > endOnly) {
         notifyWarning("所选日期计划已结束");
         return;
@@ -96,6 +91,7 @@ function handleDateClick(date: Date): void {
     }
   }
 
+  // 检查是否为未来日期
   if (targetOnly > todayOnly) {
     notifyWarning("未来日期不能打卡");
     return;
@@ -103,6 +99,11 @@ function handleDateClick(date: Date): void {
 
   checkinDate.value = date;
   showDetailDrawer.value = true;
+}
+
+// 提取日期工具函数到组件级别
+function getDateWithoutTime(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 function handleCreatePlan(): void {
@@ -121,7 +122,7 @@ function handlePlanCreated(id: number): void {
   mobileMode.value = "card";
 }
 
-function handlePlanUpdated(): void {}
+function handlePlanUpdated(): void { }
 
 function handlePlanDeleted(id: number): void {
   if (selectedPlanId.value === id) {
@@ -161,64 +162,29 @@ function handleOpenCheckinFromDetail(): void {
 
 <template>
   <div class="dashboard">
-    <DesktopMainView
-      :selected-plan-id="selectedPlanId"
-      :checkin-date="checkinDate"
-      :get-day-status-class="getDayStatusClass"
-      @update:selected-plan-id="(v) => (selectedPlanId = v)"
-      @update:checkin-date="(v) => (checkinDate = v)"
-      @create="handleCreatePlan"
-      @edit="handleEditPlan"
-      @date-click="handleDateClick"
-    />
+    <DesktopMainView :selected-plan-id="selectedPlanId" :checkin-date="checkinDate"
+      :get-day-status-class="getDayStatusClass" @update:selected-plan-id="(v) => (selectedPlanId = v)"
+      @update:checkin-date="(v) => (checkinDate = v)" @create="handleCreatePlan" @edit="handleEditPlan"
+      @date-click="handleDateClick" />
 
-    <MobilePlanCards
-      :mobile-mode="mobileMode"
-      :progress-percent-by-plan="progressPercentByPlan"
-      :month-stats-by-plan="monthStatsByPlan"
-      :mini-calendar-cells="miniCalendarCells"
-      :get-mini-day-class-for-plan="getMiniDayClassForPlan"
-      :is-in-plan-range-for-plan="isInPlanRangeForPlan"
-      @select-plan="handleMobileCardSelect"
-      @create="handleCreatePlan"
-    />
+    <MobilePlanCards :mobile-mode="mobileMode" :progress-percent-by-plan="progressPercentByPlan"
+      :month-stats-by-plan="monthStatsByPlan" :mini-calendar-cells="miniCalendarCells"
+      :get-mini-day-class-for-plan="getMiniDayClassForPlan" :is-in-plan-range-for-plan="isInPlanRangeForPlan"
+      @select-plan="handleMobileCardSelect" @create="handleCreatePlan" />
 
-    <MobileCalendarPage
-      :selected-plan-id="selectedPlanId"
-      :checkin-date="checkinDate"
-      :mobile-mode="mobileMode"
-      :get-day-status-class="getDayStatusClass"
-      @update:checkin-date="(v) => (checkinDate = v)"
-      @back="handleMobileCalendarBack"
-      @edit="handleEditPlan"
-      @date-click="handleDateClick"
-    />
+    <MobileCalendarPage :selected-plan-id="selectedPlanId" :checkin-date="checkinDate" :mobile-mode="mobileMode"
+      :get-day-status-class="getDayStatusClass" @update:checkin-date="(v) => (checkinDate = v)"
+      @back="handleMobileCalendarBack" @edit="handleEditPlan" @date-click="handleDateClick" />
 
-    <button
-      type="button"
-      class="mobile-create-fab mobile-only"
-      @click="handleCreatePlan"
-    >
+    <button type="button" class="mobile-create-fab mobile-only" @click="handleCreatePlan">
       ＋ 新建计划
     </button>
 
-    <CreatePlanDrawer
-      v-model="showPlanDrawer"
-      :edit-plan="drawerPlan"
-      @created="handlePlanCreated"
-      @updated="handlePlanUpdated"
-      @deleted="handlePlanDeleted"
-    />
+    <CreatePlanDrawer v-model="showPlanDrawer" :edit-plan="drawerPlan" @created="handlePlanCreated"
+      @updated="handlePlanUpdated" @deleted="handlePlanDeleted" />
 
-    <CheckinDetailDrawer
-      v-if="selectedPlanId"
-      v-model="showDetailDrawer"
-      :plan-id="selectedPlanId"
-      :date="checkinDate"
-      :time-slots="selectedPlan?.timeSlots"
-      :mode="getTimeSlotMode()"
-      @open-checkin="handleOpenCheckinFromDetail"
-    />
+    <CheckinDetailDrawer v-if="selectedPlanId" v-model="showDetailDrawer" :plan-id="selectedPlanId" :date="checkinDate"
+      :time-slots="selectedPlan?.timeSlots" :mode="getTimeSlotMode()" @open-checkin="handleOpenCheckinFromDetail" />
   </div>
 </template>
 

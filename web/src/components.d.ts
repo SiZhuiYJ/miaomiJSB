@@ -27,9 +27,11 @@ declare module 'vue' {
     ElSkeleton: typeof import('element-plus/es')['ElSkeleton']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTimePicker: typeof import('element-plus/es')['ElTimePicker']
-    NotificationSystem: typeof import('./components/NotificationSystem.vue')['default']
-    ProgressBar: typeof import('./components/ProgressBar.vue')['default']
+    GlobalIcon: typeof import('./components/GlobalIcon/index.vue')['default']
+    NotificationSystem: typeof import('./components/NotificationSystem/index.vue')['default']
+    ProgressBar: typeof import('./components/ProgressBar/index.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SvgIcon: typeof import('./components/SvgIcon/index.vue')['default']
   }
 }

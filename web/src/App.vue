@@ -3,6 +3,7 @@
 import { ref, onMounted } from "vue";
 import { ElConfigProvider, dayjs } from "element-plus";
 import { setNotificationInstance } from "@/utils/notification";
+import NotificationSystem from "@/components/NotificationSystem/index.vue";
 // @ts-ignore
 import zhCn from "element-plus/dist/locale/zh-cn.mjs";
 // @ts-ignore

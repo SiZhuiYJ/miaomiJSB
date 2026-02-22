@@ -17,7 +17,7 @@ export const LOGIN_URL: string = "/login";
 export const CACHE_PREFIX: string = "MM-";
 
 // Svg本地图片使用 - 开头才会生效
-export const SVG_PREFIX: string = "MeowMemoirs-";
+export const SVG_PREFIX: string = "mm-";
 
 // 默认主题颜色
 export const DEFAULT_THEME: string = "#e3c0df";

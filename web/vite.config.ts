@@ -12,6 +12,9 @@ import AutoImport from "unplugin-auto-import/vite";
 import Components from "unplugin-vue-components/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 
+// 引入SVG图标插件
+import { createSvgIconsPlugin } from "vite-plugin-svg-icons";
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -29,6 +32,13 @@ export default defineConfig({
     Components({
       resolvers: [ElementPlusResolver()],
       dts: "src/components.d.ts",
+    }),
+    // SVG图标插件，用于处理SVG雪碧图
+    createSvgIconsPlugin({
+      // 指定存放SVG图标的目录
+      iconDirs: [path.resolve(process.cwd(), "src/assets/icons")],
+      // 指定symbolId格式
+      symbolId: "icon-[name]",
     }),
   ],
   // 开发服务器配置
