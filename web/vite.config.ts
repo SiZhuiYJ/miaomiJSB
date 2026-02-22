@@ -70,14 +70,14 @@ export default defineConfig({
     /**
      * Terser压缩选项
      */
-    terserOptions: {
-      compress: {
-        // 是否删除console语句
-        drop_console: false,
-        // 是否删除debugger语句
-        drop_debugger: true,
-      },
-    },
+    // terserOptions: {
+    //   compress: {
+    //     // 是否删除console语句
+    //     drop_console: false,
+    //     // 是否删除debugger语句
+    //     drop_debugger: true,
+    //   },
+    // },
   },
   /**
    * 路径解析配置
