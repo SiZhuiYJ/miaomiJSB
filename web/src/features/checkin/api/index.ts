@@ -4,7 +4,7 @@ import type {
   CalendarItem,
   CheckinDetail,
   CheckinRecord,
-  retroCheckinRecord,
+  RetroCheckinRecord,
 } from "../types";
 
 export const checkinApi = {
@@ -16,7 +16,7 @@ export const checkinApi = {
   async Checkin(data: CheckinRecord) {
     return await http.post("/mm/Checkins/daily", data);
   },
-  async RetroCheckin(data: retroCheckinRecord) {
+  async RetroCheckin(data: RetroCheckinRecord) {
     return http.post("/mm/Checkins/retro", data);
   },
   async GetCheckinDetail(data: { params: { planId: number; date: string } }) {
