@@ -198,21 +198,42 @@ defineExpose({
 <template>
   <div class="drawer-form">
     <label class="field">
-      <span>备注</span>
+      <span class="title">备注</span>
       <textarea v-model="note" rows="3" />
     </label>
-    <label class="field">
-      <span>上传图片（至少 1 张，最多 3 张）</span>
-      <input type="file" accept="image/*" multiple @change="handleFilesChange" />
-    </label>
-    <ImagePreviewList :sources="previewSrcs" removable @remove="removeImage" />
-    <button type="button" class="primary" :disabled="loading" @click="handleSubmit">
+    <div class="field">
+      <span class="title">上传图片（至少 1 张，最多 3 张）</span>
+      <span class="image-list">
+        <ImagePreviewList
+          :sources="previewSrcs"
+          removable
+          @remove="removeImage"
+        />
+        <label class="upload-button" aria-label="上传文件按钮">
+          <input
+            type="file"
+            id="realFileInput"
+            name="uploadFile"
+            aria-label="选择文件"
+            accept="image/*"
+            multiple
+            @change="handleFilesChange"
+          />
+        </label>
+      </span>
+    </div>
+    <button
+      type="button"
+      class="primary"
+      :disabled="loading"
+      @click="handleSubmit"
+    >
       {{ loading ? "提交中..." : "提交打卡" }}
     </button>
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .drawer-form {
   display: flex;
   flex-direction: column;
@@ -225,78 +246,96 @@ defineExpose({
   flex-direction: column;
   gap: 4px;
   font-size: 14px;
+  .title {
+    color: var(--text-muted);
+  }
+  textarea {
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    padding: 8px 10px;
+    font-size: 14px;
+    background: var(--bg-elevated);
+    color: var(--text-color);
+  }
 }
 
-.field span {
-  color: var(--text-muted);
-}
-
-input,
-textarea {
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  padding: 8px 10px;
-  font-size: 14px;
-  background: var(--bg-elevated);
-  color: var(--text-color);
+.image-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .primary {
   margin-top: 4px;
-  border-radius: 999px;
+  border-radius: 8px;
   border: none;
   padding: 8px 0;
-  background: linear-gradient(to right, var(--accent-color), var(--accent-alt));
-  color: var(--accent-on);
+  background: var(--accent-alt);
   cursor: pointer;
 }
+.upload-button {
+  position: relative; /* 让内部的 absolute input 可以填满 */
+  display: block;
+  width: 80px; /* 正方形尺寸，可自由调整 */
+  height: 80px;
+  border-radius: 8px; /* 圆角正方形，够圆润 */
+  background-color: #eef2ff; /* 柔和的底色（ indigo 极浅色） */
+  border: 1px solid #4b5563;
+  /* 使用纯CSS渐变绘制“加号”：两个垂直的矩形背景，居中，不重复 */
+  background-image:
+    linear-gradient(var(--text-muted), var(--text-muted)),
+    /* 水平条（横） */ linear-gradient(var(--text-muted), var(--text-muted)); /* 垂直条（竖） */
+  background-repeat: no-repeat;
+  background-position: center;
+  /* 加号尺寸：横条 48x8，竖条 8x48，在120x120里显得醒目又优雅 */
+  background-size:
+    32px 2px,
+    2px 32px;
 
-.drawer-date {
-  font-size: 14px;
-  color: var(--text-muted);
+  /* 柔和阴影，增加立体感 */
+  box-shadow: 0 8px 16px -6px rgba(79, 70, 229, 0.4);
+
+  /* 过渡效果，用于焦点或悬停时的反馈 */
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.1s ease;
+  cursor: pointer; /* 提示可点击 */
 }
 
-.time-slot-selection {
-  margin-bottom: 16px;
+/* 当按钮被点击（按下）时轻微的缩放感 */
+.upload-button:active {
+  transform: scale(0.97);
 }
 
-.section-label {
-  font-size: 14px;
-  color: var(--text-muted);
-  margin-bottom: 8px;
+/* 当内部隐藏的input获得焦点时，给按钮加上发光外圈 — 键盘友好 */
+.upload-button:focus-within {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(79, 70, 229, 0.4),
+    0 4px 16px -6px #4f46e5;
+  background-color: #e0e7ff; /* 稍微深一点的底色，反馈焦点 */
 }
 
-.slots-grid {
-  display: flex;
-  gap: 8px;
+/* 鼠标悬停时，底色稍微加深，加号颜色也可以微调 —— 这里保留加号颜色不变，改变背景色 */
+.upload-button:hover {
+  background-color: #d9e0fc; /* 稍微明显的悬停色 */
 }
 
-.slot-option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background-color: var(--bg-primary);
-}
-
-.slot-option.active {
-  border-color: var(--accent-color);
-  background-color: rgba(var(--accent-color-rgb), 0.05);
-  color: var(--accent-color);
-}
-
-.slot-name {
-  font-weight: 500;
-  font-size: 14px;
-}
-
-.slot-time {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 4px;
+/* 真正的 input[type=file] 被透明地覆盖在整个按钮上，保证点击区域精准，同时隐藏原生样式 */
+.upload-button input[type="file"] {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0; /* 完全透明，但依然可点击、可聚焦 */
+  cursor: pointer; /* 明确指针形状 */
+  z-index: 2; /* 确保它在上层接收点击（背景在下面） */
+  margin: 0; /* 移除默认边距 */
+  padding: 0;
+  border: none;
+  /* 以下为兼容屏幕阅读器，保留元素尺寸且可聚焦 */
+  font-size: 0; /* 避免极少数浏览器出现文本节点 */
 }
 </style>

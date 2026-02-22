@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { FileApi } from "@/features/file/api/index";
+import { usePlanCalendar } from "@/features/plans/composables/usePlanCalendar";
 import { useCheckinsStore } from "@/stores";
-import type { CheckinDetail } from "@/features/checkin/types";
+import type { CheckinDetail, CheckinStatus } from "@/features/checkin/types";
 import type { TimeSlotDto } from "@/features/plans/types";
 import { notifyError } from "@/utils/notification";
 import CheckinDetailItem from "./CheckinDetailItem.vue";
 import CheckinForm from "./CheckinForm.vue";
+const { toLocalDateOnlyString } = usePlanCalendar();
 
 const props = defineProps<{
   modelValue: boolean;
-  planId?: number;
-  date?: Date;
+  planId: number;
+  date: Date;
   mode?: "default" | "timeSlot"; // 添加模式控制
   timeSlots?: TimeSlotDto[];
 }>();
@@ -26,13 +28,6 @@ const visible = computed({
   get: () => props.modelValue,
   set: (val) => emit("update:modelValue", val),
 });
-
-function formatDateOnly(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
 
 const detailLoading = ref(false);
 const detail = ref<CheckinDetail[] | null>(null);
@@ -86,7 +81,7 @@ async function loadImagesForList(details: CheckinDetail[]): Promise<void> {
 async function fetchDetail(): Promise<void> {
   if (!props.planId || !props.date) return;
 
-  const iso = formatDateOnly(props.date);
+  const iso = toLocalDateOnlyString(props.date);
   detailLoading.value = true;
   try {
     const result = await useCheckinsStore().getCheckinDetail(props.planId, iso);
@@ -119,7 +114,6 @@ function isToday(date: Date): boolean {
   );
 }
 
-
 watch(
   () => visible.value,
   (open) => {
@@ -139,58 +133,143 @@ watch(
     }
   },
 );
+watch(
+  () => [props.planId, props.date, props.timeSlots, props.mode],
+  (res) => {
+    console.log(res);
+  },
+);
 onBeforeUnmount(() => {
   handleClosed();
 });
 const findDetailById = (id: number): CheckinDetail | undefined => {
   return detail.value?.find((c) => c.timeSlotId === id);
 };
+
+const slotStatuses = (slot: TimeSlotDto): CheckinStatus => {
+  const now = new Date();
+  const todayStr = toLocalDateOnlyString(now);
+  const selectedStr = toLocalDateOnlyString(props.date);
+  const isPast = selectedStr < todayStr;
+  const isFuture = selectedStr > todayStr;
+
+  // Current time in HH:mm:ss
+  const nowTimeStr = now.toTimeString().split(" ")[0] as string;
+
+  let status: CheckinStatus = "future";
+  const checkin = findDetailById(slot.id);
+  if (checkin) {
+    if (checkin.status == 1) status = "done";
+    else status = "made";
+  } else if (isFuture) {
+    status = "future";
+  } else if (isPast) {
+    status = "missed";
+  } else {
+    // Today
+    if (nowTimeStr < slot.startTime) {
+      status = "future";
+    } else if (nowTimeStr > slot.endTime) {
+      status = "missed";
+    } else {
+      status = "pending";
+    }
+  }
+  return status;
+};
 </script>
 
 <template>
-  <el-drawer v-model="visible" direction="btt" size="auto" @closed="handleClosed">
+  <el-drawer
+    v-model="visible"
+    direction="btt"
+    size="auto"
+    @closed="handleClosed"
+  >
     <template #header="{ titleId, titleClass }">
       <h1 :id="titleId" :class="titleClass">
         打卡详情
-        {{ props.date ? ' · ' + formatDateOnly(props.date) : '' }}
+        {{ " · " + toLocalDateOnlyString(props.date) }}
         <template v-if="props.mode == 'default' && !detail?.length">
-          {{ props.date ? (isToday(props.date) ? ' · 打卡' : ' · 补卡') : '' }}
+          {{ isToday(props.date) ? " · 打卡" : " · 补卡" }}
         </template>
       </h1>
     </template>
     <div class="drawer-body">
       <el-skeleton v-if="detailLoading" class="detail" :rows="3" animated />
-      <div v-else-if="!detail" class="detail">
-        <p>暂无打卡记录</p>
-      </div>
       <div v-else-if="props.mode == 'default'" class="detail">
-        <CheckinForm v-if="!detail[0]" :plan-id="props.planId" :date="props.date" @success="fetchDetail" />
-        <CheckinDetailItem v-else :checkin-detail="detail[0]" :image-object-urls="imageObjectUrls" />
+        <CheckinForm
+          v-if="!detail || !detail[0]"
+          :plan-id="props.planId"
+          :date="props.date"
+          @success="fetchDetail"
+        />
+        <CheckinDetailItem
+          v-else
+          :checkin-detail="detail[0]"
+          :image-object-urls="imageObjectUrls"
+        />
       </div>
-      <div v-else-if="props.mode == 'timeSlot'" v-for="(item, index) in timeSlots" :key="index" class="detail-list">
-        <el-collapse expand-icon-position="left">
-          <el-collapse-item title="Consistency" name="1">
-            <template #title>
-              <div class="time-slot-container">
-                <span class="time-slot-tag">
-                  {{ item.slotName }} · {{ item.startTime }}-{{ item.endTime }}</span>
-                <div>
-                  <span v-if="!findDetailById(item.id)" class="dot missed">未打卡</span>
-                  <span v-else-if="findDetailById(item.id)?.status === 1" class="dot success">
-                    已打卡
-                  </span>
-                  <span v-else-if="findDetailById(item.id)?.status === 2" class="dot retro">已补签</span>
-                  <span v-else class="dot unknown">未知</span>
-                </div>
+      <el-collapse
+        v-else-if="props.mode == 'timeSlot'"
+        expand-icon-position="left"
+      >
+        <el-collapse-item
+          v-for="(item, index) in timeSlots"
+          :key="index"
+          :name="index"
+          :disabled="slotStatuses(item) == 'future'"
+        >
+          <template #title>
+            <div class="time-slot-container">
+              <span class="time-slot-tag">
+                {{ item.slotName }} · {{ item.startTime }}-
+                {{ item.endTime }}
+              </span>
+              <div>
+                <span v-if="slotStatuses(item) == 'missed'" class="dot missed">
+                  未打卡
+                </span>
+                <span
+                  v-else-if="slotStatuses(item) == 'done'"
+                  class="dot success"
+                >
+                  已打卡
+                </span>
+                <span v-else-if="slotStatuses(item) == 'made'" class="dot made">
+                  已补签
+                </span>
+                <span
+                  v-else-if="slotStatuses(item) == 'pending'"
+                  class="dot pending"
+                >
+                  进行中
+                </span>
+                <span
+                  v-else-if="slotStatuses(item) == 'future'"
+                  class="dot future"
+                >
+                  未开始
+                </span>
+                <span v-else class="dot unknown">未知</span>
               </div>
-            </template>
-            <CheckinForm v-if="!findDetailById(item.id)" :plan-id="props.planId" :date="props.date"
-              :time-slot-id="item.id" @success="fetchDetail" />
-            <CheckinDetailItem v-else noStatus :checkin-detail="findDetailById(item.id)!"
-              :image-object-urls="imageObjectUrls" />
-          </el-collapse-item>
-        </el-collapse>
-      </div>
+            </div>
+          </template>
+          <CheckinForm
+            v-if="!findDetailById(item.id)"
+            :plan-id="props.planId"
+            :date="props.date"
+            :time-slot-id="item.id"
+            @success="fetchDetail"
+          />
+          <CheckinDetailItem
+            v-else
+            noStatus
+            :checkin-detail="findDetailById(item.id)!"
+            :image-object-urls="imageObjectUrls"
+          />
+        </el-collapse-item>
+      </el-collapse>
     </div>
   </el-drawer>
 </template>
@@ -219,7 +298,7 @@ const findDetailById = (id: number): CheckinDetail | undefined => {
   color: #22c55e;
 }
 
-.dot.retro {
+.dot.made {
   background: rgba(234, 179, 8, 0.2);
   color: #eab308;
 }
@@ -228,7 +307,14 @@ const findDetailById = (id: number): CheckinDetail | undefined => {
   background: rgba(248, 113, 113, 0.2);
   color: #f87171;
 }
-
+.dot.future {
+  background: rgba(129, 129, 129, 0.2);
+  color: #353535;
+}
+.dot.pending {
+  background: rgba(122, 175, 255, 0.2);
+  color: #3b82f6;
+}
 .dot.unknown {
   background: #94a3b8;
 }

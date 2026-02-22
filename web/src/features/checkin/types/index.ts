@@ -17,6 +17,12 @@ export interface CheckinRecord {
   note?: string;
   timeSlotId?: number;
 }
-export interface retroCheckinRecord extends CheckinRecord {
+export interface RetroCheckinRecord extends CheckinRecord {
   date: string;
 }
+export type CheckinStatus =
+  | "done" // 已打卡
+  | "missed" //未打卡
+  | "made" // 已补卡
+  | "future" //未开始
+  | "pending"; //进行中

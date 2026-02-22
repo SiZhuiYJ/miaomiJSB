@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, reactive } from 'vue';
-import gsap from 'gsap';
+import { ref, computed, nextTick, reactive } from "vue";
+import { toRgba } from "@/utils/color";
+import gsap from "gsap";
+
+// import {Close} from ""
 /**
  * 通知消息接口
  * 用于定义通知消息的属性
@@ -30,7 +33,16 @@ export interface NotificationMessage {
   color: string;
   duration?: number;
   closable?: boolean;
-  direction?: 'ltr' | 'rtl' | 'ttb' | 'btt' | 'center' | 'vSplit' | 'ripple' | 'spotlight' | 'fade';
+  direction?:
+    | "ltr"
+    | "rtl"
+    | "ttb"
+    | "btt"
+    | "center"
+    | "vSplit"
+    | "ripple"
+    | "spotlight"
+    | "fade";
   count: number;
   progress: number;
   isRemoving: boolean;
@@ -56,62 +68,65 @@ const getLuminance = (hex: string) => {
 
 const getDynamicTextColor = (msg: NotificationMessage) => {
   const luminance = getLuminance(msg.color);
-  return luminance < 0.6 ? '#ffffff' : '#1e293b';
+  return luminance < 0.6 ? "#ffffff" : "#1e293b";
 };
 
 const getBadgeBg = (msg: NotificationMessage) => {
-  return getDynamicTextColor(msg) === '#ffffff' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.06)';
+  return getDynamicTextColor(msg) === "#ffffff"
+    ? "rgba(255, 255, 255, 0.2)"
+    : "rgba(0, 0, 0, 0.06)";
 };
 
 const getItemBaseStyle = (msg: NotificationMessage, index: number) => ({
+  background: toRgba(msg.color, 0.5),
   color: msg.color,
-  zIndex: 100 - index
+  zIndex: 100 - index,
 });
 
 const getProgressStyle = (msg: NotificationMessage) => {
   let style: any = {
-    transform: 'scale(1)',
-    transformOrigin: 'left center',
+    transform: "scale(1)",
+    transformOrigin: "left center",
     opacity: 1,
-    filter: 'none'
+    filter: "none",
   };
 
   switch (msg.direction) {
-    case 'ltr':
+    case "ltr":
       style.transform = `scaleX(${msg.progress})`;
-      style.transformOrigin = 'left center';
+      style.transformOrigin = "left center";
       break;
-    case 'rtl':
+    case "rtl":
       style.transform = `scaleX(${msg.progress})`;
-      style.transformOrigin = 'right center';
+      style.transformOrigin = "right center";
       break;
-    case 'ttb':
+    case "ttb":
       style.transform = `scaleY(${msg.progress})`;
-      style.transformOrigin = 'center top';
+      style.transformOrigin = "center top";
       break;
-    case 'btt':
+    case "btt":
       style.transform = `scaleY(${msg.progress})`;
-      style.transformOrigin = 'center bottom';
+      style.transformOrigin = "center bottom";
       break;
-    case 'center':
+    case "center":
       style.transform = `scaleX(${msg.progress})`;
-      style.transformOrigin = 'center center';
+      style.transformOrigin = "center center";
       break;
-    case 'vSplit':
+    case "vSplit":
       style.transform = `scaleY(${msg.progress})`;
-      style.transformOrigin = 'center center';
+      style.transformOrigin = "center center";
       break;
-    case 'ripple':
+    case "ripple":
       style.transform = `scaleX(${msg.progress})`;
-      style.transformOrigin = 'left center';
+      style.transformOrigin = "left center";
       break;
-    case 'spotlight':
+    case "spotlight":
       style.transform = `scaleX(${msg.progress})`;
-      style.transformOrigin = 'left center';
+      style.transformOrigin = "left center";
       break;
-    case 'fade':
+    case "fade":
       style.opacity = msg.progress;
-      style.transform = `scale(${0.98 + (0.02 * msg.progress)})`;
+      style.transform = `scale(${0.98 + 0.02 * msg.progress})`;
       style.filter = `blur(${(1 - msg.progress) * 2}px)`;
       break;
   }
@@ -121,15 +136,15 @@ const getProgressStyle = (msg: NotificationMessage) => {
 const getSpotlightStyle = (msg: NotificationMessage) => {
   return {
     left: `${msg.progress * 100}%`,
-    transform: 'translateX(-100%)',
+    transform: "translateX(-100%)",
     opacity: msg.progress > 0.1 ? 1 : 0,
-    transition: 'opacity 0.3s'
+    transition: "opacity 0.3s",
   };
 };
 
 const animateLayout = (callback: () => void) => {
   const state = new Map<number, number>();
-  activeMessages.value.forEach(msg => {
+  activeMessages.value.forEach((msg) => {
     const el = itemRefs.value[msg.id];
     if (el) state.set(msg.id, el.getBoundingClientRect().top);
   });
@@ -141,7 +156,11 @@ const animateLayout = (callback: () => void) => {
       const newTop = el.getBoundingClientRect().top;
       const deltaY = oldTop - newTop;
       if (deltaY !== 0) {
-        gsap.fromTo(el, { y: deltaY }, { y: 0, duration: 0.5, ease: "power4.out" });
+        gsap.fromTo(
+          el,
+          { y: deltaY },
+          { y: 0, duration: 0.5, ease: "power4.out" },
+        );
       }
     });
   });
@@ -152,18 +171,21 @@ const addMessage = (options: {
   color?: string;
   duration?: number;
   closable?: boolean;
-  direction?: NotificationMessage['direction'];
+  direction?: NotificationMessage["direction"];
 }) => {
   const {
     content,
-    color = '#3b82f6',
+    color = "#3b82f6",
     duration = 5000,
     closable = true,
-    direction = 'rtl'
+    direction = "rtl",
   } = options;
 
-  const existing = messages.value.find(m =>
-    m.content === content && m.color.toLowerCase() === color.toLowerCase() && !m.isRemoving
+  const existing = messages.value.find(
+    (m) =>
+      m.content === content &&
+      m.color.toLowerCase() === color.toLowerCase() &&
+      !m.isRemoving,
   );
 
   if (existing) {
@@ -189,16 +211,24 @@ const addMessage = (options: {
       count: 1,
       progress: 1,
       isRemoving: false,
-      tween: null
+      tween: null,
     });
     messages.value.unshift(newMessage);
 
     nextTick(() => {
       const el = itemRefs.value[id];
       if (el) {
-        gsap.fromTo(el,
-          { y: -20, opacity: 0, scale: 0.9, filter: 'blur(4px)' },
-          { y: 0, opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.6, ease: "back.out(1.6)" }
+        gsap.fromTo(
+          el,
+          { y: -20, opacity: 0, scale: 0.9, filter: "blur(4px)" },
+          {
+            y: 0,
+            opacity: 1,
+            scale: 1,
+            filter: "blur(0px)",
+            duration: 0.6,
+            ease: "back.out(1.6)",
+          },
         );
         startCountdown(newMessage, duration);
       }
@@ -212,12 +242,12 @@ const startCountdown = (message: NotificationMessage, duration: number) => {
     progress: 0,
     duration: duration / 1000,
     ease: "none",
-    onComplete: () => removeMessage(message.id)
+    onComplete: () => removeMessage(message.id),
   });
 };
 
 const removeMessage = (id: number) => {
-  const index = messages.value.findIndex(m => m.id === id);
+  const index = messages.value.findIndex((m) => m.id === id);
   if (index === -1) return;
   const message = messages.value[index];
   if (!message) return;
@@ -230,41 +260,65 @@ const removeMessage = (id: number) => {
     if (el) {
       const tl = gsap.timeline({
         onComplete: () => {
-          messages.value = messages.value.filter(m => m.id !== id);
-        }
+          messages.value = messages.value.filter((m) => m.id !== id);
+        },
       });
-      tl.to(el, { scale: 0.95, opacity: 0, filter: 'blur(4px)', duration: 0.3, ease: "power2.in" })
-        .to(el, { height: 0, marginBottom: 0, duration: 0.2 }, "-=0.1");
+      tl.to(el, {
+        scale: 0.95,
+        opacity: 0,
+        filter: "blur(4px)",
+        duration: 0.3,
+        ease: "power2.in",
+      }).to(el, { height: 0, marginBottom: 0, duration: 0.2 }, "-=0.1");
     } else {
-      messages.value = messages.value.filter(m => m.id !== id);
+      messages.value = messages.value.filter((m) => m.id !== id);
     }
   });
 };
 
 defineExpose({
   addMessage,
-  removeMessage
+  removeMessage,
 });
 </script>
 
 <template>
   <div class="notification-container">
-    <div v-for="(msg, index) in activeMessages" :key="msg.id" :ref="el => setItemRef(el, msg.id)"
-      class="notification-item" :style="getItemBaseStyle(msg, index)">
+    <div
+      v-for="(msg, index) in activeMessages"
+      :key="msg.id"
+      :ref="(el) => setItemRef(el, msg.id)"
+      class="notification-item"
+      :style="getItemBaseStyle(msg, index)"
+    >
       <div class="bg-layer-persistent"></div>
 
       <div class="fg-layer-progress" :style="getProgressStyle(msg)"></div>
 
       <!-- Spotlight 额外光晕 -->
-      <div v-if="msg.direction === 'spotlight'" class="spotlight-glow" :style="getSpotlightStyle(msg)"></div>
+      <div
+        v-if="msg.direction === 'spotlight'"
+        class="spotlight-glow"
+        :style="getSpotlightStyle(msg)"
+      ></div>
 
       <div class="content-wrapper" :style="{ color: getDynamicTextColor(msg) }">
         <div v-if="msg.closable" class="spacer"></div>
         <span class="text-content" :title="msg.content">{{ msg.content }}</span>
-        <span v-if="msg.count > 1" class="count-badge" :style="{ backgroundColor: getBadgeBg(msg) }">
+        <span
+          v-if="msg.count > 1"
+          class="count-badge"
+          :style="{ backgroundColor: getBadgeBg(msg) }"
+        >
           {{ msg.count }}
         </span>
-        <span v-if="msg.closable" @click="removeMessage(msg.id)" class="close-btn">×</span>
+        <el-icon
+          v-if="msg.closable"
+          @click="removeMessage(msg.id)"
+          class="close-btn"
+        >
+          <Close />
+        </el-icon>
       </div>
     </div>
 
@@ -310,7 +364,7 @@ defineExpose({
   justify-content: center;
   box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.12);
   user-select: none;
-  background: white;
+  background: rgba(0, 0, 0, 0.12);
   overflow: hidden;
   will-change: transform, opacity;
   border: 2px solid currentColor; /* Added border */
@@ -347,7 +401,12 @@ defineExpose({
   top: 0;
   bottom: 0;
   width: 60px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent
+  );
   z-index: 3;
   pointer-events: none;
 }
@@ -403,7 +462,7 @@ defineExpose({
 
 .close-btn:hover {
   opacity: 1;
-  transform: rotate(90deg) scale(1.2);
+  transform: rotate(90deg) scale(1);
 }
 
 .hidden-count-badge {

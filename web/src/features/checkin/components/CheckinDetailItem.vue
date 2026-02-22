@@ -6,36 +6,34 @@ const props = defineProps<{
   imageObjectUrls?: Map<string, string>;
   noStatus?: boolean;
 }>();
-const emit = defineEmits<{
-  // 补卡
-  (e: "retro"): void;
-}>();
 function getBlobUrl(url: string): string {
   return props.imageObjectUrls?.get(url) || "";
 }
 </script>
 
 <template>
-  <div v-if="checkinDetail" class="detail-item">
+  <div class="detail-item">
     <p v-if="!props.noStatus" class="drawer-status">
       状态：
       <span v-if="checkinDetail.status === 1" class="dot success">
         已打卡
       </span>
-      <span v-else-if="checkinDetail.status === 2" class="dot retro">已补签</span>
+      <span v-else-if="checkinDetail.status === 2" class="dot retro">
+        已补签
+      </span>
       <span v-else class="dot unknown">未知</span>
     </p>
     <p v-if="checkinDetail.note" class="drawer-note">
       备注：{{ checkinDetail.note }}
     </p>
     <div v-if="checkinDetail.imageUrls.length">
-      <ImagePreviewList :sources="checkinDetail.imageUrls.map((url) => getBlobUrl(url)).filter(Boolean)
-        " />
+      <ImagePreviewList
+        :sources="
+          checkinDetail.imageUrls.map((url) => getBlobUrl(url)).filter(Boolean)
+        "
+      />
     </div>
     <p v-else class="no-images">无图片</p>
-  </div>
-  <div v-else class="no-data">暂无打卡记录
-    <el-button type="warning" size="small" @click="emit('retro')" color="#ffc685" plain>补卡</el-button>
   </div>
 </template>
 
@@ -54,7 +52,6 @@ function getBlobUrl(url: string): string {
   color: var(--text-muted);
   padding: 20px 0;
 }
-
 
 .drawer-status {
   font-size: 14px;

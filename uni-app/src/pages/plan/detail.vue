@@ -360,7 +360,7 @@ const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
                     <button class="action-btn retro" @click="handleCheckinAction(slot)">补签</button>
                 </template>
                 <template v-else>
-                     <button class="action-btn primary" @click="handleCheckinAction(slot)">打卡</button>
+                    <button class="action-btn primary" @click="handleCheckinAction(slot)">打卡</button>
                 </template>
             </view>
         </view>

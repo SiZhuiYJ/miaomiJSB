@@ -21,16 +21,9 @@ export default defineConfig({
   ],
   server: {
     proxy: {
-      // "/mm": {
-      //   target: "https://8.137.127.7",
-      //   headers: {
-      //     host: "check.meowmemoirs.cn",
-      //   },
-      //   changeOrigin: true,
-      //   secure: false,
-      // },
       "/mm": {
-        target: "http://localhost:5210",
+        target: "https://8.137.127.7",
+        // target: "http://localhost:5210",
         headers: {
           host: "check.meowmemoirs.cn",
         },

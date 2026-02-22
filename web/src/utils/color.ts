@@ -1,0 +1,46 @@
+/**
+ * 将颜色转换为带透明度的 rgba 字符串
+ * @param color 颜色值，支持 #RGB, #RRGGBB, rgb(r,g,b)
+ * @param alpha 透明度 0~1
+ * @returns rgba 字符串，如 "rgba(255,0,0,0.5)"
+ */
+export function toRgba(color: string, alpha: number): string {
+  // 解析颜色，提取 r,g,b 分量
+  const parseColor = (
+    col: string,
+  ): { r: number; g: number; b: number } | null => {
+    // 处理 #RGB 和 #RRGGBB
+    const hexMatch = col.match(/^#?([a-f\d]{3}|[a-f\d]{6})$/i);
+    if (hexMatch && hexMatch[1]) {
+      let hex = hexMatch[1];
+      if (hex.length === 3) {
+        hex = hex
+          .split("")
+          .map((c) => c + c)
+          .join("");
+      }
+      const num = parseInt(hex, 16);
+      return {
+        r: (num >> 16) & 255,
+        g: (num >> 8) & 255,
+        b: num & 255,
+      };
+    }
+    // 处理 rgb(r,g,b)
+    const rgbMatch = col.match(/^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);
+    if (rgbMatch && rgbMatch[1] && rgbMatch[2] && rgbMatch[3]) {
+      return {
+        r: parseInt(rgbMatch[1], 10),
+        g: parseInt(rgbMatch[2], 10),
+        b: parseInt(rgbMatch[3], 10),
+      };
+    }
+    return null; // 不支持的格式
+  };
+
+  const rgb = parseColor(color);
+  if (!rgb) {
+    throw new Error("Invalid color format");
+  }
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}

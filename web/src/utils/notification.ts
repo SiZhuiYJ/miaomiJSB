@@ -1,4 +1,4 @@
-import type { ComponentPublicInstance } from 'vue';
+import type { ComponentPublicInstance } from "vue";
 
 // Define the shape of the notification options based on the component's interface
 // We duplicate this interface to avoid hard dependency on the component file for types,
@@ -8,7 +8,16 @@ export interface NotificationOptions {
   color?: string;
   duration?: number;
   closable?: boolean;
-  direction?: 'ltr' | 'rtl' | 'ttb' | 'btt' | 'center' | 'rtl' | 'ripple' | 'spotlight' | 'fade';
+  direction?:
+    | "ltr"
+    | "rtl"
+    | "ttb"
+    | "btt"
+    | "center"
+    | "rtl"
+    | "ripple"
+    | "spotlight"
+    | "fade";
 }
 
 // Define the shape of the component instance method we need
@@ -22,7 +31,9 @@ let notificationInstance: NotificationInstance | null = null;
  * Register the global notification component instance.
  * This should be called once in the root App component.
  */
-export const setNotificationInstance = (instance: NotificationInstance | null) => {
+export const setNotificationInstance = (
+  instance: NotificationInstance | null,
+) => {
   notificationInstance = instance;
 };
 
@@ -33,7 +44,9 @@ export const notify = (options: NotificationOptions) => {
   if (notificationInstance) {
     notificationInstance.addMessage(options);
   } else {
-    console.warn('NotificationSystem instance is not registered. Make sure to add <NotificationSystem /> in App.vue');
+    console.warn(
+      "NotificationSystem instance is not registered. Make sure to add <NotificationSystem /> in App.vue",
+    );
   }
 };
 
@@ -43,8 +56,8 @@ export const notify = (options: NotificationOptions) => {
 export const notifySuccess = (content: string, duration?: number) => {
   notify({
     content,
-    color: '#10b981', // Emerald 500
-    direction: 'rtl',
+    color: "#10b981", // Emerald 500
+    direction: "rtl",
     duration,
   });
 };
@@ -55,8 +68,8 @@ export const notifySuccess = (content: string, duration?: number) => {
 export const notifyError = (content: string, duration?: number) => {
   notify({
     content,
-    color: '#ef4444', // Red 500
-    direction: 'rtl', // Default to rtl or another style
+    color: "#ef4444", // Red 500
+    direction: "rtl", // Default to rtl or another style
     duration,
   });
 };
@@ -67,8 +80,8 @@ export const notifyError = (content: string, duration?: number) => {
 export const notifyWarning = (content: string, duration?: number) => {
   notify({
     content,
-    color: '#f59e0b', // Amber 500
-    direction: 'rtl',
+    color: "#f59e0b", // Amber 500
+    direction: "rtl",
     duration,
   });
 };
@@ -79,8 +92,8 @@ export const notifyWarning = (content: string, duration?: number) => {
 export const notifyInfo = (content: string, duration?: number) => {
   notify({
     content,
-    color: '#3b82f6', // Blue 500
-    direction: 'rtl',
+    color: "#3b82f6", // Blue 500
+    direction: "rtl",
     duration,
   });
 };

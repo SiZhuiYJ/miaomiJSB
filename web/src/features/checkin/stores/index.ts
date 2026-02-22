@@ -4,7 +4,7 @@ import type {
   CalendarItem,
   CheckinDetail,
   CheckinRecord,
-  retroCheckinRecord,
+  RetroCheckinRecord,
 } from "../types";
 import { ref } from "vue";
 
@@ -28,7 +28,7 @@ export const useCheckinsStore = defineStore("checkins", () => {
     await checkinApi.Checkin(payload);
   }
 
-  async function retroCheckin(payload: retroCheckinRecord): Promise<void> {
+  async function retroCheckin(payload: RetroCheckinRecord): Promise<void> {
     await checkinApi.RetroCheckin(payload);
   }
 

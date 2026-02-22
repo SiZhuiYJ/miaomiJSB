@@ -1,6 +1,7 @@
 import { createApp } from "vue";
 import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
+import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import "./styles/index.scss";
 import App from "./App.vue";
 // element-plus暗黑主题样式
@@ -45,5 +46,9 @@ app.use(pinia);
 
 // 注册全局自定义指令
 app.use(directives);
+
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  app.component(key, component);
+}
 
 app.mount("#app");
