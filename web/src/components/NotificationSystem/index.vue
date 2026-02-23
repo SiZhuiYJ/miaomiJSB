@@ -494,76 +494,82 @@ defineExpose({
 }
 
 .close-btn {
-  --close-color: #ffffff;
-  --bgc-color: #000000;
-  --border-color: #000000;
+  // 定义 close-btn 的 SCSS 变量
+  $close-color: #ffffff;
+  $bgc-color: #000000;
+  $border-color: #000000;
+  $size: 24px;
+  $plus-size: 14px;
+  $plus-thickness: 4px;
+  $border-width: 1px;
+  $transition-duration: 0.2s;
+  $rotate-duration: 0.5s;
+  $scale-factor: 1.2;
+
+  // 设置 CSS 变量，供其他样式使用
+  --close-color: #{$close-color};
+  --bgc-color: #{$bgc-color};
+  --border-color: #{$border-color};
+
   opacity: 0.5;
-  width: 24px;
-  height: 24px;
+  width: $size;
+  height: $size;
   border-radius: 50%;
   border-width: 5px;
   border-spacing: 5px;
-  border: 1px dashed var(--close-color);
-  /* 圆角正方形，够圆润 */
+  border: $border-width dashed var(--close-color);
   background-color: var(--bgc-color);
-  /* 柔和的底色（ indigo 极浅色） */
-  /* 使用纯CSS渐变绘制“加号”：两个垂直的矩形背景，居中，不重复 */
+
+  // 使用 SCSS 循环和函数生成加号背景
   background-image:
-    linear-gradient(var(--close-color), var(--close-color)),
-    /* 水平条（横） */
-    linear-gradient(var(--close-color), var(--close-color));
-  /* 垂直条（竖） */
+    linear-gradient($close-color, $close-color),
+    linear-gradient($close-color, $close-color);
   background-repeat: no-repeat;
   background-position: center;
-  /* 加号尺寸：横条 48x8，竖条 8x48，在120x120里显得醒目又优雅 */
-  background-size:
-    14px 4px,
-    4px 14px;
+  background-size: $plus-size $plus-thickness, $plus-thickness $plus-size;
 
-  /* 过渡效果，用于焦点或悬停时的反馈 */
+  // 定义过渡效果
   transition:
-    background-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.5s ease;
+    background-color $transition-duration ease,
+    box-shadow $transition-duration ease,
+    transform $rotate-duration ease;
   cursor: pointer;
-  /* 提示可点击 */
   transform: rotate(45deg);
 
   &:hover {
     opacity: 1;
-    transform: rotate(225deg) scale(1.2);
+    transform: rotate(225deg) scale($scale-factor);
   }
-}
 
-.close-btn:focus-visible {
-  outline: 0;
-}
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 0 6px var(--close-color);
+    opacity: 0;
+    transition: .3s;
+  }
 
-.close-btn::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: 0 0 0 6px var(--close-color);
-  opacity: 0;
-  transition: .3s;
-}
+  &:focus-visible {
+    outline: 0;
+  }
 
+  &:hover,
+  &:focus {
+    color: var(--bgc-color);
+    border-color: var(--close-color);
+  }
 
-.close-btn:hover,
-.close-btn:focus {
-  color: var(--bgc-color);
-  border-color: var(--close-color);
-}
+  &:active {
+    background-color: var(--bgc-color);
 
-.close-btn:active {
-  background-color: var(--bgc-color);
-}
-
-.close-btn:active::after {
-  transition: 0s;
-  box-shadow: none;
-  opacity: 0.4;
+    &::after {
+      transition: 0s;
+      box-shadow: none;
+      opacity: 0.4;
+    }
+  }
 }
 
 .hidden-count-badge {
