@@ -262,30 +262,17 @@ async function handleDeactivateConfirm(): Promise<void> {
   <header class="topbar">
     <div class="brand">{{ APP_TITLE }}</div>
     <div class="right">
-      <button
-        type="button"
-        class="theme-toggle-icon"
-        @click="toggleTheme"
-        :title="theme === 'dark' ? '切换到白昼模式' : '切换到暗夜模式'"
-      >
+      <button type="button" class="theme-toggle-icon" @click="toggleTheme"
+        :title="theme === 'dark' ? '切换到白昼模式' : '切换到暗夜模式'">
         <component :is="theme === 'dark' ? SunIcon : MoonIcon" />
       </button>
       <!-- 头像 -->
 
-      <el-dropdown
-        v-if="user"
-        trigger="click"
-        placement="bottom-end"
-        popper-class="user-dropdown-popper"
-        @command="handleCommand"
-      >
+      <el-dropdown v-if="user" trigger="click" placement="bottom-end" popper-class="user-dropdown-popper"
+        @command="handleCommand">
         <div class="user-info-trigger">
-          <el-image
-            fit="cover"
-            :src="`${API_BASE_URL}mm/Files/users/${user.userId}/${user.avatarKey}`"
-            class="avatar-img"
-            mode="aspectFill"
-          />
+          <el-image fit="cover" :src="`${API_BASE_URL}mm/Files/users/${user.userId}/${user.avatarKey}`"
+            class="avatar-img" mode="aspectFill" />
           <span class="email">
             {{ user.email }}
             <span v-if="user.nickName">({{ user.nickName }})</span>
@@ -295,18 +282,9 @@ async function handleDeactivateConfirm(): Promise<void> {
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item command="profile">个人设置</el-dropdown-item>
-            <el-dropdown-item command="changePassword"
-              >修改密码</el-dropdown-item
-            >
-            <el-dropdown-item
-              command="deactivate"
-              divided
-              style="color: #ef4444"
-              >注销账号</el-dropdown-item
-            >
-            <el-dropdown-item command="logout" divided
-              >退出登录</el-dropdown-item
-            >
+            <el-dropdown-item command="changePassword">修改密码</el-dropdown-item>
+            <el-dropdown-item command="deactivate" divided style="color: #ef4444">注销账号</el-dropdown-item>
+            <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -316,27 +294,15 @@ async function handleDeactivateConfirm(): Promise<void> {
       <div class="profile-form">
         <label class="field">
           <span>账号名 (全局唯一)</span>
-          <input
-            v-model="profileForm.userAccount"
-            type="text"
-            placeholder="设置账号名"
-          />
+          <input v-model="profileForm.userAccount" type="text" placeholder="设置账号名" />
         </label>
         <label class="field">
           <span>昵称</span>
-          <input
-            v-model="profileForm.nickName"
-            type="text"
-            placeholder="设置昵称"
-          />
+          <input v-model="profileForm.nickName" type="text" placeholder="设置昵称" />
         </label>
         <label class="field">
           <span>头像 URL</span>
-          <input
-            v-model="profileForm.avatarKey"
-            type="text"
-            placeholder="https://..."
-          />
+          <input v-model="profileForm.avatarKey" type="text" placeholder="https://..." />
         </label>
       </div>
       <template #footer>
@@ -344,11 +310,7 @@ async function handleDeactivateConfirm(): Promise<void> {
           <button class="btn-cancel" @click="profileVisible = false">
             取消
           </button>
-          <button
-            class="btn-confirm"
-            :disabled="profileLoading"
-            @click="handleUpdateProfile"
-          >
+          <button class="btn-confirm" :disabled="profileLoading" @click="handleUpdateProfile">
             {{ profileLoading ? "保存中..." : "保存" }}
           </button>
         </span>
@@ -371,28 +333,15 @@ async function handleDeactivateConfirm(): Promise<void> {
 
         <label class="field" v-if="verificationMethod === 'password'">
           <span>旧密码</span>
-          <input
-            v-model="changePasswordForm.oldPassword"
-            type="password"
-            placeholder="请输入旧密码"
-          />
+          <input v-model="changePasswordForm.oldPassword" type="password" placeholder="请输入旧密码" />
         </label>
 
         <div class="field code-field" v-if="verificationMethod === 'code'">
           <span>邮箱验证码</span>
           <div class="code-row">
-            <input
-              v-model="changePasswordForm.code"
-              type="text"
-              maxlength="6"
-              placeholder="验证码"
-            />
-            <button
-              type="button"
-              class="code-button"
-              :disabled="sendingCode || codeCountdown > 0"
-              @click="handleSendVerificationCode('change-password')"
-            >
+            <input v-model="changePasswordForm.code" type="text" maxlength="6" placeholder="验证码" />
+            <button type="button" class="code-button" :disabled="sendingCode || codeCountdown > 0"
+              @click="handleSendVerificationCode('change-password')">
               <span v-if="codeCountdown > 0">{{ codeCountdown }}s</span>
               <span v-else-if="sendingCode">发送中...</span>
               <span v-else>获取验证码</span>
@@ -402,19 +351,11 @@ async function handleDeactivateConfirm(): Promise<void> {
 
         <label class="field">
           <span>新密码</span>
-          <input
-            v-model="changePasswordForm.newPassword"
-            type="password"
-            placeholder="请输入新密码"
-          />
+          <input v-model="changePasswordForm.newPassword" type="password" placeholder="请输入新密码" />
         </label>
         <label class="field">
           <span>确认新密码</span>
-          <input
-            v-model="changePasswordForm.confirmPassword"
-            type="password"
-            placeholder="请再次输入新密码"
-          />
+          <input v-model="changePasswordForm.confirmPassword" type="password" placeholder="请再次输入新密码" />
         </label>
       </div>
       <template #footer>
@@ -422,11 +363,7 @@ async function handleDeactivateConfirm(): Promise<void> {
           <button class="btn-cancel" @click="changePasswordVisible = false">
             取消
           </button>
-          <button
-            class="btn-confirm"
-            :disabled="changePasswordLoading"
-            @click="handleChangePassword"
-          >
+          <button class="btn-confirm" :disabled="changePasswordLoading" @click="handleChangePassword">
             {{ changePasswordLoading ? "提交中..." : "确认修改" }}
           </button>
         </span>
@@ -442,18 +379,9 @@ async function handleDeactivateConfirm(): Promise<void> {
         <div class="field code-field">
           <span>邮箱验证码</span>
           <div class="code-row">
-            <input
-              v-model="deactivateCode"
-              type="text"
-              maxlength="6"
-              placeholder="验证码"
-            />
-            <button
-              type="button"
-              class="code-button"
-              :disabled="sendingCode || codeCountdown > 0"
-              @click="handleSendVerificationCode('deactivate')"
-            >
+            <input v-model="deactivateCode" type="text" maxlength="6" placeholder="验证码" />
+            <button type="button" class="code-button" :disabled="sendingCode || codeCountdown > 0"
+              @click="handleSendVerificationCode('deactivate')">
               <span v-if="codeCountdown > 0">{{ codeCountdown }}s</span>
               <span v-else-if="sendingCode">发送中...</span>
               <span v-else>获取验证码</span>
@@ -466,11 +394,7 @@ async function handleDeactivateConfirm(): Promise<void> {
           <button class="btn-cancel" @click="deactivateVisible = false">
             取消
           </button>
-          <button
-            class="btn-confirm btn-danger"
-            :disabled="deactivateLoading"
-            @click="handleDeactivateConfirm"
-          >
+          <button class="btn-confirm btn-danger" :disabled="deactivateLoading" @click="handleDeactivateConfirm">
             {{ deactivateLoading ? "处理中..." : "确认注销" }}
           </button>
         </span>
@@ -499,11 +423,13 @@ async function handleDeactivateConfirm(): Promise<void> {
   align-items: center;
   gap: 16px;
 }
+
 .avatar-img {
   width: 45px;
   height: 45px;
   border-radius: 10px;
 }
+
 .user-info-trigger {
   display: flex;
   align-items: center;
@@ -656,6 +582,52 @@ async function handleDeactivateConfirm(): Promise<void> {
   font-size: 14px;
   cursor: pointer;
   color: var(--text-color);
+}
+
+.theme-toggle-icon {
+  --primary-color: royalblue;
+  padding: 5px 5px;
+  color: #000000d9;
+  border: 1px solid #d9d9d9;
+  border-radius: 50%;
+  line-height: 1.4;
+  box-shadow: 0 2px #00000004;
+  cursor: pointer;
+  transition: .3s;
+  transform: scale(1);
+  border-style: dashed;
+
+}
+
+.theme-toggle-icon:focus-visible {
+  outline: 0;
+}
+
+.theme-toggle-icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 6px var(--primary-color);
+  opacity: 0;
+  transition: .3s;
+}
+
+
+.theme-toggle-icon:hover,
+.theme-toggle-icon:focus {
+  color: var(--primary-color);
+  border-color: currentColor;
+}
+
+.theme-toggle-icon:active {
+  filter: brightness(.9);
+}
+
+.theme-toggle-icon:active::after {
+  transition: 0s;
+  box-shadow: none;
+  opacity: 0.4;
 }
 </style>
 

@@ -34,15 +34,15 @@ export interface NotificationMessage {
   duration?: number;
   closable?: boolean;
   direction?:
-    | "ltr"
-    | "rtl"
-    | "ttb"
-    | "btt"
-    | "center"
-    | "vSplit"
-    | "ripple"
-    | "spotlight"
-    | "fade";
+  | "ltr"
+  | "rtl"
+  | "ttb"
+  | "btt"
+  | "center"
+  | "vSplit"
+  | "ripple"
+  | "spotlight"
+  | "fade";
   count: number;
   progress: number;
   isRemoving: boolean;
@@ -286,45 +286,26 @@ defineExpose({
 
 <template>
   <div class="notification-container">
-    <div
-      v-for="(msg, index) in activeMessages"
-      :key="msg.id"
-      :ref="(el) => setItemRef(el, msg.id)"
-      class="notification-item"
-      :style="getItemBaseStyle(msg, index)"
-    >
+    <div v-for="(msg, index) in activeMessages" :key="msg.id" :ref="(el) => setItemRef(el, msg.id)"
+      class="notification-item" :style="getItemBaseStyle(msg, index)">
       <div class="bg-layer-persistent"></div>
 
       <div class="fg-layer-progress" :style="getProgressStyle(msg)"></div>
 
       <!-- Spotlight 额外光晕 -->
-      <div
-        v-if="msg.direction === 'spotlight'"
-        class="spotlight-glow"
-        :style="getSpotlightStyle(msg)"
-      ></div>
+      <div v-if="msg.direction === 'spotlight'" class="spotlight-glow" :style="getSpotlightStyle(msg)"></div>
 
       <div class="content-wrapper" :style="{ color: getDynamicTextColor(msg) }">
         <div v-if="msg.closable" class="spacer"></div>
         <span class="text-content" :title="msg.content">{{ msg.content }}</span>
-        <span
-          v-if="msg.count > 1"
-          class="count-badge"
-          :style="{ backgroundColor: getBadgeBg(msg) }"
-        >
+        <span v-if="msg.count > 1" class="count-badge" :style="{ backgroundColor: getBadgeBg(msg) }">
           <p>*</p>
           {{ msg.count }}
         </span>
-        <span
-          v-if="msg.closable"
-          class="close-btn"
-          :style="{
-            '--bgc-color': darkenColor(msg.color, 0.1),
-            '--border-color': darkenColor(msg.color, 0.2),
-          }"
-          size="18px"
-          @click="removeMessage(msg.id)"
-        >
+        <span v-if="msg.closable" class="close-btn" :style="{
+          '--bgc-color': darkenColor(msg.color, 0.1),
+          '--border-color': darkenColor(msg.color, 0.5),
+        }" size="18px" @click="removeMessage(msg.id)">
         </span>
       </div>
     </div>
@@ -415,12 +396,10 @@ defineExpose({
   top: 0;
   bottom: 0;
   width: 60px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.6),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.6),
+      transparent);
   z-index: 3;
   pointer-events: none;
 }
@@ -451,6 +430,7 @@ defineExpose({
   width: 18px;
   flex-shrink: 0;
 }
+
 .count-badge {
   display: flex;
   font-weight: 900;
@@ -460,16 +440,19 @@ defineExpose({
   box-shadow: 0 0 2px rgb(255 255 255);
   flex-shrink: 0;
   transition: transform 0.3s;
-  animation: smoothShake 1.2s infinite; /* 总时长1.2s，前0.6s晃动，后0.6s静止 */
+  animation: smoothShake 1.2s infinite;
+  /* 总时长1.2s，前0.6s晃动，后0.6s静止 */
 
-  > p {
+  >p {
     font-weight: 400;
   }
 
   &:hover {
     opacity: 1;
-    animation: none; /* 停止晃动 */
-    transform: scale(1.1); /* 放大元素 */
+    animation: none;
+    /* 停止晃动 */
+    transform: scale(1.1);
+    /* 放大元素 */
   }
 }
 
@@ -478,23 +461,35 @@ defineExpose({
   0% {
     transform: rotate(0deg) scale(1);
   }
+
   10% {
-    transform: rotate(9deg) scale(1); /* 向右 */
+    transform: rotate(9deg) scale(1);
+    /* 向右 */
   }
+
   20% {
-    transform: rotate(-9deg) scale(1); /* 向左 */
+    transform: rotate(-9deg) scale(1);
+    /* 向左 */
   }
+
   30% {
-    transform: rotate(6deg) scale(1); /* 向右减弱 */
+    transform: rotate(6deg) scale(1);
+    /* 向右减弱 */
   }
+
   40% {
-    transform: rotate(-6deg) scale(1); /* 向左减弱 */
+    transform: rotate(-6deg) scale(1);
+    /* 向左减弱 */
   }
+
   50% {
-    transform: rotate(0deg) scale(1); /* 恢复静止 */
+    transform: rotate(0deg) scale(1);
+    /* 恢复静止 */
   }
+
   100% {
-    transform: rotate(0deg) scale(1); /* 保持静止至周期结束 */
+    transform: rotate(0deg) scale(1);
+    /* 保持静止至周期结束 */
   }
 }
 
@@ -505,12 +500,19 @@ defineExpose({
   opacity: 0.5;
   width: 24px;
   height: 24px;
-  border-radius: 50%; /* 圆角正方形，够圆润 */
-  background-color: var(--bgc-color); /* 柔和的底色（ indigo 极浅色） */
+  border-radius: 50%;
+  border-width: 5px;
+  border-spacing: 5px;
+  border: 1px dashed var(--close-color);
+  /* 圆角正方形，够圆润 */
+  background-color: var(--bgc-color);
+  /* 柔和的底色（ indigo 极浅色） */
   /* 使用纯CSS渐变绘制“加号”：两个垂直的矩形背景，居中，不重复 */
   background-image:
     linear-gradient(var(--close-color), var(--close-color)),
-    /* 水平条（横） */ linear-gradient(var(--close-color), var(--close-color)); /* 垂直条（竖） */
+    /* 水平条（横） */
+    linear-gradient(var(--close-color), var(--close-color));
+  /* 垂直条（竖） */
   background-repeat: no-repeat;
   background-position: center;
   /* 加号尺寸：横条 48x8，竖条 8x48，在120x120里显得醒目又优雅 */
@@ -523,13 +525,45 @@ defineExpose({
     background-color 0.2s ease,
     box-shadow 0.2s ease,
     transform 0.5s ease;
-  cursor: pointer; /* 提示可点击 */
+  cursor: pointer;
+  /* 提示可点击 */
   transform: rotate(45deg);
+
   &:hover {
     opacity: 1;
     transform: rotate(225deg) scale(1.2);
-    box-shadow: 0 0 16px 10px var(--bgc-color);
   }
+}
+
+.close-btn:focus-visible {
+  outline: 0;
+}
+
+.close-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 6px var(--close-color);
+  opacity: 0;
+  transition: .3s;
+}
+
+
+.close-btn:hover,
+.close-btn:focus {
+  color: var(--bgc-color);
+  border-color: var(--close-color);
+}
+
+.close-btn:active {
+  background-color: var(--bgc-color);
+}
+
+.close-btn:active::after {
+  transition: 0s;
+  box-shadow: none;
+  opacity: 0.4;
 }
 
 .hidden-count-badge {
