@@ -13,7 +13,8 @@ import Components from "unplugin-vue-components/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 
 // 引入SVG图标插件
-import { createSvgIconsPlugin } from "vite-plugin-svg-icons";
+import svgSprite from "vite-plugin-svg-sprite";
+// const { createSvgIconsPlugin } = vitePluginSvgIcons;
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -34,10 +35,10 @@ export default defineConfig({
       dts: "src/components.d.ts",
     }),
     // SVG图标插件，用于处理SVG雪碧图
-    createSvgIconsPlugin({
+    svgSprite({
       // 指定存放SVG图标的目录
-      iconDirs: [path.resolve(process.cwd(), "src/assets/icons")],
-      // 指定symbolId格式
+      include: ["src/assets/icons/**/*.svg", "src/assets/icons/*.svg"],
+      // 生成 symbol ID 格式
       symbolId: "icon-[name]",
     }),
   ],
@@ -56,6 +57,10 @@ export default defineConfig({
         secure: false,
       },
     },
+    watch: {
+      usePolling: true, // 启用轮询
+      interval: 100, // 轮询间隔（毫秒）
+    },
   },
   /**
    * 构建配置
@@ -63,28 +68,32 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        chunkFileNames: 'js/[name]-[hash].js', // 引入文件名的名称
-        entryFileNames: 'js/[name]-[hash].js', // 包的入口文件名称
-        assetFileNames: '[ext]/[name]-[hash].[ext]', // 资源文件像 字体，图片等
+        chunkFileNames: "js/[name]-[hash].js", // 引入文件名的名称
+        entryFileNames: "js/[name]-[hash].js", // 包的入口文件名称
+        assetFileNames: "[ext]/[name]-[hash].[ext]", // 资源文件像 字体，图片等
 
         // 最小化拆分包
         manualChunks(id) {
-          if (id.includes('node_modules')) {
-            return id.toString().split('node_modules/')[1].split('/')[0].toString();
+          if (id.includes("node_modules")) {
+            return id
+              .toString()
+              .split("node_modules/")[1]
+              .split("/")[0]
+              .toString();
           }
-        }
-      }
+        },
+      },
     },
-    minify: 'terser', // 启用 terser 压缩  
+    minify: "terser", // 启用 terser 压缩
     terserOptions: {
       compress: {
-        pure_funcs: ['console.log'], // 只删除 console.log  
-        drop_debugger: true, // 删除 debugger  
-      }
-    }
+        pure_funcs: ["console.log"], // 只删除 console.log
+        drop_debugger: true, // 删除 debugger
+      },
+    },
   },
   esbuild: {
-    drop: ['console', 'debugger'], // 删除 所有的console 和 debugger
+    drop: ["console", "debugger"], // 删除 所有的console 和 debugger
   },
   /**
    * 路径解析配置

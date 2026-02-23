@@ -119,6 +119,7 @@ function getDayStatusClass(date: Date): string {
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0px 19px 0 -13px #f87171;
 }
 
 .day-label {

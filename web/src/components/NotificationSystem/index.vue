@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, reactive } from "vue";
-import { toRgba } from "@/utils/color";
+import { toRgba, darkenColor } from "@/utils/color";
 import gsap from "gsap";
-import SvgIcon from "@/components/SvgIcon/index.vue";
 
 // import {Close} from ""
 /**
@@ -35,15 +34,15 @@ export interface NotificationMessage {
   duration?: number;
   closable?: boolean;
   direction?:
-  | "ltr"
-  | "rtl"
-  | "ttb"
-  | "btt"
-  | "center"
-  | "vSplit"
-  | "ripple"
-  | "spotlight"
-  | "fade";
+    | "ltr"
+    | "rtl"
+    | "ttb"
+    | "btt"
+    | "center"
+    | "vSplit"
+    | "ripple"
+    | "spotlight"
+    | "fade";
   count: number;
   progress: number;
   isRemoving: boolean;
@@ -287,23 +286,46 @@ defineExpose({
 
 <template>
   <div class="notification-container">
-    <div v-for="(msg, index) in activeMessages" :key="msg.id" :ref="(el) => setItemRef(el, msg.id)"
-      class="notification-item" :style="getItemBaseStyle(msg, index)">
+    <div
+      v-for="(msg, index) in activeMessages"
+      :key="msg.id"
+      :ref="(el) => setItemRef(el, msg.id)"
+      class="notification-item"
+      :style="getItemBaseStyle(msg, index)"
+    >
       <div class="bg-layer-persistent"></div>
 
       <div class="fg-layer-progress" :style="getProgressStyle(msg)"></div>
 
       <!-- Spotlight 额外光晕 -->
-      <div v-if="msg.direction === 'spotlight'" class="spotlight-glow" :style="getSpotlightStyle(msg)"></div>
+      <div
+        v-if="msg.direction === 'spotlight'"
+        class="spotlight-glow"
+        :style="getSpotlightStyle(msg)"
+      ></div>
 
       <div class="content-wrapper" :style="{ color: getDynamicTextColor(msg) }">
         <div v-if="msg.closable" class="spacer"></div>
         <span class="text-content" :title="msg.content">{{ msg.content }}</span>
-        <span v-if="msg.count > 1" class="count-badge" :style="{ backgroundColor: getBadgeBg(msg) }">
+        <span
+          v-if="msg.count > 1"
+          class="count-badge"
+          :style="{ backgroundColor: getBadgeBg(msg) }"
+        >
           <p>*</p>
           {{ msg.count }}
         </span>
-        <SvgIcon v-if="msg.closable" icon-class="close" class="close-btn" size="18px" @click="removeMessage(msg.id)" />
+        <span
+          v-if="msg.closable"
+          class="close-btn"
+          :style="{
+            '--bgc-color': darkenColor(msg.color, 0.1),
+            '--border-color': darkenColor(msg.color, 0.2),
+          }"
+          size="18px"
+          @click="removeMessage(msg.id)"
+        >
+        </span>
       </div>
     </div>
 
@@ -353,13 +375,12 @@ defineExpose({
   overflow: hidden;
   will-change: transform, opacity;
   border: 2px solid currentColor;
-  transition: all .1s ease;
+  transition: all 0.1s ease;
 
   /* Added border */
   &:hover {
     box-shadow: 0 0 20px 2px var(--bgc);
-    border: 3px solid currentColor;
-
+    // border: 3px solid currentColor;
   }
 }
 
@@ -394,10 +415,12 @@ defineExpose({
   top: 0;
   bottom: 0;
   width: 60px;
-  background: linear-gradient(90deg,
-      transparent,
-      rgba(255, 255, 255, 0.6),
-      transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent
+  );
   z-index: 3;
   pointer-events: none;
 }
@@ -428,7 +451,6 @@ defineExpose({
   width: 18px;
   flex-shrink: 0;
 }
-
 .count-badge {
   display: flex;
   font-weight: 900;
@@ -437,55 +459,77 @@ defineExpose({
   font-size: 0.7rem;
   box-shadow: 0 0 2px rgb(255 255 255);
   flex-shrink: 0;
-  transition: all 0.2s;
+  transition: transform 0.3s;
+  animation: smoothShake 1.2s infinite; /* 总时长1.2s，前0.6s晃动，后0.6s静止 */
 
-  >p {
+  > p {
     font-weight: 400;
   }
 
   &:hover {
     opacity: 1;
-    // 添加抖动动画
-    animation: shake 0.5s infinite;
+    animation: none; /* 停止晃动 */
+    transform: scale(1.1); /* 放大元素 */
   }
 }
 
-// 抖动动画
-@keyframes shake {
-
-  0%,
+/* 晃动动画 */
+@keyframes smoothShake {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  10% {
+    transform: rotate(9deg) scale(1); /* 向右 */
+  }
+  20% {
+    transform: rotate(-9deg) scale(1); /* 向左 */
+  }
+  30% {
+    transform: rotate(6deg) scale(1); /* 向右减弱 */
+  }
+  40% {
+    transform: rotate(-6deg) scale(1); /* 向左减弱 */
+  }
+  50% {
+    transform: rotate(0deg) scale(1); /* 恢复静止 */
+  }
   100% {
-    transform: rotate(9deg) scale(1.2);
+    transform: rotate(0deg) scale(1); /* 保持静止至周期结束 */
   }
-
-  20%,
-  60% {
-    transform: rotate(-9deg) scale(1.2);
-  }
-
-  40%,
-  80% {
-    transform: rotate(9deg) scale(1.2);
-  }
-
 }
 
 .close-btn {
-  cursor: pointer;
+  --close-color: #ffffff;
+  --bgc-color: #000000;
+  --border-color: #000000;
   opacity: 0.5;
-  font-size: 1rem;
-  transition: all 0.2s;
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
+  width: 24px;
+  height: 24px;
+  border-radius: 50%; /* 圆角正方形，够圆润 */
+  background-color: var(--bgc-color); /* 柔和的底色（ indigo 极浅色） */
+  /* 使用纯CSS渐变绘制“加号”：两个垂直的矩形背景，居中，不重复 */
+  background-image:
+    linear-gradient(var(--close-color), var(--close-color)),
+    /* 水平条（横） */ linear-gradient(var(--close-color), var(--close-color)); /* 垂直条（竖） */
+  background-repeat: no-repeat;
+  background-position: center;
+  /* 加号尺寸：横条 48x8，竖条 8x48，在120x120里显得醒目又优雅 */
+  background-size:
+    14px 4px,
+    4px 14px;
 
-.close-btn:hover {
-  opacity: 1;
-  transform: rotate(90deg) scale(1.2);
+  /* 过渡效果，用于焦点或悬停时的反馈 */
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.5s ease;
+  cursor: pointer; /* 提示可点击 */
+  transform: rotate(45deg);
+  &:hover {
+    opacity: 1;
+    transform: rotate(225deg) scale(1.2);
+    box-shadow: 0 0 16px 10px var(--bgc-color);
+  }
 }
 
 .hidden-count-badge {

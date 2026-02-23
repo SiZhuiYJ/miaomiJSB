@@ -1,28 +1,16 @@
 import { createApp } from "vue";
+import App from "./App.vue";
+// element-plus 主题样式
 import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
-import * as ElementPlusIconsVue from "@element-plus/icons-vue";
-import "./styles/index.scss";
-import App from "./App.vue";
-// element-plus暗黑主题样式
+// element-plus 暗黑主题样式
 import "element-plus/theme-chalk/dark/css-vars.css";
 import "element-plus/theme-chalk/src/loading.scss";
+// element-plus icon导入
+import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 
-function initTheme(): void {
-  const saved = localStorage.getItem("theme");
-  let next: "dark" | "light" = "light";
-  if (saved === "light" || saved === "dark") {
-    next = saved;
-  }
-  document.documentElement.setAttribute("data-theme", next);
-  if (next === "dark") {
-    document.documentElement.classList.add("dark");
-  } else {
-    document.documentElement.classList.remove("dark");
-  }
-}
-
-initTheme();
+// 导入style样式
+import "./styles/index.scss";
 
 const app = createApp(App);
 
@@ -34,9 +22,6 @@ import pinia from "./stores";
 
 // 自定义指令集合
 import directives from "./directives";
-
-// 注册SVG图标（Vite插件生成的虚拟模块）
-import "virtual:svg-icons-register";
 
 // 注册Vue Router路由系统
 app.use(router);
