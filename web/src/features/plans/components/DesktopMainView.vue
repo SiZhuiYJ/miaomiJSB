@@ -115,13 +115,14 @@ function getDayStatusClass(date: Date): string {
 .day {
   width: 100%;
   height: 100%;
-  border-radius: 8px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+:deep(.is-today) div .day {
   box-shadow: 0px 19px 0 -13px #f87171;
 }
-
 .day-label {
   font-size: 13px;
 }
