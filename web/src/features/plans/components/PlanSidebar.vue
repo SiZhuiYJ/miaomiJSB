@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PropType } from 'vue';
+import type { PropType } from "vue";
 
 interface PlanItem {
   id: number;
@@ -20,16 +20,16 @@ const props = defineProps({
 });
 
 const emit = defineEmits<{
-  (e: 'update:selectedId', value: number | null): void;
-  (e: 'create'): void;
+  (e: "update:selectedId", value: number | null): void;
+  (e: "create"): void;
 }>();
 
 function handleSelect(id: number): void {
-  emit('update:selectedId', id);
+  emit("update:selectedId", id);
 }
 
 function handleCreate(): void {
-  emit('create');
+  emit("create");
 }
 </script>
 
@@ -37,25 +37,39 @@ function handleCreate(): void {
   <section class="sidebar">
     <div class="sidebar-header">
       <h2>我的计划</h2>
-      <button type="button" class="create" @click="handleCreate">＋ 新建</button>
+      <button type="button" class="create" @click="handleCreate">
+        ＋ 新建
+      </button>
     </div>
-    <ul class="plan-list">
-      <li v-for="plan in props.items" :key="plan.id"
-        :class="['plan-item', plan.id === props.selectedId ? 'active' : '']" @click="handleSelect(plan.id)">
-        <div class="plan-title">{{ plan.title }}</div>
-        <div class="plan-dates">
-          {{ plan.startDate }}
-          <span v-if="plan.endDate">~ {{ plan.endDate }}</span>
-        </div>
-      </li>
-    </ul>
+    <el-scrollbar
+      wrap-style="max-height: calc(100vh - var(--header-h) - 64px);"
+    >
+      <ul class="plan-list">
+        <li
+          v-for="plan in props.items"
+          :key="plan.id"
+          :class="[
+            'plan-item',
+            plan.id === props.selectedId ? 'active' : '',
+            'ink',
+          ]"
+          @click="handleSelect(plan.id)"
+        >
+          <div class="plan-title">{{ plan.title }}</div>
+          <div class="plan-dates">
+            {{ plan.startDate }}
+            <span v-if="plan.endDate">~ {{ plan.endDate }}</span>
+          </div>
+        </li>
+      </ul>
+    </el-scrollbar>
   </section>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .sidebar {
   border-right: 1px solid var(--border-color);
-  padding: 16px;
+  padding: 16px 0;
 }
 
 .sidebar-header {
@@ -63,6 +77,7 @@ function handleCreate(): void {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
+  padding: 0 16px;
 }
 
 .create {
@@ -77,7 +92,7 @@ function handleCreate(): void {
 
 .plan-list {
   list-style: none;
-  padding: 0;
+  padding: 0 16px;
   margin: 0;
   display: flex;
   flex-direction: column;
@@ -88,10 +103,17 @@ function handleCreate(): void {
   padding: 8px 10px;
   border-radius: 8px;
   cursor: pointer;
+  border: 1px dashed rgba(0, 0, 0, 0);
 }
-
+.ink {
+  --bgc-color: rgba(34, 197, 94);
+  &::after {
+    --bgc-color: rgba(34, 197, 94);
+  }
+}
 .plan-item.active {
-  background: rgba(34, 197, 94, 0.15);
+  // background: rgba(34, 197, 94, 0.15);
+  border: 1px dashed var(--bgc-color);
 }
 
 .plan-title {

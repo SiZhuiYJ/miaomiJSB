@@ -5,7 +5,6 @@ import router from "@/routers/index";
 <template>
   <button @click="router.push('/home')">返回</button>
   个人信息
-
 </template>
 
 <style scoped lang="scss"></style>

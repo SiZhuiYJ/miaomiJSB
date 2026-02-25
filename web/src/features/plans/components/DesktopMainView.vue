@@ -108,23 +108,80 @@ function getDayStatusClass(date: Date): string {
   margin-bottom: 8px;
 }
 
-:deep(.el-calendar-day) {
-  height: 46px;
-}
-
 .day {
   width: 100%;
   height: 100%;
+  padding: 8px;
+}
+
+:deep(.is-today) .day span {
+  border: 1px dashed var(--el-color-primary)
+}
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-right: 4px;
+  .success {
+    background: #22c55e;
+  }
+  .retro {
+    background: #eab308;
+  }
+  .missed {
+    background: #f87171;
+  }
+}
+
+.desktop-only {
+  /* 手机端 */
+  @media (max-width: 768px) {
+    display: block;
+  }
+}
+
+:deep(.prev) .day.success span,
+:deep(.next) .day.success span {
+  background: rgba(202, 255, 222, 0.2);
+  color: #89ffb6;
+}
+
+.success span {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+:deep(.prev) .day.retro span,
+:deep(.next) .day.retro span {
+  background: rgba(255, 246, 217, 0.2);
+  color: #ffc685;
+}
+
+.retro span {
+  background: rgba(234, 179, 8, 0.2);
+  color: #eab308;
+}
+
+:deep(.prev) .day.missed span,
+:deep(.next) .day.missed span {
+  background: rgba(255, 211, 211, 0.2);
+  color: #ff7f7f;
+}
+
+.missed span {
+  background: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+.day-label {
+  width: 100%;
+  height: 100%;
   border-radius: 10px;
+  font-size: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-:deep(.is-today) div .day {
-  box-shadow: 0px 19px 0 -13px #f87171;
-}
-.day-label {
-  font-size: 13px;
 }
 
 .legend {
@@ -155,65 +212,5 @@ function getDayStatusClass(date: Date): string {
     background: var(--bg-elevated);
     color: var(--text-color);
   }
-}
-
-.dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  margin-right: 4px;
-}
-
-.dot.success {
-  background: #22c55e;
-}
-
-.dot.retro {
-  background: #eab308;
-}
-
-.dot.missed {
-  background: #f87171;
-}
-
-.desktop-only {
-  /* 手机端 */
-  @media (max-width: 768px) {
-    display: block;
-  }
-}
-
-:deep(.prev) div .day.success,
-:deep(.next) div .day.success {
-  background: rgba(202, 255, 222, 0.2);
-  color: #89ffb6;
-}
-
-.day.success {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
-}
-
-:deep(.prev) div .day.retro,
-:deep(.next) div .day.retro {
-  background: rgba(255, 246, 217, 0.2);
-  color: #ffc685;
-}
-
-.day.retro {
-  background: rgba(234, 179, 8, 0.2);
-  color: #eab308;
-}
-
-:deep(.prev) div .day.missed,
-:deep(.next) div .day.missed {
-  background: rgba(255, 211, 211, 0.2);
-  color: #ff7f7f;
-}
-
-.day.missed {
-  background: rgba(248, 113, 113, 0.2);
-  color: #f87171;
 }
 </style>
