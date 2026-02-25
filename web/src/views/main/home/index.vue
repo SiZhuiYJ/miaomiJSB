@@ -226,8 +226,11 @@ function handleOpenCheckinFromDetail(): void {
   </el-scrollbar>
 </template>
 
-<style scoped lang="scss">
+<style lang="scss">
 @import "@/features/plans/style/index.scss";
+</style>
+
+<style scoped lang="scss">
 :deep(.dashboard) {
   display: flex;
   flex-direction: column;
