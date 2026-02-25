@@ -5,10 +5,9 @@ import App from "./App.vue";
 import "./styles/index.scss";
 
 // element-plus 主题样式
-import "element-plus/dist/index.css";
+// import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
 // element-plus 暗黑主题样式
-import "element-plus/theme-chalk/dark/css-vars.css";
 import "element-plus/theme-chalk/src/loading.scss";
 // element-plus icon导入
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";

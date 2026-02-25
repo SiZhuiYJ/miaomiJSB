@@ -217,7 +217,7 @@ onUnmounted(() => {
 <template>
   <div class="auth-container">
     <div class="auth-card">
-      <h1 class="title">DailyCheck 每日打卡</h1>
+      <h1 class="title">{{  }}</h1>
 
       <AuthTabs :model-value="mode" @update:model-value="switchMode" />
 

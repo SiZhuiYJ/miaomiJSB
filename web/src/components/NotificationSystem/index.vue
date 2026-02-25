@@ -34,15 +34,15 @@ export interface NotificationMessage {
   duration?: number;
   closable?: boolean;
   direction?:
-    | "ltr"
-    | "rtl"
-    | "ttb"
-    | "btt"
-    | "center"
-    | "vSplit"
-    | "ripple"
-    | "spotlight"
-    | "fade";
+  | "ltr"
+  | "rtl"
+  | "ttb"
+  | "btt"
+  | "center"
+  | "vSplit"
+  | "ripple"
+  | "spotlight"
+  | "fade";
   count: number;
   progress: number;
   isRemoving: boolean;
@@ -286,44 +286,26 @@ defineExpose({
 
 <template>
   <div class="notification-container">
-    <div
-      v-for="(msg, index) in activeMessages"
-      :key="msg.id"
-      :ref="(el) => setItemRef(el, msg.id)"
-      class="notification-item"
-      :style="getItemBaseStyle(msg, index)"
-    >
+    <div v-for="(msg, index) in activeMessages" :key="msg.id" :ref="(el) => setItemRef(el, msg.id)"
+      class="notification-item" :style="getItemBaseStyle(msg, index)">
       <div class="bg-layer-persistent"></div>
 
       <div class="fg-layer-progress" :style="getProgressStyle(msg)"></div>
 
       <!-- Spotlight 额外光晕 -->
-      <div
-        v-if="msg.direction === 'spotlight'"
-        class="spotlight-glow"
-        :style="getSpotlightStyle(msg)"
-      ></div>
+      <div v-if="msg.direction === 'spotlight'" class="spotlight-glow" :style="getSpotlightStyle(msg)"></div>
 
       <div class="content-wrapper" :style="{ color: getDynamicTextColor(msg) }">
         <div v-if="msg.closable" class="spacer"></div>
         <span class="text-content" :title="msg.content">{{ msg.content }}</span>
-        <span
-          v-if="msg.count > 1"
-          class="count-badge"
-          :style="{ backgroundColor: getBadgeBg(msg) }"
-        >
+        <span v-if="msg.count > 1" class="count-badge" :style="{ backgroundColor: getBadgeBg(msg) }">
           <p>*</p>
           {{ msg.count }}
         </span>
-        <span
-          v-if="msg.closable"
-          class="close-btn"
-          :style="{
-            '--bgc-color': darkenColor(msg.color, 0.1),
-            '--border-color': darkenColor(msg.color, 0.5),
-          }"
-          @click="removeMessage(msg.id)"
-        >
+        <span v-if="msg.closable" class="close-btn" :style="{
+          '--bgc-color': darkenColor(msg.color, 0.1),
+          '--border-color': darkenColor(msg.color, 0.5),
+        }" @click="removeMessage(msg.id)">
         </span>
       </div>
     </div>
@@ -373,7 +355,7 @@ defineExpose({
   background: rgba(0, 0, 0, 0.12);
   overflow: hidden;
   will-change: transform, opacity;
-  border: 2px solid currentColor;
+  border: 2px dashed currentColor;
   transition: all 0.1s ease;
 
   /* Added border */
@@ -414,12 +396,10 @@ defineExpose({
   top: 0;
   bottom: 0;
   width: 60px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.6),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.6),
+      transparent);
   z-index: 3;
   pointer-events: none;
 }
@@ -463,7 +443,7 @@ defineExpose({
   animation: smoothShake 1.2s infinite;
   /* 总时长1.2s，前0.6s晃动，后0.6s静止 */
 
-  > p {
+  >p {
     font-weight: 400;
   }
 

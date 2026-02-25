@@ -41,20 +41,13 @@ function handleCreate(): void {
         ＋ 新建
       </button>
     </div>
-    <el-scrollbar
-      wrap-style="max-height: calc(100vh - var(--header-h) - 64px);"
-    >
+    <el-scrollbar wrap-style="height: calc(100vh - var(--header-h) - 32px - 16px -120px);">
       <ul class="plan-list">
-        <li
-          v-for="plan in props.items"
-          :key="plan.id"
-          :class="[
-            'plan-item',
-            plan.id === props.selectedId ? 'active' : '',
-            'ink',
-          ]"
-          @click="handleSelect(plan.id)"
-        >
+        <li v-for="plan in props.items" :key="plan.id" :class="[
+          'plan-item',
+          plan.id === props.selectedId ? 'active' : '',
+          'ink',
+        ]" @click="handleSelect(plan.id)">
           <div class="plan-title">{{ plan.title }}</div>
           <div class="plan-dates">
             {{ plan.startDate }}
@@ -69,7 +62,7 @@ function handleCreate(): void {
 <style scoped lang="scss">
 .sidebar {
   border-right: 1px solid var(--border-color);
-  padding: 16px 0;
+  padding: 16px 0 0;
 }
 
 .sidebar-header {
@@ -105,12 +98,15 @@ function handleCreate(): void {
   cursor: pointer;
   border: 1px dashed rgba(0, 0, 0, 0);
 }
+
 .ink {
   --bgc-color: rgba(34, 197, 94);
+
   &::after {
     --bgc-color: rgba(34, 197, 94);
   }
 }
+
 .plan-item.active {
   // background: rgba(34, 197, 94, 0.15);
   border: 1px dashed var(--bgc-color);

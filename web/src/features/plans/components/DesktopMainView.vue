@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import PlanSidebar from "@/features/plans/components/PlanSidebar.vue";
+import CalendarCell from "./CalendarCell.vue";
 import { usePlansStore } from "@/stores";
 
 interface Props {
@@ -55,12 +56,8 @@ function getDayStatusClass(date: Date): string {
 
 <template>
   <main class="content desktop-only">
-    <PlanSidebar
-      :items="plansStore.items"
-      :selected-id="selectedPlanId"
-      @update:selected-id="(v) => emit('update:selectedPlanId', v)"
-      @create="emit('create')"
-    />
+    <PlanSidebar :items="plansStore.items" :selected-id="selectedPlanId"
+      @update:selected-id="(v) => emit('update:selectedPlanId', v)" @create="emit('create')" />
 
     <section class="main">
       <div class="calendar-header">
@@ -73,12 +70,8 @@ function getDayStatusClass(date: Date): string {
 
       <el-calendar v-model="localCheckinDate">
         <template #date-cell="{ data }">
-          <div
-            :class="getDayStatusClass(data.date)"
-            @click.stop="handleDateClick(data.date)"
-          >
-            <span class="day-label">{{ formatDayLabel(data.day) }}</span>
-          </div>
+          <CalendarCell :date="data.date" :day-label="formatDayLabel(data.day)"
+            :status-class="getDayStatusClass(data.date)" @click="handleDateClick" />
         </template>
       </el-calendar>
 
@@ -97,7 +90,7 @@ function getDayStatusClass(date: Date): string {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 0;
 }
 
 .main {
@@ -108,89 +101,12 @@ function getDayStatusClass(date: Date): string {
   margin-bottom: 8px;
 }
 
-.day {
-  width: 100%;
-  height: 100%;
-  padding: 8px;
-}
-
-:deep(.is-today) .day span {
-  border: 1px dashed var(--el-color-primary)
-}
-
-.dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  margin-right: 4px;
-  .success {
-    background: #22c55e;
-  }
-  .retro {
-    background: #eab308;
-  }
-  .missed {
-    background: #f87171;
-  }
-}
-
 .desktop-only {
+
   /* 手机端 */
   @media (max-width: 768px) {
     display: block;
   }
-}
-
-:deep(.prev) .day.success span,
-:deep(.next) .day.success span {
-  background: rgba(202, 255, 222, 0.2);
-  color: #89ffb6;
-}
-
-.success span {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
-}
-
-:deep(.prev) .day.retro span,
-:deep(.next) .day.retro span {
-  background: rgba(255, 246, 217, 0.2);
-  color: #ffc685;
-}
-
-.retro span {
-  background: rgba(234, 179, 8, 0.2);
-  color: #eab308;
-}
-
-:deep(.prev) .day.missed span,
-:deep(.next) .day.missed span {
-  background: rgba(255, 211, 211, 0.2);
-  color: #ff7f7f;
-}
-
-.missed span {
-  background: rgba(248, 113, 113, 0.2);
-  color: #f87171;
-}
-.day-label {
-  width: 100%;
-  height: 100%;
-  border-radius: 10px;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.legend {
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 12px;
-  color: var(--text-muted);
 }
 
 .header-row {

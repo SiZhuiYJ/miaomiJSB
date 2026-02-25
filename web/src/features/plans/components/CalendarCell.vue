@@ -23,17 +23,4 @@ function handleClick(): void {
     </div>
 </template>
 
-<style scoped lang="scss">
-.day {
-    width: 100%;
-    height: 100%;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.day-label {
-    font-size: 13px;
-}
-</style>
+<style scoped lang="scss"></style>

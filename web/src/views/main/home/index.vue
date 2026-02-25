@@ -122,7 +122,7 @@ function handlePlanCreated(id: number): void {
   mobileMode.value = "card";
 }
 
-function handlePlanUpdated(): void {}
+function handlePlanUpdated(): void { }
 
 function handlePlanDeleted(id: number): void {
   if (selectedPlanId.value === id) {
@@ -161,73 +161,31 @@ function handleOpenCheckinFromDetail(): void {
 </script>
 
 <template>
-  <el-scrollbar
-    wrap-style="max-height: calc(100vh - var(--header-h));"
-    view-class="dashboard"
-  >
-    <DesktopMainView
-      :selected-plan-id="selectedPlanId"
-      :checkin-date="checkinDate"
-      :get-day-status-class="getDayStatusClass"
-      @update:selected-plan-id="(v) => (selectedPlanId = v)"
-      @update:checkin-date="(v) => (checkinDate = v)"
-      @create="handleCreatePlan"
-      @edit="handleEditPlan"
-      @date-click="handleDateClick"
-    />
+  <el-scrollbar wrap-style="height: calc(100vh - var(--header-h))" view-class="dashboard">
+    <DesktopMainView :selected-plan-id="selectedPlanId" :checkin-date="checkinDate"
+      :get-day-status-class="getDayStatusClass" @update:selected-plan-id="(v) => (selectedPlanId = v)"
+      @update:checkin-date="(v) => (checkinDate = v)" @create="handleCreatePlan" @edit="handleEditPlan"
+      @date-click="handleDateClick" />
 
-    <MobilePlanCards
-      :mobile-mode="mobileMode"
-      :progress-percent-by-plan="progressPercentByPlan"
-      :month-stats-by-plan="monthStatsByPlan"
-      :mini-calendar-cells="miniCalendarCells"
-      :get-mini-day-class-for-plan="getMiniDayClassForPlan"
-      :is-in-plan-range-for-plan="isInPlanRangeForPlan"
-      @select-plan="handleMobileCardSelect"
-      @create="handleCreatePlan"
-    />
+    <MobilePlanCards :mobile-mode="mobileMode" :progress-percent-by-plan="progressPercentByPlan"
+      :month-stats-by-plan="monthStatsByPlan" :mini-calendar-cells="miniCalendarCells"
+      :get-mini-day-class-for-plan="getMiniDayClassForPlan" :is-in-plan-range-for-plan="isInPlanRangeForPlan"
+      @select-plan="handleMobileCardSelect" @create="handleCreatePlan" />
 
-    <MobileCalendarPage
-      :selected-plan-id="selectedPlanId"
-      :checkin-date="checkinDate"
-      :mobile-mode="mobileMode"
-      :get-day-status-class="getDayStatusClass"
-      @update:checkin-date="(v) => (checkinDate = v)"
-      @back="handleMobileCalendarBack"
-      @edit="handleEditPlan"
-      @date-click="handleDateClick"
-    />
+    <MobileCalendarPage :selected-plan-id="selectedPlanId" :checkin-date="checkinDate" :mobile-mode="mobileMode"
+      :get-day-status-class="getDayStatusClass" @update:checkin-date="(v) => (checkinDate = v)"
+      @back="handleMobileCalendarBack" @edit="handleEditPlan" @date-click="handleDateClick" />
 
-    <button
-      type="button"
-      class="mobile-create-fab mobile-only"
-      @click="handleCreatePlan"
-    >
-      ＋ 新建计划
-    </button>
+    <CreatePlanDrawer v-model="showPlanDrawer" :edit-plan="drawerPlan" @created="handlePlanCreated"
+      @updated="handlePlanUpdated" @deleted="handlePlanDeleted" />
 
-    <CreatePlanDrawer
-      v-model="showPlanDrawer"
-      :edit-plan="drawerPlan"
-      @created="handlePlanCreated"
-      @updated="handlePlanUpdated"
-      @deleted="handlePlanDeleted"
-    />
-
-    <CheckinDetailDrawer
-      v-if="selectedPlanId"
-      v-model="showDetailDrawer"
-      :plan-id="selectedPlanId"
-      :date="checkinDate"
-      :time-slots="selectedPlan?.timeSlots"
-      :mode="getTimeSlotMode()"
-      @open-checkin="handleOpenCheckinFromDetail"
-    />
+    <CheckinDetailDrawer v-if="selectedPlanId" v-model="showDetailDrawer" :plan-id="selectedPlanId" :date="checkinDate"
+      :time-slots="selectedPlan?.timeSlots" :mode="getTimeSlotMode()" @open-checkin="handleOpenCheckinFromDetail" />
   </el-scrollbar>
 </template>
 
 <style lang="scss">
-@import "@/features/plans/style/index.scss";
+@use "@/features/plans/style/index.scss";
 </style>
 
 <style scoped lang="scss">
@@ -236,31 +194,12 @@ function handleOpenCheckinFromDetail(): void {
   flex-direction: column;
   background: var(--bg-color);
   color: var(--text-color);
-  height: calc(100vh - var(--header-h));
-}
-
-.mobile-create-fab {
-  position: fixed;
-  right: 16px;
-  bottom: 20px;
-  border-radius: 999px;
-  border: none;
-  padding: 10px 16px;
-  background: var(--accent-alt);
-  color: var(--accent-on);
-  font-size: 14px;
-  cursor: pointer;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.6);
-  z-index: 20;
+  // height: calc(100vh - var(--header-h));
 }
 
 @media (max-width: 768px) {
   .desktop-only {
     display: none;
-  }
-
-  .mobile-only {
-    display: block;
   }
 }
 </style>

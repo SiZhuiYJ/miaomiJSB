@@ -1,8 +1,0 @@
-export { default as AuthTabs } from './AuthTabs.vue'
-export { default as LoginForm } from './LoginForm.vue'
-export { default as RegisterForm } from './RegisterForm.vue'
-export { default as EmailInput } from './EmailInput.vue'
-export { default as AccountInput } from './AccountInput.vue'
-export { default as PasswordInput } from './PasswordInput.vue'
-export { default as VerificationCodeInput } from './VerificationCodeInput.vue'
-export { default as LoginMethods } from './LoginMethods.vue'

@@ -8,6 +8,7 @@ import { notifySuccess, notifyError } from "@/utils/notification";
 import { APP_TITLE, API_BASE_URL } from "@/config";
 import { storeToRefs } from "pinia";
 import router from "@/routers/index";
+import { maskEmail } from "@/utils/auth";
 const { user } = storeToRefs(useAuthStore());
 
 // SVG Icons
@@ -266,18 +267,22 @@ async function handleDeactivateConfirm(): Promise<void> {
         :title="theme === 'dark' ? '切换到白昼模式' : '切换到暗夜模式'">
         <component :is="theme === 'dark' ? SunIcon : MoonIcon" />
       </button>
-      <!-- 头像 -->
 
+      <!-- 头像 -->
       <el-dropdown v-if="user" trigger="click" placement="bottom-end" popper-class="user-dropdown-popper"
         @command="handleCommand">
         <div class="user-info-trigger">
-          <el-image fit="cover" :src="`${API_BASE_URL}mm/Files/users/${user.userId}/${user.avatarKey}`"
-            class="avatar-img" mode="aspectFill" />
+          <el-avatar v-if="user.avatarKey" fit="cover"
+            :src="user.avatarKey ? `${API_BASE_URL}mm/Files/users/${user.userId}/${user.avatarKey}` : ''" :size="30"
+            mode="aspectFill" />
+          <el-avatar v-else :size="30">
+            {{ user.nickName ? user.nickName.charAt(0).toUpperCase() : "U" }}
+          </el-avatar>
           <span class="email">
-            {{ user.email }}
+            {{ maskEmail(user.email) }}
             <span v-if="user.nickName">({{ user.nickName }})</span>
           </span>
-          <span class="dropdown-arrow">▼</span>
+          <el-icon class="dropdown-arrow"><arrow-down /></el-icon>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
@@ -405,8 +410,8 @@ async function handleDeactivateConfirm(): Promise<void> {
 
 <style scoped lang="scss">
 .topbar {
-  height: 56px;
-  padding: 0 16px;
+  height: var(--header-h);
+  padding: 0 8px 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -424,24 +429,18 @@ async function handleDeactivateConfirm(): Promise<void> {
   gap: 16px;
 }
 
-.avatar-img {
-  width: 45px;
-  height: 45px;
-  border-radius: 10px;
-}
-
 .user-info-trigger {
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 4px;
+  border-radius: 100px;
   transition: background-color 0.2s;
-}
 
-.user-info-trigger:hover {
-  background-color: var(--bg-color);
+  &:hover {
+    background-color: var(--bg-color);
+  }
 }
 
 .email {
@@ -451,6 +450,10 @@ async function handleDeactivateConfirm(): Promise<void> {
 
 .dropdown-arrow {
   font-size: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: var(--bg-elevated);
   color: var(--text-muted);
 }
 
@@ -466,12 +469,14 @@ async function handleDeactivateConfirm(): Promise<void> {
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
+
+  &:hover {
+    background: var(--bg-color);
+    color: var(--accent-color);
+  }
+
 }
 
-.theme-toggle-icon:hover {
-  background: var(--bg-color);
-  color: var(--accent-color);
-}
 
 .profile-form {
   display: flex;
@@ -518,10 +523,10 @@ async function handleDeactivateConfirm(): Promise<void> {
 
 .btn-danger {
   background: #ef4444;
-}
 
-.btn-danger:hover {
-  background: #dc2626;
+  &:hover {
+    background: #dc2626;
+  }
 }
 
 .code-row {
@@ -541,12 +546,13 @@ async function handleDeactivateConfirm(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: center;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 
-.code-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
 
 .warning-text {
   font-size: 14px;
@@ -562,11 +568,11 @@ async function handleDeactivateConfirm(): Promise<void> {
   background: linear-gradient(to right, var(--accent-color), var(--accent-alt));
   color: var(--accent-on);
   cursor: pointer;
-}
 
-.btn-confirm:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
 }
 
 .method-selector {
@@ -582,52 +588,6 @@ async function handleDeactivateConfirm(): Promise<void> {
   font-size: 14px;
   cursor: pointer;
   color: var(--text-color);
-}
-
-.theme-toggle-icon {
-  --primary-color: royalblue;
-  padding: 5px 5px;
-  color: #000000d9;
-  border: 1px solid #d9d9d9;
-  border-radius: 50%;
-  line-height: 1.4;
-  box-shadow: 0 2px #00000004;
-  cursor: pointer;
-  transition: .3s;
-  transform: scale(1);
-  border-style: dashed;
-
-}
-
-.theme-toggle-icon:focus-visible {
-  outline: 0;
-}
-
-.theme-toggle-icon::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  box-shadow: 0 0 0 6px var(--primary-color);
-  opacity: 0;
-  transition: .3s;
-}
-
-
-.theme-toggle-icon:hover,
-.theme-toggle-icon:focus {
-  color: var(--primary-color);
-  border-color: currentColor;
-}
-
-.theme-toggle-icon:active {
-  filter: brightness(.9);
-}
-
-.theme-toggle-icon:active::after {
-  transition: 0s;
-  box-shadow: none;
-  opacity: 0.4;
 }
 </style>
 

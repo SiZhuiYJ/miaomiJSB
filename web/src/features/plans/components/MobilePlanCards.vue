@@ -29,12 +29,7 @@ const showEmptyState = computed(() => plansStore.items.length === 0);
 
 <template>
   <main class="mobile-main mobile-only" v-if="mobileMode === 'card'">
-    <section
-      v-for="plan in plansStore.items"
-      :key="plan.id"
-      class="mobile-card"
-      @click="emit('selectPlan', plan.id)"
-    >
+    <section v-for="plan in plansStore.items" :key="plan.id" class="mobile-card" @click="emit('selectPlan', plan.id)">
       <div class="mobile-card-header">
         <div>
           <div class="mobile-title">
@@ -49,14 +44,8 @@ const showEmptyState = computed(() => plansStore.items.length === 0);
           </div>
         </div>
         <div class="mobile-progress">
-          <el-progress
-            type="circle"
-            :percentage="progressPercentByPlan(plan.id)"
-            :stroke-width="6"
-            :width="52"
-            color="#22c55e"
-            :show-text="false"
-          />
+          <el-progress type="circle" :percentage="progressPercentByPlan(plan.id)" :stroke-width="6" :width="52"
+            color="#22c55e" :show-text="false" />
           <div class="mobile-progress-text">
             {{ monthStatsByPlan(plan.id).totalCheckins }}
           </div>
@@ -65,15 +54,8 @@ const showEmptyState = computed(() => plansStore.items.length === 0);
 
       <div class="mobile-card-body">
         <div class="mini-calendar">
-          <div
-            v-for="(cell, index) in miniCalendarCells"
-            :key="index"
-            :class="getMiniDayClassForPlan(plan.id, cell)"
-          >
-            <span
-              v-if="cell && isInPlanRangeForPlan(plan.id, cell)"
-              class="mini-day-label"
-            >
+          <div v-for="(cell, index) in miniCalendarCells" :key="index" :class="getMiniDayClassForPlan(plan.id, cell)">
+            <span v-if="cell && isInPlanRangeForPlan(plan.id, cell)" class="mini-day-label">
               {{ cell.getDate() }}
             </span>
           </div>
@@ -96,11 +78,8 @@ const showEmptyState = computed(() => plansStore.items.length === 0);
       </div>
     </section>
 
-    <section v-if="showEmptyState" class="mobile-empty">
-      <p class="mobile-empty-text">暂无打卡计划</p>
-      <button type="button" class="mobile-create" @click="emit('create')">
-        创建计划
-      </button>
+    <section class="mobile-empty" @click="emit('create')">
+      <p v-if="showEmptyState" class="mobile-empty-text">暂无打卡计划</p>
     </section>
   </main>
 </template>
@@ -113,7 +92,6 @@ const showEmptyState = computed(() => plansStore.items.length === 0);
 .mobile-card {
   border-radius: 16px;
   background: var(--bg-elevated);
-  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.5);
   padding: 16px;
   margin-bottom: 15px;
 }
@@ -238,25 +216,23 @@ const showEmptyState = computed(() => plansStore.items.length === 0);
 .mobile-empty {
   border-radius: 16px;
   background: var(--bg-elevated);
-  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.5);
   padding: 20px 16px;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  background-image:
+    linear-gradient(#f3f4f6),
+    linear-gradient(#f3f4f6);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size:
+    2px 24px,
+    24px 2px;
 }
 
 .mobile-empty-text {
   font-size: 14px;
-}
-
-.mobile-create {
-  border-radius: 999px;
-  border: none;
-  padding: 6px 14px;
-  background: linear-gradient(to right, var(--accent-color), var(--accent-alt));
-  color: var(--accent-on);
-  font-size: 13px;
-  cursor: pointer;
 }
 
 .mobile-only {
