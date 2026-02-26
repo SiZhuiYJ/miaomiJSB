@@ -1,6 +1,7 @@
 import { computed, ref } from "vue";
 import { usePlansStore, useCheckinsStore } from "@/stores";
 import { storeToRefs } from "pinia";
+import { toLocalDateOnlyString } from "@/utils/date";
 export function usePlanCalendar() {
   const { items } = storeToRefs(usePlansStore());
   const { calendarByPlan } = storeToRefs(useCheckinsStore());
@@ -48,13 +49,6 @@ export function usePlanCalendar() {
     }
     return cells;
   });
-
-  function toLocalDateOnlyString(date: Date): string {
-    const y = date.getFullYear();
-    const m = `${date.getMonth() + 1}`.padStart(2, "0");
-    const d = `${date.getDate()}`.padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  }
 
   function parseDateOnly(input: string): Date {
     const parts = input.split("-");

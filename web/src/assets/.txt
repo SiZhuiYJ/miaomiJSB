@@ -1,1 +1,23 @@
-npm install -D sass
+[Vue warn]: Duplicate keys found during update: "blob:http://192.168.0.4:5173/b22ecf83-4ce9-4a9f-a3f5-9847d483db8d" Make sure keys are unique. 
+  at <ImagePreviewList sources= (2) ['blob:http://192.168.0.4:5173/b22ecf83-4ce9-4a9f-a3f5-9847d483db8d', 'blob:http://192.168.0.4:5173/b22ecf83-4ce9-4a9f-a3f5-9847d483db8d'] > 
+  at <CheckinDetailItem key=0 checkin-detail= {date: '2026-02-12', status: 2, note: '2222', imageUrls: Array(2), timeSlotId: 8} image-object-urls= Map(1) {'/mm/files/images/0833ad84c2932df3701bc3712a8fb5066c6fb277917a363b823ec603208d5613' => 'blob:http://192.168.0.4:5173/b22ecf83-4ce9-4a9f-a3f5-9847d483db8d'}  ... > 
+  at <BaseTransition onBeforeEnter=fn<onBeforeEnter> onEnter=fn onAfterEnter=fn<afterEnter>  ... > 
+  at <Transition name="el-collapse-transition" onBeforeEnter=fn<beforeEnter> onEnter=fn<enter>  ... > 
+  at <ElCollapseTransition> 
+  at <ElCollapseItem key=1 name=1 disabled=false > 
+  at <ElCollapse key=2 expand-icon-position="left" > 
+  at <ElScrollbar wrap-style="max-height: calc(100vh - 80px);" view-class="drawer-body" > 
+  at <ElFocusTrap loop="" trapped=true focus-trap-el= <div aria-modal=​"true" aria-labelledby=​"el-id-9329-16" aria-describedby=​"el-id-9329-17" class=​"el-drawer btt open" role=​"dialog" style=​"height:​ auto;​">​…​</div>​ flex   ... > 
+  at <ElOverlay mask=true overlay-class= (4) ['is-drawer', '', 'el-modal-drawer', ''] z-index=2008  ... > 
+  at <BaseTransition onAfterEnter=fn<afterEnter> onAfterLeave=fn<afterLeave> onBeforeLeave=fn<beforeLeave>  ... > 
+  at <Transition name="el-drawer-fade" onAfterEnter=fn<afterEnter> onAfterLeave=fn<afterLeave>  ... > 
+  at <Teleport to="body" disabled=true > 
+  at <ElDrawer modelValue=true onUpdate:modelValue=fn direction="btt"  ... > 
+  at <CheckinDetailDrawer key=0 modelValue=true onUpdate:modelValue=fn  ... > 
+  at <ElScrollbar wrap-style="height: calc(100vh - var(--header-h))" view-class="dashboard" > 
+  at <Index onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< Proxy {__v_skip: true} > > 
+  at <RouterView> 
+  at <Index onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< Proxy {__v_skip: true} > > 
+  at <RouterView> 
+  at <ElConfigProvider locale= {name: 'zh-cn', el: {…}} > 
+  at <App>

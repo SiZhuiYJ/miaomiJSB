@@ -29,7 +29,9 @@ const visible = computed({
   set: (val) => emit("update:modelValue", val),
 });
 
-const detailLoading = ref(false);
+const collapseList = ref<number[]>([]);
+
+const detailLoading = ref<boolean>(false);
 const detail = ref<CheckinDetail[] | null>(null);
 const imageObjectUrls = ref<Map<string, string>>(new Map());
 
@@ -82,6 +84,7 @@ async function fetchDetail(): Promise<void> {
   if (!props.planId || !props.date) return;
 
   const iso = toLocalDateOnlyString(props.date);
+  collapseList.value = [];
   detailLoading.value = true;
   try {
     const result = await useCheckinsStore().getCheckinDetail(props.planId, iso);
@@ -180,7 +183,12 @@ const slotStatuses = (slot: TimeSlotDto): CheckinStatus => {
 </script>
 
 <template>
-  <el-drawer v-model="visible" direction="btt" size="auto" @closed="handleClosed">
+  <el-drawer
+    v-model="visible"
+    direction="btt"
+    size="auto"
+    @closed="handleClosed"
+  >
     <template #header="{ titleId, titleClass }">
       <h1 :id="titleId" :class="titleClass">
         打卡详情
@@ -190,15 +198,35 @@ const slotStatuses = (slot: TimeSlotDto): CheckinStatus => {
         </template>
       </h1>
     </template>
-    <el-scrollbar wrap-style="max-height: calc(100vh - 80px);" view-class="drawer-body">
+    <el-scrollbar
+      wrap-style="max-height: calc(100vh - 80px);"
+      view-class="drawer-body"
+    >
       <el-skeleton v-if="detailLoading" class="detail" :rows="3" animated />
       <div v-else-if="props.mode == 'default'" class="detail">
-        <CheckinForm v-if="!detail || !detail[0]" :plan-id="props.planId" :date="props.date" @success="fetchDetail" />
-        <CheckinDetailItem v-else :checkin-detail="detail[0]" :image-object-urls="imageObjectUrls" />
+        <CheckinForm
+          v-if="!detail || !detail[0]"
+          :plan-id="props.planId"
+          :date="props.date"
+          @success="fetchDetail"
+        />
+        <CheckinDetailItem
+          v-else
+          :checkin-detail="detail[0]"
+          :image-object-urls="imageObjectUrls"
+        />
       </div>
-      <el-collapse v-else-if="props.mode == 'timeSlot'" expand-icon-position="left">
-        <el-collapse-item v-for="(item, index) in timeSlots" :key="index" :name="index"
-          :disabled="slotStatuses(item) == 'future'">
+      <el-collapse
+        v-else-if="props.mode == 'timeSlot'"
+        v-model="collapseList"
+        expand-icon-position="left"
+      >
+        <el-collapse-item
+          v-for="(item, index) in timeSlots"
+          :key="index"
+          :name="index"
+          :disabled="slotStatuses(item) == 'future'"
+        >
           <template #title>
             <div class="time-slot-container">
               <span class="time-slot-tag">
@@ -209,26 +237,44 @@ const slotStatuses = (slot: TimeSlotDto): CheckinStatus => {
                 <span v-if="slotStatuses(item) == 'missed'" class="dot missed">
                   未打卡
                 </span>
-                <span v-else-if="slotStatuses(item) == 'done'" class="dot success">
+                <span
+                  v-else-if="slotStatuses(item) == 'done'"
+                  class="dot success"
+                >
                   已打卡
                 </span>
                 <span v-else-if="slotStatuses(item) == 'made'" class="dot made">
                   已补签
                 </span>
-                <span v-else-if="slotStatuses(item) == 'pending'" class="dot pending">
+                <span
+                  v-else-if="slotStatuses(item) == 'pending'"
+                  class="dot pending"
+                >
                   进行中
                 </span>
-                <span v-else-if="slotStatuses(item) == 'future'" class="dot future">
+                <span
+                  v-else-if="slotStatuses(item) == 'future'"
+                  class="dot future"
+                >
                   未开始
                 </span>
                 <span v-else class="dot unknown">未知</span>
               </div>
             </div>
           </template>
-          <CheckinForm v-if="!findDetailById(item.id)" :plan-id="props.planId" :date="props.date"
-            :time-slot-id="item.id" @success="fetchDetail" />
-          <CheckinDetailItem v-else noStatus :checkin-detail="findDetailById(item.id)!"
-            :image-object-urls="imageObjectUrls" />
+          <CheckinDetailItem
+            v-if="findDetailById(item.id)"
+            :checkin-detail="findDetailById(item.id)!"
+            :image-object-urls="imageObjectUrls"
+            noStatus
+          />
+          <CheckinForm
+            v-else
+            :plan-id="props.planId"
+            :date="props.date"
+            :time-slot-id="item.id"
+            @success="fetchDetail()"
+          />
         </el-collapse-item>
       </el-collapse>
     </el-scrollbar>

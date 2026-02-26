@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { FileApi } from "@/features/file/api/index";
 import { useCheckinsStore, usePlansStore } from "@/stores";
 import ImagePreviewList from "@/features/file/components/ImagePreviewList.vue";
+import { toLocalDateOnlyString } from "@/utils/date";
 import {
   notifySuccess,
   notifyError,
@@ -43,13 +44,6 @@ function resetForm(): void {
   note.value = "";
   images.value = [];
   clearPreviews();
-}
-
-function formatDateOnly(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
 }
 
 async function uploadImages(): Promise<string[]> {
@@ -148,7 +142,7 @@ async function handleSubmit(): Promise<void> {
       }
 
       if (forceRetro) {
-        const isoDate = formatDateOnly(target);
+        const isoDate = toLocalDateOnlyString(target);
         await checkinsStore.retroCheckin({ ...payload, date: isoDate });
         notifySuccess("补签成功");
       } else {
@@ -156,7 +150,7 @@ async function handleSubmit(): Promise<void> {
         notifySuccess("今日打卡成功");
       }
     } else if (targetOnly.getTime() < todayOnly.getTime()) {
-      const isoDate = formatDateOnly(target);
+      const isoDate = toLocalDateOnlyString(target);
       await checkinsStore.retroCheckin({ ...payload, date: isoDate });
       notifySuccess("补签成功");
     } else {
