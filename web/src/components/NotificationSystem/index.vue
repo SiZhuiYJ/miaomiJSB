@@ -34,15 +34,15 @@ export interface NotificationMessage {
   duration?: number;
   closable?: boolean;
   direction?:
-    | "ltr"
-    | "rtl"
-    | "ttb"
-    | "btt"
-    | "center"
-    | "vSplit"
-    | "ripple"
-    | "spotlight"
-    | "fade";
+  | "ltr"
+  | "rtl"
+  | "ttb"
+  | "btt"
+  | "center"
+  | "vSplit"
+  | "ripple"
+  | "spotlight"
+  | "fade";
   count: number;
   progress: number;
   isRemoving: boolean;
@@ -155,19 +155,38 @@ const animateLayout = (callback: () => void) => {
   });
   callback();
   nextTick(() => {
+    const moves: Array<{ id: number; el: HTMLElement; deltaY: number; distance: number }> = [];
     state.forEach((oldTop, id) => {
       const el = itemRefs.value[id];
       if (!el) return;
       const newTop = el.getBoundingClientRect().top;
       const deltaY = oldTop - newTop;
       if (deltaY !== 0) {
-        gsap.fromTo(
-          el,
-          { y: deltaY },
-          { y: 0, duration: 0.5, ease: "power4.out" },
-        );
+        moves.push({ id, el, deltaY, distance: Math.abs(deltaY) });
       }
     });
+
+    if (moves.length > 0) {
+      // Sort by distance so larger moves animate first for a natural flow
+      moves.sort((a, b) => b.distance - a.distance);
+      const tl = gsap.timeline({ defaults: { duration: 0.46, ease: 'power3.out', force3D: true } });
+      moves.forEach((m, idx) => {
+        const staggerDelay = Math.min(0.08, idx * 0.02);
+        // start slightly overlapped to avoid rigid simultaneous motion
+        tl.fromTo(
+          m.el,
+          ({ y: m.deltaY, opacity: 0.95, filter: 'blur(2px)' } as any),
+          ({
+            y: 0,
+            opacity: 1,
+            filter: 'blur(0px)',
+            onStart: () => (m.el.style.willChange = 'transform, opacity'),
+            onComplete: () => (m.el.style.willChange = ''),
+          } as any),
+          Math.max(0, staggerDelay - 0.06),
+        );
+      });
+    }
   });
 };
 
@@ -224,16 +243,17 @@ const addMessage = (options: {
     nextTick(() => {
       const el = itemRefs.value[id];
       if (el) {
+        // 更明显的顶部滑入效果：从更上方进入并平滑落位
         gsap.fromTo(
           el,
-          { y: -20, opacity: 0, scale: 0.9, filter: "blur(4px)" },
+          { y: -80, opacity: 0, scale: 0.96, filter: "blur(6px)" },
           {
             y: 0,
             opacity: 1,
             scale: 1,
             filter: "blur(0px)",
-            duration: 0.6,
-            ease: "back.out(1.6)",
+            duration: 0.52,
+            ease: "power4.out",
           },
         );
         startCountdown(newMessage, duration);
@@ -269,13 +289,21 @@ const removeMessage = (id: number) => {
           messages.value = messages.value.filter((m) => m.id !== id);
         },
       });
+      // 缩小移除：动画先将元素整体缩放到 0 并淡出，同时收缩内边距，随后折叠高度
       tl.to(el, {
-        scale: 0.95,
+        scale: 0,
         opacity: 0,
-        filter: "blur(4px)",
-        duration: 0.3,
+        filter: "blur(6px)",
+        paddingTop: 0,
+        paddingBottom: 0,
+        transformOrigin: "center center",
+        duration: 0.35,
         ease: "power2.in",
-      }).to(el, { height: 0, marginBottom: 0, duration: 0.2 }, "-=0.1");
+      }).to(
+        el,
+        { height: 0, marginBottom: 0, duration: 0.25, ease: "power2.in" },
+        "-=0.15",
+      );
     } else {
       messages.value = messages.value.filter((m) => m.id !== id);
     }
@@ -290,44 +318,26 @@ defineExpose({
 
 <template>
   <div class="notification-container">
-    <div
-      v-for="(msg, index) in activeMessages"
-      :key="msg.id"
-      :ref="(el) => setItemRef(el, msg.id)"
-      class="notification-item"
-      :style="getItemBaseStyle(msg, index)"
-    >
+    <div v-for="(msg, index) in activeMessages" :key="msg.id" :ref="(el) => setItemRef(el, msg.id)"
+      class="notification-item" :style="getItemBaseStyle(msg, index)">
       <div class="bg-layer-persistent"></div>
 
       <div class="fg-layer-progress" :style="getProgressStyle(msg)"></div>
 
       <!-- Spotlight 额外光晕 -->
-      <div
-        v-if="msg.direction === 'spotlight'"
-        class="spotlight-glow"
-        :style="getSpotlightStyle(msg)"
-      ></div>
+      <div v-if="msg.direction === 'spotlight'" class="spotlight-glow" :style="getSpotlightStyle(msg)"></div>
 
       <div class="content-wrapper" :style="{ color: getDynamicTextColor(msg) }">
         <div v-if="msg.closable" class="spacer"></div>
         <span class="text-content" :title="msg.content">{{ msg.content }}</span>
-        <span
-          v-if="msg.count > 1"
-          class="count-badge"
-          :style="{ backgroundColor: getBadgeBg(msg) }"
-        >
+        <span v-if="msg.count > 1" class="count-badge" :style="{ backgroundColor: getBadgeBg(msg) }">
           <p>*</p>
           {{ msg.count }}
         </span>
-        <span
-          v-if="msg.closable"
-          class="close-btn"
-          :style="{
-            '--bgc-color': darkenColor(msg.color, 0.1),
-            '--border-color': darkenColor(msg.color, 0.5),
-          }"
-          @click="removeMessage(msg.id)"
-        >
+        <span v-if="msg.closable" class="close-btn" :style="{
+          '--bgc-color': darkenColor(msg.color, 0.1),
+          '--border-color': darkenColor(msg.color, 0.5),
+        }" @click="removeMessage(msg.id)">
         </span>
       </div>
     </div>
@@ -418,12 +428,10 @@ defineExpose({
   top: 0;
   bottom: 0;
   width: 60px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.6),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.6),
+      transparent);
   z-index: 3;
   pointer-events: none;
 }
@@ -467,7 +475,7 @@ defineExpose({
   animation: smoothShake 1.2s infinite;
   /* 总时长1.2s，前0.6s晃动，后0.6s静止 */
 
-  > p {
+  >p {
     font-weight: 400;
   }
 
