@@ -6,6 +6,7 @@ node_modules/
 /coverage
 *.tgz
 *.zip
+/stats.html
 
 # 日志文件
 logs/

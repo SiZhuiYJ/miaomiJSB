@@ -44,6 +44,7 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
             .Select(x => new PlanSummary
             {
                 Id = (long)x.Id,
+                CheckinMode = x.CheckinMode,
                 Title = x.Title,
                 Description = x.Description,
                 StartDate = x.StartDate,
@@ -97,13 +98,13 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
                     return BadRequest(new { message = $"时间段 {slot.SlotName} 开始时间必须早于结束时间" });
                 }
             }
-            
+
             var sortedSlots = request.TimeSlots.OrderBy(s => s.StartTime).ToList();
             for (int i = 0; i < sortedSlots.Count - 1; i++)
             {
-                if (sortedSlots[i].EndTime > sortedSlots[i+1].StartTime)
+                if (sortedSlots[i].EndTime > sortedSlots[i + 1].StartTime)
                 {
-                     return BadRequest(new { message = "时间段存在重叠，请检查设置" });
+                    return BadRequest(new { message = "时间段存在重叠，请检查设置" });
                 }
             }
         }
@@ -118,7 +119,8 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
             IsActive = true,
             IsDeleted = false,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            CheckinMode = request.TimeSlots?.Count > 0 ? (byte)1 : (byte)0 // 根据是否有时间段配置设置打卡模式
         };
 
         if (request.TimeSlots != null)
@@ -149,7 +151,8 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
             StartDate = plan.StartDate,
             EndDate = plan.EndDate,
             IsActive = plan.IsActive,
-            TimeSlots = plan.CheckinPlanTimeSlots.Select(ts => new TimeSlotDto
+            CheckinMode = plan.CheckinMode,
+            TimeSlots = [.. plan.CheckinPlanTimeSlots.Select(ts => new TimeSlotDto
             {
                 Id = ts.Id,
                 SlotName = ts.SlotName,
@@ -157,7 +160,7 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
                 EndTime = ts.EndTime,
                 OrderNum = ts.OrderNum,
                 IsActive = ts.IsActive ?? true
-            }).ToList()
+            })]
         };
 
         return CreatedAtAction(nameof(GetMyPlans), new { id = plan.Id }, result);
@@ -212,10 +215,10 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
                     }
                 }
             }
-            
+
             // 更新时间段：先清除旧的（或者标记删除），这里选择物理删除重建，简单有效
             _db.CheckinPlanTimeSlots.RemoveRange(plan.CheckinPlanTimeSlots);
-            
+
             foreach (var slotDto in request.TimeSlots)
             {
                 plan.CheckinPlanTimeSlots.Add(new CheckinPlanTimeSlot

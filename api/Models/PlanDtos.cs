@@ -82,6 +82,11 @@ public class PlanSummary
     public long Id { get; set; }
 
     /// <summary>
+    /// 打卡模式：0-默认模式，1-时间段打卡模式
+    /// </summary>
+    public byte CheckinMode { get; set; }
+
+    /// <summary>
     /// 计划标题。
     /// </summary>
     public string Title { get; set; } = string.Empty;

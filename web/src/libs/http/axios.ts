@@ -1,23 +1,41 @@
-// @/libs/http/axios.ts
-import axios, {
-  type AxiosInstance,
-  type AxiosRequestConfig,
-  type AxiosResponse,
-  type InternalAxiosRequestConfig,
-  type AxiosError,
+import type {
+  AxiosInstance,
+  AxiosRequestConfig,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+  AxiosError,
+
 } from "axios";
+import axios, { AxiosHeaders } from "axios";
 import type { AuthData } from "@/features/auth/types";
 import { useAuthStore } from "@/features/auth/stores";
 import { notifyWarning } from "@/utils/notification";
 import router from "@/routers/index";
-// 只有请求封装用的MM，方便简写
+import { httpConfig as defaultHttpConfig, type HttpConfig } from "./config"; // 导入配置
+
 class MM {
   private instance: AxiosInstance;
-  // 初始化
-  constructor(config: AxiosRequestConfig) {
-    // 实例化axios
-    this.instance = axios.create(config);
-    // 配置拦截器
+  // 并发控制相关
+  private maxConcurrent: number;
+  private currentConcurrent: number = 0;
+  private requestQueue: Array<{
+    config: InternalAxiosRequestConfig;
+    resolve: (value: AxiosResponse | PromiseLike<AxiosResponse>) => void;
+    reject: (reason?: any) => void;
+  }> = [];
+  // 节流相关
+  private throttleEnabled: boolean;
+  private throttleMap: Map<string, Promise<AxiosResponse>> = new Map();
+  private throttleKeyGenerator: (config: InternalAxiosRequestConfig) => string;
+
+  constructor(axiosConfig: AxiosRequestConfig, httpConfig?: Partial<HttpConfig>) {
+    this.instance = axios.create(axiosConfig);
+    // 合并配置
+    const finalConfig = { ...defaultHttpConfig, ...httpConfig };
+    this.maxConcurrent = finalConfig.maxConcurrentRequests;
+    this.throttleEnabled = finalConfig.throttleEnabled;
+    this.throttleKeyGenerator = finalConfig.throttleKeyGenerator!;
+
     this.interceptors();
   }
 
@@ -81,11 +99,9 @@ class MM {
     ) {
       // 显式设置_retry属性，确保类型安全
       (error.config as any)._retry = true;
-      console.log("刷新token", (error.config as any)._retry);
 
       try {
         console.log("尝试刷新token");
-
         const refreshResponse = await this.post<AuthData>("/mm/Auth/refresh", {
           refreshToken: auth.refreshToken,
         });
@@ -107,79 +123,143 @@ class MM {
 
     return Promise.reject(error);
   }
-  // Get请求
-  async get<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
-    try {
-      return await this.instance.get(url, data);
-    } catch (error) {
-      return Promise.reject(error);
+  // 请求统一入口：处理并发和节流
+  private async requestWithControl<T>(config: InternalAxiosRequestConfig): Promise<AxiosResponse<T>> {
+    let throttleKey: string | undefined;
+    if (this.throttleEnabled) {
+      throttleKey = this.throttleKeyGenerator(config);
+      const existingPromise = this.throttleMap.get(throttleKey);
+      if (existingPromise) {
+        return existingPromise as Promise<AxiosResponse<T>>;
+      }
     }
-  }
-  // Post请求
-  async post<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
-    try {
-      return await this.instance.post(url, data);
-    } catch (error) {
-      return Promise.reject(error);
+
+    const requestPromise = this.executeRequest<T>(config);
+
+    if (throttleKey) {
+      this.throttleMap.set(throttleKey, requestPromise);
+      requestPromise.finally(() => {
+        this.throttleMap.delete(throttleKey);
+      }).catch(() => { });
     }
+
+    return requestPromise;
   }
-  // Put请求
-  async put<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
-    try {
-      return await this.instance.put(url, data);
-    } catch (error) {
-      return Promise.reject(error);
-    }
+
+  // 实际执行请求，考虑并发队列
+  private executeRequest<T>(config: InternalAxiosRequestConfig): Promise<AxiosResponse<T>> {
+    return new Promise((resolve, reject) => {
+      const runRequest = () => {
+        this.currentConcurrent++;
+        this.instance.request(config)
+          .then((response) => {
+            this.currentConcurrent--;
+            resolve(response as AxiosResponse<T>);
+            this.next();
+          })
+          .catch((error) => {
+            this.currentConcurrent--;
+            reject(error);
+            this.next();
+          });
+      };
+
+      if (this.currentConcurrent < this.maxConcurrent) {
+        runRequest();
+      } else {
+        this.requestQueue.push({ config, resolve, reject });
+      }
+    });
   }
-  // Delete请求
-  async delete<T>(url: string): Promise<AxiosResponse<T>> {
-    try {
-      return await this.instance.delete(url);
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  }
-  // 图片上传
-  async upload<T>(url: string, formData?: object): Promise<AxiosResponse<T>> {
-    const auth = useAuthStore();
-    try {
-      return await this.instance.post(url, formData, {
-        headers: {
-          Authorization: "Bearer " + auth.accessToken || "",
-          "Content-Type": "multipart/form-data",
-        },
-      });
-    } catch (error) {
-      return Promise.reject(error);
-    }
-  }
-  // 下载
-  async download<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
-    const auth = useAuthStore();
-    try {
-      return await this.instance.post(url, data, {
-        headers: {
-          Authorization: "Bearer " + (auth.accessToken || ""),
-        },
-        responseType: "blob",
-      });
-    } catch (error) {
-      return Promise.reject(error);
+
+  // 从队列中取出下一个请求执行
+  private next() {
+    if (this.requestQueue.length > 0 && this.currentConcurrent < this.maxConcurrent) {
+      const nextRequest = this.requestQueue.shift()!;
+      this.currentConcurrent++;
+      this.instance.request(nextRequest.config)
+        .then((response) => {
+          this.currentConcurrent--;
+          nextRequest.resolve(response);
+          this.next();
+        })
+        .catch((error) => {
+          this.currentConcurrent--;
+          nextRequest.reject(error);
+          this.next();
+        });
     }
   }
 
+  // axios.ts (部分修改)
+  async get<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
+    const headers = new AxiosHeaders();
+    return this.requestWithControl<T>({
+      method: 'GET',
+      url,
+      params: data,
+      headers, // 类型完全匹配 InternalAxiosRequestConfig['headers']
+    });
+  }
+
+  async post<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
+    const headers = new AxiosHeaders();
+    return this.requestWithControl<T>({
+      method: 'POST',
+      url,
+      data,
+      headers,
+    });
+  }
+
+  async put<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
+    const headers = new AxiosHeaders();
+    return this.requestWithControl<T>({
+      method: 'PUT',
+      url,
+      data,
+      headers, // 类型完全匹配 InternalAxiosRequestConfig['headers']
+    });
+  }
+
+  async delete<T>(url: string): Promise<AxiosResponse<T>> {
+    const headers = new AxiosHeaders();
+    return this.requestWithControl<T>({
+      method: 'DELETE',
+      url,
+      headers,
+    });
+  }
+
+  async download<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
+    const headers = new AxiosHeaders();
+    return this.requestWithControl<T>({
+      method: 'POST',
+      url,
+      data,
+      responseType: 'blob',
+      headers,
+    });
+  }
+
   async getImage<T>(url: string): Promise<AxiosResponse<T>> {
-    const auth = useAuthStore();
-    try {
-      return await this.instance.get(url, {
-        headers: {
-          Authorization: "Bearer " + (auth.accessToken || ""),
-        },
-        responseType: "arraybuffer",
-      });
-    } catch (error) {
-      return Promise.reject(error);
-    }
+    const headers = new AxiosHeaders();
+    return this.requestWithControl<T>({
+      method: 'GET',
+      url,
+      responseType: 'arraybuffer',
+      headers, // 类型完全匹配 InternalAxiosRequestConfig['headers']
+    });
+  }
+  async upload<T>(url: string, formData?: object): Promise<AxiosResponse<T>> {
+    const headers = new AxiosHeaders();
+    headers.set('Content-Type', 'multipart/form-data');
+    return this.requestWithControl<T>({
+      method: 'POST',
+      url,
+      data: formData,
+      headers, // 类型完全匹配 InternalAxiosRequestConfig['headers']
+    });
   }
 }
 

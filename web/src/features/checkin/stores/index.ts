@@ -18,7 +18,7 @@ export const useCheckinsStore = defineStore("checkins", () => {
     month: number,
   ): Promise<void> {
     const response = await checkinApi.loadCalendar({
-      params: { planId, year, month },
+      planId, year, month,
     });
     calendar.value = response.data;
     calendarByPlan.value[planId] = response.data;
@@ -37,7 +37,7 @@ export const useCheckinsStore = defineStore("checkins", () => {
     date: string,
   ): Promise<CheckinDetail[]> {
     const response = await checkinApi.GetCheckinDetail({
-      params: { planId, date },
+      planId, date,
     });
     return response.data;
   }

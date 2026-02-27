@@ -31,7 +31,7 @@ onMounted(async () => {
   initTheme();
   
   // 测试通知系统（减少测试数量以避免性能问题）
-  notify({ content: "欢迎使用每日打卡系统", color: "#10b981", duration: 3000 });
+  notify({ content: "欢迎使用每日打卡系统", color: "#10b981", duration: 30000 });
   
   // 延迟测试不同类型的通知
   setTimeout(() => {

@@ -45,8 +45,11 @@ onMounted(async () => {
 
 watch(
   () => [selectedPlanId.value, currentYear.value, currentMonth.value],
-  async (vals) => {
+  async (vals, old) => {
+    console.log("old values:", old);
     console.log("selectedPlanId:", vals[0]);
+    console.log("currentYear:", vals[1]);
+    console.log("currentMonth:", vals[2]);
     const planId = vals[0];
     if (!planId) return;
     await checkinsStore.loadCalendar(
@@ -59,7 +62,9 @@ watch(
 );
 
 function handleDateClick(date: Date): void {
+  // 检查计划范围和未来日期
   const todayOnly = getDateWithoutTime(new Date());
+  // 获取当前时间的年月日，构造一个新的日期对象，时间部分为00:00:00
   const targetOnly = getDateWithoutTime(date);
 
   // 检查计划范围

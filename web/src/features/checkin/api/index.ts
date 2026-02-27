@@ -9,8 +9,9 @@ import type {
 
 export const checkinApi = {
   async loadCalendar(data: {
-    params: { planId: number; year: number; month: number };
+    planId: number; year: number; month: number;
   }) {
+    console.log("loadCalendar", data);
     return await http.get<CalendarItem[]>("/mm/Checkins/calendar", data);
   },
   async Checkin(data: CheckinRecord) {
@@ -19,7 +20,7 @@ export const checkinApi = {
   async RetroCheckin(data: RetroCheckinRecord) {
     return http.post("/mm/Checkins/retro", data);
   },
-  async GetCheckinDetail(data: { params: { planId: number; date: string } }) {
+  async GetCheckinDetail(data: { planId: number; date: string }) {
     return await http.get<CheckinDetail[]>("/mm/Checkins/detail", data);
   },
 };

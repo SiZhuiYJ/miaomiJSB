@@ -1,4 +1,4 @@
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { usePlansStore, useCheckinsStore } from "@/stores";
 import { storeToRefs } from "pinia";
 import { toLocalDateOnlyString } from "@/utils/date";
@@ -205,6 +205,11 @@ export function usePlanCalendar() {
     return '--progress: ' + (statusCode * 100) + '%;';
   }
 
+  watch(checkinDate, (newDate) => {
+    console.log("checkinDate changed:", newDate);
+    if (!selectedPlanId.value) return;
+    useCheckinsStore().loadCalendar(selectedPlanId.value, newDate.getFullYear(), newDate.getMonth() + 1);
+  });
   return {
     // 响应式数据
     currentYear,

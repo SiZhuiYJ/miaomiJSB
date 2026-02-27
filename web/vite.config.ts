@@ -21,8 +21,6 @@ export default defineConfig({
   plugins: [
     // 引入Vue插件
     vue(),
-    // 打包可视化分析插件，用于分析打包文件大小
-    visualizer({ open: true }),
     // 自动导入插件，自动导入Vue和Pinia相关函数，并自动注册Element Plus组件
     AutoImport({
       imports: ["vue", "pinia"],
@@ -40,6 +38,13 @@ export default defineConfig({
       include: ["src/assets/icons/**/*.svg", "src/assets/icons/*.svg"],
       // 生成 symbol ID 格式
       symbolId: "icon-[name]",
+    }),
+    visualizer({
+      filename: 'stats.html', // 分析报告生成的文件名和路径
+      open: true,                  // 构建完成后自动在浏览器中打开报告
+      gzipSize: true,              // 显示 gzip 压缩后的大小
+      brotliSize: true,            // 显示 brotli 压缩后的大小
+      emitFile: true,              // 如果为 false，则不会生成文件，只在控制台输出
     }),
   ],
   // 开发服务器配置

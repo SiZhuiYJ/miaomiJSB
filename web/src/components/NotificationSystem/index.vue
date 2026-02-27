@@ -378,7 +378,7 @@ defineExpose({
   overflow: hidden;
   will-change: transform, opacity;
   border: 2px solid currentColor;
-  transition: all 0.1s ease;
+  transition: all 0.3s ease;
 
   /* Added border */
   &:hover {

@@ -19,13 +19,6 @@ interface Emits {
   (e: "dateClick", date: Date): void;
 }
 
-interface Emits {
-  (e: "update:selectedPlanId", value: number | null): void;
-  (e: "create"): void;
-  (e: "edit"): void;
-  (e: "dateClick", date: Date): void;
-}
-
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
