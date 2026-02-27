@@ -10,63 +10,51 @@
   height: 46px !important;
 }
 
-.day-label {
-  width: 100%;
-  height: 100%;
-  border-radius: 10px;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-
-
-.day {
+.day:not(.mini-day) {
   width: 100%;
   height: 100%;
   padding: 8px;
 }
 
-.is-today .day span {
+.is-today .day .day-label {
   border: 1px dashed var(--el-color-primary)
 }
 
 .prev .day.success span,
 .next .day.success span {
-  box-shadow: 0 0 2px 2px rgba(202, 255, 222, 0.2);
+  border: 1px dashed #89ffb6;
   background: rgba(202, 255, 222, 0.2);
   color: #89ffb6;
 }
 
-.success span {
-  box-shadow: 0 0 2px 2px rgba(34, 197, 94, 0.2);
+.success .day-label {
+  border: 1px dashed #22c55e;
   background: rgba(34, 197, 94, 0.2);
   color: #22c55e;
 }
 
 .prev .day.retro span,
 .next .day.retro span {
-  box-shadow: 0 0 2px 2px rgba(255, 246, 217, 0.2);
+  border: 1px dashed #ffc685;
   background: rgba(255, 246, 217, 0.2);
   color: #ffc685;
 }
 
-.retro span {
-  box-shadow: 0 0 2px 2px rgba(234, 179, 8, 0.2);
+.retro .day-label {
+  border: 1px dashed #eab308;
   background: rgba(234, 179, 8, 0.2);
   color: #eab308;
 }
 
 .prev .day.missed span,
 .next .day.missed span {
-  box-shadow: 0 0 2px 2px rgba(255, 211, 211, 0.2);
+  border: 1px dashed #ff7f7f;
   background: rgba(255, 211, 211, 0.2);
   color: #ff7f7f;
 }
 
-.missed span {
-  box-shadow: 0 0 2px 2px rgba(248, 113, 113, 0.2);
+.missed .day-label {
+  border: 1px dashed #f87171;
   background: rgba(248, 113, 113, 0.2);
   color: #f87171;
 }

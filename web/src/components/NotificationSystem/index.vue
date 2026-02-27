@@ -52,6 +52,9 @@ export interface NotificationMessage {
 const messages = ref<NotificationMessage[]>([]);
 const itemRefs = ref<Record<number, HTMLElement>>({});
 
+// 全局消息ID计数器，确保每个消息都有唯一ID
+let messageIdCounter = 0;
+
 const activeMessages = computed(() => messages.value.slice(0, 5));
 
 const setItemRef = (el: any, id: number) => {
@@ -202,7 +205,8 @@ const addMessage = (options: {
   }
 
   animateLayout(() => {
-    const id = Date.now();
+    // 使用递增计数器确保唯一性，避免 Date.now() 可能产生的重复值
+    const id = ++messageIdCounter;
     const newMessage = reactive<NotificationMessage>({
       id,
       content,

@@ -87,13 +87,16 @@ export default defineConfig({
     minify: "terser", // 启用 terser 压缩
     terserOptions: {
       compress: {
-        pure_funcs: ["console.log"], // 只删除 console.log
-        drop_debugger: true, // 删除 debugger
+        // 只删除 console.log
+        // pure_funcs: ["console.log"],
+        // 删除 debugger
+        // drop_debugger: true,
       },
     },
   },
   esbuild: {
-    drop: ["console", "debugger"], // 删除 所有的console 和 debugger
+    // 删除 所有的console 和 debugger
+    // drop: ["console", "debugger"],
   },
   /**
    * 路径解析配置

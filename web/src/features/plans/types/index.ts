@@ -10,6 +10,7 @@ export interface TimeSlotDto {
 export interface PlanSummary {
   id: number;
   title: string;
+  checkinMode: number;
   description: string | null;
   startDate: string;
   endDate: string | null;

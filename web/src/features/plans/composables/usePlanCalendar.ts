@@ -3,7 +3,7 @@ import { usePlansStore, useCheckinsStore } from "@/stores";
 import { storeToRefs } from "pinia";
 import { toLocalDateOnlyString } from "@/utils/date";
 export function usePlanCalendar() {
-  const { items } = storeToRefs(usePlansStore());
+  const { PlansItems } = storeToRefs(usePlansStore());
   const { calendarByPlan } = storeToRefs(useCheckinsStore());
 
   const today = new Date();
@@ -14,9 +14,7 @@ export function usePlanCalendar() {
 
   const selectedPlan = computed(() => {
     if (selectedPlanId.value == null) return null;
-    console.log("items", items.value);
-    const data = items.value.find((x) => x.id === selectedPlanId.value) ?? null;
-    console.log("plan", data);
+    const data = PlansItems.value.find((x) => x.id === selectedPlanId.value) ?? null;
     return data;
   });
 
@@ -60,7 +58,7 @@ export function usePlanCalendar() {
 
   function isInPlanRangeForPlan(planId: number | null, date: Date): boolean {
     if (planId == null) return false;
-    const plan = items.value.find((x) => x.id === planId);
+    const plan = PlansItems.value.find((x) => x.id === planId);
     if (!plan) return false;
     const cellDate = parseDateOnly(toLocalDateOnlyString(date));
     const startDate = parseDateOnly(plan.startDate);
@@ -81,7 +79,38 @@ export function usePlanCalendar() {
     return found?.status;
   }
 
+  function getTimeProgress(planId: number | null, date: Date): number {
+    if (planId == null) return 0;
+    const list = calendarByPlan.value[planId] ?? [];
+    const key = toLocalDateOnlyString(date);
+    const found = list.find((item) => item.date === key);
+    if (found && found.checkinMode == 1) {
+      const timeCount = PlansItems.value.find((x) => x.id === planId)?.timeSlots?.length ?? 0;
+      if (timeCount > 0) {
+        return found.status / timeCount;
+      }
+    }
+    return 0;
+  }
+
   function getPlanDayStatusClass(planId: number | null, date: Date): string {
+    if (planId == null) return "day";
+    const list = calendarByPlan.value[planId] ?? [];
+    const key = toLocalDateOnlyString(date);
+    const found = list.find((item) => item.date === key);
+    if (found) {
+      if (found.checkinMode == 1) {
+        const statusCode = getTimeProgress(planId, date);
+        if (statusCode >= 0.7) {
+          return "day success cell";
+        }
+        if (statusCode > 0.5) {
+          return "day retro cell";
+        }
+        return "day missed cell";
+      }
+    }
+
     const status = getPlanStatusCode(planId, date);
     if (status === 1) return "day success";
     if (status === 2) return "day retro";
@@ -100,7 +129,6 @@ export function usePlanCalendar() {
     if (inPlanRange && isPastDay && (status === undefined || status === null)) {
       return "day missed";
     }
-
     return "day";
   }
 
@@ -172,6 +200,11 @@ export function usePlanCalendar() {
     return getPlanDayStatusClass(selectedPlanId.value, date);
   }
 
+  function getDayStatusStyle(date: Date): string {
+    const statusCode = getTimeProgress(selectedPlanId.value, date);
+    return '--progress: ' + (statusCode * 100) + '%;';
+  }
+
   return {
     // 响应式数据
     currentYear,
@@ -190,10 +223,10 @@ export function usePlanCalendar() {
     toLocalDateOnlyString,
     parseDateOnly,
     isInPlanRangeForPlan,
-    getPlanStatusCode,
     getPlanDayStatusClass,
     getMiniDayClassForPlan,
     formatDayLabel,
     getDayStatusClass,
+    getDayStatusStyle
   };
 }

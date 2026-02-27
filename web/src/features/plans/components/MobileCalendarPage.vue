@@ -8,6 +8,7 @@ interface Props {
   checkinDate: Date;
   mobileMode: "card" | "calendar";
   getDayStatusClass: (date: Date) => string;
+  getDayStatusStyle: (date: Date) => string;
 }
 
 interface Emits {
@@ -32,7 +33,7 @@ const plansStore = usePlansStore();
 
 const selectedPlan = computed(() => {
   if (props.selectedPlanId == null) return null;
-  return plansStore.items.find((x) => x.id === props.selectedPlanId) ?? null;
+  return plansStore.PlansItems.find((x) => x.id === props.selectedPlanId) ?? null;
 });
 
 function handleDateClick(date: Date): void {
@@ -64,7 +65,8 @@ function getDayStatusClass(date: Date): string {
     <el-calendar v-model="localCheckinDate">
       <template #date-cell="{ data }">
         <CalendarCell :date="data.date" :day-label="formatDayLabel(data.day)"
-          :status-class="getDayStatusClass(data.date)" @click="handleDateClick" />
+          :status-class="getDayStatusClass(data.date)" :status-style="getDayStatusStyle(data.date)"
+          @click="handleDateClick" />
       </template>
     </el-calendar>
 
@@ -114,7 +116,9 @@ function getDayStatusClass(date: Date): string {
 
 @media (max-width: 768px) {
   .mobile-only {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
   }
 }
 </style>

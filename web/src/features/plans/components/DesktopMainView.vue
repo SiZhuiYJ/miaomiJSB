@@ -8,6 +8,7 @@ interface Props {
   selectedPlanId: number | null;
   checkinDate: Date;
   getDayStatusClass: (date: Date) => string;
+  getDayStatusStyle: (date: Date) => string;
 }
 
 interface Emits {
@@ -37,7 +38,7 @@ const plansStore = usePlansStore();
 
 const selectedPlan = computed(() => {
   if (props.selectedPlanId == null) return null;
-  return plansStore.items.find((x) => x.id === props.selectedPlanId) ?? null;
+  return plansStore.PlansItems.find((x) => x.id === props.selectedPlanId) ?? null;
 });
 
 function handleDateClick(date: Date): void {
@@ -56,7 +57,7 @@ function getDayStatusClass(date: Date): string {
 
 <template>
   <main class="content desktop-only">
-    <PlanSidebar :items="plansStore.items" :selected-id="selectedPlanId"
+    <PlanSidebar :items="plansStore.PlansItems" :selected-id="selectedPlanId"
       @update:selected-id="(v) => emit('update:selectedPlanId', v)" @create="emit('create')" />
 
     <section class="main">
@@ -71,7 +72,8 @@ function getDayStatusClass(date: Date): string {
       <el-calendar v-model="localCheckinDate">
         <template #date-cell="{ data }">
           <CalendarCell :date="data.date" :day-label="formatDayLabel(data.day)"
-            :status-class="getDayStatusClass(data.date)" @click="handleDateClick" />
+            :status-class="getDayStatusClass(data.date)" :status-style="getDayStatusStyle(data.date)"
+            @click="handleDateClick" />
         </template>
       </el-calendar>
 

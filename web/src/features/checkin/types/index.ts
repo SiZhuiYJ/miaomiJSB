@@ -1,6 +1,9 @@
+import type { TimeSlotDto } from "@/features/plans/types";
 export interface CalendarItem {
   date: string;
   status: number;
+  checkinMode: number;
+  timeSlots: TimeSlotDto[];
 }
 
 export interface CheckinDetail {

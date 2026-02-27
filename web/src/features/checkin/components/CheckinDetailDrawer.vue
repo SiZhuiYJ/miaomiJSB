@@ -8,6 +8,8 @@ import type { TimeSlotDto } from "@/features/plans/types";
 import { notifyError } from "@/utils/notification";
 import CheckinDetailItem from "./CheckinDetailItem.vue";
 import CheckinForm from "./CheckinForm.vue";
+import Status from "./Status.vue";
+import { isToday } from "@/utils/date";
 const { toLocalDateOnlyString } = usePlanCalendar();
 
 const props = defineProps<{
@@ -28,8 +30,6 @@ const visible = computed({
   get: () => props.modelValue,
   set: (val) => emit("update:modelValue", val),
 });
-
-const collapseList = ref<number[]>([]);
 
 const detailLoading = ref<boolean>(false);
 const detail = ref<CheckinDetail[] | null>(null);
@@ -79,12 +79,13 @@ async function loadImagesForList(details: CheckinDetail[]): Promise<void> {
     }
   }
 }
-
+/**
+ * 获取打卡详情
+ */
 async function fetchDetail(): Promise<void> {
   if (!props.planId || !props.date) return;
 
   const iso = toLocalDateOnlyString(props.date);
-  collapseList.value = [];
   detailLoading.value = true;
   try {
     const result = await useCheckinsStore().getCheckinDetail(props.planId, iso);
@@ -98,7 +99,9 @@ async function fetchDetail(): Promise<void> {
     detailLoading.value = false;
   }
 }
-
+/**
+ * 关闭抽屉时清理数据
+ */
 function handleClosed(): void {
   for (const url of imageObjectUrls.value.values()) {
     URL.revokeObjectURL(url);
@@ -107,15 +110,7 @@ function handleClosed(): void {
   detail.value = null;
 }
 
-// 判断date是否为今天
-function isToday(date: Date): boolean {
-  const today = new Date();
-  return (
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate()
-  );
-}
+
 
 watch(
   () => visible.value,
@@ -142,13 +137,17 @@ watch(
     console.log(res);
   },
 );
+
 onBeforeUnmount(() => {
   handleClosed();
 });
+
 const findDetailById = (id: number): CheckinDetail | undefined => {
   return detail.value?.find((c) => c.timeSlotId === id);
 };
-
+/**
+ * 获取打卡状态
+ */
 const slotStatuses = (slot: TimeSlotDto): CheckinStatus => {
   const now = new Date();
   const todayStr = toLocalDateOnlyString(now);
@@ -183,12 +182,7 @@ const slotStatuses = (slot: TimeSlotDto): CheckinStatus => {
 </script>
 
 <template>
-  <el-drawer
-    v-model="visible"
-    direction="btt"
-    size="auto"
-    @closed="handleClosed"
-  >
+  <el-drawer v-model="visible" direction="btt" size="auto" @closed="handleClosed">
     <template #header="{ titleId, titleClass }">
       <h1 :id="titleId" :class="titleClass">
         打卡详情
@@ -198,83 +192,28 @@ const slotStatuses = (slot: TimeSlotDto): CheckinStatus => {
         </template>
       </h1>
     </template>
-    <el-scrollbar
-      wrap-style="max-height: calc(100vh - 80px);"
-      view-class="drawer-body"
-    >
+    <el-scrollbar wrap-style="max-height: calc(100vh - 80px);" view-class="drawer-body">
       <el-skeleton v-if="detailLoading" class="detail" :rows="3" animated />
       <div v-else-if="props.mode == 'default'" class="detail">
-        <CheckinForm
-          v-if="!detail || !detail[0]"
-          :plan-id="props.planId"
-          :date="props.date"
-          @success="fetchDetail"
-        />
-        <CheckinDetailItem
-          v-else
-          :checkin-detail="detail[0]"
-          :image-object-urls="imageObjectUrls"
-        />
+        <CheckinForm v-if="!detail || !detail[0]" :plan-id="props.planId" :date="props.date" @success="fetchDetail" />
+        <CheckinDetailItem v-else :checkin-detail="detail[0]" :image-object-urls="imageObjectUrls" />
       </div>
-      <el-collapse
-        v-else-if="props.mode == 'timeSlot'"
-        v-model="collapseList"
-        expand-icon-position="left"
-      >
-        <el-collapse-item
-          v-for="(item, index) in timeSlots"
-          :key="index"
-          :name="index"
-          :disabled="slotStatuses(item) == 'future'"
-        >
+      <el-collapse v-else-if="props.mode == 'timeSlot'" expand-icon-position="left">
+        <el-collapse-item v-for="(item, index) in timeSlots" :key="index" :name="index"
+          :disabled="slotStatuses(item) == 'future'">
           <template #title>
             <div class="time-slot-container">
               <span class="time-slot-tag">
                 {{ item.slotName }} · {{ item.startTime }}-
                 {{ item.endTime }}
               </span>
-              <div>
-                <span v-if="slotStatuses(item) == 'missed'" class="dot missed">
-                  未打卡
-                </span>
-                <span
-                  v-else-if="slotStatuses(item) == 'done'"
-                  class="dot success"
-                >
-                  已打卡
-                </span>
-                <span v-else-if="slotStatuses(item) == 'made'" class="dot made">
-                  已补签
-                </span>
-                <span
-                  v-else-if="slotStatuses(item) == 'pending'"
-                  class="dot pending"
-                >
-                  进行中
-                </span>
-                <span
-                  v-else-if="slotStatuses(item) == 'future'"
-                  class="dot future"
-                >
-                  未开始
-                </span>
-                <span v-else class="dot unknown">未知</span>
-              </div>
+              <Status :slot-status="slotStatuses(item)" />
             </div>
           </template>
-          <CheckinDetailItem
-            v-if="findDetailById(item.id)"
-            :checkin-detail="findDetailById(item.id)!"
-            :image-object-urls="imageObjectUrls"
-            noStatus
-          />
-          <CheckinForm
-            v-else
-            :plan-id="props.planId"
-            :date="props.date"
-            :time-slot-id="item.id"
-            @success="fetchDetail()"
-          />
+          <CheckinDetailItem v-if="findDetailById(item.id)" :checkin-detail="findDetailById(item.id)!"
+            :image-object-urls="imageObjectUrls" noStatus />
+          <CheckinForm v-else :plan-id="props.planId" :date="props.date" :time-slot-id="item.id"
+            @success="fetchDetail" />
         </el-collapse-item>
       </el-collapse>
     </el-scrollbar>
@@ -292,39 +231,5 @@ const slotStatuses = (slot: TimeSlotDto): CheckinStatus => {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-}
-
-.dot {
-  padding: 4px;
-  border-radius: 8px;
-}
-
-.dot.success {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
-}
-
-.dot.made {
-  background: rgba(234, 179, 8, 0.2);
-  color: #eab308;
-}
-
-.dot.missed {
-  background: rgba(248, 113, 113, 0.2);
-  color: #f87171;
-}
-
-.dot.future {
-  background: rgba(129, 129, 129, 0.2);
-  color: #353535;
-}
-
-.dot.pending {
-  background: rgba(122, 175, 255, 0.2);
-  color: #3b82f6;
-}
-
-.dot.unknown {
-  background: #94a3b8;
 }
 </style>

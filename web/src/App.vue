@@ -4,7 +4,7 @@ import { ref, onMounted } from "vue";
 import { ElConfigProvider, dayjs } from "element-plus";
 import { setNotificationInstance } from "@/utils/notification";
 import NotificationSystem from "@/components/NotificationSystem/index.vue";
-import { notify } from "@/utils/notification";
+import { notify, notifySuccess, notifyWarning, notifyError } from "@/utils/notification";
 // @ts-ignore
 import zhCn from "element-plus/dist/locale/zh-cn.mjs";
 // @ts-ignore
@@ -29,12 +29,16 @@ function initTheme(): void {
 onMounted(async () => {
   setNotificationInstance(notificationSystemRef.value);
   initTheme();
-  for (let i = 1; i <= 10; i++)
-    notify({ content: "测试", color: "#22c55e", duration: 60000 });
-  for (let i = 1; i <= 10; i++)
-    setTimeout(() => {
-      notify({ content: "测试" + i, color: "#22c55e", duration: i * 1000 });
-    }, 10000);
+  
+  // 测试通知系统（减少测试数量以避免性能问题）
+  notify({ content: "欢迎使用每日打卡系统", color: "#10b981", duration: 3000 });
+  
+  // 延迟测试不同类型的通知
+  setTimeout(() => {
+    notifySuccess("登录成功！");
+    notifyWarning("请注意打卡时间");
+    notifyError("网络连接异常");
+  }, 2000);
 });
 </script>
 

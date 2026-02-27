@@ -24,12 +24,12 @@ const emit = defineEmits<Emits>();
 
 const plansStore = usePlansStore();
 
-const showEmptyState = computed(() => plansStore.items.length === 0);
+const showEmptyState = computed(() => plansStore.PlansItems.length === 0);
 </script>
 
 <template>
   <main class="mobile-main mobile-only" v-if="mobileMode === 'card'">
-    <section v-for="plan in plansStore.items" :key="plan.id" class="mobile-card" @click="emit('selectPlan', plan.id)">
+    <section v-for="plan in plansStore.PlansItems" :key="plan.id" class="mobile-card" @click="emit('selectPlan', plan.id)">
       <div class="mobile-card-header">
         <div>
           <div class="mobile-title">
@@ -241,7 +241,9 @@ const showEmptyState = computed(() => plansStore.items.length === 0);
 
 @media (max-width: 768px) {
   .mobile-only {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
   }
 }
 </style>

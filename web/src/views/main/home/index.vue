@@ -29,6 +29,7 @@ const {
   isInPlanRangeForPlan,
   getMiniDayClassForPlan,
   getDayStatusClass,
+  getDayStatusStyle,
 } = usePlanCalendar();
 
 const showPlanDrawer = ref(false);
@@ -38,22 +39,14 @@ const mobileMode = ref<"card" | "calendar">("card");
 
 onMounted(async () => {
   await plansStore.fetchMyPlans();
-  const first = plansStore.items[0];
+  const first = plansStore.PlansItems[0];
   if (first) selectedPlanId.value = first.id;
-
-  if (plansStore.items.length > 0) {
-    const year = currentYear.value;
-    const month = currentMonth.value;
-    const tasks = plansStore.items.map((plan) =>
-      checkinsStore.loadCalendar(plan.id, year, month),
-    );
-    await Promise.all(tasks);
-  }
 });
 
 watch(
   () => [selectedPlanId.value, currentYear.value, currentMonth.value],
   async (vals) => {
+    console.log("selectedPlanId:", vals[0]);
     const planId = vals[0];
     if (!planId) return;
     await checkinsStore.loadCalendar(
@@ -126,7 +119,7 @@ function handlePlanUpdated(): void { }
 
 function handlePlanDeleted(id: number): void {
   if (selectedPlanId.value === id) {
-    const first = plansStore.items[0];
+    const first = plansStore.PlansItems[0];
     selectedPlanId.value = first ? first.id : null;
     if (!first) {
       mobileMode.value = "card";
@@ -163,9 +156,9 @@ function handleOpenCheckinFromDetail(): void {
 <template>
   <el-scrollbar wrap-style="height: calc(100vh - var(--header-h))" view-class="dashboard">
     <DesktopMainView :selected-plan-id="selectedPlanId" :checkin-date="checkinDate"
-      :get-day-status-class="getDayStatusClass" @update:selected-plan-id="(v) => (selectedPlanId = v)"
-      @update:checkin-date="(v) => (checkinDate = v)" @create="handleCreatePlan" @edit="handleEditPlan"
-      @date-click="handleDateClick" />
+      :get-day-status-class="getDayStatusClass" :get-day-status-style="getDayStatusStyle"
+      @update:selected-plan-id="(v) => (selectedPlanId = v)" @update:checkin-date="(v) => (checkinDate = v)"
+      @create="handleCreatePlan" @edit="handleEditPlan" @date-click="handleDateClick" />
 
     <MobilePlanCards :mobile-mode="mobileMode" :progress-percent-by-plan="progressPercentByPlan"
       :month-stats-by-plan="monthStatsByPlan" :mini-calendar-cells="miniCalendarCells"
@@ -173,8 +166,9 @@ function handleOpenCheckinFromDetail(): void {
       @select-plan="handleMobileCardSelect" @create="handleCreatePlan" />
 
     <MobileCalendarPage :selected-plan-id="selectedPlanId" :checkin-date="checkinDate" :mobile-mode="mobileMode"
-      :get-day-status-class="getDayStatusClass" @update:checkin-date="(v) => (checkinDate = v)"
-      @back="handleMobileCalendarBack" @edit="handleEditPlan" @date-click="handleDateClick" />
+      :get-day-status-class="getDayStatusClass" :get-day-status-style="getDayStatusStyle"
+      @update:checkin-date="(v) => (checkinDate = v)" @back="handleMobileCalendarBack" @edit="handleEditPlan"
+      @date-click="handleDateClick" />
 
     <CreatePlanDrawer v-model="showPlanDrawer" :edit-plan="drawerPlan" @created="handlePlanCreated"
       @updated="handlePlanUpdated" @deleted="handlePlanDeleted" />
@@ -194,7 +188,7 @@ function handleOpenCheckinFromDetail(): void {
   flex-direction: column;
   background: var(--bg-color);
   color: var(--text-color);
-  // height: calc(100vh - var(--header-h));
+  align-items: center;
 }
 
 @media (max-width: 768px) {
