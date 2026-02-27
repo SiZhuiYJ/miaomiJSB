@@ -3,7 +3,7 @@ import Setting from "@/features/setting/components/index.vue";
 import { ref } from 'vue'
 import { ElScrollbar } from 'element-plus'
 import { smoothScrollTo } from '@/utils/smoothScroll' // 引入上面的工具函数
-
+import ImageUploader from "@/features/file/components/ImageUploader.vue";
 const scrollbarRef = ref<InstanceType<typeof ElScrollbar>>()
 
 const scrollToTop = () => {
@@ -19,6 +19,7 @@ const scrollToTop = () => {
 <template>
   <el-scrollbar ref="scrollbarRef" wrap-style="max-height: calc(100vh - var(--header-h));" view-class="">
     <Setting />
+    <ImageUploader />
     <div class="open"></div>
     <el-button @click="scrollToTop" type="primary" style="margin-top: 20px;">
       平滑滚动到顶部
