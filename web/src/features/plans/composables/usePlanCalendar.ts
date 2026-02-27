@@ -204,7 +204,10 @@ export function usePlanCalendar() {
     const statusCode = getTimeProgress(selectedPlanId.value, date);
     return '--progress: ' + (statusCode * 100) + '%;';
   }
-
+  function getPlanTimeLength(planId: number): number {
+    const plan = PlansItems.value.find((x) => x.id === planId);
+    return plan?.timeSlots?.length ?? 0;
+  }
   watch(checkinDate, (newDate) => {
     console.log("checkinDate changed:", newDate);
     if (!selectedPlanId.value) return;
@@ -228,6 +231,8 @@ export function usePlanCalendar() {
     toLocalDateOnlyString,
     parseDateOnly,
     isInPlanRangeForPlan,
+
+    getPlanTimeLength,
     getPlanDayStatusClass,
     getMiniDayClassForPlan,
     formatDayLabel,

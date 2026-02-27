@@ -29,10 +29,10 @@ function initTheme(): void {
 onMounted(async () => {
   setNotificationInstance(notificationSystemRef.value);
   initTheme();
-  
+
   // 测试通知系统（减少测试数量以避免性能问题）
   notify({ content: "欢迎使用每日打卡系统", color: "#10b981", duration: 30000 });
-  
+
   // 延迟测试不同类型的通知
   setTimeout(() => {
     notifySuccess("登录成功！");
@@ -40,13 +40,156 @@ onMounted(async () => {
     notifyError("网络连接异常");
   }, 2000);
 });
+
+import { computed, nextTick, shallowReactive } from 'vue'
+
+import type { ButtonInstance, DialogTransition } from 'element-plus'
+
+type GlobalConfig = {
+  alignCenter: boolean
+  draggable: boolean
+  overflow: boolean
+  transition?: DialogTransition
+}
+
+const config = shallowReactive<GlobalConfig>({
+  alignCenter: true,
+  draggable: false,
+  overflow: false,
+})
+const enableTransition = ref(true)
+const isObjectTransition = ref(false)
+
+const buttonRef = ref<ButtonInstance>()
+
+const ANIMATION_DURATION = 300
+
+const globalConfig = computed<GlobalConfig>(() => {
+  let transition: DialogTransition | undefined
+  if (enableTransition.value) {
+    if (isObjectTransition.value) {
+      transition = {
+        css: false,
+        onBeforeEnter(el) {
+          nextTick(() => {
+            if (buttonRef.value) {
+              const buttonRect = buttonRef.value.ref!.getBoundingClientRect()
+              const dialogEl = el.querySelector('.el-dialog') as HTMLElement
+
+              if (dialogEl) {
+                const dialogRect = dialogEl.getBoundingClientRect()
+
+                const offsetX =
+                  buttonRect.left +
+                  buttonRect.width / 2 -
+                  (dialogRect.left + dialogRect.width / 2)
+                const offsetY =
+                  buttonRect.top +
+                  buttonRect.height / 2 -
+                  (dialogRect.top + dialogRect.height / 2)
+
+                dialogEl.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(0.3)`
+                dialogEl.style.opacity = '0'
+              }
+            }
+          })
+        },
+        onEnter(el, done) {
+          nextTick(() => {
+            const dialogEl = el.querySelector('.el-dialog') as HTMLElement
+            if (dialogEl) {
+              // force reflow
+              dialogEl.offsetHeight
+
+              dialogEl.style.transition = `all ${ANIMATION_DURATION}ms cubic-bezier(0.4, 0, 1, 1)`
+              dialogEl.style.transform = 'translate(0, 0) scale(1)'
+              dialogEl.style.opacity = '1'
+
+              // wait for animation to complete, then cleanup inline styles to avoid affecting drag
+              setTimeout(() => {
+                dialogEl.style.transition = ''
+                dialogEl.style.transform = ''
+                dialogEl.style.opacity = ''
+                done()
+              }, ANIMATION_DURATION)
+            } else {
+              done()
+            }
+          })
+        },
+        onLeave(el, done) {
+          const dialogEl = el.querySelector('.el-dialog') as HTMLElement
+          if (dialogEl) {
+            if (buttonRef.value) {
+              const buttonRect = buttonRef.value.ref!.getBoundingClientRect()
+              const dialogRect = dialogEl.getBoundingClientRect()
+
+              const currentTransform = dialogEl.style.transform
+              let dragOffsetX = 0
+              let dragOffsetY = 0
+
+              // avoid draggable effect
+              if (currentTransform) {
+                const translateMatch = currentTransform.match(
+                  /translate\(([^,]+),\s*([^)]+)\)/
+                )
+                if (translateMatch && translateMatch[1] && translateMatch[2]) {
+                  dragOffsetX = Number.parseFloat(translateMatch[1])
+                  dragOffsetY = Number.parseFloat(translateMatch[2])
+                }
+              }
+
+              const offsetX =
+                buttonRect.left +
+                buttonRect.width / 2 -
+                (dialogRect.left + dialogRect.width / 2) +
+                dragOffsetX
+              const offsetY =
+                buttonRect.top +
+                buttonRect.height / 2 -
+                (dialogRect.top + dialogRect.height / 2) +
+                dragOffsetY
+
+              dialogEl.style.transition = `all ${ANIMATION_DURATION}ms cubic-bezier(0.4, 0, 1, 1)`
+              dialogEl.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(0.3)`
+              dialogEl.style.opacity = '0'
+
+              // wait for animation to complete, then cleanup inline styles
+              setTimeout(() => {
+                dialogEl.style.transition = ''
+                dialogEl.style.transform = ''
+                dialogEl.style.opacity = ''
+                done()
+              }, ANIMATION_DURATION)
+            } else {
+              done()
+            }
+          } else {
+            done()
+          }
+        },
+      }
+    } else {
+      transition = 'dialog-bounce'
+    }
+  }
+  return {
+    alignCenter: config.alignCenter,
+    draggable: config.draggable,
+    overflow: config.overflow,
+    transition,
+  }
+})
 </script>
 
 <template>
   <!-- Element Plus全局配置组件 -->
-  <el-config-provider :locale="zhCn">
+  <el-config-provider :locale="zhCn" :dialog="globalConfig">
     <!-- 路由视图容器 -->
     <router-view></router-view>
     <NotificationSystem ref="notificationSystemRef" />
   </el-config-provider>
 </template>
+<style>
+
+</style>

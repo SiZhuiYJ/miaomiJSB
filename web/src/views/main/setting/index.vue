@@ -24,7 +24,6 @@ const scrollToTop = () => {
       平滑滚动到顶部
     </el-button>
   </el-scrollbar>
-
 </template>
 
 <style scoped lang="scss">

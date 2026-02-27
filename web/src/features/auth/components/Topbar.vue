@@ -8,7 +8,7 @@ import { notifySuccess, notifyError } from "@/utils/notification";
 import { APP_TITLE, API_BASE_URL } from "@/config";
 import { storeToRefs } from "pinia";
 import router from "@/routers/index";
-import { maskEmail } from "@/utils/auth";
+import { maskEmail, maskString } from "@/utils/auth";
 const { user } = storeToRefs(useAuthStore());
 
 // SVG Icons
@@ -280,7 +280,7 @@ async function handleDeactivateConfirm(): Promise<void> {
           </el-avatar>
           <span class="email">
             {{ maskEmail(user.email) }}
-            <span v-if="user.nickName">({{ user.nickName }})</span>
+            <span v-if="user.nickName">({{ maskString(user.nickName) }})</span>
           </span>
           <el-icon class="dropdown-arrow"><arrow-down /></el-icon>
         </div>

@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { PropType } from "vue";
+import { storeToRefs } from "pinia"
+import { usePlansStore } from "@/stores"
+const { loading } = storeToRefs(usePlansStore())
 
 interface PlanItem {
   id: number;
@@ -42,7 +45,8 @@ function handleCreate(): void {
       </button>
     </div>
     <el-scrollbar wrap-style="height: calc(100vh - var(--header-h) - 32px - 16px -120px);">
-      <ul class="plan-list">
+      <el-skeleton v-if="loading" class="detail" :rows="5" animated />
+      <ul v-else class="plan-list">
         <li v-for="plan in props.items" :key="plan.id" :class="[
           'plan-item',
           plan.id === props.selectedId ? 'active' : '',

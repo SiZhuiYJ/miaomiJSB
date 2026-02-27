@@ -10,7 +10,7 @@ import CheckinDetailItem from "./CheckinDetailItem.vue";
 import CheckinForm from "./CheckinForm.vue";
 import Status from "./Status.vue";
 import { isToday } from "@/utils/date";
-const { toLocalDateOnlyString } = usePlanCalendar();
+const { toLocalDateOnlyString, getPlanTimeLength } = usePlanCalendar();
 
 const props = defineProps<{
   modelValue: boolean;
@@ -193,7 +193,7 @@ const slotStatuses = (slot: TimeSlotDto): CheckinStatus => {
       </h1>
     </template>
     <el-scrollbar wrap-style="max-height: calc(100vh - 80px);" view-class="drawer-body">
-      <el-skeleton v-if="detailLoading" class="detail" :rows="3" animated />
+      <el-skeleton v-if="detailLoading" class="detail" :rows="getPlanTimeLength(props.planId)" animated />
       <div v-else-if="props.mode == 'default'" class="detail">
         <CheckinForm v-if="!detail || !detail[0]" :plan-id="props.planId" :date="props.date" @success="fetchDetail" />
         <CheckinDetailItem v-else :checkin-detail="detail[0]" :image-object-urls="imageObjectUrls" />

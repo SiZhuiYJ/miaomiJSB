@@ -26,7 +26,7 @@ export function maskEmail(email: string): string {
  * @returns 转换后的字符串
  */
 export function maskString(str: string): string {
-    if (str.length > 5) {
+    if (str.length >= 5) {
         const start = str.slice(0, 2);
         const end = str.slice(-2);
         return start + '*' + end;
