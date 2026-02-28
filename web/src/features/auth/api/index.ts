@@ -8,6 +8,7 @@ import type {
   AuthUser,
   PasswordPayload,
   RegisterRecord,
+  AccountStatus
 } from "../types";
 /**
  * 认证API服务
@@ -95,6 +96,23 @@ export const authApi = {
   async register(data: RegisterRecord) {
     return await http.post<AuthData>("/mm/Auth/register", data);
   },
+  /**
+   * 修改用户账号
+   * @param data 包含新用户名和密码的对象
+   * @returns Promise<void>
+   */
+  async updateUserAccount(userAccount: string) {
+    return await http.post<AuthData>("/mm/Auth/account", {
+      UserAccount: userAccount,
+    });
+  },
+  /**
+   * 账号状态查询
+   * @returns Promise<{ canUpdate: boolean; nextUpdateAt: string }>
+   */
+  async checkAccountStatus() {
+    return await http.get<AccountStatus>("/mm/Auth/account/status");
+  }
 };
 
 /**

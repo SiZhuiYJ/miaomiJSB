@@ -31,21 +31,80 @@ export const staticRouter: RouteRecordRaw[] = [
           isAffix: "0", // 是否缓存固定路由[0是，1否]
         },
       },
-      {
-        path: "/setting", // [唯一]
-        component: () => import("@/views/main/setting/index.vue"),
-        meta: {
-          title: "设置", // 标题
-          enName: "Master Station", // 英文名称
-          icon: "HomeFilled", // 图标 HomeFilled
-          isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
-          isLink: "", // 是否外链[有值则是外链]
-          isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
-          isFull: "1", // 是否缓存全屏[0是，1否]
-          isAffix: "0", // 是否缓存固定路由[0是，1否]
-        },
-      },
     ],
+  },
+  {
+    path: "/setting", // [唯一]
+    name: "setting",
+    redirect: "/setting/profile",
+    component: () => import("@/views/setting/index.vue"),
+    children: [
+      {
+        path: "/setting/profile", // [唯一]
+        component: () => import("@/views/setting/profile/index.vue"),
+        meta: {
+          title: "个人资料",
+          enName: "Profile",
+          icon: "User",
+          isHide: "1",
+          isLink: "",
+          isKeepAlive: "0",
+          isFull: "1",
+        }
+      },
+      {
+        path: "/setting/avatar", // [唯一]
+        component: () => import("@/views/setting/avatar/index.vue"),
+        meta: {
+          title: "头像修改",
+          enName: "Avatar",
+          icon: "User",
+          isHide: "1",
+          isLink: "",
+          isKeepAlive: "0",
+          isFull: "1",
+        }
+      },
+      {
+        path: "/setting/account", // [唯一]
+        component: () => import("@/views/setting/account/index.vue"),
+        meta: {
+          title: "账号修改",
+          enName: "Account",
+          icon: "Setting",
+          isHide: "1",
+          isLink: "",
+          isKeepAlive: "0",
+          isFull: "1",
+        }
+      },
+      {
+        path: "/setting/password", // [唯一]
+        component: () => import("@/views/setting/password/index.vue"),
+        meta: {
+          title: "密码修改",
+          enName: "Password",
+          icon: "Lock",
+          isHide: "1",
+          isLink: "",
+          isKeepAlive: "0",
+          isFull: "1",
+        }
+      },
+      {
+        path: "/setting/deactivate", // [唯一]
+        component: () => import("@/views/setting/deactivate/index.vue"),
+        meta: {
+          title: "注销账号",
+          enName: "Deactivate",
+          icon: "Delete",
+          isHide: "1",
+          isLink: "",
+          isKeepAlive: "0",
+          isFull: "1",
+        }
+      }
+    ]
   },
   {
     path: LOGIN_URL,

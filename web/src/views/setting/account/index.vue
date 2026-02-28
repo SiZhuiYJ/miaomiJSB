@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, reactive } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { useAuthStore } from "@/stores";
-import { http } from "../../utils/http";
-import { onShow } from "@dcloudio/uni-app";
+import { authApi } from "@/features/auth/api";
 import { notifySuccess, notifyError } from "@/utils/notification";
 
 const authStore = useAuthStore();
@@ -15,13 +14,13 @@ const accountStatus = reactive({
   nextUpdateAt: null as string | null,
 });
 
-onShow(async () => {
+onMounted(async () => {
   await checkAccountStatus();
 });
 
 async function checkAccountStatus() {
   try {
-    const res = await http.get("/mm/Auth/account/status");
+    const res = await authApi.checkAccountStatus();
     accountStatus.canUpdate = res.data.canUpdate;
     accountStatus.nextUpdateAt = res.data.nextUpdateAt;
   } catch (e) {
@@ -36,23 +35,23 @@ async function handleSave() {
   }
 
   if (userAccount.value === authStore.user?.userAccount) {
-    uni.navigateBack();
+    // 在 Web 环境中使用 window.history.back()
+    window.history.back();
     return;
   }
 
   loading.value = true;
   try {
-    const accountRes = await http.post<any>("/mm/Auth/account", {
-      UserAccount: userAccount.value,
-    });
+    const accountRes = await authApi.updateUserAccount(userAccount.value);
     authStore.setSession(accountRes.data);
-    notifySuccess("账号名修改成功");
+    notifySuccess("账号修改成功");
     setTimeout(() => {
-      uni.navigateBack();
+      // 在 Web 环境中使用 window.history.back()
+      window.history.back();
     }, 1500);
   } catch (err: any) {
     if (err.statusCode === 409) {
-      notifyError("账号名已被占用");
+      notifyError("账号已被占用");
     } else if (err.statusCode === 403) {
       notifyError("修改过于频繁");
     } else {
@@ -65,45 +64,30 @@ async function handleSave() {
 </script>
 
 <template>
-  <view class="container">
-    <NotificationSystem />
-
-    <view class="card">
-      <view class="form-group">
-        <view class="field">
+  <div class="container">
+    <div class="card">
+      <div class="form-group">
+        <div class="field">
           <text class="label">账号名 (全局唯一)</text>
-          <input
-            class="input"
-            v-model="userAccount"
-            placeholder="设置账号名"
-            :disabled="
-              !!authStore.user?.userAccount && !accountStatus.canUpdate
-            "
-          />
-          <text
-            v-if="!accountStatus.canUpdate && accountStatus.nextUpdateAt"
-            class="hint-text"
-          >
+          <input class="input" v-model="userAccount" placeholder="设置账号名"
+            :disabled="!!authStore.user?.userAccount && !accountStatus.canUpdate" />
+          <text v-if="!accountStatus.canUpdate && accountStatus.nextUpdateAt" class="hint-text">
             下次可修改时间：{{
               new Date(accountStatus.nextUpdateAt).toLocaleDateString()
             }}
           </text>
           <text class="desc">账号名是您的唯一标识，请谨慎修改。</text>
-        </view>
-      </view>
-    </view>
+        </div>
+      </div>
+    </div>
 
-    <view class="actions">
-      <button
-        class="btn-save"
-        :loading="loading"
-        :disabled="!!authStore.user?.userAccount && !accountStatus.canUpdate"
-        @click="handleSave"
-      >
+    <div class="actions">
+      <button class="btn-save" :loading="loading" :disabled="!!authStore.user?.userAccount && !accountStatus.canUpdate"
+        @click="handleSave">
         保存
       </button>
-    </view>
-  </view>
+    </div>
+  </div>
 </template>
 
 <style scoped lang="scss">
@@ -119,6 +103,15 @@ async function handleSave() {
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
 }
 
 .label {
@@ -138,6 +131,11 @@ async function handleSave() {
   color: var(--text-color);
   box-sizing: border-box;
   border: 1px solid var(--border-color);
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--theme-primary);
 }
 
 .hint-text {
@@ -162,6 +160,14 @@ async function handleSave() {
   height: 44px;
   line-height: 44px;
   margin-top: 10px;
+  width: 100%;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .actions {

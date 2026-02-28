@@ -21,7 +21,6 @@ export interface AuthData {
   accessTokenExpiresAt: string;
   refreshTokenExpiresAt: string;
   avatarKey?: string | null;
-  avatarUrl?: string | null;
 }
 export type ActionType =
   | "register" // "注册",
@@ -42,4 +41,8 @@ export interface RegisterRecord {
   nickName: string | null;
   userAccount: string | null;
   code: string;
+}
+export interface AccountStatus {
+  canUpdate: boolean;
+  nextUpdateAt: string | null
 }

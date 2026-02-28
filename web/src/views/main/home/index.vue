@@ -45,11 +45,7 @@ onMounted(async () => {
 
 watch(
   () => [selectedPlanId.value, currentYear.value, currentMonth.value],
-  async (vals, old) => {
-    console.log("old values:", old);
-    console.log("selectedPlanId:", vals[0]);
-    console.log("currentYear:", vals[1]);
-    console.log("currentMonth:", vals[2]);
+  async (vals) => {
     const planId = vals[0];
     if (!planId) return;
     await checkinsStore.loadCalendar(
