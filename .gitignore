@@ -518,6 +518,139 @@ api/.vs/
 # 错误日志
 api/errorLog/
 
+# 安全密钥和敏感配置文件
+# JWT 密钥和认证配置
+api/appsettings.Production.json
+api/appsettings.*.json
+api/secrets.json
+api/*.secrets
+
+# 环境变量文件
+.env
+.env.*
+.env.local
+.env.*.local
+
+# 数据库连接字符串配置
+api/ConnectionStrings.json
+api/connectionstrings.*
+
+# API 密钥和访问凭证
+api/keys/
+api/credentials/
+api/tokens/
+api/certs/
+api/private/
+
+# 第三方服务密钥
+api/config/google-api-key.json
+api/config/aws-credentials.json
+api/config/azure-key-vault.json
+
+# 加密证书和私钥
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+*.der
+
+# SSH 密钥
+.ssh/
+id_rsa
+id_rsa.pub
+id_dsa
+id_dsa.pub
+id_ecdsa
+id_ecdsa.pub
+id_ed25519
+id_ed25519.pub
+
+# 敏感配置模板文件
+*.example.secrets
+*.sample.secrets
+*.template.secrets
+
+# 本地开发密钥
+local.settings.json
+local.appsettings.json
+
+# Docker secrets
+.docker/secrets/
+docker-compose.*.override.yml
+
+# Kubernetes secrets
+*.secret.yaml
+*.secrets.yaml
+k8s/secrets/
+
+# 云服务配置密钥
+.aws/
+.azure/
+.gcp/
+gcloud/
+
+# OAuth 和认证令牌
+.oauth-tokens
+token-store/
+access_tokens.db
+refresh_tokens.json
+
+# 敏感日志文件
+secrets.log
+credentials.log
+keys.log
+
+# 临时密钥文件
+*.tmp.key
+*.temp.secret
+secrets.tmp
+
+# 配置管理工具密钥
+.vault-token
+.chef/
+.ansible/
+
+# CI/CD 密钥
+.github/secrets/
+.gitlab-ci.secrets.yml
+.circleci/secrets/
+.travis/secrets/
+
+# 数据库导出文件（可能包含敏感数据）
+*.sql
+*.dump
+*.backup
+
+# 敏感文档
+secrets.txt
+passwords.txt
+credentials.txt
+keys.txt
+
+# 私人配置
+private-config.json
+personal-settings.json
+
+# 敏感环境变量
+DATABASE_URL
+REDIS_URL
+MONGODB_URI
+API_KEY
+SECRET_KEY
+ACCESS_TOKEN
+REFRESH_TOKEN
+JWT_SECRET
+DB_PASSWORD
+
+# 邮件服务器配置（已包含密码）
+api/appsettings.json
+
+# Redis 配置（已包含密码）
+
+# SMTP 配置（已包含密码）
+
 # Visual Studio 项目评估缓存文件
 api/.vs/ProjectEvaluation/
 api/.vs/api.slnx/DesignTimeBuild/

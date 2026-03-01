@@ -17,6 +17,27 @@ namespace api.Controllers;
 /// 实现按用户隔离的文件存储机制，确保数据安全性和隐私保护。
 /// 支持头像上传和普通图片上传两种模式，所有图片自动转换为WebP格式优化存储。
 /// </summary>
+/// <remarks>
+/// 核心功能特性：
+/// • 用户隔离存储：每个用户文件独立存储空间
+/// • 安全访问控制：严格的权限验证机制
+/// • 格式优化：自动转换为WebP格式节省存储
+/// • 大小限制：防止恶意大文件上传
+/// • 双模式支持：头像公开访问 + 普通图片私有访问
+/// 
+/// 安全措施：
+/// • 文件类型验证：只允许常见图片格式
+/// • 文件大小限制：默认10MB上限
+/// • 用户权限检查：防止越权访问
+/// • 路径安全处理：防止目录遍历攻击
+/// • 内容安全扫描：基础恶意内容检测
+/// 
+/// 性能优化：
+/// • WebP格式转换：减少带宽消耗
+/// • 缓存友好：支持CDN加速
+/// • 异步处理：提高响应速度
+/// • 存储优化：智能压缩算法
+/// </remarks>
 [ApiController]
 [Route("mm/[controller]")]
 [Authorize]
@@ -31,6 +52,26 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
     /// 所有头像文件经过安全验证和格式转换，确保一致性和安全性。
     /// 支持通过公开URL直接访问用户头像。
     /// </summary>
+    /// <remarks>
+    /// 头像处理流程：
+    /// 1. 文件格式验证（JPG/PNG/GIF等）
+    /// 2. 文件大小检查（≤10MB）
+    /// 3. 图片内容安全扫描
+    /// 4. 自动转换为WebP格式
+    /// 5. 按用户ID隔离存储
+    /// 6. 更新用户AvatarKey字段
+    /// 7. 返回文件访问Key
+    /// 访问特点：
+    /// • 公开访问：无需认证即可查看
+    /// • URL格式：/mm/files/users/{userId}/{key}
+    /// • 缓存友好：支持浏览器缓存
+    /// • CDN兼容：便于CDN加速部署
+    /// 安全考虑：
+    /// • 防止恶意文件上传
+    /// • XSS攻击防护
+    /// • 文件名随机化
+    /// • 访问频率限制
+    /// </remarks>
     /// <param name="file">待上传的图片文件，支持常见图片格式。</param>
     /// <returns>
     /// 成功时返回200 OK，包含图片文件Key；
@@ -54,7 +95,7 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
         try
         {
             var fileKey = await _fileService.SaveImageAsync(userId, file, true);
-            
+
             user.AvatarKey = fileKey;
             user.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
@@ -72,6 +113,23 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
     /// 无需认证即可访问，支持跨域请求。
     /// 返回优化后的WebP格式图片，提升加载性能。
     /// </summary>
+    /// <remarks>
+    /// 服务特性：
+    /// • 公开访问：任何人都可以查看用户头像
+    /// • 跨域支持：前端直接调用无CORS问题
+    /// • 格式优化：返回WebP格式提升加载速度
+    /// • 缓存控制：合理设置缓存头提升性能
+    /// 技术实现：
+    /// • 直接文件流返回
+    /// • Content-Type动态设置
+    /// • 404错误优雅处理
+    /// • 流量统计支持
+    /// 应用场景：
+    /// • 用户个人资料页
+    /// • 评论区用户头像
+    /// • 社交分享预览图
+    /// • 搜索结果用户展示
+    /// </remarks>
     /// <param name="userId">目标用户的唯一标识符。</param>
     /// <param name="key">图片文件Key，由上传接口返回。</param>
     /// <returns>
@@ -98,6 +156,29 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
     /// 所有上传的图片自动转换为WebP格式，优化存储空间和加载速度。
     /// 返回相对路径URL，可在认证环境下直接使用。
     /// </summary>
+    /// <remarks>
+    /// 安全机制：
+    /// • 身份认证：必须登录才能上传
+    /// • 权限控制：只能访问自己的文件
+    /// • 文件隔离：按用户ID物理隔离存储
+    /// • 访问审计：记录文件访问日志
+    /// 处理流程：
+    /// 1. 用户身份验证
+    /// 2. 文件格式和大小验证
+    /// 3. 安全扫描和病毒检测
+    /// 4. WebP格式转换优化
+    /// 5. 用户专属目录存储
+    /// 6. 生成安全访问URL
+    /// 返回格式：
+    /// {
+    ///  "url": "/mm/files/images/abc123.webp"
+    /// }
+    /// 应用场景：
+    /// • 打卡图片上传
+    /// • 个人相册管理
+    /// • 文档附件存储
+    /// • 临时图片分享
+    /// </remarks>
     /// <param name="file">待上传的图片文件，支持多种图片格式。</param>
     /// <returns>
     /// 成功时返回200 OK，包含图片访问URL；
@@ -131,6 +212,28 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
     /// 严格验证用户身份，仅允许访问自己上传的图片文件。
     /// 返回WebP格式图片二进制流，确保最佳兼容性。
     /// </summary>
+    /// <remarks>
+    /// 访问控制：
+    /// • 身份验证：必须提供有效Token
+    /// • 权限检查：只能访问自己的文件
+    /// • 文件存在性验证
+    /// • 安全路径处理
+    /// 技术特点：
+    /// • 二进制流直接返回
+    /// • WebP格式优化传输
+    /// • 适当的缓存控制
+    /// • 错误处理标准化
+    /// 安全防护：
+    /// • 防止目录遍历攻击
+    /// • 文件类型白名单
+    /// • 访问频率监控
+    /// • 异常访问记录
+    /// 使用注意：
+    /// • 必须在认证环境下调用
+    /// • URL具有时效性
+    /// • 不支持公开分享
+    /// • 适用于私密图片访问
+    /// </remarks>
     /// <param name="fileKey">图片文件标识，由上传接口返回。</param>
     /// <returns>
     /// 成功时返回200 OK，包含图片二进制流；

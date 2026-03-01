@@ -42,6 +42,22 @@ public class AccountLoginRequest
 }
 
 /// <summary>
+/// 邮箱验证码登录请求参数。
+/// </summary>
+public class EmailCodeLoginRequest
+{
+    /// <summary>
+    /// 用户邮箱地址。
+    /// </summary>
+    public string Email { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 邮箱验证码。
+    /// </summary>
+    public string Code { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// 认证响应数据，包含用户信息和双 token 信息。
 /// </summary>
 public class AuthResponse

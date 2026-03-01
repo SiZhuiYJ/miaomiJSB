@@ -77,7 +77,6 @@ builder.Services.AddSwaggerGen(opt =>
 });
 #endregion
 
-
 #region jwt配置
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
