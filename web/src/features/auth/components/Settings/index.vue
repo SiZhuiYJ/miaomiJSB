@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
-import { useAuthStore } from '../../stores/auth';
-import { useThemeStore } from '../../stores/theme';
+import { useAuthStore } from '@/stores';
 import { http } from '../../utils/http';
 import { API_BASE_URL } from '../../config';
 import { onLoad, onShow } from '@dcloudio/uni-app';
-import { notifySuccess, notifyError } from '../../utils/notification';
+import { notifySuccess, notifyError } from '@/utils/notification';
 
 const authStore = useAuthStore();
-const themeStore = useThemeStore();
 
 const loading = ref(false);
 

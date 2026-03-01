@@ -4,19 +4,25 @@ import EmailInput from './EmailInput.vue'
 import AccountInput from './AccountInput.vue'
 import PasswordInput from './PasswordInput.vue'
 import LoginMethods from './LoginMethods.vue'
+import EmailCodeLogin from './EmailCodeLogin.vue'
 
 interface LoginFormProps {
     email: string
     userAccount: string
     password: string
-    loginMethod: 'email' | 'account'
+    code: string
+    sendingCode: boolean
+    countdown: number
+    loginMethod: 'email' | 'account' | 'email-code'
 }
 
 interface Emits {
     (e: 'update:email', value: string): void
     (e: 'update:userAccount', value: string): void
     (e: 'update:password', value: string): void
-    (e: 'update:loginMethod', value: 'email' | 'account'): void
+    (e: 'update:code', value: string): void
+    (e: 'update:loginMethod', value: 'email' | 'account' | 'email-code'): void
+    (e: 'sendCode'): void
     (e: 'submit'): void
 }
 
@@ -39,22 +45,44 @@ defineExpose({
 </script>
 
 <template>
-    <form class="form" @submit.prevent="handleSubmit">
+    <!-- 邮箱密码登录 -->
+    <form v-if="loginMethod === 'email'" class="form" @submit.prevent="handleSubmit">
         <LoginMethods :model-value="loginMethod" @update:model-value="$emit('update:loginMethod', $event)" />
 
-        <EmailInput v-if="loginMethod === 'email'" :model-value="email"
-            @update:model-value="$emit('update:email', $event)" />
-
-        <AccountInput v-if="loginMethod === 'account'" :model-value="userAccount" :required="true"
-            @update:model-value="$emit('update:userAccount', $event)" />
-
-        <PasswordInput :model-value="password" :required="true"
-            @update:model-value="$emit('update:password', $event)" />
+        <EmailInput :model-value="email" @update:model-value="$emit('update:email', $event)" />
+        <PasswordInput :model-value="password" :required="true" @update:model-value="$emit('update:password', $event)" />
 
         <button class="submit" type="submit" :disabled="loading">
             登录
         </button>
     </form>
+
+    <!-- 账号密码登录 -->
+    <form v-else-if="loginMethod === 'account'" class="form" @submit.prevent="handleSubmit">
+        <LoginMethods :model-value="loginMethod" @update:model-value="$emit('update:loginMethod', $event)" />
+
+        <AccountInput :model-value="userAccount" :required="true" @update:model-value="$emit('update:userAccount', $event)" />
+        <PasswordInput :model-value="password" :required="true" @update:model-value="$emit('update:password', $event)" />
+
+        <button class="submit" type="submit" :disabled="loading">
+            登录
+        </button>
+    </form>
+
+    <!-- 邮箱验证码登录 -->
+    <EmailCodeLogin 
+        v-else-if="loginMethod === 'email-code'"
+        :email="email"
+        :code="code"
+        :sending-code="sendingCode"
+        :countdown="countdown"
+        :login-method="loginMethod"
+        @update:email="$emit('update:email', $event)"
+        @update:code="$emit('update:code', $event)"
+        @update:login-method="$emit('update:loginMethod', $event)"
+        @send-code="$emit('sendCode')"
+        @submit="handleSubmit"
+    />
 </template>
 
 <style scoped lang="scss">

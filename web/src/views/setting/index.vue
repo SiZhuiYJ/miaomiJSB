@@ -2,8 +2,8 @@
 import router from "@/routers/index";
 import { ref } from 'vue'
 import { ElScrollbar } from 'element-plus'
+import SettingsMenu from "@/features/auth/components/Settings/menu.vue";
 import { smoothScrollTo } from '@/utils/smoothScroll' // 引入上面的工具函数
-import ImageUploader from "@/features/file/components/ImageUploader.vue";
 const scrollbarRef = ref<InstanceType<typeof ElScrollbar>>()
 
 const scrollToTop = () => {
@@ -34,7 +34,15 @@ function handleCommand(command: string): void {
     <span @click="router.push('/home')">
       账号设置
     </span>
-    <el-dropdown trigger="click" placement="bottom-end" popper-class="user-dropdown-popper" @command="handleCommand">
+    <SettingsMenu>
+    </SettingsMenu>
+    <!-- <SettingsMenuItem @click="router.push('/setting/profile')">个人资料</SettingsMenuItem>
+    <SettingsMenuItem @click="router.push('/setting/avatar')">头像设置</SettingsMenuItem>
+    <SettingsMenuItem @click="router.push('/setting/account')">账号设置</SettingsMenuItem>
+    <SettingsMenuItem @click="router.push('/setting/password')">修改密码</SettingsMenuItem>
+    <SettingsMenuItem @click="router.push('/setting/deactivate')" style="color: #ef4444">注销账号</SettingsMenuItem> -->
+
+    <!-- <el-dropdown trigger="click" placement="bottom-end" popper-class="user-dropdown-popper" @command="handleCommand">
       <el-icon class="dropdown-arrow"><arrow-down /></el-icon>
       <template #dropdown>
         <el-dropdown-menu>
@@ -45,7 +53,7 @@ function handleCommand(command: string): void {
           <el-dropdown-item command="deactivate" divided style="color: #ef4444">注销账号</el-dropdown-item>
         </el-dropdown-menu>
       </template>
-    </el-dropdown>
+</el-dropdown> -->
   </header>
   <el-scrollbar ref="scrollbarRef" wrap-style="max-height: calc(100vh - var(--header-h));" view-class="">
     <div class="open">
@@ -60,15 +68,18 @@ function handleCommand(command: string): void {
 <style scoped lang="scss">
 .topbar {
   height: var(--header-h);
+  width: 100%;
+  z-index: 1;
   padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border-color);
-  background: var(--bg-elevated);
+  background: rgba($color: #000000, $alpha: .0);
 }
 
 .open {
   height: 10000px;
+  width: 100vw;
 }
 </style>

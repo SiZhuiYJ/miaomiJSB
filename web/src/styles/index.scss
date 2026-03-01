@@ -29,6 +29,7 @@
   // 自定义
   --header-h: 56px;
 }
+
 html[data-theme="light"] {
   color-scheme: light;
   --bg-color: #f3f4f6;
@@ -55,8 +56,12 @@ body {
 }
 
 #app {
-  min-height: 100vh;
-  min-width: 100vw;
+  height: 100vh;
+  width: 100vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
 }
 
 * {
@@ -67,6 +72,7 @@ body {
 
 .ink {
   position: relative;
+
   &::after {
     content: "";
     position: absolute;

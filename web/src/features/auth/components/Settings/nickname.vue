@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useAuthStore } from '../../stores/auth';
-import { useThemeStore } from '../../stores/theme';
-import { http } from '../../utils/http';
-import { notifySuccess, notifyError } from '../../utils/notification';
+import { useAuthStore } from '@/stores';
+import { authApi } from '@/features/auth/api';
+import { notifySuccess, notifyError, notifyWarning } from '@/utils/notification';
 
 const authStore = useAuthStore();
-const themeStore = useThemeStore();
 
 const loading = ref(false);
 const nickName = ref(authStore.user?.nickName || '');
@@ -18,23 +16,20 @@ async function handleSave() {
   }
 
   if (nickName.value === authStore.user?.nickName) {
-    uni.navigateBack();
+    notifyWarning('昵称未修改');
     return;
   }
 
   loading.value = true;
   try {
-    const profileRes = await http.post<any>('/mm/Auth/profile', {
-      userAccount: authStore.user?.userAccount || '',
+    const profileRes = await authApi.updateProfileInfo({
       nickName: nickName.value,
-      avatarKey: authStore.user?.avatarKey || null,
+      avatarKey: authStore.user?.avatarKey || null
     });
     authStore.setSession(profileRes.data);
     notifySuccess('昵称修改成功');
-    setTimeout(() => {
-      uni.navigateBack();
-    }, 1500);
   } catch (err: any) {
+    console.error(err);
     notifyError('昵称修改失败');
   } finally {
     loading.value = false;
@@ -43,23 +38,21 @@ async function handleSave() {
 </script>
 
 <template>
-  <view class="container" :style="themeStore.themeStyle">
-    <NotificationSystem />
-    
-    <view class="card">
-      <view class="form-group">
-        <view class="field">
-          <text class="label">昵称</text>
+  <div class="container">
+    <div class="card">
+      <div class="form-group">
+        <div class="field">
+          <label class="label">昵称</label>
           <input class="input" v-model="nickName" placeholder="设置昵称" focus />
-          <text class="desc">好的昵称能让大家更容易记住你。</text>
-        </view>
-      </view>
-    </view>
+          <label class="desc">好的昵称能让大家更容易记住你。</label>
+        </div>
+      </div>
+    </div>
 
-    <view class="actions">
+    <div class="actions">
       <button class="btn-save" :loading="loading" @click="handleSave">保存</button>
-    </view>
-  </view>
+    </div>
+  </div>
 </template>
 
 <style scoped lang="scss">
@@ -80,7 +73,7 @@ async function handleSave() {
 .label {
   display: block;
   font-size: 14px;
-  color: var(--text-muted);
+  color: var(--label-muted);
   margin-bottom: 8px;
 }
 
@@ -91,7 +84,7 @@ async function handleSave() {
   border-radius: 8px;
   padding: 0 12px;
   font-size: 14px;
-  color: var(--text-color);
+  color: var(--label-color);
   box-sizing: border-box;
   border: 1px solid var(--border-color);
 }
@@ -99,7 +92,7 @@ async function handleSave() {
 .desc {
   display: block;
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--label-muted);
   margin-top: 8px;
 }
 

@@ -243,7 +243,7 @@ const showEmptyState = computed(() => plansStore.PlansItems.length === 0);
   .mobile-only {
     display: flex;
     flex-direction: column;
-    width: 100%;
+    width: 100vw;
   }
 }
 </style>

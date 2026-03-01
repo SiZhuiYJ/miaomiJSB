@@ -11,7 +11,7 @@ import RegisterForm from '@/features/auth/components/login/RegisterForm.vue'
 const router = useRouter();
 
 const mode = ref<"login" | "register">("login");
-const loginMethod = ref<"email" | "account">("email");
+const loginMethod = ref<"email" | "account" | "email-code">("email");
 
 const email = ref("");
 const password = ref("");
@@ -82,24 +82,44 @@ const registerFormRef = ref()
 
 async function handleLoginSubmit(): Promise<void> {
     try {
+        let response;
+        
         if (loginMethod.value === "email") {
-            const response = await authApi.loginWithEmail({
+            response = await authApi.loginWithEmail({
                 email: email.value,
                 password: password.value,
             });
-            auth.setSession(response.data);
-        } else {
-            const response = await authApi.loginWithAccount({
+        } else if (loginMethod.value === "account") {
+            response = await authApi.loginWithAccount({
                 userAccount: userAccount.value,
                 password: password.value,
             });
-            auth.setSession(response.data);
+        } else if (loginMethod.value === "email-code") {
+            if (!code.value) {
+                notifyError("请输入邮箱验证码");
+                loginFormRef.value?.setLoading(false);
+                return;
+            }
+            response = await authApi.loginWithEmailCode({
+                email: email.value,
+                code: code.value,
+            });
         }
-        notifySuccess("登录成功");
-        router.push("/home");
+        
+        if (response) {
+            auth.setSession(response.data);
+            notifySuccess("登录成功");
+            router.push("/home");
+        }
     } catch (error: any) {
         if (error.response?.status === 401) {
-            notifyError("登录失败：账号或密码错误");
+            if (loginMethod.value === "email-code") {
+                notifyError("登录失败：验证码错误或已过期");
+            } else {
+                notifyError("登录失败：账号或密码错误");
+            }
+        } else if (error.response?.status === 404) {
+            notifyError("登录失败：该邮箱未注册");
         } else {
             notifyError("登录失败，请检查输入");
         }
@@ -180,9 +200,11 @@ async function handleSendCode(): Promise<void> {
     }
     sendingCode.value = true;
     try {
+        // 根据当前模式确定actionType
+        const actionType = mode.value === "register" ? "register" : "login";
         await authApi.sendEmailCode({
             email: email.value,
-            actionType: "register",
+            actionType: actionType,
         });
         notifySuccess("验证码已发送，请检查邮箱");
         startCountdown(60);
@@ -191,7 +213,7 @@ async function handleSendCode(): Promise<void> {
         if (status === 429) {
             notifyError("请求过于频繁，请稍后再试");
         } else if (status === 409) {
-            notifyError("该邮箱已注册");
+            notifyError(mode.value === "register" ? "该邮箱已注册" : "该邮箱未注册");
         } else if (status === 400) {
             notifyError("邮箱格式不正确或请求无效");
         } else {
@@ -219,12 +241,11 @@ onUnmounted(() => {
         <div class="auth-card">
             <h1 class="title">{{ }}</h1>
 
-            <AuthTabs :model-value="mode" @update:model-value="switchMode" />
-
             <LoginForm v-if="mode === 'login'" ref="loginFormRef" :email="email" :user-account="userAccount"
-                :password="password" :login-method="loginMethod" @update:email="email = $event"
-                @update:user-account="userAccount = $event" @update:password="password = $event"
-                @update:login-method="loginMethod = $event" @submit="handleLoginSubmit" />
+                :password="password" :code="code" :sending-code="sendingCode" :countdown="countdown"
+                :login-method="loginMethod" @update:email="email = $event" @update:userAccount="userAccount = $event"
+                @update:password="password = $event" @update:code="code = $event"
+                @update:loginMethod="loginMethod = $event" @sendCode="handleSendCode" @submit="handleLoginSubmit" />
 
             <RegisterForm v-else ref="registerFormRef" :email="email" :user-account="userAccount" :password="password"
                 :confirm-password="confirmPassword" :nick-name="nickName" :code="code" :sending-code="sendingCode"
@@ -234,6 +255,8 @@ onUnmounted(() => {
                 @update:code="code = $event" @update:user-account-error="userAccountError = $event"
                 @send-code="handleSendCode" @generate-random-account="generateRandomuserAccount"
                 @validate-account="validateUserAccount" @submit="handleRegisterSubmit" />
+
+            <AuthTabs :model-value="mode" @update:model-value="switchMode" />
         </div>
     </div>
 </template>

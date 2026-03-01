@@ -8,7 +8,8 @@ import type {
   AuthUser,
   PasswordPayload,
   RegisterRecord,
-  AccountStatus
+  AccountStatus,
+  UserProfile
 } from "../types";
 /**
  * 认证API服务
@@ -89,6 +90,15 @@ export const authApi = {
   },
 
   /**
+   * 邮箱验证码登录
+   * @param data 包含邮箱和验证码的对象
+   * @returns Promise<AuthData>
+   */
+  async loginWithEmailCode(data: { email: string; code: string }) {
+    return await http.post<AuthData>("/mm/Auth/login-email-code", data);
+  },
+
+  /**
    * 用户注册
    * @param data 注册信息
    * @returns Promise<AuthData>
@@ -112,7 +122,15 @@ export const authApi = {
    */
   async checkAccountStatus() {
     return await http.get<AccountStatus>("/mm/Auth/account/status");
-  }
+  },
+  /**
+   * 修改基础信息
+   * @param data 包含昵称和头像key的对象
+   * @returns Promise<AuthData>
+   */
+  async updateProfileInfo(data: UserProfile) {
+    return await http.post<AuthData>('/mm/Auth/profile', data);
+  },
 };
 
 /**

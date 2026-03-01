@@ -46,3 +46,8 @@ export interface AccountStatus {
   canUpdate: boolean;
   nextUpdateAt: string | null
 }
+// 用户基础信息
+export interface UserProfile {
+  nickName: string | null;
+  avatarKey: string | null;
+}
