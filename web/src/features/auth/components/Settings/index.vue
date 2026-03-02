@@ -1,32 +1,30 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useAuthStore } from '@/stores';
-import { http } from '../../utils/http';
-import { API_BASE_URL } from '../../config';
-import { onLoad, onShow } from '@dcloudio/uni-app';
+import { API_BASE_URL } from '@/config';
 import { notifySuccess, notifyError } from '@/utils/notification';
 
 const authStore = useAuthStore();
 
 const loading = ref(false);
 
-onShow(async () => {
-  await authStore.fetchUserInfo();
+onMounted(async () => {
+  await authStore.initialAuth();
 });
 
-function handleNavigate(url: string) {
-  uni.navigateTo({ url });
-}
+// function handleNavigate(url: string) {
+//   uni.navigateTo({ url });
+// }
 
-function handleViewAvatar() {
-  if (authStore.user?.avatarKey) {
-    const url = `${API_BASE_URL}/mm/Files/users/${authStore.user.userId}/${authStore.user.avatarKey}`;
-    uni.previewImage({
-      urls: [url],
-      current: 0
-    });
-  }
-}
+// function handleViewAvatar() {
+//   if (authStore.user?.avatarKey) {
+//     const url = `${API_BASE_URL}/mm/Files/users/${authStore.user.userId}/${authStore.user.avatarKey}`;
+//     uni.previewImage({
+//       urls: [url],
+//       current: 0
+//     });
+//   }
+// }
 
 function handleEditAvatar() {
   uni.showActionSheet({

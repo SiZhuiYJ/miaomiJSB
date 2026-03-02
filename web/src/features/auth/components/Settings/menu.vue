@@ -1,31 +1,28 @@
 <script setup>
-import SettingsMenu from "./SettingsMenu.vue";
-import SettingsMenuItem from "./SettingsMenuItem.vue";
+import SettingsMenu from "@/components/Menu/SettingsMenu.vue";
+import SettingsMenuItem from "@/components/Menu/SettingsMenuItem.vue";
 import router from "@/routers/index";
 import { ref } from "vue";
 const menuList = ref([
-  { name: "profile", path: "/setting/profile" },
-  { name: "account", path: "/setting/account" },
-  { name: "avatar", path: "/setting/avatar" },
-  { name: "deactivate", path: "/setting/deactivate" },
-  { name: "password", path: "/setting/password" },
+    { name: "个人信息", path: "/setting/profile" },
+    { name: "账号修改", path: "/setting/account" },
+    { name: "头像修改", path: "/setting/avatar" },
+    { name: "注销账号", path: "/setting/deactivate" },
+    { name: "密码修改", path: "/setting/password" },
 ]);
-const menuName = ref("");
+// 默认显示第一个菜单名称
+const menuName = ref(menuList.value[0]?.name ?? "");
 </script>
 
 <template>
-  <SettingsMenu>
-    <template #title>{{ menuName }}</template>
-    <template #default="{ isCheckbox }">
-      <SettingsMenuItem
-        v-for="(value, index) in menuList"
-        :index="index"
-        :isOpen="isCheckbox"
-        @click="(router.push(value.path), (menuName = value.name))"
-      >
-        {{ value.name }}
-      </SettingsMenuItem>
-    </template>
-  </SettingsMenu>
+    <SettingsMenu>
+        <template #title>{{ menuName }}</template>
+        <template #default="{ isOpen }">
+            <SettingsMenuItem v-for="(value, index) in menuList" :key="value.path" :index="index" :isOpen="isOpen"
+                @click="(router.push(value.path), (menuName = value.name))">
+                {{ value.name }}
+            </SettingsMenuItem>
+        </template>
+    </SettingsMenu>
 </template>
 <style scoped lang="scss"></style>

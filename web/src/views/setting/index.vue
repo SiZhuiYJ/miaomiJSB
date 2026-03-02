@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import router from "@/routers/index";
+import router from "@/routers";
 import { ref } from 'vue'
 import { ElScrollbar } from 'element-plus'
 import SettingsMenu from "@/features/auth/components/Settings/menu.vue";
@@ -14,46 +14,14 @@ const scrollToTop = () => {
     }
   }
 }
-function handleCommand(command: string): void {
-  if (command === "profile") {
-    router.push("/setting");
-  } else if (command === "avatar") {
-    router.push("/setting/avatar");
-  } else if (command === "account") {
-    router.push("/setting/account");
-  } else if (command === "password") {
-    router.push("/setting/password");
-  } else if (command === "deactivate") {
-    router.push("/setting/deactivate");
-  }
-}
 </script>
 
 <template>
   <header class="topbar">
-    <span @click="router.push('/home')">
-      账号设置
-    </span>
-    <SettingsMenu>
-    </SettingsMenu>
-    <!-- <SettingsMenuItem @click="router.push('/setting/profile')">个人资料</SettingsMenuItem>
-    <SettingsMenuItem @click="router.push('/setting/avatar')">头像设置</SettingsMenuItem>
-    <SettingsMenuItem @click="router.push('/setting/account')">账号设置</SettingsMenuItem>
-    <SettingsMenuItem @click="router.push('/setting/password')">修改密码</SettingsMenuItem>
-    <SettingsMenuItem @click="router.push('/setting/deactivate')" style="color: #ef4444">注销账号</SettingsMenuItem> -->
-
-    <!-- <el-dropdown trigger="click" placement="bottom-end" popper-class="user-dropdown-popper" @command="handleCommand">
-      <el-icon class="dropdown-arrow"><arrow-down /></el-icon>
-      <template #dropdown>
-        <el-dropdown-menu>
-          <el-dropdown-item command="profile">主页</el-dropdown-item>
-          <el-dropdown-item command="avatar" divided>头像</el-dropdown-item>
-          <el-dropdown-item command="account">账号</el-dropdown-item>
-          <el-dropdown-item command="password">修改密码</el-dropdown-item>
-          <el-dropdown-item command="deactivate" divided style="color: #ef4444">注销账号</el-dropdown-item>
-        </el-dropdown-menu>
-      </template>
-</el-dropdown> -->
+    <el-icon @click="router.push('/home')">
+      <CaretLeft />
+    </el-icon>
+    <SettingsMenu />
   </header>
   <el-scrollbar ref="scrollbarRef" wrap-style="max-height: calc(100vh - var(--header-h));" view-class="">
     <div class="open">

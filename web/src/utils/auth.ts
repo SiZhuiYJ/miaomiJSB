@@ -33,3 +33,23 @@ export function maskString(str: string): string {
     }
     return str;
 }
+/**
+ * 提取邮箱字符串的邮箱地址的'@'符号之前的email
+ * @param emailStr 包含邮箱地址的字符串
+ * @returns 提取出的邮箱地址，如果没有找到则返回原字符串
+ */
+export function extractEmail(emailStr: string): string {
+    if (!emailStr.includes('@')) return emailStr;
+    const parts = emailStr.split('@');
+    return parts[0] || emailStr;
+}
+/**
+ * 提取邮箱字符串的邮箱地址的'@'符号之后的domain
+ * @param emailStr 包含邮箱地址的字符串
+ * @returns 提取出的域名，如果没有找到则返回原字符串
+ */
+export function extractDomain(emailStr: string): string {
+    if (!emailStr.includes('@')) return emailStr;
+    const parts = emailStr.split('@');
+    return parts[1] || emailStr;
+}

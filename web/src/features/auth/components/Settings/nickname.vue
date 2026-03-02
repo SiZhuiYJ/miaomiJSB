@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores';
+import { storeToRefs } from 'pinia'
 import { authApi } from '@/features/auth/api';
 import { notifySuccess, notifyError, notifyWarning } from '@/utils/notification';
 
-const authStore = useAuthStore();
-
+const { user } = storeToRefs(useAuthStore());
 const loading = ref(false);
-const nickName = ref(authStore.user?.nickName || '');
+const nickName = ref('');
 
 async function handleSave() {
   if (!nickName.value) {
@@ -15,7 +15,7 @@ async function handleSave() {
     return;
   }
 
-  if (nickName.value === authStore.user?.nickName) {
+  if (nickName.value === user.value?.nickName) {
     notifyWarning('昵称未修改');
     return;
   }
@@ -24,9 +24,9 @@ async function handleSave() {
   try {
     const profileRes = await authApi.updateProfileInfo({
       nickName: nickName.value,
-      avatarKey: authStore.user?.avatarKey || null
+      avatarKey: user.value?.avatarKey || null
     });
-    authStore.setSession(profileRes.data);
+    useAuthStore().setSession(profileRes.data);
     notifySuccess('昵称修改成功');
   } catch (err: any) {
     console.error(err);
@@ -35,34 +35,31 @@ async function handleSave() {
     loading.value = false;
   }
 }
+onMounted(() => {
+  if (user.value?.nickName) {
+    nickName.value = user.value.nickName;
+  }
+  console.log(user.value);
+});
 </script>
 
 <template>
-  <div class="container">
-    <div class="card">
-      <div class="form-group">
-        <div class="field">
-          <label class="label">昵称</label>
-          <input class="input" v-model="nickName" placeholder="设置昵称" focus />
-          <label class="desc">好的昵称能让大家更容易记住你。</label>
-        </div>
+  <div class="card">
+    <div class="form-group">
+      <div class="field">
+        <label class="label">昵称</label>
+        <input class="input" v-model="nickName" placeholder="设置昵称" focus />
+        <label class="desc">好的昵称能让大家更容易记住你。</label>
       </div>
     </div>
+  </div>
 
-    <div class="actions">
-      <button class="btn-save" :loading="loading" @click="handleSave">保存</button>
-    </div>
+  <div class="actions">
+    <button class="btn-save" :loading="loading" @click="handleSave">保存</button>
   </div>
 </template>
 
 <style scoped lang="scss">
-.container {
-  min-height: 100vh;
-  box-sizing: border-box;
-  background-color: var(--bg-color);
-  padding: 20px;
-}
-
 .card {
   background-color: var(--bg-elevated);
   border-radius: 12px;
