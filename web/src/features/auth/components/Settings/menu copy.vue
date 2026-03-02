@@ -1,4 +1,4 @@
-<style scoped>
+<style scoped lang="scss">
 .main>.inp {
     display: none;
 }
