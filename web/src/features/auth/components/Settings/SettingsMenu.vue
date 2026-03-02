@@ -5,8 +5,7 @@ const isCheckbox = ref<boolean>(true);
 
 <template>
   <label class="main">
-    Menu{{ isCheckbox }}
-    <!-- checked="" -->
+    <slot name="title"></slot>
     <input class="inp" type="checkbox" v-model="isCheckbox" />
     <div class="bar">
       <span class="top bar-list"></span>
@@ -86,64 +85,9 @@ const isCheckbox = ref<boolean>(true);
   transition: all 0.4s;
 }
 
-// .menu-list {
-//   --delay: 0.4s;
-//   --trdelay: 0.15s;
-//   padding: 8px 10px;
-//   border-radius: inherit;
-//   transition: background-color 0.2s 0s;
-//   position: relative;
-//   transform: translateY(30px);
-//   opacity: 0;
-// }
-
-// .menu-list::after {
-//   content: "";
-//   position: absolute;
-//   top: 100%;
-//   left: 50%;
-//   transform: translateX(-50%);
-//   height: 1px;
-//   background-color: rgba(0, 0, 0, 0.3);
-//   width: 95%;
-// }
-
-// .menu-list:hover {
-//   background-color: rgb(223, 223, 223);
-// }
-
 .inp:checked ~ .menu-container {
   clip-path: inset(10% 50% 90% 50% round 10px);
 }
-
-// .inp:not(:checked) ~ .menu-container .menu-list {
-//   transform: translateY(0);
-//   opacity: 1;
-// }
-
-// .inp:not(:checked) ~ .menu-container .menu-list:nth-child(1) {
-//   transition:
-//     transform 0.4s var(--delay),
-//     opacity 0.4s var(--delay);
-// }
-
-// .inp:not(:checked) ~ .menu-container .menu-list:nth-child(2) {
-//   transition:
-//     transform 0.4s calc(var(--delay) + (var(--trdelay) * 1)),
-//     opacity 0.4s calc(var(--delay) + (var(--trdelay) * 1));
-// }
-
-// .inp:not(:checked) ~ .menu-container .menu-list:nth-child(3) {
-//   transition:
-//     transform 0.4s calc(var(--delay) + (var(--trdelay) * 2)),
-//     opacity 0.4s calc(var(--delay) + (var(--trdelay) * 2));
-// }
-
-// .inp:not(:checked) ~ .menu-container .menu-list:nth-child(4) {
-//   transition:
-//     transform 0.4s calc(var(--delay) + (var(--trdelay) * 3)),
-//     opacity 0.4s calc(var(--delay) + (var(--trdelay) * 3));
-// }
 
 .bar-inp {
   -webkit-appearance: none;
