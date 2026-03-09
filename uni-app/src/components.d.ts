@@ -13,6 +13,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     CheckInTab: typeof import('./components/tabs/CheckInTab.vue')['default']
+    ClassTab: typeof import('./components/tabs/ClassTab.vue')['default']
     CustomTabBar: typeof import('./components/CustomTabBar.vue')['default']
     HomeTab: typeof import('./components/tabs/HomeTab.vue')['default']
     NotificationSystem: typeof import('./components/NotificationSystem.vue')['default']
@@ -27,6 +28,7 @@ declare module 'vue' {
 // For TSX support
 declare global {
   const CheckInTab: typeof import('./components/tabs/CheckInTab.vue')['default']
+  const ClassTab: typeof import('./components/tabs/ClassTab.vue')['default']
   const CustomTabBar: typeof import('./components/CustomTabBar.vue')['default']
   const HomeTab: typeof import('./components/tabs/HomeTab.vue')['default']
   const NotificationSystem: typeof import('./components/NotificationSystem.vue')['default']

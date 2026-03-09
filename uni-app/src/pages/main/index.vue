@@ -3,6 +3,7 @@ import { ref, reactive } from 'vue';
 import { onShow, onLoad, onUnload } from '@dcloudio/uni-app';
 import CustomTabBar from '../../components/CustomTabBar.vue';
 import HomeTab from '../../components/tabs/HomeTab.vue';
+import ClassTab from '../../components/tabs/ClassTab.vue';
 import CheckInTab from '../../components/tabs/CheckInTab.vue';
 import SettingsTab from '../../components/tabs/SettingsTab.vue';
 import { useAuthStore } from '../../stores/auth';
@@ -14,7 +15,7 @@ const currentTab = ref(0); // Default to Home (喵咪记事簿)
 
 // Animation State
 const visibleTabs = reactive(new Set([0]));
-const tabClasses = reactive<Record<number, string>>({ 0: '', 1: '', 2: '' });
+const tabClasses = reactive<Record<number, string>>({ 0: '', 1: '', 2: '', 3: '' });
 const cleanupTimers: Record<number, number> = {};
 
 onLoad((options: any) => {
@@ -94,10 +95,13 @@ function handleTabChange(index: number) {
         <HomeTab :isActive="currentTab === 0" />
       </view>
       <view class="tab-page" v-show="visibleTabs.has(1)" :class="tabClasses[1]">
-        <CheckInTab :isActive="currentTab === 1" />
+        <ClassTab :isActive="currentTab === 1" />
       </view>
       <view class="tab-page" v-show="visibleTabs.has(2)" :class="tabClasses[2]">
-        <SettingsTab :isActive="currentTab === 2" />
+        <CheckInTab :isActive="currentTab === 2" />
+      </view>
+      <view class="tab-page" v-show="visibleTabs.has(3)" :class="tabClasses[3]">
+        <SettingsTab :isActive="currentTab === 3" />
       </view>
     </view>
     

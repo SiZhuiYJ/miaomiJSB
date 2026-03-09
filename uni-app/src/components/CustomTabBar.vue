@@ -14,7 +14,8 @@ const themeStore = useThemeStore();
 
 const tabs = [
   { text: '主页' },
-  { text: '今日打卡' },
+  { text: '课程' },
+  { text: '打卡' },
   { text: '设置' },
 ];
 
