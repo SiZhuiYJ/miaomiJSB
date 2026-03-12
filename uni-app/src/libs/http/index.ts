@@ -236,17 +236,18 @@ const createHttp = (url: string, globalOptions: CreateHttpOptions = {}) => {
         const fingerprint = getRequestFingerprint(options);
         const duplicateInterval = options.preventDuplicateInterval ?? globalDuplicateInterval;
 
-        // 1. 请求合并与防抖拦截
+        // 1. 请求合并与重复请求拦截
         if (duplicateInterval > 0) {
-            // 合并正在进行中的相同请求
+            // 合并正在进行中的相同请求 (只要在 duplicateInterval 开启的情况下，同一时间只允许一个相同请求在飞)
             if (inFlightRequests.has(fingerprint)) {
                 return inFlightRequests.get(fingerprint) as Promise<HttpResponse<T>>;
             }
 
-            // 防抖：拦截过快重复触发的非 GET 请求
+            // 拦截过快触发的重复请求 (主要针对非 GET 的误触/双击)
+            // 如果请求已经完成，但处于极短的冷却期内 (如 100ms)，则拦截以防止硬件层面的重复触发
             const lastTime = lastRequestTimes.get(fingerprint);
             const now = Date.now();
-            if (lastTime && now - lastTime < duplicateInterval) {
+            if (lastTime && now - lastTime < 100) {
                 if (options.method !== 'GET') {
                     return Promise.reject({ errMsg: 'Duplicate request', isDuplicate: true });
                 }

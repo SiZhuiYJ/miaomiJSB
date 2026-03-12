@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { onLoad } from '@dcloudio/uni-app';
+import { onLoad, onShow } from '@dcloudio/uni-app';
 import { useCheckinsStore } from '@/stores/checkins';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme';
@@ -12,6 +12,10 @@ const checkinsStore = useCheckinsStore();
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
 const plansStore = usePlansStore();
+
+onShow(() => {
+  themeStore.updateNavBarColor();
+});
 
 const planId = ref<number | null>(null);
 const dateStr = ref('');

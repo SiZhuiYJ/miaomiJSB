@@ -28,6 +28,7 @@ const currentPlan = computed(() => {
 });
 
 onShow(async () => {
+  themeStore.updateNavBarColor();
   if (planId.value) {
     await fetchCalendar();
     await updateSelectedDateDetails();
@@ -48,13 +49,13 @@ async function fetchCalendar() {
 }
 
 async function updateSelectedDateDetails() {
-    if (!planId.value) return;
-    try {
-        const dateStr = toLocalDateOnlyString(selectedDate.value);
-        selectedCheckins.value = await checkinsStore.getCheckinDetail(planId.value, dateStr);
-    } catch {
-        selectedCheckins.value = [];
-    }
+  if (!planId.value) return;
+  try {
+    const dateStr = toLocalDateOnlyString(selectedDate.value);
+    selectedCheckins.value = await checkinsStore.getCheckinDetail(planId.value, dateStr);
+  } catch {
+    selectedCheckins.value = [];
+  }
 }
 
 function prevMonth() {
@@ -163,122 +164,162 @@ function getCellClass(cell: Date | null): string[] {
 
 function handleDateClick(date: Date) {
   if (!isInPlanRange(date)) return;
-  
+
   selectedDate.value = date;
   updateSelectedDateDetails();
 }
 
 // Slot logic
 interface SlotStatus {
-    id: number;
-    name: string;
-    timeRange: string;
-    status: 'done' | 'pending' | 'missed' | 'future';
-    canCheckin: boolean;
-    canRetro: boolean;
-    checkinStatus?: number; // 1 or 2
+  id: number;
+  name: string;
+  timeRange: string;
+  status: 'done' | 'pending' | 'missed' | 'future' | 'not_started' | 'ended';
+  canCheckin: boolean;
+  canRetro: boolean;
+  checkinStatus?: number; // 1 or 2
 }
 
 const slotStatuses = computed(() => {
-    if (!currentPlan.value?.timeSlots?.length) return [];
-    
-    const now = new Date();
-    const todayStr = toLocalDateOnlyString(now);
-    const selectedStr = toLocalDateOnlyString(selectedDate.value);
-    const isToday = todayStr === selectedStr;
-    const isPast = selectedStr < todayStr;
-    const isFuture = selectedStr > todayStr;
+  if (!currentPlan.value?.timeSlots?.length) return [];
 
-    // Current time in HH:mm:ss
-    const nowTimeStr = now.toTimeString().split(' ')[0];
+  const now = new Date();
+  const todayStr = toLocalDateOnlyString(now);
+  const selectedStr = toLocalDateOnlyString(selectedDate.value);
+  const isToday = todayStr === selectedStr;
+  const isPast = selectedStr < todayStr;
+  const isFuture = selectedStr > todayStr;
 
-    return currentPlan.value.timeSlots.map(slot => {
-        const checkin = selectedCheckins.value.find(c => c.timeSlotId === slot.id);
-        
-        let status: 'done' | 'pending' | 'missed' | 'future' = 'future';
-        let canCheckin = false;
-        let canRetro = false;
+  const plan = currentPlan.value;
+  const cellDate = parseDateOnly(selectedStr);
+  const startDate = parseDateOnly(plan.startDate);
+  const endDate = plan.endDate ? parseDateOnly(plan.endDate) : null;
 
-        if (checkin) {
-            status = 'done';
-        } else if (isFuture) {
-            status = 'future';
-        } else if (isPast) {
-            status = 'missed';
-            canRetro = true;
-        } else {
-            // Today
-            if (nowTimeStr < slot.startTime) {
-                status = 'future';
-            } else if (nowTimeStr > slot.endTime) {
-                status = 'missed';
-                canRetro = true;
-            } else {
-                status = 'pending';
-                canCheckin = true;
-            }
-        }
+  // Current time in HH:mm:ss
+  const nowTimeStr = now.toTimeString().split(' ')[0];
 
-        return {
-            id: slot.id!,
-            name: slot.slotName || '',
-            timeRange: `${slot.startTime.slice(0, 5)} - ${slot.endTime.slice(0, 5)}`,
-            status,
-            canCheckin,
-            canRetro,
-            checkinStatus: checkin?.status
-        } as SlotStatus;
-    });
+  return currentPlan.value.timeSlots.map(slot => {
+    const checkin = selectedCheckins.value.find(c => c.timeSlotId === slot.id);
+
+    let status: SlotStatus['status'] = 'future';
+    let canCheckin = false;
+    let canRetro = false;
+
+    if (checkin) {
+      status = 'done';
+    } else if (cellDate < startDate) {
+      status = 'not_started';
+    } else if (endDate && cellDate > endDate) {
+      status = 'ended';
+    } else if (isFuture) {
+      status = 'future';
+    } else if (isPast) {
+      status = 'missed';
+      canRetro = true;
+    } else {
+      // Today
+      if (nowTimeStr < slot.startTime) {
+        status = 'future';
+      } else if (nowTimeStr > slot.endTime) {
+        status = 'missed';
+        canRetro = true;
+      } else {
+        status = 'pending';
+        canCheckin = true;
+      }
+    }
+
+    return {
+      id: slot.id!,
+      name: slot.slotName || '',
+      timeRange: `${slot.startTime.slice(0, 5)} - ${slot.endTime.slice(0, 5)}`,
+      status,
+      canCheckin,
+      canRetro,
+      checkinStatus: checkin?.status
+    } as SlotStatus;
+  });
 });
 
 const simpleTodayStatus = computed(() => {
-    // Fallback for plans without time slots
-    const status = getStatusCode(selectedDate.value);
-    if (status === 1) return 'checked';
-    if (status === 2) return 'retro';
-    return 'pending';
+  if (!currentPlan.value) return 'pending';
+
+  const plan = currentPlan.value;
+  const selectedStr = toLocalDateOnlyString(selectedDate.value);
+  const cellDate = parseDateOnly(selectedStr);
+  const startDate = parseDateOnly(plan.startDate);
+  const endDate = plan.endDate ? parseDateOnly(plan.endDate) : null;
+
+  if (cellDate < startDate) return 'not_started';
+  if (endDate && cellDate > endDate) return 'ended';
+
+  // Fallback for plans without time slots
+  const status = getStatusCode(selectedDate.value);
+  if (status === 1) return 'checked';
+  if (status === 2) return 'retro';
+
+  // Also check if it's future
+  const now = new Date();
+  const todayStr = toLocalDateOnlyString(now);
+  if (selectedStr > todayStr) return 'future';
+
+  return 'pending';
 });
 
 function handleCheckinAction(slot?: SlotStatus) {
-    const dateStr = toLocalDateOnlyString(selectedDate.value);
-    let url = `/pages/checkin/form?planId=${planId.value}&date=${dateStr}`;
-    
-    // Check if future
-    const now = new Date();
-    const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const targetOnly = new Date(selectedDate.value.getFullYear(), selectedDate.value.getMonth(), selectedDate.value.getDate());
+  if (simpleTodayStatus.value === 'not_started') {
+    notifyWarning('计划尚未开始');
+    return;
+  }
+  if (simpleTodayStatus.value === 'ended') {
+    notifyWarning('计划已结束');
+    return;
+  }
 
-    if (targetOnly > todayOnly) {
-        notifyWarning('未来日期不可打卡');
-        return;
+  const dateStr = toLocalDateOnlyString(selectedDate.value);
+  let url = `/pages/checkin/form?planId=${planId.value}&date=${dateStr}`;
+
+  // Check if future
+  const now = new Date();
+  const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetOnly = new Date(selectedDate.value.getFullYear(), selectedDate.value.getMonth(), selectedDate.value.getDate());
+
+  if (targetOnly > todayOnly) {
+    notifyWarning('未来日期不可打卡');
+    return;
+  }
+
+  if (slot) {
+    // Time slot logic
+    // If done, show detail? 
+    if (slot.status === 'done') {
+      uni.navigateTo({
+        url: `/pages/checkin/detail?planId=${planId.value}&date=${dateStr}`
+      });
+      return;
     }
 
-    if (slot) {
-        // Time slot logic
-        // If done, show detail? 
-        if (slot.status === 'done') {
-             uni.navigateTo({
-                url: `/pages/checkin/detail?planId=${planId.value}&date=${dateStr}`
-            });
-            return;
-        }
-        
-        // If pending/missed, go to form with slotId
-        url += `&slotId=${slot.id}`;
-        
-        uni.navigateTo({ url });
+    if (slot.status === 'not_started' || slot.status === 'ended') {
+      notifyWarning(slot.status === 'not_started' ? '计划尚未开始' : '计划已结束');
+      return;
+    }
+
+    // If pending/missed, go to form with slotId
+    url += `&slotId=${slot.id}`;
+
+    uni.navigateTo({ url });
+  } else {
+    // Simple plan logic
+    if (simpleTodayStatus.value === 'checked' || simpleTodayStatus.value === 'retro') {
+      uni.navigateTo({
+        url: `/pages/checkin/detail?planId=${planId.value}&date=${dateStr}`
+      });
     } else {
-        // Simple plan logic
-        if (simpleTodayStatus.value === 'checked' || simpleTodayStatus.value === 'retro') {
-            uni.navigateTo({
-                url: `/pages/checkin/detail?planId=${planId.value}&date=${dateStr}`
-            });
-        } else {
-             uni.navigateTo({
-                url
-            });
-        }
+      uni.navigateTo({
+        url
+      });
     }
+  }
 }
 
 const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
@@ -320,34 +361,47 @@ const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
       <!-- Time Slot List -->
       <view v-if="slotStatuses.length > 0" class="slot-list">
         <view v-for="slot in slotStatuses" :key="slot.id" class="slot-row">
-            <view class="slot-info">
-                <text class="slot-name">{{ slot.name }}</text>
-                <text class="slot-time">{{ slot.timeRange }}</text>
-            </view>
-            
-            <view class="slot-action">
-                <template v-if="slot.status === 'done'">
-                    <view class="status-tag" :class="slot.checkinStatus === 2 ? 'retro' : 'success'" @click="handleCheckinAction(slot)">
-                        {{ slot.checkinStatus === 2 ? '已补签' : '已打卡' }}
-                    </view>
-                </template>
-                <template v-else-if="slot.status === 'future'">
-                    <text class="status-text">未开始</text>
-                </template>
-                <template v-else-if="slot.status === 'missed'">
-                    <button class="action-btn retro" @click="handleCheckinAction(slot)">补签</button>
-                </template>
-                <template v-else>
-                    <button class="action-btn primary" @click="handleCheckinAction(slot)">打卡</button>
-                </template>
-            </view>
+          <view class="slot-info">
+            <text class="slot-name">{{ slot.name }}</text>
+            <text class="slot-time">{{ slot.timeRange }}</text>
+          </view>
+
+          <view class="slot-action">
+            <template v-if="slot.status === 'done'">
+              <view class="status-tag" :class="slot.checkinStatus === 2 ? 'retro' : 'success'"
+                @click="handleCheckinAction(slot)">
+                {{ slot.checkinStatus === 2 ? '已补签' : '已打卡' }}
+              </view>
+            </template>
+            <template v-else-if="slot.status === 'not_started'">
+              <text class="status-text muted">计划未开始</text>
+            </template>
+            <template v-else-if="slot.status === 'ended'">
+              <text class="status-text muted">计划已结束</text>
+            </template>
+            <template v-else-if="slot.status === 'future'">
+              <text class="status-text">未开始</text>
+            </template>
+            <template v-else-if="slot.status === 'missed'">
+              <button class="action-btn retro" @click="handleCheckinAction(slot)">补签</button>
+            </template>
+            <template v-else>
+              <button class="action-btn primary" @click="handleCheckinAction(slot)">打卡</button>
+            </template>
+          </view>
         </view>
       </view>
 
       <!-- Fallback Single Button -->
       <button v-else class="checkin-btn" :class="simpleTodayStatus" @click="handleCheckinAction()">
         <text class="checkin-btn-text">
-            {{ simpleTodayStatus === 'checked' ? '已打卡' : (simpleTodayStatus === 'retro' ? '已补签' : '今日打卡') }}
+          {{
+            simpleTodayStatus === 'checked' ? '已打卡' :
+              (simpleTodayStatus === 'retro' ? '已补签' :
+                (simpleTodayStatus === 'not_started' ? '计划未开始' :
+                  (simpleTodayStatus === 'ended' ? '计划已结束' :
+                    (simpleTodayStatus === 'future' ? '未到时间' : '今日打卡'))))
+          }}
         </text>
       </button>
     </view>
@@ -492,7 +546,7 @@ const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
 .checkin-action-area {
   display: flex;
   justify-content: center;
-  margin-top: 24px;
+  margin-top: 12px;
 }
 
 .checkin-btn {
@@ -529,70 +583,71 @@ const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
 }
 
 .slot-list {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .slot-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: var(--bg-elevated);
-    padding: 12px 16px;
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--bg-elevated);
+  padding: 12px 16px;
+  border-radius: var(--uni-card-border-radius);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .slot-info {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .slot-name {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-color);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
 .slot-time {
-    font-size: 12px;
-    color: var(--text-muted);
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .slot-action {
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
 }
 
 .status-tag {
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    color: white;
+  padding: 4px 8px;
+  border-radius: var(--uni-card-border-radius);
+  font-size: 12px;
+  color: white;
 }
 
 .status-text {
-    font-size: 14px;
-    color: var(--text-muted);
+  font-size: 14px;
+  color: var(--text-muted);
 }
 
 .action-btn {
-    font-size: 14px;
-    padding: 6px 16px;
-    border-radius: 20px;
-    color: white;
-    background-color: #3b82f6;
-    border: none;
+  font-size: 14px;
+  padding: 4px 8px;
+  line-height: normal;
+  border-radius: var(--uni-card-border-radius);
+  color: white;
+  background-color: #3b82f6;
+  border: none;
 }
 
 .action-btn.retro {
-    background-color: #f59e0b;
+  background-color: #f59e0b;
 }
 
 .action-btn.primary {
-    background-color: #3b82f6;
+  background-color: #3b82f6;
 }
 
 /* Removed duplicate checkin-action-area styles */
@@ -680,6 +735,17 @@ const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
   color: white;
 }
 
+.checkin-btn.future {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.checkin-btn.not_started,
+.checkin-btn.ended {
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
 .checkin-btn-text {
   font-size: 18px;
   font-weight: bold;
@@ -691,11 +757,14 @@ const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
   gap: 6px;
 }
 
+.status-text.muted {
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+
 .dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
 }
-
-
 </style>

@@ -5,7 +5,7 @@ import { useCheckinsStore, type CheckinDetail } from '@/stores/checkins';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme';
 import { API_BASE_URL } from '@/config';
-import http from '@/libs/checkin/config';
+import http from '@/libs/http/config';
 import { notifyError } from '@/utils/notification';
 
 const checkinsStore = useCheckinsStore();

@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/stores/auth';
-import http from '@/libs/checkin/config';
+import { useThemeStore } from '@/stores/theme';
+import http from '@/libs/http/config';
 import { notifyError, notifySuccess, notifyWarning } from '@/utils/notification';
 import { APP_TITLE } from '@/config';
 import { useCountdown } from '@/composables/useCountdown';
 
+const themeStore = useThemeStore();
+
+onShow(() => {
+  themeStore.updateNavBarColor();
+});
 
 const mode = ref<'login' | 'register'>('login');
 const loginMethod = ref<'email' | 'account'>('email');

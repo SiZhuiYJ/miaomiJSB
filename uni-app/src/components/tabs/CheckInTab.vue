@@ -173,6 +173,25 @@ function handleCreatePlan() {
     url: '/pages/plan/create'
   });
 }
+
+function getPlanStatus(plan: any) {
+  if (!plan.isActive) {
+    return { text: '已停用', class: 'status-inactive' };
+  }
+
+  const now = new Date();
+  const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startDate = parseDateOnly(plan.startDate);
+  const endDate = plan.endDate ? parseDateOnly(plan.endDate) : null;
+
+  if (startDate > todayOnly) {
+    return { text: '未开始', class: 'status-pending', isInactive: true };
+  }
+  if (endDate && endDate < todayOnly) {
+    return { text: '已结束', class: 'status-ended', isInactive: true };
+  }
+  return null; // 进行中不显示状态
+}
 </script>
 
 <template>
@@ -194,6 +213,8 @@ function handleCreatePlan() {
         <view class="card-header-row">
           <view class="card-title-group">
             <text class="card-title">{{ plan.title }}</text>
+            <text v-if="getPlanStatus(plan)" :class="['status-badge', getPlanStatus(plan)?.class]">{{ getPlanStatus(plan)?.text
+            }}</text>
             <text class="card-desc">{{ plan.description || '无描述' }}</text>
           </view>
         </view>
@@ -234,6 +255,11 @@ function handleCreatePlan() {
               <text class="stat-lbl">总进度</text>
             </view>
           </view>
+        </view>
+
+        <!-- Inactive Overlay -->
+        <view v-if="getPlanStatus(plan)?.isInactive" class="card-overlay">
+          <text class="overlay-text">{{ getPlanStatus(plan)?.text }}</text>
         </view>
       </view>
 
@@ -296,6 +322,33 @@ function handleCreatePlan() {
   padding: var(--uni-card-padding);
   margin-bottom: var(--uni-card-margin-bottom);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(1px);
+  z-index: 10;
+}
+
+.overlay-text {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--text-muted);
+  transform: rotate(-15deg);
+  border: 3px solid var(--text-muted);
+  padding: 4px 16px;
+  border-radius: 8px;
+  opacity: 0.8;
 }
 
 .card-header-row {
@@ -319,6 +372,30 @@ function handleCreatePlan() {
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+.status-badge {
+   font-size: 10px;
+   padding: 1px 6px;
+   border-radius: 4px;
+   font-weight: 500;
+   flex-shrink: 0;
+   white-space: nowrap;
+ }
+ 
+ .status-pending {
+   background-color: #E3F2FD;
+   color: #1976D2;
+ }
+ 
+ .status-ended {
+   background-color: #EEEEEE;
+   color: #757575;
+ }
+ 
+ .status-inactive {
+   background-color: #FFF3E0;
+   color: #EF6C00;
+ }
 
 .card-desc {
   font-size: 13px;

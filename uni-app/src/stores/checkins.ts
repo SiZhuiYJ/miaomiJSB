@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import http from '@/libs/checkin/config';
+import http from '@/libs/http/config';
 
 export interface CalendarItem {
   date: string;

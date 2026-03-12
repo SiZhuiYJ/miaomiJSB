@@ -59,25 +59,4 @@ export interface ClassDto {
     updateTime: string;
 }
 
-/**
- * 日历事件对象
- */
-export interface Event {
-    /** 事件 ID */
-    id: number;
-    /** 事件日期 (YYYY-MM-DD) */
-    date: string;
-    /** 事件类型 */
-    type:
-    | "anniversary" // 纪念日
-    | "countdown"   // 倒计时
-    | "festival"    // 节日
-    | "important"   // 重要日
-    | "birthday"    // 生日
-    | "other";       // 其他
-    /** 事件信息描述 */
-    info: string;
-    /** 事件标识颜色 */
-    color: string;
-}
 

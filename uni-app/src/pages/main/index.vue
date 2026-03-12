@@ -13,6 +13,10 @@ const authStore = useAuthStore();
 const themeStore = useThemeStore();
 const currentTab = ref(0); // Default to Home (喵咪记事簿)
 
+onShow(() => {
+  themeStore.updateNavBarColor();
+});
+
 // Animation State
 const visibleTabs = reactive(new Set([0]));
 const tabClasses = reactive<Record<number, string>>({ 0: '', 1: '', 2: '', 3: '' });

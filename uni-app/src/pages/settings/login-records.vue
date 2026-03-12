@@ -1,6 +1,11 @@
 <script setup lang="ts">
+import { onShow } from '@dcloudio/uni-app';
 import { useThemeStore } from '@/stores/theme';
 const themeStore = useThemeStore();
+
+onShow(() => {
+  themeStore.updateNavBarColor();
+});
 
 const records = [
   { device: 'iPhone 13', location: '北京', time: '2026-02-11 10:30', status: '当前登录' },

@@ -1,6 +1,11 @@
 <script setup lang="ts">
+import { onShow } from '@dcloudio/uni-app';
 import { useThemeStore } from '@/stores/theme';
 const themeStore = useThemeStore();
+
+onShow(() => {
+  themeStore.updateNavBarColor();
+});
 </script>
 
 <template>

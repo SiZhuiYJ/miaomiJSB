@@ -1,6 +1,11 @@
 <script setup lang="ts">
+import { onShow } from '@dcloudio/uni-app';
 import { useThemeStore } from '@/stores/theme';
 const themeStore = useThemeStore();
+
+onShow(() => {
+  themeStore.updateNavBarColor();
+});
 
 const logs = [
   { version: 'v1.0.2', date: '2026-02-11', content: '优化设置页布局，增加更新日志、意见反馈等功能区块。' },

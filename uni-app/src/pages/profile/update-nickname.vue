@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme';
-import http from '@/libs/checkin/config';
+import http from '@/libs/http/config';
 import { notifySuccess, notifyError } from '@/utils/notification';
 
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
+
+onShow(() => {
+  themeStore.updateNavBarColor();
+});
 
 const loading = ref(false);
 const nickName = ref(authStore.user?.nickName || '');

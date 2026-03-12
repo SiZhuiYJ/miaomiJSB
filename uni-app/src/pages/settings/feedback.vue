@@ -1,8 +1,14 @@
 <script setup lang="ts">
+import { onShow } from '@dcloudio/uni-app';
 import { useThemeStore } from '@/stores/theme';
 import { ref } from 'vue';
 
 const themeStore = useThemeStore();
+
+onShow(() => {
+  themeStore.updateNavBarColor();
+});
+
 const feedbackText = ref('');
 const contactInfo = ref('');
 

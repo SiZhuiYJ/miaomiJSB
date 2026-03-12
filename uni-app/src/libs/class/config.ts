@@ -15,7 +15,7 @@ export const http = createHttp(CLASS_API_BASE_URL, {
     concurrencyLimit: 5,            // 课程模块较低并发限制
     retryCount: 3,                  // 增加重试次数以提高稳定性
     retryDelay: 1000,               // 重试延迟 (ms)
-    preventDuplicateInterval: 500,  // 防抖间隔 (ms)
+    preventDuplicateInterval: 1000,  // 合并并发请求的时间窗口 (ms)
 });
 
 export default http;

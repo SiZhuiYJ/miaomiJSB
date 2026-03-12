@@ -2,7 +2,7 @@
 import { ref, reactive } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useThemeStore } from '@/stores/theme';
-import http from '@/libs/checkin/config';
+import http from '@/libs/http/config';
 import { onShow } from '@dcloudio/uni-app';
 import { notifySuccess, notifyError } from '@/utils/notification';
 
@@ -18,6 +18,7 @@ const accountStatus = reactive({
 });
 
 onShow(async () => {
+  themeStore.updateNavBarColor();
   await checkAccountStatus();
 });
 

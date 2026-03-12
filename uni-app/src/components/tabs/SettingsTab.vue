@@ -24,11 +24,6 @@ const toggleExpand = () => {
   isExpanded.value = !isExpanded.value;
 };
 
-function getActivePalette() {
-  const found = palettes.find(p => isCurrentPalette(p.colors));
-  return found || { colors: themeStore.currentColors };
-}
-
 function getActivePaletteIndex() {
   const idx = palettes.findIndex(p => isCurrentPalette(p.colors));
   return idx;
@@ -97,11 +92,6 @@ function handleCustomSelect() {
   } else {
     toggleExpand();
   }
-}
-
-function updateCustomColor(index: number, e: any) {
-  // e.detail.value for uni-app input
-  customForm.colors[index] = e.detail.value;
 }
 
 function handleLogout() {
