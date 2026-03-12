@@ -13,14 +13,14 @@ export default function useClass() {
     async function initializeData() {
         isLoading.value = true;
         error.value = null;
-        
+
         try {
             const authStore = useAuthStore();
             // const userId = authStore.user?.userId || 1; // 默认使用 1 作为示例
-            
+
             const { data } = await ClassApi.PostClassesByID(1);
             // const { data } = await ClassApi.PostClassesByID(userId);
-            
+
             classes.value = data.map(item => ({
                 id: item.id,
                 name: item.className,
@@ -32,13 +32,13 @@ export default function useClass() {
                 color: item.color,
                 remark: item.remark
             }));
-            
+
             console.log('课表获取成功', classes.value);
         } catch (err) {
             classes.value = [];
             error.value = err instanceof Error ? err.message : '课表获取失败';
             console.error('课表获取失败:', err);
-            
+
             // 加载示例数据用于演示
             loadExampleData();
         } finally {
@@ -49,11 +49,7 @@ export default function useClass() {
     function loadExampleData() {
         // 示例课程数据（当 API 不可用时使用）
         classes.value = [
-            { id: 1, name: '高等数学', location: 'A101', teacher: '张老师', color: '#409EFF', dayOfWeek: 1, week: [1, 2, 3, 4, 5], number: [1] },
-            { id: 2, name: '大学英语', location: 'B205', teacher: '李老师', color: '#67C23A', dayOfWeek: 1, week: [1, 2, 3, 4, 5], number: [3] },
-            { id: 3, name: '计算机基础', location: 'C301', teacher: '王老师', color: '#E6A23C', dayOfWeek: 2, week: [1, 2, 3, 4, 5], number: [2] },
-            { id: 4, name: '线性代数', location: 'A102', teacher: '张老师', color: '#F56C6C', dayOfWeek: 3, week: [1, 2, 3, 4, 5], number: [1] },
-            { id: 5, name: '体育', location: '操场', teacher: '赵老师', color: '#909399', dayOfWeek: 4, week: [1, 2, 3, 4, 5], number: [3] }
+
         ];
         console.log('已加载示例课表数据');
     }

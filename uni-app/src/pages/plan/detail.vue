@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
-import { usePlansStore } from '../../stores/plans';
-import { useCheckinsStore, type CheckinDetail } from '../../stores/checkins';
-import { useThemeStore } from '../../stores/theme';
-import { notifyWarning } from '../../utils/notification';
+import { usePlansStore } from '@/stores/plans';
+import { useCheckinsStore, type CheckinDetail } from '@/stores/checkins';
+import { useThemeStore } from '@/stores/theme';
+import { notifyWarning } from '@/utils/notification';
+import { toLocalDateOnlyString, parseDateOnly, getMonthDays } from '@/utils/date';
 
 const plansStore = usePlansStore();
 const checkinsStore = useCheckinsStore();
@@ -76,31 +77,8 @@ function nextMonth() {
   fetchCalendar();
 }
 
-function toLocalDateOnlyString(date: Date): string {
-  const y = date.getFullYear();
-  const m = `${date.getMonth() + 1}`.padStart(2, '0');
-  const d = `${date.getDate()}`.padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function parseDateOnly(input: string): Date {
-  const parts = input.split('-');
-  const y = Number(parts[0] ?? '0') || 0;
-  const m = Number(parts[1] ?? '1') || 1;
-  const d = Number(parts[2] ?? '1') || 1;
-  return new Date(y, m - 1, d);
-}
-
 const monthDays = computed(() => {
-  const days: Date[] = [];
-  const year = currentYear.value;
-  const month = currentMonth.value - 1;
-  const cursor = new Date(year, month, 1);
-  while (cursor.getMonth() === month) {
-    days.push(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()));
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return days;
+  return getMonthDays(currentYear.value, currentMonth.value);
 });
 
 const calendarCells = computed(() => {
@@ -392,6 +370,8 @@ const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
 </template>
 
 <style scoped lang="scss">
+@use "@/styles/status-colors.scss";
+
 .container {
   padding: var(--uni-container-padding);
   background-color: var(--bg-color);
@@ -495,37 +475,6 @@ const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
   font-weight: 500;
 }
 
-/* Day Status Colors */
-.day.success {
-  border: 1px solid #10b981;
-  background-color: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-}
-
-.day.success .mini-day-text {
-  color: #10b981;
-}
-
-.day.retro {
-  border: 1px solid #eab308;
-  background-color: rgba(234, 179, 8, 0.2);
-  color: #a16207;
-}
-
-.day.retro .mini-day-text {
-  color: #a16207;
-}
-
-.day.missed {
-  border: 1px solid #ef4444;
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #b91c1c;
-}
-
-.day.missed .mini-day-text {
-  color: #b91c1c;
-}
-
 .mini-day-today {
   border: 1px solid var(--theme-primary) !important;
   font-weight: bold;
@@ -622,14 +571,6 @@ const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
     border-radius: 4px;
     font-size: 12px;
     color: white;
-}
-
-.status-tag.success {
-    background-color: #10b981;
-}
-
-.status-tag.retro {
-    background-color: #f59e0b;
 }
 
 .status-text {
@@ -756,15 +697,5 @@ const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
   border-radius: 50%;
 }
 
-.dot.success {
-  background-color: #10b981;
-}
 
-.dot.retro {
-  background-color: #eab308;
-}
-
-.dot.missed {
-  background-color: rgba(254, 202, 202, 0.5);
-}
 </style>

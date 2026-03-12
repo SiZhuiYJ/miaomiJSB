@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
-import { usePlansStore } from '../../stores/plans';
-import { useCheckinsStore } from '../../stores/checkins';
-import { useNavbar } from '../../utils/useNavbar';
-import ProgressRing from '../../components/ProgressRing.vue';
+import { usePlansStore } from '@/stores/plans';
+import { useCheckinsStore } from '@/stores/checkins';
+import ProgressRing from '@/components/ProgressRing.vue';
+import { toLocalDateOnlyString, parseDateOnly, getMonthDays } from '@/utils/date';
+import { useNavbar } from '@/utils/useNavbar';
 
 const props = defineProps<{
   isActive: boolean;
@@ -11,7 +12,7 @@ const props = defineProps<{
 
 const plansStore = usePlansStore();
 const checkinsStore = useCheckinsStore();
-const { paddingTop, height, paddingLeft } = useNavbar();
+const { paddingTop, height, paddingLeft, navbarHeight } = useNavbar();
 
 const today = new Date();
 const currentYear = ref(today.getFullYear());
@@ -53,31 +54,8 @@ async function loadData() {
   }
 }
 
-function toLocalDateOnlyString(date: Date): string {
-  const y = date.getFullYear();
-  const m = `${date.getMonth() + 1}`.padStart(2, '0');
-  const d = `${date.getDate()}`.padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function parseDateOnly(input: string): Date {
-  const parts = input.split('-');
-  const y = Number(parts[0] ?? '0') || 0;
-  const m = Number(parts[1] ?? '1') || 1;
-  const d = Number(parts[2] ?? '1') || 1;
-  return new Date(y, m - 1, d);
-}
-
 const monthDays = computed(() => {
-  const days: Date[] = [];
-  const year = currentYear.value;
-  const month = currentMonth.value - 1;
-  const cursor = new Date(year, month, 1);
-  while (cursor.getMonth() === month) {
-    days.push(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()));
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return days;
+  return getMonthDays(currentYear.value, currentMonth.value);
 });
 
 const miniCalendarCells = computed(() => {
@@ -201,9 +179,15 @@ function handleCreatePlan() {
   <view class="tab-content">
     <NotificationSystem />
 
-    <view class="header" :style="{ paddingTop: paddingTop + 'px', paddingLeft: paddingLeft + 'px' }">
-      <text class="page-title" :style="{ lineHeight: height + 'px' }">今日打卡</text>
+    <view class="tab-header-fixed"
+      :style="{ paddingTop: paddingTop + 'px', paddingLeft: paddingLeft + 'px', paddingRight: paddingLeft + 'px' }">
+      <view class="header-info-inner" :style="{ height: height + 'px' }">
+        <text class="title">我的计划</text>
+      </view>
     </view>
+
+    <!-- 撑开固定头部的内容区域 -->
+    <view :style="{ height: `calc(${navbarHeight}px - var(--uni-container-padding))` }"></view>
 
     <view class="plan-list">
       <view v-for="plan in plansStore.items" :key="plan.id" class="plan-card" @click="handlePlanClick(plan.id)">
@@ -265,12 +249,30 @@ function handleCreatePlan() {
 </template>
 
 <style scoped lang="scss">
+@use "@/styles/status-colors.scss";
+
 .tab-content {
   padding: var(--uni-container-padding);
   box-sizing: border-box;
   padding-bottom: 10px;
   background-color: var(--bg-color);
   min-height: 100vh;
+}
+
+.tab-header-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: rgba(var(--bg-color), 0.01);
+}
+
+.header-info-inner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  color: var(--text-color);
 }
 
 .header {
@@ -281,9 +283,9 @@ function handleCreatePlan() {
   margin-bottom: 80px;
 }
 
-.page-title {
-  font-size: 24px;
-  font-weight: 800;
+.title {
+  font-size: 16px;
+  font-weight: 600;
   color: var(--text-color);
 }
 
@@ -365,37 +367,6 @@ function handleCreatePlan() {
   font-size: 12px;
   color: var(--text-color);
   font-weight: 500;
-}
-
-/* Day Status Colors */
-.day.success {
-  border: 1px solid #10b981;
-  background-color: rgba(16, 185, 129, 0.1);
-  color: #10b981;
-}
-
-.day.success .mini-day-text {
-  color: #10b981;
-}
-
-.day.retro {
-  border: 1px solid #eab308;
-  background-color: rgba(234, 179, 8, 0.2);
-  color: #a16207;
-}
-
-.day.retro .mini-day-text {
-  color: #a16207;
-}
-
-.day.missed {
-  border: 1px solid #ef4444;
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #b91c1c;
-}
-
-.day.missed .mini-day-text {
-  color: #b91c1c;
 }
 
 .mini-day-today {

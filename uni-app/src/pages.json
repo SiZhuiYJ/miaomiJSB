@@ -111,14 +111,6 @@
             "style": {
                 "navigationBarTitleText": "登录记录"
             }
-        },
-        {
-            "path": "pages/class/index",
-            "style": {
-                "navigationBarTitleText": "课程表",
-                "navigationBarBackgroundColor": "#F1F1EB",
-                "navigationBarTextStyle": "black"
-            }
         }
 	],
 	"globalStyle": {

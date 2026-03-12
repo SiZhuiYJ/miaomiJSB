@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
 import { onShow, onLoad, onUnload } from '@dcloudio/uni-app';
-import CustomTabBar from '../../components/CustomTabBar.vue';
-import HomeTab from '../../components/tabs/HomeTab.vue';
-import ClassTab from '../../components/tabs/ClassTab.vue';
-import CheckInTab from '../../components/tabs/CheckInTab.vue';
-import SettingsTab from '../../components/tabs/SettingsTab.vue';
-import { useAuthStore } from '../../stores/auth';
-import { useThemeStore } from '../../stores/theme';
+import CustomTabBar from '@/components/CustomTabBar.vue';
+import HomeTab from '@/components/tabs/HomeTab.vue';
+import ClassTab from '@/components/tabs/ClassTab.vue';
+import CheckInTab from '@/components/tabs/CheckInTab.vue';
+import SettingsTab from '@/components/tabs/SettingsTab.vue';
+import { useAuthStore } from '@/stores/auth';
+import { useThemeStore } from '@/stores/theme';
 
 const authStore = useAuthStore();
 const themeStore = useThemeStore();

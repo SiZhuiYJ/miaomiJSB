@@ -1,16 +1,26 @@
 <script setup lang="ts">
-import { useAuthStore } from '../../stores/auth';
-import { APP_TITLE } from '../../config';
-import { useNavbar } from '../../utils/useNavbar';
+import { useAuthStore } from '@/stores/auth';
+import { APP_TITLE } from '@/config';
+import { useNavbar } from '@/utils/useNavbar';
 
 const authStore = useAuthStore();
-const { paddingTop, height, paddingLeft } = useNavbar();
+const { paddingTop, height, paddingLeft, navbarHeight } = useNavbar();
 </script>
 
 <template>
   <view class="tab-content">
-    <view class="header" :style="{ paddingTop: paddingTop + 'px', paddingLeft: paddingLeft + 'px' }">
-      <text class="title" :style="{ lineHeight: height + 'px' }">{{ APP_TITLE }}</text>
+    <view class="tab-header-fixed"
+      :style="{ paddingTop: paddingTop + 'px', paddingLeft: paddingLeft + 'px', paddingRight: paddingLeft + 'px' }">
+      <view class="header-info-inner" :style="{ height: height + 'px' }">
+        <text class="title">{{ APP_TITLE }}</text>
+      </view>
+    </view>
+
+    <!-- 撑开固定头部的内容区域 -->
+    <view :style="{ height: navbarHeight + 'px' }"></view>
+
+    <!-- 固定头部 -->
+    <view class="header" :style="{ paddingLeft: paddingLeft + 'px', paddingRight: paddingLeft + 'px' }">
       <text class="subtitle">欢迎回来，{{ authStore.user?.nickName || authStore.user?.userAccount || '用户' }}</text>
     </view>
 
@@ -30,7 +40,22 @@ const { paddingTop, height, paddingLeft } = useNavbar();
 }
 
 .header {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
+}
+
+.tab-header-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: rgba(var(--bg-color), 0.01);
+}
+
+.header-info-inner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .content {
@@ -38,16 +63,15 @@ const { paddingTop, height, paddingLeft } = useNavbar();
 }
 
 .title {
-  font-size: 28px;
-  font-weight: bold;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--text-color);
-  display: block;
-  margin-bottom: 8px;
 }
 
 .subtitle {
   font-size: 16px;
   color: var(--text-muted);
+  margin-top: 10px;
 }
 
 .content {

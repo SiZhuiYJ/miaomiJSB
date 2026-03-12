@@ -2,8 +2,10 @@
 import { ref, computed, onMounted } from 'vue';
 import useClass from '@/features/Curriculum/useClass';
 import type { Class } from '@/libs/api/class/type';
+import { useNavbar } from '@/utils/useNavbar';
 
 const { classes, initializeData, getClass } = useClass();
+const { paddingTop, height, paddingLeft, navbarHeight } = useNavbar();
 
 // 周次
 const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
@@ -42,15 +44,48 @@ const today = computed(() => {
 
 // 判断是否是今天
 function isToday(dayIndex: number): boolean {
-  return today.value.dayOfWeek === dayIndex + 1;
+  // 必须同时满足：1. 当前显示的周是“本周”(currentWeek === 1) 2. 星期匹配
+  return currentWeek.value === 1 && today.value.dayOfWeek === dayIndex + 1;
 }
+// 获取指定周数和星期的日期
+function getDateForDay(week: number, dayIndex: number): { month: number; day: number } {
+  const now = new Date();
+  const currentDayOfWeek = now.getDay() || 7; // 当前是周几 (1-7)
+  const targetDayOfWeek = dayIndex + 1; // 目标是周几 (1-7)
 
+  // 计算当前周的第 1 天（周一）的日期
+  const currentWeekStart = new Date(now);
+  currentWeekStart.setDate(now.getDate() - currentDayOfWeek + 1);
+
+  // 计算目标周的周一
+  const targetWeekStart = new Date(currentWeekStart);
+  targetWeekStart.setDate(currentWeekStart.getDate() + (week - 1) * 7);
+
+  // 计算目标日期
+  const targetDate = new Date(targetWeekStart);
+  targetWeekStart.setDate(targetWeekStart.getDate() + dayIndex);
+
+  return {
+    month: targetWeekStart.getMonth() + 1,
+    day: targetWeekStart.getDate()
+  };
+}
 // 切换周数
 function changeWeek(delta: number) {
   const newWeek = currentWeek.value + delta;
   if (newWeek >= 1 && newWeek <= totalWeeks.value) {
     currentWeek.value = newWeek;
   }
+}
+
+// 跳转到首周
+function jumpToFirstWeek() {
+  currentWeek.value = 1;
+}
+
+// 跳转到末尾周
+function jumpToLastWeek() {
+  currentWeek.value = totalWeeks.value;
 }
 
 // 获取周次范围
@@ -90,6 +125,19 @@ function closeTimeTable() {
   showTimeTable.value = false;
 }
 
+// 定位到今天所在的周
+function jumpToToday() {
+  const now = new Date();
+  const dayOfWeek = now.getDay() || 7;
+  // 这里假设第一周是从某个特定日期开始的，或者简单地使用当前周数
+  // 如果后端没有提供开学日期，我们通常默认当前显示的周数为基准
+  // 考虑到这是一个本地状态，我们实现跳转到“当前逻辑周”的功能
+  // 如果需要精确计算，需要知道第一周的周一日期
+  // 目前我们先实现重置到第一周或根据实际逻辑调整
+  // 假设 initializeData 之后会有默认周数逻辑
+  currentWeek.value = 1; // 示例：重置到第一周，实际可根据业务逻辑计算
+}
+
 onMounted(async () => {
   await initializeData();
 });
@@ -97,47 +145,29 @@ onMounted(async () => {
 
 <template>
   <view class="class-tab-container">
-    <!-- 日期和周数信息 -->
-    <view class="header-info">
-      <view class="date-display">
-        <text class="label">当前日期：</text>
-        <text class="value primary">{{ today.month }}/{{ today.day }}</text>
-      </view>
-      <view class="week-display">
-        <text class="label">当前周数：</text>
-        <text class="value highlight">第{{ currentWeek }}周</text>
+    <!-- 顶部标题栏（集成背景色和安全区域适配） -->
+    <view class="tab-header-fixed"
+      :style="{ paddingTop: paddingTop + 'px', paddingLeft: paddingLeft + 'px', paddingRight: paddingLeft + 'px' }">
+      <view class="header-info-inner" :style="{ height: height + 'px' }">
+        <view class="week-display">
+          <text class="value highlight">第{{ currentWeek }}/{{ totalWeeks }}周</text>
+          <view class="today-btn" @click="jumpToToday" :style="{ width: height + 'px', height: height + 'px' }">
+            <image src="/static/svg/to.svg" class="arrow-icon" />
+          </view>
+        </view>
       </view>
     </view>
 
-    <!-- 周数选择器 -->
-    <view class="week-selector">
-      <view class="week-btn" @click="changeWeek(-1)" :class="{ disabled: currentWeek <= 1 }">
-        <text class="arrow">‹</text>
-      </view>
-      <view class="week-list">
-        <view 
-          v-for="week in weekRange" 
-          :key="week"
-          class="week-item"
-          :class="{ active: week === currentWeek }"
-          @click="currentWeek = week"
-        >
-          {{ week }}
-        </view>
-      </view>
-      <view class="week-btn" @click="changeWeek(1)" :class="{ disabled: currentWeek >= totalWeeks }">
-        <text class="arrow">›</text>
-      </view>
-    </view>
+    <!-- 撑开固定头部的内容区域 -->
+    <view :style="{ height: `calc(${navbarHeight}px - var(--uni-container-padding))` }"></view>
 
     <!-- 课程表 -->
     <view class="class-table">
       <scroll-view scroll-x="true" class="table-scroll">
         <view class="class-grid">
-          <!-- 时间列 -->
           <view class="time-column">
             <view class="time-header">
-              <text>节次</text>
+              <text>{{ getDateForDay(currentWeek, 0).month }}月</text>
             </view>
             <view class="time-slot" v-for="slot in timeSlots" :key="slot.number" @click="openTimeTable">
               <text class="time-slot-number">{{ slot.number }}</text>
@@ -147,14 +177,17 @@ onMounted(async () => {
           <!-- 周次循环 -->
           <view class="day-column" v-for="(day, dayIndex) in weekDays" :key="dayIndex">
             <view class="day-header" :class="{ 'today-header': isToday(dayIndex) }">
+              <text>
+                {{ getDateForDay(currentWeek, dayIndex).month }}/{{ getDateForDay(currentWeek, dayIndex).day }}
+              </text>
               <text>{{ day }}</text>
               <text v-if="isToday(dayIndex)" class="today-badge">今</text>
             </view>
             <view v-for="(_, slotIndex) in timeSlots" :key="slotIndex" class="course-slot">
               <template v-if="getClass(currentWeek, dayIndex + 1, slotIndex + 1)">
                 <view class="course-item"
-                      :style="{ borderLeftColor: getClass(currentWeek, dayIndex + 1, slotIndex + 1)!.color, backgroundColor: getClass(currentWeek, dayIndex + 1, slotIndex + 1)!.color + '15' }"
-                      @click="showClassDetail(currentWeek, dayIndex, slotIndex)">
+                  :style="{ '--text-color': getClass(currentWeek, dayIndex + 1, slotIndex + 1)!.color, '--text-muted': getClass(currentWeek, dayIndex + 1, slotIndex + 1)!.color, backgroundColor: getClass(currentWeek, dayIndex + 1, slotIndex + 1)!.color + '15' }"
+                  @click="showClassDetail(currentWeek, dayIndex, slotIndex)">
                   <text class="course-name">{{ getClass(currentWeek, dayIndex + 1, slotIndex + 1)?.name }}</text>
                   <text class="course-details">{{ getClass(currentWeek, dayIndex + 1, slotIndex + 1)?.location }}</text>
                   <text class="course-details">{{ getClass(currentWeek, dayIndex + 1, slotIndex + 1)?.teacher }}</text>
@@ -169,14 +202,37 @@ onMounted(async () => {
       </scroll-view>
     </view>
 
+    <!-- 周数选择器 -->
+    <view class="week-selector">
+      <view class="week-btn" @click="jumpToFirstWeek" :class="{ disabled: currentWeek <= 1 }">
+        <image src="/static/svg/arrow-double-left.svg" class="arrow-icon" />
+      </view>
+      <view class="week-btn" @click="changeWeek(-1)" :class="{ disabled: currentWeek <= 1 }">
+        <image src="/static/svg/arrow-left.svg" class="arrow-icon" />
+      </view>
+      <view class="week-list">
+        <view v-for="week in weekRange" :key="week" class="week-item" :class="{ active: week === currentWeek }"
+          @click="currentWeek = week">
+          {{ week }}
+        </view>
+      </view>
+      <view class="week-btn" @click="changeWeek(1)" :class="{ disabled: currentWeek >= totalWeeks }">
+        <image src="/static/svg/arrow-right.svg" class="arrow-icon" />
+      </view>
+      <view class="week-btn" @click="jumpToLastWeek" :class="{ disabled: currentWeek >= totalWeeks }">
+        <image src="/static/svg/arrow-double-right.svg" class="arrow-icon" />
+      </view>
+    </view>
+
     <!-- 时间表弹窗 -->
     <view v-if="showTimeTable" class="detail-overlay" @click="closeTimeTable">
       <view class="detail-content time-table-content" @click.stop>
-        <view class="detail-header" :style="{ background: `linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%)` }">
+        <view class="detail-header"
+          :style="{ background: `linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%)` }">
           <text class="detail-title">作息时间表</text>
           <text class="detail-close" @click="closeTimeTable">✕</text>
         </view>
-        
+
         <view class="detail-body time-table-body">
           <view class="time-table-list">
             <view class="time-table-item" v-for="slot in timeSlots" :key="slot.number">
@@ -190,7 +246,7 @@ onMounted(async () => {
             </view>
           </view>
         </view>
-        
+
         <view class="detail-footer">
           <button class="detail-btn" @click="closeTimeTable">关闭</button>
         </view>
@@ -200,11 +256,12 @@ onMounted(async () => {
     <!-- 课程详情弹窗 -->
     <view v-if="showDetail" class="detail-overlay" @click="closeDetail">
       <view class="detail-content" @click.stop>
-        <view class="detail-header" :style="{ background: selectedClass?.color ? `linear-gradient(135deg, ${selectedClass.color} 0%, ${selectedClass.color} 100%)` : `linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%)` }">
+        <view class="detail-header"
+          :style="{ background: selectedClass?.color ? `linear-gradient(135deg, ${selectedClass.color} 0%, ${selectedClass.color} 100%)` : `linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%)` }">
           <text class="detail-title">{{ selectedClass?.name }}</text>
           <text class="detail-close" @click="closeDetail">✕</text>
         </view>
-        
+
         <view class="detail-body">
           <view class="detail-item">
             <view class="detail-icon">📍</view>
@@ -213,7 +270,7 @@ onMounted(async () => {
               <text class="detail-value">{{ selectedClass?.location }}</text>
             </view>
           </view>
-          
+
           <view class="detail-item">
             <view class="detail-icon">👨‍🏫</view>
             <view class="detail-info">
@@ -221,18 +278,18 @@ onMounted(async () => {
               <text class="detail-value">{{ selectedClass?.teacher }}</text>
             </view>
           </view>
-          
+
           <view class="detail-item">
             <view class="detail-icon">📅</view>
             <view class="detail-info">
               <text class="detail-label">上课时间</text>
               <text class="detail-value">
-                {{ weekDays[(selectedClass?.dayOfWeek || 1) - 1] }} 
+                {{ weekDays[(selectedClass?.dayOfWeek || 1) - 1] }}
                 第{{ selectedClass?.number.join('、') }}节
               </text>
             </view>
           </view>
-          
+
           <view class="detail-item">
             <view class="detail-icon">🕐</view>
             <view class="detail-info">
@@ -242,7 +299,7 @@ onMounted(async () => {
               </text>
             </view>
           </view>
-          
+
           <view class="detail-item">
             <view class="detail-icon">📆</view>
             <view class="detail-info">
@@ -252,7 +309,7 @@ onMounted(async () => {
               </text>
             </view>
           </view>
-          
+
           <view v-if="selectedClass?.remark" class="detail-item">
             <view class="detail-icon">📝</view>
             <view class="detail-info">
@@ -261,7 +318,7 @@ onMounted(async () => {
             </view>
           </view>
         </view>
-        
+
         <view class="detail-footer">
           <button class="detail-btn" @click="closeDetail">关闭</button>
         </view>
@@ -278,113 +335,76 @@ onMounted(async () => {
   min-height: 100vh;
 }
 
+.header {
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-color);
+}
+
 // 头部信息
-.header-info {
+.tab-header-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: rgba(var(--bg-color), 0.01);
+}
+
+.header-info-inner {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
-  padding: 15px 20px;
-  background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  color: #fff;
+  color: var(--text-color);
+
+  .today-btn {
+    background-color: var(--bg-elevated);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    border: 1px solid var(--border-color);
+
+    &:active {
+      background-color: var(--bg-soft);
+      transform: scale(0.95);
+    }
+
+    .arrow-icon {
+      width: 60%;
+      height: 60%;
+    }
+  }
 
   .date-display,
   .week-display {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
 
     .label {
       font-size: 14px;
-      opacity: 0.9;
+      color: var(--text-muted);
     }
 
     .value {
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 600;
 
       &.primary {
-        color: #fff;
+        color: var(--theme-primary);
       }
 
       &.highlight {
-        background-color: rgba(255, 255, 255, 0.25);
-        padding: 4px 12px;
+        background-color: var(--bg-elevated);
+        padding: 2px 12px;
         border-radius: 20px;
-      }
-    }
-  }
-}
-
-// 周数选择器
-.week-selector {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding: 10px 15px;
-  background-color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-
-  .week-btn {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--bg-elevated);
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.3s;
-
-    &:active {
-      transform: scale(0.9);
-    }
-
-    &.disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
-
-    .arrow {
-      font-size: 24px;
-      color: var(--theme-primary);
-      font-weight: bold;
-    }
-  }
-
-  .week-list {
-    display: flex;
-    gap: 8px;
-    flex: 1;
-    justify-content: center;
-
-    .week-item {
-      min-width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background-color: var(--bg-elevated);
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-color);
-      cursor: pointer;
-      transition: all 0.3s;
-
-      &:active {
-        transform: scale(0.95);
-      }
-
-      &.active {
-        background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
-        color: #fff;
-        font-weight: 600;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--border-color);
       }
     }
   }
@@ -404,7 +424,7 @@ onMounted(async () => {
 
 .class-grid {
   display: grid;
-  grid-template-columns: 45px repeat(7, 1fr);
+  grid-template-columns: 30px repeat(7, 1fr);
   gap: 1px;
   background-color: #eef2f7;
 
@@ -417,12 +437,13 @@ onMounted(async () => {
 
     .time-header,
     .day-header {
-      background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
+      background: var(--theme-secondary);
       color: #fff;
       padding: 8px;
       text-align: center;
       font-weight: 600;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       font-size: 13px;
@@ -485,8 +506,6 @@ onMounted(async () => {
       border-right: 1px solid var(--border-color);
 
       .course-item {
-        background-color: var(--bg-soft);
-        border-left: 3px solid var(--theme-primary);
         border-radius: 4px;
         padding: 6px 4px;
         height: calc(100% - 4px);
@@ -495,11 +514,11 @@ onMounted(async () => {
         flex-direction: column;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         transition: all 0.3s;
-      
+
         &:active {
           transform: scale(0.98);
         }
-      
+
         .course-name {
           font-weight: 600;
           color: var(--text-color);
@@ -512,7 +531,7 @@ onMounted(async () => {
           overflow: hidden;
           word-break: break-all;
         }
-      
+
         .course-details {
           font-size: 10px;
           color: var(--text-muted);
@@ -530,6 +549,91 @@ onMounted(async () => {
         align-items: center;
         justify-content: center;
         height: 100%;
+      }
+    }
+  }
+}
+
+// 周数选择器
+.week-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  margin-bottom: 80px;
+  padding: 15px 10px;
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  gap: 8px;
+
+  .week-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--bg-elevated);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s;
+
+    &:active {
+      transform: scale(0.9);
+    }
+
+    &.disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .arrow-icon {
+      width: 20px;
+      height: 20px;
+    }
+
+    .arrow {
+      font-size: 24px;
+      color: var(--theme-primary);
+      font-weight: bold;
+    }
+
+    .arrow-double {
+      font-size: 20px;
+      color: var(--theme-primary);
+      font-weight: bold;
+    }
+  }
+
+  .week-list {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    justify-content: center;
+
+    .week-item {
+      min-width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: var(--bg-elevated);
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-color);
+      cursor: pointer;
+      transition: all 0.3s;
+
+      &:active {
+        transform: scale(0.95);
+      }
+
+      &.active {
+        background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
+        color: #fff;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       }
     }
   }
@@ -637,6 +741,7 @@ onMounted(async () => {
     opacity: 0;
     transform: translateY(100rpx);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -737,7 +842,7 @@ onMounted(async () => {
   width: 100%;
   height: 88rpx;
   line-height: 88rpx;
- text-align: center;
+  text-align: center;
   background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-secondary) 100%);
   color: #fff;
   border: none;

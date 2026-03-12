@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { useCheckinsStore } from '../../stores/checkins';
-import { useAuthStore } from '../../stores/auth';
-import { useThemeStore } from '../../stores/theme';
-import { usePlansStore } from '../../stores/plans';
-import { API_BASE_URL } from '../../config';
+import { useCheckinsStore } from '@/stores/checkins';
+import { useAuthStore } from '@/stores/auth';
+import { useThemeStore } from '@/stores/theme';
+import { usePlansStore } from '@/stores/plans';
+import { API_BASE_URL } from '@/config';
 import { compressImageToWebP } from '@/utils/image';
 
 const checkinsStore = useCheckinsStore();

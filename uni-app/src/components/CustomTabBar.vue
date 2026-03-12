@@ -35,7 +35,6 @@ const pillStyle = computed(() => {
 </script>
 
 <template>
-  <view class="tab-bar-placeholder"></view>
   <view class="tab-bar-container" :style="themeStore.themeStyle">
     <view class="tab-bar-capsule">
       <!-- Background Pill -->
@@ -59,30 +58,32 @@ const pillStyle = computed(() => {
 </template>
 
 <style scoped lang="scss">
-.tab-bar-placeholder {
-  height: 80px;
-}
-
 .tab-bar-container {
   position: fixed;
-  bottom: 20px;
+  bottom: 0;
   left: 0;
   right: 0;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
   display: flex;
   justify-content: center;
   z-index: 999;
+  pointer-events: none; /* Let clicks pass through to content if they are not on the capsule */
 }
 
 .tab-bar-capsule {
+  pointer-events: auto; /* Re-enable clicks for the bar itself */
   position: relative;
   display: flex;
-  background-color: #fff;
+  background-color: var(--bg-soft);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: 30px;
   padding: 5px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  /* Ensure width is fixed or flexible */
-  min-width: 300px; 
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--border-color);
+  width: 90%;
+  max-width: 400px;
+  min-width: 280px;
 }
 
 .tab-pill-wrapper {
@@ -98,18 +99,17 @@ const pillStyle = computed(() => {
   height: 100%;
   background-color: var(--theme-primary);
   border-radius: 24px;
-  transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-  box-shadow: 0 2px 6px rgba(142, 168, 142, 0.4);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); /* Bouncy effect */
+  box-shadow: 0 4px 12px var(--theme-primary-light);
 }
 
 .tab-item {
   flex: 1;
-  padding: 8px 16px;
+  padding: 10px 0;
   border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  // cursor: pointer;
   position: relative;
   z-index: 1;
 }
@@ -117,12 +117,13 @@ const pillStyle = computed(() => {
 .tab-text {
   font-size: 14px;
   font-weight: 500;
-  color: #666;
-  transition: color 0.3s;
+  color: var(--text-muted);
+  transition: all 0.3s;
 }
 
 .tab-item.active .tab-text {
   color: #fff;
   font-weight: 600;
+  transform: scale(1.05);
 }
 </style>

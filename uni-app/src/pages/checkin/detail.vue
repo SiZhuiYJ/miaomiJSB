@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, onUnmounted } from 'vue';
 import { onLoad, onShow } from '@dcloudio/uni-app';
-import { useCheckinsStore, type CheckinDetail } from '../../stores/checkins';
-import { useAuthStore } from '../../stores/auth';
-import { useThemeStore } from '../../stores/theme';
-import { API_BASE_URL } from '../../config';
-import { http } from '../../utils/http';
-import { notifyError } from '../../utils/notification';
+import { useCheckinsStore, type CheckinDetail } from '@/stores/checkins';
+import { useAuthStore } from '@/stores/auth';
+import { useThemeStore } from '@/stores/theme';
+import { API_BASE_URL } from '@/config';
+import http from '@/libs/checkin/config';
+import { notifyError } from '@/utils/notification';
 
 const checkinsStore = useCheckinsStore();
 const themeStore = useThemeStore();
@@ -63,7 +63,7 @@ async function loadImage(url: string) {
     const authStore = useAuthStore();
     const res = await http.get<ArrayBuffer>(url, { 
       responseType: 'arraybuffer',
-      headers: {
+      header: {
         'Authorization': `Bearer ${authStore.accessToken}`
       }
     });
@@ -173,6 +173,8 @@ function handlePreviewImage(originalUrl: string) {
 </template>
 
 <style scoped lang="scss">
+@use "@/styles/status-colors.scss";
+
 .card-header {
     display: flex;
     justify-content: space-between;
@@ -227,18 +229,6 @@ function handlePreviewImage(originalUrl: string) {
 .status-text {
   font-size: 14px;
   font-weight: 500;
-}
-
-.success {
-  color: #10b981;
-}
-
-.retro {
-  color: #eab308;
-}
-
-.missed {
-  color: #f87171;
 }
 
 .loading-state {

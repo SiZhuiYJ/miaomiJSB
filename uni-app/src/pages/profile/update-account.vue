@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
-import { useAuthStore } from '../../stores/auth';
-import { useThemeStore } from '../../stores/theme';
-import { http } from '../../utils/http';
+import { useAuthStore } from '@/stores/auth';
+import { useThemeStore } from '@/stores/theme';
+import http from '@/libs/checkin/config';
 import { onShow } from '@dcloudio/uni-app';
-import { notifySuccess, notifyError } from '../../utils/notification';
+import { notifySuccess, notifyError } from '@/utils/notification';
 
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
@@ -67,88 +67,34 @@ async function handleSave() {
 </script>
 
 <template>
-  <view class="container" :style="themeStore.themeStyle">
+  <view class="page-container" :style="themeStore.themeStyle">
     <NotificationSystem />
     
-    <view class="card">
-      <view class="form-group">
-        <view class="field">
-          <text class="label">账号名 (全局唯一)</text>
-          <input class="input" v-model="userAccount" placeholder="设置账号名"
-            :disabled="!!authStore.user?.userAccount && !accountStatus.canUpdate" />
-          <text v-if="!accountStatus.canUpdate && accountStatus.nextUpdateAt" class="hint-text">
-            下次可修改时间：{{ new Date(accountStatus.nextUpdateAt).toLocaleDateString() }}
-          </text>
-          <text class="desc">账号名是您的唯一标识，请谨慎修改。</text>
-        </view>
+    <view class="page-card">
+      <view class="form-field">
+        <text class="label">账号名 (全局唯一)</text>
+        <input class="input" v-model="userAccount" placeholder="设置账号名"
+          :disabled="!!authStore.user?.userAccount && !accountStatus.canUpdate" />
+        <text v-if="!accountStatus.canUpdate && accountStatus.nextUpdateAt" class="hint-text">
+          下次可修改时间：{{ new Date(accountStatus.nextUpdateAt).toLocaleDateString() }}
+        </text>
+        <text class="desc">账号名是您的唯一标识，请谨慎修改。</text>
       </view>
     </view>
 
-    <view class="actions">
-      <button class="btn-save" :loading="loading" :disabled="!!authStore.user?.userAccount && !accountStatus.canUpdate" @click="handleSave">保存</button>
+    <view class="page-actions">
+      <button class="btn-primary" :loading="loading" :disabled="!!authStore.user?.userAccount && !accountStatus.canUpdate" @click="handleSave">保存</button>
     </view>
   </view>
 </template>
 
 <style scoped lang="scss">
-.container {
-  min-height: 100vh;
-  box-sizing: border-box;
-  background-color: var(--bg-color);
-  padding: 20px;
-}
-
-.card {
-  background-color: var(--bg-elevated);
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 20px;
-}
-
-.label {
-  display: block;
-  font-size: 14px;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-.input {
-  width: 100%;
-  height: 44px;
-  background-color: var(--bg-color);
-  border-radius: 8px;
-  padding: 0 12px;
-  font-size: 14px;
-  color: var(--text-color);
-  box-sizing: border-box;
-  border: 1px solid var(--border-color);
-}
+@use "@/styles/page-layouts.scss";
 
 .hint-text {
   display: block;
   font-size: 12px;
   color: #fa5151;
   margin-top: 8px;
-}
-
-.desc {
-  display: block;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 8px;
-}
-
-.btn-save {
-  background-color: var(--theme-primary);
-  color: #fff;
-  border-radius: 8px;
-  font-size: 16px;
-  height: 44px;
-  line-height: 44px;
-  margin-top: 10px;
-}
-
-.actions {
-  padding: 0 10px;
 }
 </style>

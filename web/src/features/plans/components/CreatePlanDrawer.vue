@@ -3,7 +3,7 @@ import { computed, ref, watch, type PropType } from "vue";
 import { ElMessageBox } from "element-plus";
 import { usePlansStore } from "@/stores";
 import type { PlanSummary, TimeSlotDto } from "@/features/plans/types";
-import { notifySuccess, notifyWarning } from "../../../utils/notification";
+import { notifySuccess, notifyWarning } from "@/../utils/notification";
 
 const props = defineProps({
   modelValue: {

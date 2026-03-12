@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { useAuthStore } from '../../stores/auth';
-import { useThemeStore, PRESET_PALETTES } from '../../stores/theme';
-import { API_BASE_URL } from '../../config';
+import { useAuthStore } from '@/stores/auth';
+import { useThemeStore, PRESET_PALETTES } from '@/stores/theme';
+import { API_BASE_URL } from '@/config';
 import { computed, ref, reactive, watch } from 'vue';
-import { useNavbar } from '../../utils/useNavbar';
+import { useNavbar } from '@/utils/useNavbar';
 
 const props = defineProps<{ isActive: boolean }>();
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
-const { paddingTop, height, paddingLeft } = useNavbar();
+const { paddingTop, height, paddingLeft, navbarHeight } = useNavbar();
 
 watch(() => props.isActive, (newVal) => {
   if (newVal) {
@@ -128,9 +128,16 @@ function isCurrentPalette(pColors: string[]) {
 
 <template>
   <view class="tab-content" :style="themeStore.themeStyle">
-    <view class="header" :style="{ paddingTop: paddingTop + 'px', paddingLeft: paddingLeft + 'px' }">
-      <text class="title" :style="{ lineHeight: height + 'px' }">设置</text>
+
+    <view class="tab-header-fixed"
+      :style="{ paddingTop: paddingTop + 'px', paddingLeft: paddingLeft + 'px', paddingRight: paddingLeft + 'px' }">
+      <view class="header-info-inner" :style="{ height: height + 'px' }">
+        <text class="title">设置</text>
+      </view>
     </view>
+
+    <!-- 撑开固定头部的内容区域 -->
+    <view :style="{ height: `calc(${navbarHeight}px - var(--uni-container-padding))` }"></view>
 
     <view class="settings-container">
       <!-- User Profile (Avatar + nickName) -->
@@ -272,13 +279,25 @@ function isCurrentPalette(pColors: string[]) {
   min-height: 100vh;
 }
 
-.header {
-  margin-bottom: 20px;
+.tab-header-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: rgba(var(--bg-color), 0.01);
+}
+
+.header-info-inner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  color: var(--text-color);
 }
 
 .title {
-  font-size: 28px;
-  font-weight: bold;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--text-color);
 }
 
@@ -407,7 +426,6 @@ function isCurrentPalette(pColors: string[]) {
 .settings-group {
   background-color: var(--bg-soft);
   border-radius: 12px;
-  margin: 12px 0;
   overflow: hidden;
   border: 1px solid var(--border-color);
 }

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onUnmounted, ref } from 'vue';
-import { useAuthStore } from '../../stores/auth';
-import { http } from '../../utils/http';
-import { notifyError, notifySuccess, notifyWarning } from '../../utils/notification';
-import { APP_TITLE } from '../../config';
+import { ref, watch } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+import http from '@/libs/checkin/config';
+import { notifyError, notifySuccess, notifyWarning } from '@/utils/notification';
+import { APP_TITLE } from '@/config';
+import { useCountdown } from '@/composables/useCountdown';
 
 
 const mode = ref<'login' | 'register'>('login');
@@ -18,6 +19,8 @@ const userAccountError = ref('');
 const lastAutouserAccount = ref('');
 const confirmPassword = ref('');
 
+const { countdown, startCountdown } = useCountdown(60);
+
 watch(email, (newEmail) => {
   if (mode.value === 'register') {
     const prefix = newEmail.split('@')[0];
@@ -31,9 +34,6 @@ watch(email, (newEmail) => {
 
 const code = ref('');
 const sendingCode = ref(false);
-const countdown = ref(0);
-
-let countdownTimer: number | null = null;
 
 function generateRandomuserAccount() {
   userAccount.value = 'user_' + Math.random().toString(36).slice(2, 10);
@@ -53,23 +53,6 @@ async function validateuserAccount() {
       userAccountError.value = '';
     }
   }
-}
-
-function startCountdown(seconds: number): void {
-  countdown.value = seconds;
-  if (countdownTimer !== null) {
-    clearInterval(countdownTimer);
-  }
-  countdownTimer = setInterval(() => {
-    if (countdown.value > 0) {
-      countdown.value -= 1;
-    } else {
-      if (countdownTimer !== null) {
-        clearInterval(countdownTimer);
-        countdownTimer = null;
-      }
-    }
-  }, 1000);
 }
 
 const auth = useAuthStore();
@@ -189,13 +172,6 @@ async function handleSendCode() {
 function switchMode(next: 'login' | 'register') {
   mode.value = next;
 }
-
-onUnmounted(() => {
-  if (countdownTimer !== null) {
-    clearInterval(countdownTimer);
-    countdownTimer = null;
-  }
-});
 </script>
 
 <template>

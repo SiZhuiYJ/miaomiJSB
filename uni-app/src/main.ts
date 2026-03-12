@@ -2,7 +2,7 @@ import { createSSRApp } from "vue";
 import { createPinia } from 'pinia';
 import App from "./App.vue";
 import { useAuthStore } from './stores/auth';
-import { setAuthStore } from './utils/http';
+import { setAuthStore } from './libs/http';
 
 export function createApp() {
   const app = createSSRApp(App);

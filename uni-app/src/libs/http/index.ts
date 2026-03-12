@@ -1,35 +1,117 @@
-// @/libs/http/index.ts
-import { API_BASE_URL } from '@/config';
+// Circular dependency avoidance: We inject the store instance instead of importing it directly.
+let authStore: any = null;
 
-interface RequestOptions {
-    url: string;
-    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
-    data?: any;
-    header?: any;
+export const setAuthStore = (store: any) => {
+    authStore = store;
+};
+
+interface RequestConfig extends UniApp.RequestOptions {
+    baseURL?: string;
+    params?: any;
 }
 
-class Http {
-    private baseUrl: string;
+type HttpConfig = Omit<RequestConfig, 'url'>;
 
-    constructor(baseUrl: string) {
-        this.baseUrl = baseUrl;
-    }
+interface HttpResponse<T = any> {
+    data: T;
+    statusCode: number;
+    header: any;
+    cookies: string[];
+    errMsg: string;
+}
 
-    private async request<T>(options: RequestOptions): Promise<T> {
+const createHttp = (url: string) => {
+    const baseURL = url;
+
+    const request = async <T = any>(options: RequestConfig): Promise<HttpResponse<T>> => {
+        // Ensure we use the injected store if available
+        const auth = authStore;
+
+        let url = options.url;
+        if (options.baseURL !== undefined) {
+            // Allow overriding baseURL, but usually we prepend global baseURL
+            if (!url.startsWith('http')) {
+                url = (options.baseURL || baseURL) + url;
+            }
+        } else {
+            if (!url.startsWith('http')) {
+                url = baseURL + url;
+            }
+        }
+
+        // Handle params
+        if (options.params) {
+            const query = Object.keys(options.params)
+                .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(options.params[k])}`)
+                .join('&');
+            url += (url.includes('?') ? '&' : '?') + query;
+        }
+
+        const headers = options.header || {};
+        if (auth && auth.accessToken) {
+            headers['Authorization'] = `Bearer ${auth.accessToken}`;
+        }
+
         return new Promise((resolve, reject) => {
             uni.request({
-                url: this.baseUrl + options.url,
-                method: options.method || 'GET',
-                data: options.data,
-                header: {
-                    'Content-Type': 'application/json',
-                    ...options.header,
-                },
-                success: (res) => {
-                    if (res.statusCode === 200) {
-                        resolve(res.data as T);
+                ...options,
+                url,
+                header: headers,
+                success: async (res) => {
+                    const response = res as HttpResponse<T>;
+                    if (response.statusCode >= 200 && response.statusCode < 300) {
+                        resolve(response);
+                    } else if (response.statusCode === 401) {
+                        // If it's a login/register request, 401 means invalid credentials, so we just reject
+                        if (options.url?.includes('/Auth/login') || options.url?.includes('/Auth/register')) {
+                            reject(response);
+                            return;
+                        }
+
+                        if (!auth) {
+                            reject(response);
+                            return;
+                        }
+
+                        // Token refresh logic
+                        if (auth.refreshToken) {
+                            try {
+                                // Avoid infinite loop if refresh fails
+                                if (options.url?.includes('/Auth/refresh')) {
+                                    auth.clear();
+                                    uni.reLaunch({ url: '/pages/auth/index' }); // Redirect to login
+                                    reject(response);
+                                    return;
+                                }
+
+                                const refreshRes = await uni.request({
+                                    url: baseURL + '/mm/Auth/refresh',
+                                    method: 'POST',
+                                    data: { refreshToken: auth.refreshToken },
+                                });
+
+                                if (refreshRes.statusCode === 200) {
+                                    auth.setSession(refreshRes.data as any);
+                                    // Retry original request with new token
+                                    const retryRes = await request<T>(options);
+                                    resolve(retryRes);
+                                } else {
+                                    auth.clear();
+                                    uni.reLaunch({ url: '/pages/auth/index' }); // Redirect to login
+                                    reject(response);
+                                }
+                            } catch (e) {
+                                auth.clear();
+                                uni.reLaunch({ url: '/pages/auth/index' }); // Redirect to login
+                                reject(e);
+                            }
+                        } else {
+                            auth.clear();
+                            uni.reLaunch({ url: '/pages/auth/index' }); // Redirect to login
+                            reject(response);
+                        }
                     } else {
-                        reject(new Error(`Request failed with status ${res.statusCode}`));
+                        reject(response);
                     }
                 },
                 fail: (err) => {
@@ -37,27 +119,14 @@ class Http {
                 },
             });
         });
-    }
+    };
 
-    post<T>(url: string, data?: any, header?: any): Promise<T> {
-        return this.request<T>({
-            url,
-            method: 'POST',
-            data,
-            header,
-        });
-    }
+    return {
+        get: <T = any>(url: string, config?: HttpConfig) => request<T>({ ...config, url, method: 'GET' } as RequestConfig),
+        post: <T = any>(url: string, data?: any, config?: HttpConfig) => request<T>({ ...config, url, method: 'POST', data } as RequestConfig),
+        put: <T = any>(url: string, data?: any, config?: HttpConfig) => request<T>({ ...config, url, method: 'PUT', data } as RequestConfig),
+        delete: <T = any>(url: string, config?: HttpConfig) => request<T>({ ...config, url, method: 'DELETE' } as RequestConfig),
+    };
+};
 
-    get<T>(url: string, data?: any, header?: any): Promise<T> {
-        return this.request<T>({
-            url,
-            method: 'GET',
-            data,
-            header,
-        });
-    }
-}
-
-const http = new Http(API_BASE_URL);
-
-export default http;
+export default createHttp;

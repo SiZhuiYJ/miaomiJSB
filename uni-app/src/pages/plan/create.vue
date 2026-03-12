@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
-import { usePlansStore, type TimeSlotDto } from '../../stores/plans';
-import { useThemeStore } from '../../stores/theme';
-import { notifyError, notifySuccess, notifyWarning } from '../../utils/notification';
+import { usePlansStore, type TimeSlotDto } from '@/stores/plans';
+import { useThemeStore } from '@/stores/theme';
+import { notifyError, notifySuccess, notifyWarning } from '@/utils/notification';
 
 const plansStore = usePlansStore();
 const themeStore = useThemeStore();
