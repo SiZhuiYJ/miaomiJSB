@@ -1,11 +1,21 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import useClass from '@/features/Curriculum/useClass';
 import type { Class } from '@/libs/api/class/type';
 import { useNavbar } from '@/utils/useNavbar';
 
+const props = defineProps<{
+  isActive: boolean;
+}>();
+
 const { classes, initializeData, getClass } = useClass();
 const { paddingTop, height, paddingLeft, navbarHeight } = useNavbar();
+
+watch(() => props.isActive, (newVal) => {
+  if (newVal) {
+    initializeData();
+  }
+}, { immediate: true });
 
 // 周次
 const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
@@ -137,10 +147,6 @@ function jumpToToday() {
   // 假设 initializeData 之后会有默认周数逻辑
   currentWeek.value = 1; // 示例：重置到第一周，实际可根据业务逻辑计算
 }
-
-onMounted(async () => {
-  await initializeData();
-});
 </script>
 
 <template>

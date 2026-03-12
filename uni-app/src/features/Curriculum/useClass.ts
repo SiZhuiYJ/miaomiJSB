@@ -16,10 +16,10 @@ export default function useClass() {
 
         try {
             const authStore = useAuthStore();
-            // const userId = authStore.user?.userId || 1; // 默认使用 1 作为示例
+            const userId = authStore.user?.userId;
 
-            const { data } = await ClassApi.PostClassesByID(1);
-            // const { data } = await ClassApi.PostClassesByID(userId);
+            // const { data } = await ClassApi.PostClassesByID(1);
+            const { data } = await ClassApi.PostClassesByID(userId as number);
 
             classes.value = data.map(item => ({
                 id: item.id,
@@ -34,7 +34,10 @@ export default function useClass() {
             }));
 
             console.log('课表获取成功', classes.value);
-        } catch (err) {
+        } catch (err: any) {
+            // 如果是 401 错误，由 http 拦截器处理重定向
+            if (err?.statusCode === 401) return;
+
             classes.value = [];
             error.value = err instanceof Error ? err.message : '课表获取失败';
             console.error('课表获取失败:', err);
