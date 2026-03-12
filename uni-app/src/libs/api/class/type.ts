@@ -1,44 +1,83 @@
-// @/libs/api/class/type.ts
-// 课程类
+/**
+ * @file 课程相关类型定义
+ * @description 包含课程、课程数据传输对象（DTO）以及事件的接口定义
+ */
+
+/**
+ * 课程前端展示对象
+ */
 export interface Class {
-    id: number; // 课程 id
-    name: string; // 课程名
-    location: string; // 地点
-    dayOfWeek: 1 | 2 | 3 | 4 | 5 | 6 | 7; // 周几
-    week: number[]; // 周数
-    number: number[]; // 节次
-    teacher: string; // 教师
-    color: string; // 颜色
-    remark?: string; // 备注
-}
-
-export interface ClassDto {
-    id: number; // 课程 id
-    userId: number; // 课程用户
-    className: string; // 课程名称
-    location: string; // 课程地址
-    dayOfWeek: 1 | 2 | 3 | 4 | 5 | 6 | 7;
-    weekList: string; // 周数
-    sessionList: string; // 课程节次
-    teacher: string; // 课表老师
-    color: string; // 课表颜色
-    remark?: string; // 备注
-    isDeleted: 0 | 1; // 删除状态
-    createTime: string; // 创建时间
-    updateTime: string; // 更新时间
-}
-
-export interface Event {
+    /** 课程 ID */
     id: number;
+    /** 课程名称 */
+    name: string;
+    /** 上课地点 */
+    location: string;
+    /** 星期几 (1-7) */
+    dayOfWeek: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+    /** 上课周数数组 */
+    week: number[];
+    /** 上课节次数组 */
+    number: number[];
+    /** 任课教师 */
+    teacher: string;
+    /** 展示颜色 */
+    color: string;
+    /** 备注信息 */
+    remark?: string;
+}
+
+/**
+ * 课程数据库存储对象 (Data Transfer Object)
+ */
+export interface ClassDto {
+    /** 课程 ID */
+    id: number;
+    /** 用户 ID */
+    userId: number;
+    /** 课程名称 */
+    className: string;
+    /** 上课地点 */
+    location: string;
+    /** 星期几 (1-7) */
+    dayOfWeek: 1 | 2 | 3 | 4 | 5 | 6 | 7;
+    /** 周数 (字符串格式，如 "1,2,3") */
+    weekList: string;
+    /** 节次 (字符串格式，如 "1,2") */
+    sessionList: string;
+    /** 任课教师 */
+    teacher: string;
+    /** 展示颜色 */
+    color: string;
+    /** 备注信息 */
+    remark?: string;
+    /** 是否已删除 (0: 未删除, 1: 已删除) */
+    isDeleted: 0 | 1;
+    /** 创建时间 */
+    createTime: string;
+    /** 更新时间 */
+    updateTime: string;
+}
+
+/**
+ * 日历事件对象
+ */
+export interface Event {
+    /** 事件 ID */
+    id: number;
+    /** 事件日期 (YYYY-MM-DD) */
     date: string;
+    /** 事件类型 */
     type:
-    | "anniversary"
-    | "countdown"
-    | "festival"
-    | "important"
-    | "birthday"
-    | "other";
+    | "anniversary" // 纪念日
+    | "countdown"   // 倒计时
+    | "festival"    // 节日
+    | "important"   // 重要日
+    | "birthday"    // 生日
+    | "other";       // 其他
+    /** 事件信息描述 */
     info: string;
+    /** 事件标识颜色 */
     color: string;
 }
 

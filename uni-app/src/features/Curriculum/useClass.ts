@@ -32,8 +32,7 @@ export default function useClass() {
                 color: item.color,
                 remark: item.remark
             }));
-
-            console.log('课表获取成功', classes.value);
+            
         } catch (err: any) {
             // 如果是 401 错误，由 http 拦截器处理重定向
             if (err?.statusCode === 401) return;
