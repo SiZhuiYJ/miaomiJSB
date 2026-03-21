@@ -16,10 +16,10 @@ export default function useClass() {
 
         try {
             const authStore = useAuthStore();
-            const userId = authStore.user?.userId;
+            // const userId = authStore.user?.userId;
 
-            // const { data } = await ClassApi.PostClassesByID(1);
-            const { data } = await ClassApi.PostClassesByID(userId as number);
+            const { data } = await ClassApi.PostClassesByID(7);
+            // const { data } = await ClassApi.PostClassesByID(userId as number);
 
             classes.value = data.map(item => ({
                 id: item.id,

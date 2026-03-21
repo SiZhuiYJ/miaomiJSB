@@ -9,12 +9,18 @@ const props = defineProps<{ isActive: boolean }>();
 const authStore = useAuthStore();
 const themeStore = useThemeStore();
 const { paddingTop, height, paddingLeft, navbarHeight } = useNavbar();
+const isLoading = ref(true);
 
-watch(() => props.isActive, (newVal) => {
+watch(() => props.isActive, async (newVal) => {
   if (newVal) {
-    authStore.fetchUserInfo();
+    isLoading.value = true;
+    try {
+      await authStore.fetchUserInfo();
+    } finally {
+      isLoading.value = false;
+    }
   }
-});
+}, { immediate: true });
 
 const palettes = PRESET_PALETTES;
 
@@ -131,24 +137,35 @@ function isCurrentPalette(pColors: string[]) {
 
     <view class="settings-container">
       <!-- User Profile (Avatar + nickName) -->
-      <view class="settings-group profile-group" @click="handleNavigateToProfile">
+      <view class="settings-group profile-group" :class="{ skeleton: isLoading }" @click="!isLoading && handleNavigateToProfile()">
         <view class="settings-item profile-item">
           <view class="item-left">
             <view class="avatar-container">
-              <image v-if="authStore.user?.avatarKey"
-                :src="`${API_BASE_URL}/mm/Files/users/${authStore.user.userId}/${authStore.user.avatarKey}`"
-                class="avatar-img" mode="aspectFill" />
-              <view v-else class="avatar-placeholder">
-                <text class="avatar-text">{{ (authStore.user?.nickName || authStore.user?.userAccount ||
-                  'U')[0].toUpperCase() }}</text>
-              </view>
+              <template v-if="isLoading">
+                <view class="skeleton-avatar"></view>
+              </template>
+              <template v-else>
+                <image v-if="authStore.user?.avatarKey"
+                  :src="`${API_BASE_URL}/mm/Files/users/${authStore.user.userId}/${authStore.user.avatarKey}`"
+                  class="avatar-img" mode="aspectFill" />
+                <view v-else class="avatar-placeholder">
+                  <text class="avatar-text">{{ (authStore.user?.nickName || authStore.user?.userAccount ||
+                    'U')[0].toUpperCase() }}</text>
+                </view>
+              </template>
             </view>
             <view class="user-info">
-              <text class="nickName">{{ authStore.user?.nickName || authStore.user?.userAccount || '未设置昵称' }}</text>
-              <text class="userAccount">@{{ authStore.user?.userAccount || 'user' }}</text>
+              <template v-if="isLoading">
+                <view class="skeleton-nickname"></view>
+                <view class="skeleton-account"></view>
+              </template>
+              <template v-else>
+                <text class="nickName">{{ authStore.user?.nickName || authStore.user?.userAccount || '未设置昵称' }}</text>
+                <text class="userAccount">@{{ authStore.user?.userAccount || 'user' }}</text>
+              </template>
             </view>
           </view>
-          <view class="item-right">
+          <view class="item-right" v-if="!isLoading">
             <image class="arrow-icon" src="/static/svg/turn-right.svg" mode="aspectFit" />
           </view>
         </view>
@@ -703,5 +720,61 @@ function isCurrentPalette(pColors: string[]) {
 
 .modal-btn.confirm {
   color: var(--theme-primary);
+}
+
+/* Skeleton Loader */
+.skeleton {
+  pointer-events: none;
+  
+  .skeleton-avatar {
+    width: 100%;
+    height: 100%;
+    background: #f0f0f0;
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+      animation: skeleton-loading 1.5s infinite;
+    }
+  }
+  
+  .skeleton-nickname {
+    width: 120px;
+    height: 20px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    position: relative;
+    overflow: hidden;
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+      animation: skeleton-loading 1.5s infinite;
+    }
+  }
+  
+  .skeleton-account {
+    width: 80px;
+    height: 14px;
+    background: #f5f5f5;
+    border-radius: 4px;
+  }
+}
+
+@keyframes skeleton-loading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 </style>

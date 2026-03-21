@@ -17,6 +17,7 @@ const { paddingTop, height, paddingLeft, navbarHeight } = useNavbar();
 const today = new Date();
 const currentYear = ref(today.getFullYear());
 const currentMonth = ref(today.getMonth() + 1);
+const isLoading = ref(true);
 
 watch(() => props.isActive, async (newVal) => {
   if (newVal) {
@@ -39,18 +40,23 @@ onUnmounted(() => {
 });
 
 async function loadData() {
-  await plansStore.fetchMyPlans();
-  if (plansStore.items.length > 0) {
-    const year = currentYear.value;
-    const month = currentMonth.value;
-    const tasks = plansStore.items.map((plan) => {
-      // Load current month calendar for display
-      const t1 = checkinsStore.loadCalendar(plan.id, year, month);
-      // Load total stats
-      const t2 = checkinsStore.fetchPlanStats(plan);
-      return Promise.all([t1, t2]);
-    });
-    await Promise.all(tasks);
+  isLoading.value = true;
+  try {
+    await plansStore.fetchMyPlans();
+    if (plansStore.items.length > 0) {
+      const year = currentYear.value;
+      const month = currentMonth.value;
+      const tasks = plansStore.items.map((plan) => {
+        // Load current month calendar for display
+        const t1 = checkinsStore.loadCalendar(plan.id, year, month);
+        // Load total stats
+        const t2 = checkinsStore.fetchPlanStats(plan);
+        return Promise.all([t1, t2]);
+      });
+      await Promise.all(tasks);
+    }
+  } finally {
+    isLoading.value = false;
   }
 }
 
@@ -209,67 +215,83 @@ function getPlanStatus(plan: any) {
     <view :style="{ height: `calc(${navbarHeight}px - var(--uni-container-padding))` }"></view>
 
     <view class="plan-list">
-      <view v-for="plan in plansStore.items" :key="plan.id" class="plan-card" @click="handlePlanClick(plan.id)">
-        <view class="card-header-row">
-          <view class="card-title-group">
-            <text class="card-title">{{ plan.title }}</text>
-            <text v-if="getPlanStatus(plan)" :class="['status-badge', getPlanStatus(plan)?.class]">{{ getPlanStatus(plan)?.text
-            }}</text>
-            <text class="card-desc">{{ plan.description || '无描述' }}</text>
+      <template v-if="isLoading">
+        <view v-for="i in 2" :key="i" class="plan-card skeleton">
+          <view class="skeleton-header">
+            <view class="skeleton-title"></view>
+            <view class="skeleton-desc"></view>
+          </view>
+          <view class="skeleton-date"></view>
+          <view class="skeleton-body">
+            <view class="skeleton-calendar"></view>
+            <view class="skeleton-stats"></view>
           </view>
         </view>
-        <text class="card-date-range">{{ plan.startDate }} 到 {{ plan.endDate || '永久' }}</text>
+      </template>
 
-        <view class="card-body">
-          <view class="calendar-wrapper">
-            <view class="mini-calendar">
-              <view v-for="(cell, index) in miniCalendarCells" :key="index"
-                :class="getMiniDayClassForPlan(plan.id, cell)">
-                <text v-if="cell && isInPlanRangeForPlan(plan.id, cell)" class="mini-day-text">
-                  {{ cell.getDate() }}
-                </text>
+      <template v-else>
+        <view v-for="plan in plansStore.items" :key="plan.id" class="plan-card" @click="handlePlanClick(plan.id)">
+          <view class="card-header-row">
+            <view class="card-title-group">
+              <text class="card-title">{{ plan.title }}</text>
+              <text v-if="getPlanStatus(plan)" :class="['status-badge', getPlanStatus(plan)?.class]">{{ getPlanStatus(plan)?.text
+              }}</text>
+              <text class="card-desc">{{ plan.description || '无描述' }}</text>
+            </view>
+          </view>
+          <text class="card-date-range">{{ plan.startDate }} 到 {{ plan.endDate || '永久' }}</text>
+
+          <view class="card-body">
+            <view class="calendar-wrapper">
+              <view class="mini-calendar">
+                <view v-for="(cell, index) in miniCalendarCells" :key="index"
+                  :class="getMiniDayClassForPlan(plan.id, cell)">
+                  <text v-if="cell && isInPlanRangeForPlan(plan.id, cell)" class="mini-day-text">
+                    {{ cell.getDate() }}
+                  </text>
+                </view>
+              </view>
+            </view>
+
+            <view class="stats-wrapper">
+              <view class="progress-ring">
+                <ProgressRing :progress="monthStatsByPlan(plan.id).percentage / 100" :size="50" :radius="65"
+                  color="#8EA88E" :strokeWidth="12">
+                  <text class="ring-text">{{ monthStatsByPlan(plan.id).totalCheckins }}</text>
+                </ProgressRing>
+              </view>
+
+              <view class="stat-item">
+                <text class="stat-val">{{ monthStatsByPlan(plan.id).percentage.toFixed(2) }}%</text>
+                <text class="stat-lbl">本月进度</text>
+              </view>
+
+              <view class="stat-item">
+                <text class="stat-val">{{ monthStatsByPlan(plan.id).totalCheckins }}/{{
+                  monthStatsByPlan(plan.id).activeDays }}</text>
+                <text class="stat-lbl">本月天数</text>
+              </view>
+              <view class="stat-item">
+                <text class="stat-val">{{ getTotalStatsDisplay(plan.id) }}</text>
+                <text class="stat-lbl">总进度</text>
               </view>
             </view>
           </view>
 
-          <view class="stats-wrapper">
-            <view class="progress-ring">
-              <ProgressRing :progress="monthStatsByPlan(plan.id).percentage / 100" :size="50" :radius="65"
-                color="#8EA88E" :strokeWidth="12">
-                <text class="ring-text">{{ monthStatsByPlan(plan.id).totalCheckins }}</text>
-              </ProgressRing>
-            </view>
-
-            <view class="stat-item">
-              <text class="stat-val">{{ monthStatsByPlan(plan.id).percentage.toFixed(2) }}%</text>
-              <text class="stat-lbl">本月进度</text>
-            </view>
-
-            <view class="stat-item">
-              <text class="stat-val">{{ monthStatsByPlan(plan.id).totalCheckins }}/{{
-                monthStatsByPlan(plan.id).activeDays }}</text>
-              <text class="stat-lbl">本月天数</text>
-            </view>
-            <view class="stat-item">
-              <text class="stat-val">{{ getTotalStatsDisplay(plan.id) }}</text>
-              <text class="stat-lbl">总进度</text>
-            </view>
+          <!-- Inactive Overlay -->
+          <view v-if="getPlanStatus(plan)?.isInactive" class="card-overlay">
+            <text class="overlay-text">{{ getPlanStatus(plan)?.text }}</text>
           </view>
         </view>
 
-        <!-- Inactive Overlay -->
-        <view v-if="getPlanStatus(plan)?.isInactive" class="card-overlay">
-          <text class="overlay-text">{{ getPlanStatus(plan)?.text }}</text>
+        <view class="create-plan-card" @click="handleCreatePlan">
+          <text class="create-icon">+</text>
         </view>
-      </view>
 
-      <view class="create-plan-card" @click="handleCreatePlan">
-        <text class="create-icon">+</text>
-      </view>
-
-      <view v-if="plansStore.items.length === 0" class="empty-state">
-        <text>暂无计划，点击上方按钮创建</text>
-      </view>
+        <view v-if="plansStore.items.length === 0" class="empty-state">
+          <text>暂无计划，点击上方按钮创建</text>
+        </view>
+      </template>
     </view>
   </view>
 </template>
@@ -313,6 +335,76 @@ function getPlanStatus(plan: any) {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-color);
+}
+
+/* Skeleton Loading */
+.skeleton {
+  pointer-events: none;
+  
+  .skeleton-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .skeleton-title {
+    width: 40%;
+    height: 24px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+      animation: skeleton-loading 1.5s infinite;
+    }
+  }
+  
+  .skeleton-desc {
+    flex: 1;
+    height: 16px;
+    background: #f5f5f5;
+    border-radius: 4px;
+  }
+  
+  .skeleton-date {
+    width: 60%;
+    height: 14px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
+  
+  .skeleton-body {
+    display: flex;
+    gap: 16px;
+  }
+  
+  .skeleton-calendar {
+    flex: 1;
+    height: 120px;
+    background: #f5f5f5;
+    border-radius: 8px;
+  }
+  
+  .skeleton-stats {
+    width: 80px;
+    height: 120px;
+    background: #f5f5f5;
+    border-radius: 8px;
+  }
+}
+
+@keyframes skeleton-loading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 /* Plan Card */

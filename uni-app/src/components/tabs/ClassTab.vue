@@ -8,32 +8,88 @@ const props = defineProps<{
   isActive: boolean;
 }>();
 
-const { classes, initializeData, getClass } = useClass();
+const { classes, initializeData, getClass, isLoading } = useClass();
 const { paddingTop, height, paddingLeft, navbarHeight } = useNavbar();
 
 watch(() => props.isActive, (newVal) => {
   if (newVal) {
     initializeData();
+    // 每次激活时定位到当前周
+    currentWeek.value = currentAcademicWeek.value;
   }
 }, { immediate: true });
 
 // 周次
 const weekDays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-const currentWeek = ref(1);
-const currentDate = ref(new Date());
+const currentWeek = ref(1); // 初始值，在 script 末尾或 initializeData 后更新
 const totalWeeks = ref(20); // 总周数
+
+// 开学日期（本学期第一周的周一）
+// 实际项目中，此日期应从后端 API 获取或在全局配置中定义
+const semesterStartDate = ref(new Date('2026-03-10'));
+
+// 计算当前逻辑上的“第几周”
+const currentAcademicWeek = computed(() => {
+  const now = new Date();
+  // 重置时间为 00:00:00 避免小时差异
+  const start = new Date(semesterStartDate.value);
+  start.setHours(0, 0, 0, 0);
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+
+  const diffTime = today.getTime() - start.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  // 计算周数：(天数差 / 7) + 1
+  const weekNum = Math.floor(diffDays / 7) + 1;
+  return Math.max(1, Math.min(totalWeeks.value, weekNum));
+});
 
 // 节次时间
 const timeSlots = [
-  { number: 1, time: '08:00-08:45' },
-  { number: 2, time: '08:55-09:40' },
-  { number: 3, time: '10:00-10:45' },
-  { number: 4, time: '10:55-11:40' },
+  { number: 1, time: '08:25-09:10' },
+  { number: 2, time: '09:15-10:00' },
+  { number: 3, time: '10:10-10:55' },
+  { number: 4, time: '11:00-11:45' },
   { number: 5, time: '14:00-14:45' },
-  { number: 6, time: '14:55-15:40' },
-  { number: 7, time: '16:00-16:45' },
-  { number: 8, time: '16:55-17:40' }
+  { number: 6, time: '14:50-15:35' },
+  { number: 7, time: '15:45-16:30' },
+  { number: 8, time: '16:35-17:20' },
+  { number: 9, time: '18:30-19:15' },
+  { number: 10, time: '19:20-20:05' },
+  { number: 11, time: '20:10-20:55' },
+  { number: 12, time: '21:00-21:45' },
 ];
+
+// 是否折叠晚间课程（9节及以后）
+const isFolded = ref(true);
+
+// 检查当前周是否有晚间课程（第9节及以后）
+const hasNightClasses = computed(() => {
+  for (let day = 1; day <= 7; day++) {
+    for (let slot = 9; slot <= 12; slot++) {
+      if (getClass(currentWeek.value, day, slot)) {
+        return true;
+      }
+    }
+  }
+  return false;
+});
+
+// 实际显示的节次
+const displayedTimeSlots = computed(() => {
+  // 如果当前周有晚间课程，或者用户主动取消折叠，则显示全部
+  if (hasNightClasses.value || !isFolded.value) {
+    return timeSlots;
+  }
+  // 否则只显示前8节
+  return timeSlots.slice(0, 8);
+});
+
+// 切换折叠状态
+function toggleFold() {
+  isFolded.value = !isFolded.value;
+}
 
 // 详情弹窗
 const showDetail = ref(false);
@@ -54,32 +110,24 @@ const today = computed(() => {
 
 // 判断是否是今天
 function isToday(dayIndex: number): boolean {
-  // 必须同时满足：1. 当前显示的周是“本周”(currentWeek === 1) 2. 星期匹配
-  return currentWeek.value === 1 && today.value.dayOfWeek === dayIndex + 1;
+  // 必须满足：1. 当前显示的周是“本周” 2. 星期匹配
+  return currentWeek.value === currentAcademicWeek.value && today.value.dayOfWeek === dayIndex + 1;
 }
+
 // 获取指定周数和星期的日期
 function getDateForDay(week: number, dayIndex: number): { month: number; day: number } {
-  const now = new Date();
-  const currentDayOfWeek = now.getDay() || 7; // 当前是周几 (1-7)
-  const targetDayOfWeek = dayIndex + 1; // 目标是周几 (1-7)
-
-  // 计算当前周的第 1 天（周一）的日期
-  const currentWeekStart = new Date(now);
-  currentWeekStart.setDate(now.getDate() - currentDayOfWeek + 1);
-
-  // 计算目标周的周一
-  const targetWeekStart = new Date(currentWeekStart);
-  targetWeekStart.setDate(currentWeekStart.getDate() + (week - 1) * 7);
-
-  // 计算目标日期
-  const targetDate = new Date(targetWeekStart);
-  targetWeekStart.setDate(targetWeekStart.getDate() + dayIndex);
+  // 基于开学日期计算
+  const targetDate = new Date(semesterStartDate.value);
+  // 计算偏移天数：(周数-1) * 7 + 星期偏移(0-6)
+  const offsetDays = (week - 1) * 7 + dayIndex;
+  targetDate.setDate(semesterStartDate.value.getDate() + offsetDays);
 
   return {
-    month: targetWeekStart.getMonth() + 1,
-    day: targetWeekStart.getDate()
+    month: targetDate.getMonth() + 1,
+    day: targetDate.getDate()
   };
 }
+
 // 切换周数
 function changeWeek(delta: number) {
   const newWeek = currentWeek.value + delta;
@@ -137,15 +185,7 @@ function closeTimeTable() {
 
 // 定位到今天所在的周
 function jumpToToday() {
-  const now = new Date();
-  const dayOfWeek = now.getDay() || 7;
-  // 这里假设第一周是从某个特定日期开始的，或者简单地使用当前周数
-  // 如果后端没有提供开学日期，我们通常默认当前显示的周数为基准
-  // 考虑到这是一个本地状态，我们实现跳转到“当前逻辑周”的功能
-  // 如果需要精确计算，需要知道第一周的周一日期
-  // 目前我们先实现重置到第一周或根据实际逻辑调整
-  // 假设 initializeData 之后会有默认周数逻辑
-  currentWeek.value = 1; // 示例：重置到第一周，实际可根据业务逻辑计算
+  currentWeek.value = currentAcademicWeek.value;
 }
 </script>
 
@@ -168,14 +208,14 @@ function jumpToToday() {
     <view :style="{ height: `calc(${navbarHeight}px - var(--uni-container-padding))` }"></view>
 
     <!-- 课程表 -->
-    <view class="class-table">
+    <view class="class-table" :class="{ 'skeleton-container': isLoading }">
       <scroll-view scroll-x="true" class="table-scroll">
         <view class="class-grid">
           <view class="time-column">
             <view class="time-header">
               <text>{{ getDateForDay(currentWeek, 0).month }}月</text>
             </view>
-            <view class="time-slot" v-for="slot in timeSlots" :key="slot.number" @click="openTimeTable">
+            <view class="time-slot" v-for="slot in displayedTimeSlots" :key="slot.number" @click="openTimeTable">
               <text class="time-slot-number">{{ slot.number }}</text>
             </view>
           </view>
@@ -189,14 +229,17 @@ function jumpToToday() {
               <text>{{ day }}</text>
               <text v-if="isToday(dayIndex)" class="today-badge">今</text>
             </view>
-            <view v-for="(_, slotIndex) in timeSlots" :key="slotIndex" class="course-slot">
-              <template v-if="getClass(currentWeek, dayIndex + 1, slotIndex + 1)">
+            <view v-for="(_, slotIndex) in displayedTimeSlots" :key="slotIndex" class="course-slot">
+              <template v-if="isLoading">
+                <view class="skeleton-course-item" v-if="(dayIndex + slotIndex) % 3 === 0"></view>
+              </template>
+              <template v-else-if="getClass(currentWeek, dayIndex + 1, slotIndex + 1)">
                 <view class="course-item"
                   :style="{ '--text-color': getClass(currentWeek, dayIndex + 1, slotIndex + 1)!.color, '--text-muted': getClass(currentWeek, dayIndex + 1, slotIndex + 1)!.color, backgroundColor: getClass(currentWeek, dayIndex + 1, slotIndex + 1)!.color + '15' }"
                   @click="showClassDetail(currentWeek, dayIndex, slotIndex)">
                   <text class="course-name">{{ getClass(currentWeek, dayIndex + 1, slotIndex + 1)?.name }}</text>
-                  <text class="course-details">{{ getClass(currentWeek, dayIndex + 1, slotIndex + 1)?.location }}</text>
-                  <text class="course-details">{{ getClass(currentWeek, dayIndex + 1, slotIndex + 1)?.teacher }}</text>
+                  <text class="course-details">{{ getClass(currentWeek, dayIndex + 1,
+                    slotIndex + 1)?.location }}-{{ getClass(currentWeek, dayIndex + 1, slotIndex + 1)?.teacher }}</text>
                 </view>
               </template>
               <template v-else>
@@ -205,27 +248,36 @@ function jumpToToday() {
             </view>
           </view>
         </view>
+
+        <!-- 展开/折叠控制（仅在没有晚间课程时显示） -->
+        <view v-if="!hasNightClasses" class="fold-toggle" @click="toggleFold" :class="{ 'is-expanded': !isFolded }">
+          <view class="fold-divider"></view>
+          <view class="fold-btn">
+            <text>{{ isFolded ? '展开晚间课程' : '收起晚间课程' }}</text>
+            <image src="/static/svg/arrow-right.svg" class="toggle-icon" />
+          </view>
+        </view>
       </scroll-view>
     </view>
 
     <!-- 周数选择器 -->
-    <view class="week-selector">
-      <view class="week-btn" @click="jumpToFirstWeek" :class="{ disabled: currentWeek <= 1 }">
+    <view class="week-selector" :class="{ 'skeleton-selector': isLoading }">
+      <view class="week-btn" @click="jumpToFirstWeek" :class="{ disabled: currentWeek <= 1 || isLoading }">
         <image src="/static/svg/arrow-double-left.svg" class="arrow-icon" />
       </view>
-      <view class="week-btn" @click="changeWeek(-1)" :class="{ disabled: currentWeek <= 1 }">
+      <view class="week-btn" @click="changeWeek(-1)" :class="{ disabled: currentWeek <= 1 || isLoading }">
         <image src="/static/svg/arrow-left.svg" class="arrow-icon" />
       </view>
       <view class="week-list">
         <view v-for="week in weekRange" :key="week" class="week-item" :class="{ active: week === currentWeek }"
-          @click="currentWeek = week">
+          @click="!isLoading && (currentWeek = week)">
           {{ week }}
         </view>
       </view>
-      <view class="week-btn" @click="changeWeek(1)" :class="{ disabled: currentWeek >= totalWeeks }">
+      <view class="week-btn" @click="changeWeek(1)" :class="{ disabled: currentWeek >= totalWeeks || isLoading }">
         <image src="/static/svg/arrow-right.svg" class="arrow-icon" />
       </view>
-      <view class="week-btn" @click="jumpToLastWeek" :class="{ disabled: currentWeek >= totalWeeks }">
+      <view class="week-btn" @click="jumpToLastWeek" :class="{ disabled: currentWeek >= totalWeeks || isLoading }">
         <image src="/static/svg/arrow-double-right.svg" class="arrow-icon" />
       </view>
     </view>
@@ -430,7 +482,7 @@ function jumpToToday() {
 
 .class-grid {
   display: grid;
-  grid-template-columns: 30px repeat(7, 1fr);
+  grid-template-columns: 40px repeat(7, minmax(0, 1fr));
   gap: 1px;
   background-color: #eef2f7;
 
@@ -445,7 +497,7 @@ function jumpToToday() {
     .day-header {
       background: var(--theme-secondary);
       color: #fff;
-      padding: 8px;
+      padding: 8px 2px;
       text-align: center;
       font-weight: 600;
       display: flex;
@@ -454,6 +506,7 @@ function jumpToToday() {
       justify-content: center;
       font-size: 13px;
       position: relative;
+      overflow: hidden;
 
       &.today-header {
         background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
@@ -479,7 +532,6 @@ function jumpToToday() {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      border-right: 1px solid var(--border-color);
       cursor: pointer;
       transition: all 0.2s;
       min-height: 60px;
@@ -506,15 +558,14 @@ function jumpToToday() {
     }
 
     .course-slot {
-      min-height: 60px;
-      padding: 2px;
+      min-height: 100px;
+      padding: 1px;
       position: relative;
-      border-right: 1px solid var(--border-color);
 
       .course-item {
         border-radius: 4px;
         padding: 6px 4px;
-        height: calc(100% - 4px);
+        height: calc(100% - 2px);
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -545,7 +596,7 @@ function jumpToToday() {
           line-height: 1.2;
           display: -webkit-box;
           -webkit-box-orient: vertical;
-          -webkit-line-clamp: 1;
+          -webkit-line-clamp: 4;
           overflow: hidden;
         }
       }
@@ -646,6 +697,46 @@ function jumpToToday() {
 }
 
 /* ========== 课程详情弹窗 ========== */
+.skeleton-container {
+  pointer-events: none;
+
+  .skeleton-course-item {
+    width: calc(100% - 8px);
+    height: calc(100% - 8px);
+    margin: 4px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+      animation: skeleton-loading 1.5s infinite;
+    }
+  }
+}
+
+.skeleton-selector {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 .detail-overlay {
   position: fixed;
   top: 0;
@@ -862,5 +953,52 @@ function jumpToToday() {
 .detail-btn:active {
   transform: scale(0.96);
   box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.1);
+}
+
+/* 折叠控制样式 */
+.fold-toggle {
+  padding: 20rpx 0;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.fold-divider {
+  width: 90%;
+  height: 1rpx;
+  background-color: #f0f0f0;
+  margin-bottom: 10rpx;
+}
+
+.fold-btn {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  color: var(--theme-primary);
+  font-size: 24rpx;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  &:active {
+    opacity: 0.7;
+    transform: scale(0.95);
+  }
+}
+
+.toggle-icon {
+  width: 24rpx;
+  height: 24rpx;
+  transition: transform 0.3s ease;
+  transform: rotate(90deg);
+  /* 默认向下 */
+}
+
+.is-expanded .toggle-icon {
+  transform: rotate(-90deg);
+  /* 展开时向上 */
 }
 </style>

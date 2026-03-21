@@ -2,9 +2,18 @@
 import { useAuthStore } from '@/stores/auth';
 import { APP_TITLE } from '@/config';
 import { useNavbar } from '@/utils/useNavbar';
+import { ref, onMounted } from 'vue';
 
 const authStore = useAuthStore();
 const { paddingTop, height, paddingLeft, navbarHeight } = useNavbar();
+const isLoading = ref(true);
+
+onMounted(() => {
+  // Mock loading for a better UI transition
+  setTimeout(() => {
+    isLoading.value = false;
+  }, 800);
+});
 </script>
 
 <template>
@@ -19,15 +28,26 @@ const { paddingTop, height, paddingLeft, navbarHeight } = useNavbar();
     <!-- 撑开固定头部的内容区域 -->
     <view :style="{ height: navbarHeight + 'px' }"></view>
 
-    <!-- 固定头部 -->
-    <view class="header" :style="{ paddingLeft: paddingLeft + 'px', paddingRight: paddingLeft + 'px' }">
-      <text class="subtitle">欢迎回来，{{ authStore.user?.nickName || authStore.user?.userAccount || '用户' }}</text>
-    </view>
+    <template v-if="isLoading">
+      <view class="header skeleton">
+        <view class="skeleton-subtitle"></view>
+      </view>
+      <view class="content skeleton">
+        <view class="skeleton-placeholder"></view>
+      </view>
+    </template>
 
-    <view class="content">
-      <text class="placeholder-text">这里是主页内容</text>
-      <!-- You can add dashboard widgets or summary stats here later -->
-    </view>
+    <template v-else>
+      <!-- 固定头部 -->
+      <view class="header" :style="{ paddingLeft: paddingLeft + 'px', paddingRight: paddingLeft + 'px' }">
+        <text class="subtitle">欢迎回来，{{ authStore.user?.nickName || authStore.user?.userAccount || '用户' }}</text>
+      </view>
+
+      <view class="content">
+        <text class="placeholder-text">这里是主页内容</text>
+        <!-- You can add dashboard widgets or summary stats here later -->
+      </view>
+    </template>
   </view>
 </template>
 
@@ -86,5 +106,42 @@ const { paddingTop, height, paddingLeft, navbarHeight } = useNavbar();
 .placeholder-text {
   color: var(--text-muted);
   font-size: 14px;
+}
+
+/* Skeleton Styles */
+.skeleton {
+  pointer-events: none;
+  
+  .skeleton-subtitle {
+    width: 200px;
+    height: 24px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    margin-top: 10px;
+    position: relative;
+    overflow: hidden;
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+      animation: skeleton-loading 1.5s infinite;
+    }
+  }
+  
+  .skeleton-placeholder {
+    width: 100px;
+    height: 20px;
+    background: #f5f5f5;
+    border-radius: 4px;
+  }
+}
+
+@keyframes skeleton-loading {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 </style>

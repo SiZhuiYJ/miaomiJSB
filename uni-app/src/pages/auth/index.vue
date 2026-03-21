@@ -11,7 +11,15 @@ import { useCountdown } from '@/composables/useCountdown';
 const themeStore = useThemeStore();
 
 onShow(() => {
-  themeStore.updateNavBarColor();
+  // themeStore.updateNavBarColor();
+  uni.setNavigationBarColor({
+    frontColor: '#000000',
+    backgroundColor: '#F1F1EB',
+    animation: {
+      duration: 300,
+      timingFunc: 'easeIn'
+    }
+  });
 });
 
 const mode = ref<'login' | 'register'>('login');
@@ -259,6 +267,15 @@ function switchMode(next: 'login' | 'register') {
 
 <style scoped lang="scss">
 .auth-container {
+  /* Override global theme variables for this page to keep it non-themed */
+  --bg-color: #ECE7DA;
+  --bg-elevated: #F1F1EB;
+  --text-color: #191919;
+  --text-muted: #666666;
+  --accent-color: #8EA88E;
+  --border-color: #d9d9d9;
+  --surface-soft: #F1F1EB;
+
   min-height: 100%;
   display: flex;
   align-items: center;
