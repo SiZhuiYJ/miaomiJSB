@@ -3,6 +3,9 @@ import { ref, computed, watch } from 'vue';
 import useClass from '@/features/Curriculum/useClass';
 import type { Class } from '@/libs/api/class/type';
 import { useNavbar } from '@/utils/useNavbar';
+import { padNumber } from '@/utils/date';
+
+
 
 const props = defineProps<{
   isActive: boolean;
@@ -213,7 +216,7 @@ function jumpToToday() {
         <view class="class-grid">
           <view class="time-column">
             <view class="time-header">
-              <text>{{ getDateForDay(currentWeek, 0).month }}月</text>
+              <text>{{ padNumber(getDateForDay(currentWeek, 0).month, 2) }}月</text>
             </view>
             <view class="time-slot" v-for="slot in displayedTimeSlots" :key="slot.number" @click="openTimeTable">
               <text class="time-slot-number">{{ slot.number }}</text>
@@ -224,7 +227,8 @@ function jumpToToday() {
           <view class="day-column" v-for="(day, dayIndex) in weekDays" :key="dayIndex">
             <view class="day-header" :class="{ 'today-header': isToday(dayIndex) }">
               <text>
-                {{ getDateForDay(currentWeek, dayIndex).month }}/{{ getDateForDay(currentWeek, dayIndex).day }}
+                {{ padNumber(getDateForDay(currentWeek, dayIndex).month, 2) }}/{{ padNumber(getDateForDay(currentWeek,
+                  dayIndex).day, 2) }}
               </text>
               <text>{{ day }}</text>
               <text v-if="isToday(dayIndex)" class="today-badge">今</text>
@@ -239,7 +243,7 @@ function jumpToToday() {
                   @click="showClassDetail(currentWeek, dayIndex, slotIndex)">
                   <text class="course-name">{{ getClass(currentWeek, dayIndex + 1, slotIndex + 1)?.name }}</text>
                   <text class="course-details">{{ getClass(currentWeek, dayIndex + 1,
-                    slotIndex + 1)?.location }}-{{ getClass(currentWeek, dayIndex + 1, slotIndex + 1)?.teacher }}</text>
+                    slotIndex + 1)?.location }} {{ getClass(currentWeek, dayIndex + 1, slotIndex + 1)?.teacher }}</text>
                 </view>
               </template>
               <template v-else>
@@ -251,7 +255,6 @@ function jumpToToday() {
 
         <!-- 展开/折叠控制（仅在没有晚间课程时显示） -->
         <view v-if="!hasNightClasses" class="fold-toggle" @click="toggleFold" :class="{ 'is-expanded': !isFolded }">
-          <view class="fold-divider"></view>
           <view class="fold-btn">
             <text>{{ isFolded ? '展开晚间课程' : '收起晚间课程' }}</text>
             <image src="/static/svg/arrow-right.svg" class="toggle-icon" />
@@ -965,13 +968,6 @@ function jumpToToday() {
   justify-content: center;
   cursor: pointer;
   border-top: 1rpx solid #f0f0f0;
-}
-
-.fold-divider {
-  width: 90%;
-  height: 1rpx;
-  background-color: #f0f0f0;
-  margin-bottom: 10rpx;
 }
 
 .fold-btn {

@@ -7,7 +7,6 @@ using Microsoft.OpenApi.Models;
 using SixLabors.ImageSharp;
 using StackExchange.Redis;
 using System;
-using api.Infrastructure;
 using System.Text;
 
 
@@ -80,6 +79,12 @@ builder.Services.AddSwaggerGen(opt =>
 #region jwt配置
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.Configure<WechatOptions>(builder.Configuration.GetSection("Wechat"));
+builder.Services.AddHttpClient<IWechatAuthService, WechatAuthService>(client =>
+{
+    client.BaseAddress = new Uri("https://api.weixin.qq.com/");
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 #endregion
 

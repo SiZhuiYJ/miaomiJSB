@@ -7,6 +7,8 @@ import http from '@/libs/http/config';
 import { notifyError, notifySuccess, notifyWarning } from '@/utils/notification';
 import { APP_TITLE } from '@/config';
 import { useCountdown } from '@/composables/useCountdown';
+import { wechatLogin } from '@/services/auth';
+import Dome from './dome.vue';
 
 const themeStore = useThemeStore();
 
@@ -23,7 +25,7 @@ onShow(() => {
 });
 
 const mode = ref<'login' | 'register'>('login');
-const loginMethod = ref<'email' | 'account'>('email');
+const loginMethod = ref<'email' | 'account' | 'wechat'>('email');
 const loading = ref(false);
 
 const email = ref('');
@@ -187,6 +189,35 @@ async function handleSendCode() {
 function switchMode(next: 'login' | 'register') {
   mode.value = next;
 }
+const UserInfo = ref<UniApp.UserInfo>()
+// 微信登录
+async function handleWechatLogin() {
+
+  uni.getUserInfo({
+    provider: 'weixin',
+    success: function (info) {
+      // 获取用户信息成功, info.authResult是用户信息
+      const wxUserInfo = info.userInfo
+      //	打印头像url
+      console.log(wxUserInfo.avatarUrl)
+      //	打印昵称
+      console.log(wxUserInfo.nickName)
+      //	打印用户详细信息
+      console.log(wxUserInfo)
+
+      UserInfo.value = wxUserInfo
+    }
+  })
+
+  // try {
+  //   const result = await wechatLogin();
+  //   console.log('登录成功', result.user);
+  //   // 跳转首页
+  //   uni.switchTab({ url: '/pages/index/index' });
+  // } catch (error: any) {
+  //   uni.showToast({ title: error.message, icon: 'none' });
+  // }
+}
 </script>
 
 <template>
@@ -209,6 +240,8 @@ function switchMode(next: 'login' | 'register') {
           </view>
           <view :class="['method-tab', loginMethod === 'account' ? 'active' : '']" @click="loginMethod = 'account'">账号登录
           </view>
+          <view :class="['method-tab', loginMethod === 'wechat' ? 'active' : '']" @click="loginMethod = 'wechat'">微信登录
+          </view>
         </view>
 
         <view class="field" v-if="mode === 'login' && loginMethod === 'email' || mode === 'register'">
@@ -227,19 +260,26 @@ function switchMode(next: 'login' | 'register') {
             </button>
           </view>
         </view>
+        <view class="field" v-if="mode === 'login' && loginMethod === 'wechat' || mode === 'register'">
+          <text>微信登录</text>
+          <Dome />
+          <button class="submit" @click="handleWechatLogin">
+            点击登录
+          </button>
+        </view>
 
         <view class="field" v-if="mode === 'login' && loginMethod === 'account' || mode === 'register'">
-          <text>账号名</text>
+          <text>账号</text>
           <view class="input-row">
             <input class="input" :class="{ 'input-error': userAccountError }" v-model="userAccount" type="text"
-              placeholder="账号名" placeholder-class="input-placeholder" @blur="validateuserAccount"
+              placeholder="账号" placeholder-class="input-placeholder" @blur="validateuserAccount"
               @input="userAccountError = ''" />
             <button v-if="mode === 'register'" class="mini-btn" @click="generateRandomuserAccount">随机</button>
           </view>
           <text v-if="userAccountError" class="error-msg">{{ userAccountError }}</text>
         </view>
 
-        <view class="field">
+        <view class="field" v-if="mode === 'login' && loginMethod === 'account' || loginMethod === 'email'">
           <text>密码</text>
           <input class="input" v-model="password" type="password" password placeholder="请输入密码"
             placeholder-class="input-placeholder" />
@@ -262,7 +302,9 @@ function switchMode(next: 'login' | 'register') {
         </button>
       </view>
     </view>
+
   </view>
+
 </template>
 
 <style scoped lang="scss">

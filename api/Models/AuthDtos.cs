@@ -57,6 +57,20 @@ public class EmailCodeLoginRequest
     public string Code { get; set; } = string.Empty;
 }
 
+public class WechatLoginRequest
+{
+    public string Code { get; set; } = string.Empty;
+}
+
+public class WechatRegisterRequest
+{
+    public string Code { get; set; } = string.Empty;
+
+    public string? NickName { get; set; }
+
+    public string? UserAccount { get; set; }
+}
+
 /// <summary>
 /// 认证响应数据，包含用户信息和双 token 信息。
 /// </summary>

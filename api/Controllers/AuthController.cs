@@ -35,12 +35,14 @@ public class AuthController(
     IConfiguration config,
     IJwtTokenService jwtTokenService,
     IVerificationCodeService verificationCodeService,
+    IWechatAuthService wechatAuthService,
     IConnectionMultiplexer redis) : ControllerBase
 {
     readonly DailyCheckDbContext _db = db;
     readonly IConfiguration _config = config;
     readonly IJwtTokenService _jwtTokenService = jwtTokenService;
     readonly IVerificationCodeService _verificationCodeService = verificationCodeService;
+    readonly IWechatAuthService _wechatAuthService = wechatAuthService;
     readonly IDatabase _redisDb = redis.GetDatabase();
 
     /// <summary>
@@ -222,6 +224,143 @@ public class AuthController(
 
         // 将令牌存储到Redis
         await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, CancellationToken.None);
+
+        return Ok(CreateAuthResponse(user, tokens));
+    }
+
+    /// <summary>
+    /// 微信注册接口，通过微信临时登录凭证完成账号创建并返回双Token。
+    /// 若请求包含账号名，会执行唯一性校验。
+    /// 创建成功后自动完成登录态写入。
+    /// </summary>
+    /// <remarks>
+    /// 处理流程：
+    /// 1. 调用微信code2session换取openId/unionId
+    /// 2. 检查微信账号是否已绑定
+    /// 3. 创建用户与第三方绑定记录
+    /// 4. 生成AccessToken和RefreshToken并写入Redis
+    /// 
+    /// 约束说明：
+    /// • 同一微信openId仅允许注册一次
+    /// • userAccount可选，若提供必须全局唯一
+    /// • 邮箱字段使用系统内部生成占位地址
+    /// </remarks>
+    /// <param name="request">微信注册请求参数，包含code及可选昵称、账号名。</param>
+    /// <param name="cancellationToken">取消操作标记。</param>
+    /// <returns>
+    /// 成功时返回200 OK，包含用户信息与双Token；
+    /// 失败时返回400、401或409错误。
+    /// </returns>
+    /// <response code="200">注册成功，返回认证信息</response>
+    /// <response code="400">微信登录凭证为空</response>
+    /// <response code="401">微信授权失败</response>
+    /// <response code="409">微信账号已注册或用户名冲突</response>
+    [HttpPost("wechat/register")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponse>> RegisterByWechat(WechatRegisterRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Code))
+            return BadRequest("微信登录凭证不能为空");
+
+        var wechatSession = await _wechatAuthService.GetSessionAsync(request.Code, cancellationToken);
+        if (!wechatSession.IsSuccess)
+            return Unauthorized(wechatSession.ErrorMessage ?? "微信授权失败");
+
+        var existsOauth = await _db.UserOauthAccounts.AnyAsync(x => x.Provider == "wechat" && x.OpenId == wechatSession.OpenId, cancellationToken);
+        if (existsOauth)
+            return Conflict("该微信账号已注册，请直接登录");
+
+        string? userAccount = null;
+        if (!string.IsNullOrWhiteSpace(request.UserAccount))
+        {
+            userAccount = request.UserAccount.Trim();
+            var accountExists = await _db.Users.AnyAsync(x => x.UserAccount == userAccount && !x.IsDeleted, cancellationToken);
+            if (accountExists)
+                return Conflict("该用户名已被使用");
+        }
+
+        var generatedEmail = BuildWechatEmail(wechatSession.OpenId);
+        var user = new User
+        {
+            Email = generatedEmail,
+            PasswordHash = PasswordHasher.Hash(Guid.NewGuid().ToString("N")),
+            NickName = request.NickName,
+            UserAccount = userAccount ?? string.Empty,
+            Status = true,
+            Role = "user",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var oauthAccount = new UserOauthAccount
+        {
+            User = user,
+            Provider = "wechat",
+            OpenId = wechatSession.OpenId,
+            UnionId = wechatSession.UnionId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _db.Users.Add(user);
+        _db.UserOauthAccounts.Add(oauthAccount);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var tokens = _jwtTokenService.GenerateTokens(user);
+        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, cancellationToken);
+
+        return Ok(CreateAuthResponse(user, tokens));
+    }
+
+    /// <summary>
+    /// 微信登录接口，通过微信临时登录凭证完成身份认证并返回双Token。
+    /// 仅允许已完成微信绑定的账号登录。
+    /// </summary>
+    /// <remarks>
+    /// 处理流程：
+    /// 1. 调用微信code2session换取openId
+    /// 2. 查询本地微信绑定关系与用户状态
+    /// 3. 更新绑定信息与用户更新时间
+    /// 4. 生成并写入新的双Token
+    /// </remarks>
+    /// <param name="request">微信登录请求参数，包含code。</param>
+    /// <param name="cancellationToken">取消操作标记。</param>
+    /// <returns>
+    /// 成功时返回200 OK，包含用户信息与双Token；
+    /// 失败时返回400、401或404错误。
+    /// </returns>
+    /// <response code="200">登录成功，返回认证信息</response>
+    /// <response code="400">微信登录凭证为空</response>
+    /// <response code="401">微信授权失败或账号被禁用</response>
+    /// <response code="404">微信账号未注册</response>
+    [HttpPost("wechat/login")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponse>> LoginByWechat(WechatLoginRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Code))
+            return BadRequest("微信登录凭证不能为空");
+
+        var wechatSession = await _wechatAuthService.GetSessionAsync(request.Code, cancellationToken);
+        if (!wechatSession.IsSuccess)
+            return Unauthorized(wechatSession.ErrorMessage ?? "微信授权失败");
+
+        var oauthAccount = await _db.UserOauthAccounts
+            .Include(x => x.User)
+            .SingleOrDefaultAsync(x => x.Provider == "wechat" && x.OpenId == wechatSession.OpenId, cancellationToken);
+        if (oauthAccount == null || oauthAccount.User == null || oauthAccount.User.IsDeleted)
+            return NotFound("该微信账号未注册");
+
+        var user = oauthAccount.User;
+        if (user.Status == false)
+            return Unauthorized("账号已被禁用");
+
+        oauthAccount.UnionId = wechatSession.UnionId;
+        oauthAccount.UpdatedAt = DateTime.UtcNow;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        var tokens = _jwtTokenService.GenerateTokens(user);
+        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, cancellationToken);
+        await _db.SaveChangesAsync(cancellationToken);
 
         return Ok(CreateAuthResponse(user, tokens));
     }
@@ -956,5 +1095,10 @@ public class AuthController(
     {
         await _redisDb.KeyDeleteAsync($"access_token:{userId}");
         await _redisDb.KeyDeleteAsync($"refresh_token:{userId}");
+    }
+
+    static string BuildWechatEmail(string openId)
+    {
+        return $"wx_{openId.ToLowerInvariant()}@wechat.local";
     }
 }
