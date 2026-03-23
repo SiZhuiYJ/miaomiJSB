@@ -72,6 +72,19 @@ public class WechatRegisterRequest
 }
 
 /// <summary>
+/// 微信一键登录请求参数，包含code、可选昵称和账号名。
+/// 如果用户未注册则自动注册，已注册则直接登录。
+/// </summary>
+public class WechatLoginAutoRequest
+{
+    public string Code { get; set; } = string.Empty;
+
+    public string? NickName { get; set; }
+
+    public string? UserAccount { get; set; }
+}
+
+/// <summary>
 /// 认证响应数据，包含用户信息和双 token 信息。
 /// </summary>
 public class AuthResponse

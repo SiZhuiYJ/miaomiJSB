@@ -175,6 +175,29 @@
             <response code="401">微信授权失败或账号被禁用</response>
             <response code="404">微信账号未注册</response>
         </member>
+        <member name="M:api.Controllers.AuthController.LoginAutoByWechat(api.Models.WechatLoginAutoRequest,System.Threading.CancellationToken)">
+            <summary>
+            微信一键登录接口，通过微信临时登录凭证完成身份认证并返回双Token。
+            如果用户未注册，则自动注册后再登录；如果已注册，则直接登录。
+            </summary>
+            <remarks>
+            处理流程：
+            1. 调用微信code2session换取openId
+            2. 查询本地微信绑定关系
+            3. 如未找到绑定关系，则自动注册新用户并绑定微信账号
+            4. 如已存在绑定关系，则直接登录已有用户
+            5. 生成并写入新的双Token
+            </remarks>
+            <param name="request">微信一键登录请求参数，包含code、可选昵称和账号名。</param>
+            <param name="cancellationToken">取消操作标记。</param>
+            <returns>
+            成功时返回200 OK，包含用户信息与双Token；
+            失败时返回400或401错误。
+            </returns>
+            <response code="200">登录成功，返回认证信息</response>
+            <response code="400">微信登录凭证为空</response>
+            <response code="401">微信授权失败</response>
+        </member>
         <member name="M:api.Controllers.AuthController.LoginByEmailCode(api.Models.EmailCodeLoginRequest,System.Threading.CancellationToken)">
             <summary>
             邮箱验证码登录接口，通过邮箱和验证码进行无密码身份验证。
@@ -1914,6 +1937,12 @@
         <member name="P:api.Models.EmailCodeLoginRequest.Code">
             <summary>
             邮箱验证码。
+            </summary>
+        </member>
+        <member name="T:api.Models.WechatLoginAutoRequest">
+            <summary>
+            微信一键登录请求参数，包含code、可选昵称和账号名。
+            如果用户未注册则自动注册，已注册则直接登录。
             </summary>
         </member>
         <member name="T:api.Models.AuthResponse">

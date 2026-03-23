@@ -199,8 +199,9 @@ async function handleWechatLogin() {
         //	打印临时凭证
         console.log(code)
         // 2. 调用后端接口
-        // const response = await http.post<any>('/mm/Auth/wechat/register', { code });
-        const response = await http.post<any>('/mm/Auth/wechat/login', { code: code });
+        // const response = await http.post<any>('/mm/Auth/wechat/register', { code: code });
+        // const response = await http.post<any>('/mm/Auth/wechat/login', { code: code });
+        const response = await http.post<any>('/mm/Auth/wechat/login-auto', { code: code });
         auth.setSession(response.data);
         notifySuccess('登录成功');
         setTimeout(() => {

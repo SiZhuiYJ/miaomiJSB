@@ -371,6 +371,116 @@ public class AuthController(
     }
 
     /// <summary>
+    /// 微信一键登录接口，通过微信临时登录凭证完成身份认证并返回双Token。
+    /// 如果用户未注册，则自动注册后再登录；如果已注册，则直接登录。
+    /// </summary>
+    /// <remarks>
+    /// 处理流程：
+    /// 1. 调用微信code2session换取openId
+    /// 2. 查询本地微信绑定关系
+    /// 3. 如未找到绑定关系，则自动注册新用户并绑定微信账号
+    /// 4. 如已存在绑定关系，则直接登录已有用户
+    /// 5. 生成并写入新的双Token
+    /// </remarks>
+    /// <param name="request">微信一键登录请求参数，包含code、可选昵称和账号名。</param>
+    /// <param name="cancellationToken">取消操作标记。</param>
+    /// <returns>
+    /// 成功时返回200 OK，包含用户信息与双Token；
+    /// 失败时返回400或401错误。
+    /// </returns>
+    /// <response code="200">登录成功，返回认证信息</response>
+    /// <response code="400">微信登录凭证为空</response>
+    /// <response code="401">微信授权失败</response>
+    [HttpPost("wechat/login-auto")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponse>> LoginAutoByWechat(WechatLoginAutoRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Code))
+            return BadRequest("微信登录凭证不能为空");
+
+        var wechatSession = await _wechatAuthService.GetSessionAsync(request.Code, cancellationToken);
+        if (!wechatSession.IsSuccess)
+            return Unauthorized(wechatSession.ErrorMessage ?? "微信授权失败");
+
+        // 先查询是否存在绑定关系
+        var oauthAccount = await _db.UserOauthAccounts
+            .Include(x => x.User)
+            .SingleOrDefaultAsync(x => x.Provider == "wechat" && x.OpenId == wechatSession.OpenId, cancellationToken);
+
+        User user;
+        bool isNewUser = false;
+
+        if (oauthAccount == null || oauthAccount.User == null || oauthAccount.User.IsDeleted)
+        {
+            // 用户未注册，执行自动注册
+            string? userAccount = null;
+            if (!string.IsNullOrWhiteSpace(request.UserAccount))
+            {
+                userAccount = request.UserAccount.Trim();
+                var accountExists = await _db.Users.AnyAsync(x => x.UserAccount == userAccount && !x.IsDeleted, cancellationToken);
+                if (accountExists)
+                    return Conflict("该用户名已被使用");
+            }
+            else
+            {
+                // 随机userAccount
+                userAccount = string.Concat("mm_", Guid.NewGuid().ToString("N").AsSpan(0, 8));
+            }
+
+            var generatedEmail = BuildWechatEmail(wechatSession.OpenId);
+            user = new User
+            {
+                Email = generatedEmail,
+                PasswordHash = PasswordHasher.Hash(Guid.NewGuid().ToString("N")),
+                NickName = request.NickName,
+                UserAccount = userAccount ?? string.Empty,
+                Status = true,
+                Role = "user",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var newOauthAccount = new UserOauthAccount
+            {
+                User = user,
+                Provider = "wechat",
+                OpenId = wechatSession.OpenId,
+                UnionId = wechatSession.UnionId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _db.Users.Add(user);
+            _db.UserOauthAccounts.Add(newOauthAccount);
+            await _db.SaveChangesAsync(cancellationToken);
+            
+            isNewUser = true;
+        }
+        else
+        {
+            // 用户已存在，直接登录
+            user = oauthAccount.User;
+            if (user.Status == false)
+                return Unauthorized("账号已被禁用");
+
+            // 更新OAuth账户信息
+            oauthAccount.UnionId = wechatSession.UnionId;
+            oauthAccount.UpdatedAt = DateTime.UtcNow;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        var tokens = _jwtTokenService.GenerateTokens(user);
+        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, cancellationToken);
+
+        var response = CreateAuthResponse(user, tokens);
+        // 可以根据需要在响应中标识是否为新用户
+        // 注意：CreateAuthResponse方法目前不包含IsNewUser字段，如需此信息需要扩展模型
+        
+        return Ok(response);
+    }
+
+    /// <summary>
     /// 邮箱验证码登录接口，通过邮箱和验证码进行无密码身份验证。
     /// 成功后返回访问令牌和刷新令牌，实现双Token单点登录。
     /// 支持账号状态检查，被禁用的账号无法登录。
