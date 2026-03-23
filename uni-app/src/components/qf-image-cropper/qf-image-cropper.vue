@@ -591,18 +591,26 @@
 				query.select('#imgCanvas')
 					.fields({ node: true, size: true })
 					.exec((res) => {
-						const canvas = res[0].node;
-										
-						const dpr = uni.getSystemInfoSync().pixelRatio;
-						canvas.width = res[0].width * dpr;
-						canvas.height = res[0].height * dpr;
-						const ctx = canvas.getContext('2d');
-						ctx.scale(dpr, dpr);
-						ctx.clearRect(0, 0, this.canvansWidth, this.canvansHeight);
-						
-						this.draw2DImage(canvas, ctx, this.imgSrc, () => {
-							this.canvasToTempFilePath(canvas);
-						});
+						// 添加检查确保res和res[0]存在，以及node可用
+						if(res && res.length > 0 && res[0] && res[0].node) {
+							const canvas = res[0].node;
+											
+							const dpr = uni.getSystemInfoSync().pixelRatio;
+							canvas.width = res[0].width * dpr;
+							canvas.height = res[0].height * dpr;
+							const ctx = canvas.getContext('2d');
+							ctx.scale(dpr, dpr);
+							ctx.clearRect(0, 0, this.canvansWidth, this.canvansHeight);
+							
+							this.draw2DImage(canvas, ctx, this.imgSrc, () => {
+								this.canvasToTempFilePath(canvas);
+							});
+						} else {
+							// 如果获取不到canvas节点，给出错误提示并隐藏loading
+							console.error('获取canvas节点失败，请稍后重试');
+							uni.hideLoading();
+							uni.showToast({ title: '获取画布失败，请重试', icon: 'none' });
+						}
 					});
 				// #endif
 			},

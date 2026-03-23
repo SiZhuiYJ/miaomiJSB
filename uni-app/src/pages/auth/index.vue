@@ -7,11 +7,9 @@ import http from '@/libs/http/config';
 import { notifyError, notifySuccess, notifyWarning } from '@/utils/notification';
 import { APP_TITLE } from '@/config';
 import { useCountdown } from '@/composables/useCountdown';
-import { wechatLogin } from '@/services/auth';
-import Dome from './dome.vue';
 
 const themeStore = useThemeStore();
-
+type Mode = 'login' | 'register' | 'wechat';
 onShow(() => {
   // themeStore.updateNavBarColor();
   uni.setNavigationBarColor({
@@ -24,8 +22,8 @@ onShow(() => {
   });
 });
 
-const mode = ref<'login' | 'register'>('login');
-const loginMethod = ref<'email' | 'account' | 'wechat'>('email');
+const mode = ref<Mode>('wechat'); // 添加微信模式
+const loginMethod = ref<'email' | 'account'>('email');
 const loading = ref(false);
 
 const email = ref('');
@@ -186,37 +184,34 @@ async function handleSendCode() {
   }
 }
 
-function switchMode(next: 'login' | 'register') {
+function switchMode(next: Mode) {
   mode.value = next;
 }
-const UserInfo = ref<UniApp.UserInfo>()
 // 微信登录
 async function handleWechatLogin() {
 
-  uni.getUserInfo({
-    provider: 'weixin',
-    success: function (info) {
-      // 获取用户信息成功, info.authResult是用户信息
-      const wxUserInfo = info.userInfo
-      //	打印头像url
-      console.log(wxUserInfo.avatarUrl)
-      //	打印昵称
-      console.log(wxUserInfo.nickName)
-      //	打印用户详细信息
-      console.log(wxUserInfo)
-
-      UserInfo.value = wxUserInfo
-    }
-  })
-
-  // try {
-  //   const result = await wechatLogin();
-  //   console.log('登录成功', result.user);
-  //   // 跳转首页
-  //   uni.switchTab({ url: '/pages/index/index' });
-  // } catch (error: any) {
-  //   uni.showToast({ title: error.message, icon: 'none' });
-  // }
+  try {
+    // 1. 获取临时凭证
+    uni.login({
+      provider: 'weixin',
+      success: async function (loginRes) {
+        const code = loginRes.code;
+        //	打印临时凭证
+        console.log(code)
+        // 2. 调用后端接口
+        // const response = await http.post<any>('/mm/Auth/wechat/register', { code });
+        const response = await http.post<any>('/mm/Auth/wechat/login', { code: code });
+        auth.setSession(response.data);
+        notifySuccess('登录成功');
+        setTimeout(() => {
+          // Redirect to main page (which handles tabs manually)
+          uni.reLaunch({ url: '/pages/main/index' });
+        }, 1500);
+      },
+    });
+  } catch (error: any) {
+    uni.showToast({ title: error.message, icon: 'none' });
+  }
 }
 </script>
 
@@ -226,6 +221,9 @@ async function handleWechatLogin() {
     <view class="auth-card">
       <view class="title">{{ APP_TITLE }}</view>
       <view class="tabs">
+        <view :class="['tab', mode === 'wechat' ? 'active' : '']" @click="switchMode('wechat')">
+          微信
+        </view>
         <view :class="['tab', mode === 'login' ? 'active' : '']" @click="switchMode('login')">
           登录
         </view>
@@ -239,8 +237,6 @@ async function handleWechatLogin() {
           <view :class="['method-tab', loginMethod === 'email' ? 'active' : '']" @click="loginMethod = 'email'">邮箱登录
           </view>
           <view :class="['method-tab', loginMethod === 'account' ? 'active' : '']" @click="loginMethod = 'account'">账号登录
-          </view>
-          <view :class="['method-tab', loginMethod === 'wechat' ? 'active' : '']" @click="loginMethod = 'wechat'">微信登录
           </view>
         </view>
 
@@ -260,13 +256,6 @@ async function handleWechatLogin() {
             </button>
           </view>
         </view>
-        <view class="field" v-if="mode === 'login' && loginMethod === 'wechat' || mode === 'register'">
-          <text>微信登录</text>
-          <Dome />
-          <button class="submit" @click="handleWechatLogin">
-            点击登录
-          </button>
-        </view>
 
         <view class="field" v-if="mode === 'login' && loginMethod === 'account' || mode === 'register'">
           <text>账号</text>
@@ -279,7 +268,8 @@ async function handleWechatLogin() {
           <text v-if="userAccountError" class="error-msg">{{ userAccountError }}</text>
         </view>
 
-        <view class="field" v-if="mode === 'login' && loginMethod === 'account' || loginMethod === 'email'">
+        <view class="field"
+          v-if="(mode === 'login' && loginMethod === 'account') || (mode === 'login' && loginMethod === 'email')">
           <text>密码</text>
           <input class="input" v-model="password" type="password" password placeholder="请输入密码"
             placeholder-class="input-placeholder" />
@@ -297,8 +287,12 @@ async function handleWechatLogin() {
             placeholder-class="input-placeholder" />
         </view>
 
-        <button class="submit" :loading="loading" @click="handleSubmit">
+        <button class="submit" :loading="loading" @click="handleSubmit" v-if="mode !== 'wechat'">
           {{ mode === 'login' ? '登录' : '注册并登录' }}
+        </button>
+
+        <button class="submit" :loading="loading" @click="handleWechatLogin" v-if="mode === 'wechat'">
+          微信一键登录
         </button>
       </view>
     </view>

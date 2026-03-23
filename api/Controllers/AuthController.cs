@@ -278,6 +278,11 @@ public class AuthController(
             if (accountExists)
                 return Conflict("该用户名已被使用");
         }
+        else
+        {
+            // 随机userAccount
+            userAccount = string.Concat("mm_", Guid.NewGuid().ToString("N").AsSpan(0, 8));
+        }
 
         var generatedEmail = BuildWechatEmail(wechatSession.OpenId);
         var user = new User
