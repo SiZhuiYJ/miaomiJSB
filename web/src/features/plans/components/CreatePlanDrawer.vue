@@ -1,15 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, watch, type PropType } from "vue";
+import { ref, watch, type PropType } from "vue";
 import { ElMessageBox } from "element-plus";
 import { usePlansStore } from "@/stores";
 import type { PlanSummary, TimeSlotDto } from "@/features/plans/types";
 import { notifySuccess, notifyWarning } from "@/utils/notification";
 
 const props = defineProps({
-  modelValue: {
-    type: Boolean,
-    required: true,
-  },
   editPlan: {
     type: Object as PropType<PlanSummary | null>,
     default: null,
@@ -17,16 +13,12 @@ const props = defineProps({
 });
 
 const emit = defineEmits<{
-  (e: "update:modelValue", value: boolean): void;
   (e: "created", id: number): void;
   (e: "updated", id: number): void;
   (e: "deleted", id: number): void;
 }>();
 
-const visible = computed({
-  get: () => props.modelValue,
-  set: (value: boolean) => emit("update:modelValue", value),
-});
+const model = defineModel<boolean>();
 
 const plansStore = usePlansStore();
 
@@ -120,10 +112,10 @@ async function handleSubmit(): Promise<void> {
 
   const payloadTimeSlots = enableTimeSlots.value
     ? timeSlots.value.map((ts, index) => ({
-      ...ts,
-      orderNum: index + 1,
-      isActive: true,
-    }))
+        ...ts,
+        orderNum: index + 1,
+        isActive: true,
+      }))
     : undefined;
 
   if (props.editPlan) {
@@ -150,7 +142,7 @@ async function handleSubmit(): Promise<void> {
     emit("created", created.id);
   }
 
-  visible.value = false;
+  model.value = false;
 }
 
 async function handleDelete(): Promise<void> {
@@ -168,7 +160,7 @@ async function handleDelete(): Promise<void> {
     await plansStore.deletePlan(props.editPlan.id);
     notifySuccess("删除计划成功");
     emit("deleted", props.editPlan.id);
-    visible.value = false;
+    model.value = false;
   } catch {
     // Cancelled
   }
@@ -194,11 +186,16 @@ function removeTimeSlot(index: number) {
 </script>
 
 <template>
-  <el-drawer v-model="visible" direction="btt" size="auto" @closed="handleClosed">
+  <el-drawer v-model="model" direction="btt" size="auto" @closed="handleClosed">
     <template #header="{ titleId, titleClass }">
-      <h1 :id="titleId" :class="titleClass">{{ props.editPlan ? '修改打卡计划' : '创建打卡计划' }}</h1>
+      <h1 :id="titleId" :class="titleClass">
+        {{ props.editPlan ? "修改打卡计划" : "创建打卡计划" }}
+      </h1>
     </template>
-    <el-scrollbar wrap-style="max-height: calc(100vh - 80px);" view-class="drawer-body">
+    <el-scrollbar
+      wrap-style="max-height: calc(100vh - 80px);"
+      view-class="drawer-body"
+    >
       <label class="field">
         <span>计划标题</span>
         <input v-model="title" type="text" />
@@ -209,13 +206,23 @@ function removeTimeSlot(index: number) {
       </label>
       <label class="field">
         <span>开始日期（可选，默认今天）</span>
-        <el-date-picker v-model="startDate" type="date" placeholder="选择开始日期" format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD" />
+        <el-date-picker
+          v-model="startDate"
+          type="date"
+          placeholder="选择开始日期"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
+        />
       </label>
       <label class="field">
         <span>结束日期（可选）</span>
-        <el-date-picker v-model="endDate" type="date" placeholder="选择结束日期" format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD" />
+        <el-date-picker
+          v-model="endDate"
+          type="date"
+          placeholder="选择结束日期"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
+        />
       </label>
       <label class="field-row" v-if="!props.editPlan">
         <span>开启分时段打卡</span>
@@ -223,7 +230,11 @@ function removeTimeSlot(index: number) {
       </label>
 
       <div v-if="enableTimeSlots" class="time-slots-container">
-        <div v-for="(slot, index) in timeSlots" :key="index" class="time-slot-item">
+        <div
+          v-for="(slot, index) in timeSlots"
+          :key="index"
+          class="time-slot-item"
+        >
           <div class="slot-header">
             <span>时间段 {{ index + 1 }}</span>
             <button class="icon-btn danger" @click="removeTimeSlot(index)">
@@ -231,12 +242,26 @@ function removeTimeSlot(index: number) {
             </button>
           </div>
           <div class="slot-row">
-            <input v-model="slot.slotName" placeholder="名称 (如: 早晨)" class="slot-name-input" />
+            <input
+              v-model="slot.slotName"
+              placeholder="名称 (如: 早晨)"
+              class="slot-name-input"
+            />
           </div>
           <div class="slot-row time-range">
-            <el-time-picker v-model="slot.startTime" placeholder="开始时间" value-format="HH:mm:ss" style="width: 100%" />
+            <el-time-picker
+              v-model="slot.startTime"
+              placeholder="开始时间"
+              value-format="HH:mm:ss"
+              style="width: 100%"
+            />
             <span class="separator">至</span>
-            <el-time-picker v-model="slot.endTime" placeholder="结束时间" value-format="HH:mm:ss" style="width: 100%" />
+            <el-time-picker
+              v-model="slot.endTime"
+              placeholder="结束时间"
+              value-format="HH:mm:ss"
+              style="width: 100%"
+            />
           </div>
         </div>
         <button type="button" class="secondary" @click="addTimeSlot">
@@ -253,7 +278,12 @@ function removeTimeSlot(index: number) {
         <button type="button" class="primary" @click="handleSubmit">
           {{ props.editPlan ? "保存修改" : "创建" }}
         </button>
-        <button v-if="props.editPlan" type="button" class="danger" @click="handleDelete">
+        <button
+          v-if="props.editPlan"
+          type="button"
+          class="danger"
+          @click="handleDelete"
+        >
           删除计划
         </button>
       </div>

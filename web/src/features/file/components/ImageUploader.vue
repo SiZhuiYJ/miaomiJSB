@@ -20,7 +20,7 @@ const onFileChange = (e: Event) => {
 };
 
 const onCropped = (data: string) => {
-  console.log(data);
+  // console.log(data);
   cropped.value = data;
 };
 

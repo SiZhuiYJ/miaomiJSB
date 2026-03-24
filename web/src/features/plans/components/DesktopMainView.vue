@@ -5,33 +5,32 @@ import CalendarCell from "./CalendarCell.vue";
 import { usePlansStore } from "@/stores";
 
 interface Props {
-  selectedPlanId: number | null;
-  checkinDate: Date;
+  // selectedPlanId: number | null;
+  // checkinDate: Date;
   getDayStatusClass: (date: Date) => string;
   getDayStatusStyle: (date: Date) => string;
 }
 
 interface Emits {
-  (e: "update:checkinDate", value: Date): void;
-  (e: "update:selectedPlanId", value: number | null): void;
+  // (e: "update:checkinDate", value: Date): void;
+  // (e: "update:selectedPlanId", value: number | null): void;
   (e: "create"): void;
   (e: "edit"): void;
   (e: "dateClick", date: Date): void;
 }
+const selectedPlanId = defineModel<number | null>("selectedPlanId");
+const checkinDate = defineModel<Date>("checkinDate");
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-const localCheckinDate = computed({
-  get: () => props.checkinDate,
-  set: (value) => emit("update:checkinDate", value),
-});
-
 const plansStore = usePlansStore();
 
 const selectedPlan = computed(() => {
-  if (props.selectedPlanId == null) return null;
-  return plansStore.PlansItems.find((x) => x.id === props.selectedPlanId) ?? null;
+  if (selectedPlanId.value == null) return null;
+  return (
+    plansStore.PlansItems.find((x) => x.id === selectedPlanId.value) ?? null
+  );
 });
 
 function handleDateClick(date: Date): void {
@@ -50,8 +49,11 @@ function getDayStatusClass(date: Date): string {
 
 <template>
   <main class="content desktop-only">
-    <PlanSidebar :items="plansStore.PlansItems" :selected-id="selectedPlanId"
-      @update:selected-id="(v) => emit('update:selectedPlanId', v)" @create="emit('create')" />
+    <PlanSidebar
+      :items="plansStore.PlansItems"
+      v-model:selected-id="selectedPlanId"
+      @create="emit('create')"
+    />
 
     <section class="main">
       <div class="calendar-header">
@@ -62,11 +64,15 @@ function getDayStatusClass(date: Date): string {
         <h2 v-else>请选择一个打卡计划</h2>
       </div>
 
-      <el-calendar v-model="localCheckinDate">
+      <el-calendar v-model="checkinDate">
         <template #date-cell="{ data }">
-          <CalendarCell :date="data.date" :day-label="formatDayLabel(data.day)"
-            :status-class="getDayStatusClass(data.date)" :status-style="getDayStatusStyle(data.date)"
-            @click="handleDateClick" />
+          <CalendarCell
+            :date="data.date"
+            :day-label="formatDayLabel(data.day)"
+            :status-class="getDayStatusClass(data.date)"
+            :status-style="getDayStatusStyle(data.date)"
+            @click="handleDateClick"
+          />
         </template>
       </el-calendar>
 
@@ -97,7 +103,6 @@ function getDayStatusClass(date: Date): string {
 }
 
 .desktop-only {
-
   /* 手机端 */
   @media (max-width: 768px) {
     display: block;

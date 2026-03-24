@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import "vue-cropper/dist/index.css";
-import { ref, reactive, watch } from "vue";
+import { ref, reactive, watch, useTemplateRef } from "vue";
 import { VueCropper } from "vue-cropper";
 
 const props = defineProps<{ img: string; size?: number }>();
@@ -8,7 +8,8 @@ const emit = defineEmits<{
   (e: "crop", data: string): void;
 }>();
 
-const cropper = ref<any>(null);
+// const cropper = ref<any>(null);
+const cropper = useTemplateRef("cropperRef");
 
 const option = reactive<any>({
   img: props.img || "",
@@ -47,7 +48,7 @@ const doCrop = () => {
     :style="props.size ? `--size:${props.size}px` : ''"
   >
     <vue-cropper
-      ref="cropper"
+      ref="cropperRef"
       :img="option.img"
       :auto-crop="option.autoCrop"
       :fixed="option.fixed"

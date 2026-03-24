@@ -25,9 +25,9 @@ const emit = defineEmits<Emits>()
 
 const loading = ref(false)
 
-const isSendDisabled = computed(() => {
-    return props.sendingCode || props.countdown > 0 || !props.email
-})
+// const isSendDisabled = computed(() => {
+//     return props.sendingCode || props.countdown > 0 || !props.email
+// })
 
 function handleSubmit() {
     if (!props.email || !props.code) {

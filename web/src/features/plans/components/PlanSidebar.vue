@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { PropType } from "vue";
-import { storeToRefs } from "pinia"
-import { usePlansStore } from "@/stores"
-const { loading } = storeToRefs(usePlansStore())
+import { storeToRefs } from "pinia";
+import { usePlansStore } from "@/stores";
+const { loading } = storeToRefs(usePlansStore());
 
 interface PlanItem {
   id: number;
@@ -16,19 +16,14 @@ const props = defineProps({
     type: Array as PropType<PlanItem[]>,
     required: true,
   },
-  selectedId: {
-    type: Number as PropType<number | null>,
-    default: null,
-  },
 });
-
+const selectedId = defineModel<number | null>("selectedId");
 const emit = defineEmits<{
-  (e: "update:selectedId", value: number | null): void;
   (e: "create"): void;
 }>();
 
 function handleSelect(id: number): void {
-  emit("update:selectedId", id);
+  selectedId.value = id;
 }
 
 function handleCreate(): void {
@@ -44,14 +39,17 @@ function handleCreate(): void {
         ＋ 新建
       </button>
     </div>
-    <el-scrollbar wrap-style="height: calc(100vh - var(--header-h) - 32px - 16px -120px);">
+    <el-scrollbar
+      wrap-style="height: calc(100vh - var(--header-h) - 32px - 16px -120px);"
+    >
       <el-skeleton v-if="loading" class="detail" :rows="5" animated />
       <ul v-else class="plan-list">
-        <li v-for="plan in props.items" :key="plan.id" :class="[
-          'plan-item',
-          plan.id === props.selectedId ? 'active' : '',
-          'ink',
-        ]" @click="handleSelect(plan.id)">
+        <li
+          v-for="plan in props.items"
+          :key="plan.id"
+          :class="['plan-item', plan.id === selectedId ? 'active' : '', 'ink']"
+          @click="handleSelect(plan.id)"
+        >
           <div class="plan-title">{{ plan.title }}</div>
           <div class="plan-dates">
             {{ plan.startDate }}

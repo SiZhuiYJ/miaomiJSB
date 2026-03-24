@@ -1,19 +1,20 @@
 <script setup lang="ts">
 import router from "@/routers";
-import { ref } from 'vue'
-import { ElScrollbar } from 'element-plus'
+import { useTemplateRef } from "vue";
+import { ElScrollbar } from "element-plus";
 import SettingsMenu from "@/features/auth/components/Settings/menu.vue";
-import { smoothScrollTo } from '@/utils/smoothScroll' // 引入上面的工具函数
-const scrollbarRef = ref<InstanceType<typeof ElScrollbar>>()
+import { smoothScrollTo } from "@/utils/smoothScroll"; // 引入上面的工具函数
+const scrollbarRef =
+  useTemplateRef<InstanceType<typeof ElScrollbar>>("scrollbarRef");
 
 const scrollToTop = () => {
   if (scrollbarRef.value) {
-    const wrap = scrollbarRef.value.wrapRef
+    const wrap = scrollbarRef.value.wrapRef;
     if (wrap) {
-      smoothScrollTo(wrap, 0, 400) // 400ms 内平滑滚动到顶部
+      smoothScrollTo(wrap, 0, 400); // 400ms 内平滑滚动到顶部
     }
   }
-}
+};
 </script>
 
 <template>
@@ -23,11 +24,15 @@ const scrollToTop = () => {
     </el-icon>
     <SettingsMenu />
   </header>
-  <el-scrollbar ref="scrollbarRef" wrap-style="max-height: calc(100vh - var(--header-h));" view-class="">
+  <el-scrollbar
+    ref="scrollbarRef"
+    wrap-style="max-height: calc(100vh - var(--header-h));"
+    view-class=""
+  >
     <div class="open">
       <router-view></router-view>
     </div>
-    <el-button @click="scrollToTop" type="primary" style="margin-top: 20px;">
+    <el-button @click="scrollToTop" type="primary" style="margin-top: 20px">
       平滑滚动到顶部
     </el-button>
   </el-scrollbar>
@@ -43,7 +48,7 @@ const scrollToTop = () => {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border-color);
-  background: rgba($color: #000000, $alpha: .0);
+  background: rgba($color: #000000, $alpha: 0);
 }
 
 .open {
