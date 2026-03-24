@@ -5,10 +5,8 @@ import { authApi } from "@/features/auth/api/index";
 import type { PasswordPayload } from "@/features/auth/types";
 import { ElMessageBox } from "element-plus";
 import { notifySuccess, notifyError } from "@/utils/notification";
-import { APP_TITLE, API_BASE_URL } from "@/config";
 import { storeToRefs } from "pinia";
 import router from "@/routers/index";
-import { maskEmail, maskString } from "@/utils/auth";
 const { user } = storeToRefs(useAuthStore());
 
 // SVG Icons
@@ -498,6 +496,7 @@ async function handleDeactivateConfirm(): Promise<void> {
 .code-row {
   display: flex;
   gap: 8px;
+
 }
 
 .code-button {

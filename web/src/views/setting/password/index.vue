@@ -1,9 +1,164 @@
 <script setup lang="ts">
+import type { PasswordPayload } from "@/features/auth/types";
+import { notifySuccess, notifyError } from "@/utils/notification";
+import { authApi } from "@/features/auth/api/index";
+import { useAuthStore } from "@/features/auth/stores";
+const authStore = useAuthStore();
 
+import { useCode } from "@/features/auth/composables/useCode";
+const { codeCountdown, sendingCode, handleSendVerificationCode } = useCode();
+
+const changePasswordVisible = ref(false);
+const verificationMethod = ref<"password" | "code">("password");
+const changePasswordForm = reactive({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+    code: "",
+});
+const changePasswordLoading = ref(false);
+
+async function handleChangePassword() {
+    if (changePasswordForm.newPassword !== changePasswordForm.confirmPassword) {
+        notifyError("两次输入的新密码不一致");
+        return;
+    }
+
+    if (verificationMethod.value === "code" && !changePasswordForm.code) {
+        notifyError("请输入验证码");
+        return;
+    }
+
+    if (
+        verificationMethod.value === "password" &&
+        !changePasswordForm.oldPassword
+    ) {
+        notifyError("请输入旧密码");
+        return;
+    }
+
+    changePasswordLoading.value = true;
+    try {
+        const payload: PasswordPayload = {
+            oldPassword: null,
+            newPassword: changePasswordForm.newPassword,
+            code: null,
+        };
+
+        if (verificationMethod.value === "password") {
+            payload.oldPassword = changePasswordForm.oldPassword;
+        } else {
+            payload.code = changePasswordForm.code;
+        }
+
+        await authApi.updatePassword(payload);
+        notifySuccess("密码修改成功");
+        changePasswordVisible.value = false;
+        authStore.clear();
+    } catch (error: any) {
+        if (error.response?.status === 401) notifyError("旧密码错误");
+        else if (error.response?.status === 400)
+            notifyError(error.response.data || "请求无效");
+        else notifyError("修改失败");
+    } finally {
+        changePasswordLoading.value = false;
+    }
+}
 </script>
 
 <template>
+    <div class="profile-form">
+        <div class="method-selector">
+            <label class="radio-label">
+                <input type="radio" value="password" v-model="verificationMethod" />
+                旧密码验证
+            </label>
+            <label class="radio-label">
+                <input type="radio" value="code" v-model="verificationMethod" />
+                验证码验证
+            </label>
+        </div>
 
+        <label class="field" v-if="verificationMethod === 'password'">
+            <span>旧密码</span>
+            <input v-model="changePasswordForm.oldPassword" type="password" placeholder="请输入旧密码" />
+        </label>
+
+        <div class="field code-field" v-if="verificationMethod === 'code'">
+            <span>邮箱验证码</span>
+            <div class="code-row">
+                <input v-model="changePasswordForm.code" type="text" maxlength="6" placeholder="验证码" />
+                <button type="button" class="code-button" :disabled="sendingCode || codeCountdown > 0"
+                    @click="handleSendVerificationCode('change-password')">
+                    <span v-if="codeCountdown > 0">{{ codeCountdown }}s</span>
+                    <span v-else-if="sendingCode">发送中...</span>
+                    <span v-else>获取验证码</span>
+                </button>
+            </div>
+        </div>
+
+        <label class="field">
+            <span>新密码</span>
+            <input v-model="changePasswordForm.newPassword" type="password" placeholder="请输入新密码" />
+        </label>
+        <label class="field">
+            <span>确认新密码</span>
+            <input v-model="changePasswordForm.confirmPassword" type="password" placeholder="请再次输入新密码" />
+        </label>
+    </div>
+    <span class="footer">
+        <button class="btn-confirm" :disabled="changePasswordLoading" @click="handleChangePassword">
+            {{ changePasswordLoading ? "提交中..." : "确认修改" }}
+        </button>
+    </span>
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.profile-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        input {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        span {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+    }
+}
+
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.btn-confirm {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    background: linear-gradient(to right, var(--accent-color), var(--accent-alt));
+    color: var(--accent-on);
+    cursor: pointer;
+
+    &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+}
+</style>

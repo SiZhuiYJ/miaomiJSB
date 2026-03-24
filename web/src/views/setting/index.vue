@@ -24,11 +24,7 @@ const scrollToTop = () => {
     </el-icon>
     <SettingsMenu />
   </header>
-  <el-scrollbar
-    ref="scrollbarRef"
-    wrap-style="max-height: calc(100vh - var(--header-h));"
-    view-class=""
-  >
+  <el-scrollbar ref="scrollbarRef" wrap-style="max-height: calc(100vh - var(--header-h));" view-class="">
     <div class="open">
       <router-view></router-view>
     </div>
@@ -54,5 +50,8 @@ const scrollToTop = () => {
 .open {
   height: 10000px;
   width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 </style>
