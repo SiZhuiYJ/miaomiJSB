@@ -241,49 +241,20 @@ onUnmounted(() => {
     <div class="auth-card">
       <h1 class="title">{{}}</h1>
 
-      <LoginForm
-        v-if="mode === 'login'"
-        ref="loginFormRef"
-        :email="email"
-        :user-account="userAccount"
-        :password="password"
-        :code="code"
-        :sending-code="sendingCode"
-        :countdown="countdown"
-        :login-method="loginMethod"
-        @update:email="email = $event"
-        @update:userAccount="userAccount = $event"
-        @update:password="password = $event"
-        @update:code="code = $event"
-        @update:loginMethod="loginMethod = $event"
-        @sendCode="handleSendCode"
-        @submit="handleLoginSubmit"
-      />
+      <LoginForm v-if="mode === 'login'" ref="loginFormRef" :email="email" :user-account="userAccount"
+        :password="password" :code="code" :sending-code="sendingCode" :countdown="countdown" :login-method="loginMethod"
+        @update:email="email = $event" @update:userAccount="userAccount = $event" @update:password="password = $event"
+        @update:code="code = $event" @update:loginMethod="loginMethod = $event" @sendCode="handleSendCode"
+        @submit="handleLoginSubmit" />
 
-      <RegisterForm
-        v-else
-        ref="registerFormRef"
-        :email="email"
-        :user-account="userAccount"
-        :password="password"
-        :confirm-password="confirmPassword"
-        :nick-name="nickName"
-        :code="code"
-        :sending-code="sendingCode"
-        :countdown="countdown"
-        :user-account-error="userAccountError"
-        @update:email="email = $event"
-        @update:user-account="userAccount = $event"
-        @update:password="password = $event"
-        @update:confirm-password="confirmPassword = $event"
-        @update:nick-name="nickName = $event"
-        @update:code="code = $event"
-        @update:user-account-error="userAccountError = $event"
-        @send-code="handleSendCode"
-        @generate-random-account="generateRandomuserAccount"
-        @validate-account="validateUserAccount"
-        @submit="handleRegisterSubmit"
-      />
+      <RegisterForm v-else ref="registerFormRef" :email="email" :user-account="userAccount" :password="password"
+        :confirm-password="confirmPassword" :nick-name="nickName" :code="code" :sending-code="sendingCode"
+        :countdown="countdown" :user-account-error="userAccountError" @update:email="email = $event"
+        @update:user-account="userAccount = $event" @update:password="password = $event"
+        @update:confirm-password="confirmPassword = $event" @update:nick-name="nickName = $event"
+        @update:code="code = $event" @update:user-account-error="userAccountError = $event" @send-code="handleSendCode"
+        @generate-random-account="generateRandomuserAccount" @validate-account="validateUserAccount"
+        @submit="handleRegisterSubmit" />
 
       <AuthTabs :model-value="mode" @update:model-value="switchMode" />
     </div>
@@ -292,15 +263,14 @@ onUnmounted(() => {
 
 <style scoped lang="scss">
 .auth-container {
+  width: 100%;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(
-    circle at top,
-    var(--surface-soft),
-    var(--bg-color)
-  );
+  background: radial-gradient(circle at top,
+      var(--surface-soft),
+      var(--bg-color));
 }
 
 .auth-card {

@@ -5,33 +5,25 @@ import AccountInput from './AccountInput.vue'
 import PasswordInput from './PasswordInput.vue'
 import VerificationCodeInput from './VerificationCodeInput.vue'
 
-interface RegisterFormProps {
-    email: string
-    userAccount: string
-    password: string
-    confirmPassword: string
-    nickName: string
-    code: string
-    sendingCode: boolean
-    countdown: number
-    userAccountError: string
-}
+
+const email = defineModel<string>('email')
+const userAccount = defineModel<string>('userAccount')
+const password = defineModel<string>('password')
+const confirmPassword = defineModel<string>('confirmPassword')
+const nickName = defineModel<string>('nickName')
+const code = defineModel<string>('code')
+const sendingCode = defineModel<boolean>('sendingCode')
+const countdown = defineModel<number>('countdown')
+const userAccountError = defineModel<string>('userAccountError')
+
 
 interface Emits {
-    (e: 'update:email', value: string): void
-    (e: 'update:userAccount', value: string): void
-    (e: 'update:password', value: string): void
-    (e: 'update:confirmPassword', value: string): void
-    (e: 'update:nickName', value: string): void
-    (e: 'update:code', value: string): void
-    (e: 'update:userAccountError', value: string): void
     (e: 'sendCode'): void
     (e: 'generateRandomAccount'): void
     (e: 'validateAccount'): void
     (e: 'submit'): void
 }
 
-const props = defineProps<RegisterFormProps>()
 const emit = defineEmits<Emits>()
 
 const loading = ref(false)
@@ -51,7 +43,7 @@ function handleValidateAccount() {
 }
 
 function handleAccountInput() {
-    emit('update:userAccountError', '')
+    userAccountError.value = ''
 }
 
 defineExpose({
@@ -63,13 +55,12 @@ defineExpose({
 
 <template>
     <form class="form" @submit.prevent="handleSubmit">
-        <EmailInput :model-value="email" @update:model-value="$emit('update:email', $event)" />
+        <EmailInput v-model="email" />
 
-        <VerificationCodeInput :model-value="code" :sending="sendingCode" :countdown="countdown"
-            @update:model-value="$emit('update:code', $event)" @send-code="$emit('sendCode')" />
+        <VerificationCodeInput v-model:model-value="code" :sending="sendingCode!" :countdown="countdown!"
+            @send-code="$emit('sendCode')" />
 
-        <AccountInput :model-value="userAccount" :required="true" :error="userAccountError"
-            @update:model-value="$emit('update:userAccount', $event)" @blur="handleValidateAccount"
+        <AccountInput v-model="userAccount" :required="true" :error="userAccountError" @blur="handleValidateAccount"
             @input="handleAccountInput">
             <template #suffix>
                 <button type="button" class="btn-sm" @click="handleGenerateRandomAccount">
@@ -78,16 +69,13 @@ defineExpose({
             </template>
         </AccountInput>
 
-        <PasswordInput :model-value="password" :required="true" label="密码"
-            @update:model-value="$emit('update:password', $event)" />
+        <PasswordInput v-model="password" :required="true" label="密码" />
 
-        <PasswordInput :model-value="confirmPassword" :required="true" label="确认密码" placeholder="请确认密码"
-            @update:model-value="$emit('update:confirmPassword', $event)" />
+        <PasswordInput v-model="confirmPassword" :required="true" label="确认密码" placeholder="请确认密码" />
 
         <label class="field">
             <span>昵称（可选）</span>
-            <input :value="nickName" type="text" placeholder="请输入昵称"
-                @input="$emit('update:nickName', ($event.target as HTMLInputElement).value)" />
+            <input v-model="nickName" type="text" placeholder="请输入昵称" />
         </label>
 
         <button class="submit" type="submit" :disabled="loading">

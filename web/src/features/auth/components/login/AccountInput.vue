@@ -1,6 +1,7 @@
 <script setup lang="ts">
+
+const model = defineModel<string>()
 interface Props {
-    modelValue: string
     required?: boolean
     placeholder?: string
     label?: string
@@ -8,7 +9,6 @@ interface Props {
 }
 
 interface Emits {
-    (e: 'update:modelValue', value: string): void
     (e: 'blur'): void
     (e: 'input'): void
 }
@@ -20,10 +20,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 const emit = defineEmits<Emits>()
 
-const inputValue = computed({
-    get: () => props.modelValue,
-    set: (value) => emit('update:modelValue', value)
-})
+
 
 function handleInput() {
     emit('input')
@@ -38,7 +35,7 @@ function handleBlur() {
     <label class="field">
         <span>{{ label }}</span>
         <div class="input-group">
-            <input v-model="inputValue" type="text" :required="required" :placeholder="placeholder" @blur="handleBlur"
+            <input v-model="model" type="text" :required="required" :placeholder="placeholder" @blur="handleBlur"
                 @input="handleInput" :class="{ 'input-error': error }" />
             <slot name="suffix"></slot>
         </div>

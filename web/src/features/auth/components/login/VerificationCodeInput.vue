@@ -1,22 +1,17 @@
 <script setup lang="ts">
 interface Props {
-    modelValue: string
     sending: boolean
     countdown: number
 }
 
+const model = defineModel<string>()
+
 interface Emits {
-    (e: 'update:modelValue', value: string): void
     (e: 'sendCode'): void
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
-
-const codeValue = computed({
-    get: () => props.modelValue,
-    set: (value) => emit('update:modelValue', value)
-})
 
 function handleSendCode() {
     emit('sendCode')
@@ -27,7 +22,7 @@ function handleSendCode() {
     <div class="field code-field">
         <span>邮箱验证码</span>
         <div class="code-row">
-            <input v-model="codeValue" type="text" maxlength="6" inputmode="numeric" placeholder="请输入收到的验证码" />
+            <input v-model="model" type="text" maxlength="6" inputmode="numeric" placeholder="请输入收到的验证码" />
             <button type="button" class="code-button" :disabled="sending || countdown > 0" @click="handleSendCode">
                 <span v-if="countdown > 0">{{ countdown }}s</span>
                 <span v-else-if="sending">发送中...</span>

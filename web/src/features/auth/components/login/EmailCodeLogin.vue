@@ -1,36 +1,27 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import EmailInput from './EmailInput.vue'
 import VerificationCodeInput from './VerificationCodeInput.vue'
 import LoginMethods from './LoginMethods.vue'
 
-interface EmailCodeLoginProps {
-    email: string
-    code: string
-    sendingCode: boolean
-    countdown: number
-    loginMethod: 'email' | 'account' | 'email-code'
-}
+const email = defineModel<string>('email')
+const code = defineModel<string>('code')
+const sendingCode = defineModel<boolean>('sendingCode')
+const countdown = defineModel<number>('countdown')
+const loginMethod = defineModel<'email' | 'account' | 'email-code'>('loginMethod')
+
 
 interface Emits {
-    (e: 'update:email', value: string): void
-    (e: 'update:code', value: string): void
-    (e: 'update:loginMethod', value: 'email' | 'account' | 'email-code'): void
     (e: 'sendCode'): void
     (e: 'submit'): void
 }
 
-const props = defineProps<EmailCodeLoginProps>()
 const emit = defineEmits<Emits>()
 
 const loading = ref(false)
 
-// const isSendDisabled = computed(() => {
-//     return props.sendingCode || props.countdown > 0 || !props.email
-// })
-
 function handleSubmit() {
-    if (!props.email || !props.code) {
+    if (!email.value || !code.value) {
         return
     }
     loading.value = true
@@ -47,24 +38,12 @@ defineExpose({
 
 <template>
     <form class="form" @submit.prevent="handleSubmit">
-        <LoginMethods 
-            :model-value="loginMethod" 
-            @update:model-value="$emit('update:loginMethod', $event)" 
-        />
+        <LoginMethods v-model:model-value="loginMethod" />
 
-        <EmailInput 
-            :model-value="email"
-            @update:model-value="$emit('update:email', $event)"
-        />
-        
-        <VerificationCodeInput
-            :model-value="code"
-            :sending="sendingCode"
-            :countdown="countdown"
-            placeholder="请输入验证码"
-            @update:model-value="$emit('update:code', $event)"
-            @send-code="$emit('sendCode')"
-        />
+        <EmailInput v-model:model-value="email" />
+
+        <VerificationCodeInput v-model:model-value="code" :sending="sendingCode!" :countdown="countdown!"
+            placeholder="请输入验证码" @send-code="$emit('sendCode')" />
 
         <button class="submit" type="submit" :disabled="loading || !email || !code">
             登录

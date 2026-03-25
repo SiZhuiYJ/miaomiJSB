@@ -1,29 +1,17 @@
 <script setup lang="ts">
-interface Props {
-    modelValue: 'login' | 'register'
-}
-
-interface Emits {
-    (e: 'update:modelValue', value: 'login' | 'register'): void
-}
-
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
-
-function switchMode(mode: 'login' | 'register') {
-    emit('update:modelValue', mode)
-}
+const model = defineModel<'login' | 'register'>()
 </script>
 
 <template>
     <div class="auth-tabs-wrapper">
         <div class="tabs">
-            <button type="button" :class="['tab', modelValue === 'login' ? 'active' : '']" @click="switchMode('login')">
+            <button type="button" :class="['tab', modelValue === 'login' ? 'active' : '']"
+                @click="() => model = 'login'">
                 登录
             </button>
             <span class="divider">|</span>
             <button type="button" :class="['tab', modelValue === 'register' ? 'active' : '']"
-                @click="switchMode('register')">
+                @click="() => model = 'register'">
                 注册
             </button>
         </div>
@@ -91,7 +79,7 @@ function switchMode(mode: 'login' | 'register') {
     .auth-tabs-wrapper {
         margin-top: 20px;
     }
-    
+
     .tab {
         padding: 6px 12px;
         font-size: 14px;

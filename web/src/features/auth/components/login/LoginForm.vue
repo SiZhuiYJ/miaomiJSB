@@ -47,10 +47,10 @@ defineExpose({
 <template>
     <!-- 邮箱密码登录 -->
     <form v-if="loginMethod === 'email'" class="form" @submit.prevent="handleSubmit">
-        <LoginMethods :model-value="loginMethod" @update:model-value="$emit('update:loginMethod', $event)" />
+        <LoginMethods v-model="loginMethod" />
 
-        <EmailInput :model-value="email" @update:model-value="$emit('update:email', $event)" />
-        <PasswordInput :model-value="password" :required="true" @update:model-value="$emit('update:password', $event)" />
+        <EmailInput v-model="email" />
+        <PasswordInput v-model="password" :required="true" />
 
         <button class="submit" type="submit" :disabled="loading">
             登录
@@ -59,10 +59,11 @@ defineExpose({
 
     <!-- 账号密码登录 -->
     <form v-else-if="loginMethod === 'account'" class="form" @submit.prevent="handleSubmit">
-        <LoginMethods :model-value="loginMethod" @update:model-value="$emit('update:loginMethod', $event)" />
+        <LoginMethods v-model="loginMethod" />
 
-        <AccountInput :model-value="userAccount" :required="true" @update:model-value="$emit('update:userAccount', $event)" />
-        <PasswordInput :model-value="password" :required="true" @update:model-value="$emit('update:password', $event)" />
+        <AccountInput v-model="userAccount" :required="true" />
+
+        <PasswordInput v-model="password" :required="true" />
 
         <button class="submit" type="submit" :disabled="loading">
             登录
@@ -70,19 +71,9 @@ defineExpose({
     </form>
 
     <!-- 邮箱验证码登录 -->
-    <EmailCodeLogin 
-        v-else-if="loginMethod === 'email-code'"
-        :email="email"
-        :code="code"
-        :sending-code="sendingCode"
-        :countdown="countdown"
-        :login-method="loginMethod"
-        @update:email="$emit('update:email', $event)"
-        @update:code="$emit('update:code', $event)"
-        @update:login-method="$emit('update:loginMethod', $event)"
-        @send-code="$emit('sendCode')"
-        @submit="handleSubmit"
-    />
+    <EmailCodeLogin v-else-if="loginMethod === 'email-code'" v-model:email="email" :code="code"
+        :sending-code="sendingCode" :countdown="countdown" :login-method="loginMethod" @send-code="$emit('sendCode')"
+        @submit="handleSubmit" />
 </template>
 
 <style scoped lang="scss">

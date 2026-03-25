@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import "vue-cropper/dist/index.css";
-import { ref, reactive, watch, useTemplateRef } from "vue";
+import { reactive, watch, useTemplateRef } from "vue";
 import { VueCropper } from "vue-cropper";
 
 const props = defineProps<{ img: string; size?: number }>();
@@ -43,22 +43,10 @@ const doCrop = () => {
 </script>
 
 <template>
-  <div
-    class="cropper-wrapper"
-    :style="props.size ? `--size:${props.size}px` : ''"
-  >
-    <vue-cropper
-      ref="cropperRef"
-      :img="option.img"
-      :auto-crop="option.autoCrop"
-      :fixed="option.fixed"
-      :full="option.full"
-      :info-true="option.infoTrue"
-      :center-box="option.centerBox"
-      :output-size="option.outputSize"
-      :output-type="option.outputType"
-      :fixed-number="option.fixedNumber"
-    >
+  <div class="cropper-wrapper" :style="props.size ? `--size:${props.size}px` : ''">
+    <vue-cropper ref="cropperRef" :img="option.img" :auto-crop="option.autoCrop" :fixed="option.fixed"
+      :full="option.full" :info-true="option.infoTrue" :center-box="option.centerBox" :output-size="option.outputSize"
+      :output-type="option.outputType" :fixed-number="option.fixedNumber">
     </vue-cropper>
 
     <div style="margin-top: 20px; text-align: center">

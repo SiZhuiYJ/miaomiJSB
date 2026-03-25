@@ -155,11 +155,6 @@ function uploadFile(filePath: string) {
   });
 }
 
-// Deprecated old handler, kept just in case but we use separate handlers now
-async function handleAvatarClick() {
-  handleEditAvatar();
-}
-
 // Verification Code Logic
 const codeCountdown = ref(0);
 let codeTimer: number | null = null;

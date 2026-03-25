@@ -1,14 +1,11 @@
 <script setup lang="ts">
+const model = defineModel<string>()
+
 interface Props {
-    modelValue: string
     required?: boolean
     placeholder?: string
     label?: string
     type?: 'password' | 'text'
-}
-
-interface Emits {
-    (e: 'update:modelValue', value: string): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -17,18 +14,12 @@ const props = withDefaults(defineProps<Props>(), {
     label: '密码',
     type: 'password'
 })
-const emit = defineEmits<Emits>()
-
-const inputValue = computed({
-    get: () => props.modelValue,
-    set: (value) => emit('update:modelValue', value)
-})
 </script>
 
 <template>
     <label class="field">
         <span>{{ label }}</span>
-        <input v-model="inputValue" :type="type" :required="required" :placeholder="placeholder" />
+        <input v-model="model" :type="type" :required="required" :placeholder="placeholder" />
     </label>
 </template>
 
