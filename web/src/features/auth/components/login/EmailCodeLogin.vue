@@ -38,12 +38,12 @@ defineExpose({
 
 <template>
     <form class="form" @submit.prevent="handleSubmit">
-        <LoginMethods v-model:model-value="loginMethod" />
+        <LoginMethods v-model="loginMethod" />
 
-        <EmailInput v-model:model-value="email" />
+        <EmailInput v-model="email" />
 
-        <VerificationCodeInput v-model:model-value="code" :sending="sendingCode!" :countdown="countdown!"
-            placeholder="请输入验证码" @send-code="$emit('sendCode')" />
+        <VerificationCodeInput v-model="code" :sending="sendingCode!" :countdown="countdown!" placeholder="请输入验证码"
+            @send-code="$emit('sendCode')" />
 
         <button class="submit" type="submit" :disabled="loading || !email || !code">
             登录

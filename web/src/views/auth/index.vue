@@ -224,10 +224,6 @@ async function handleSendCode(): Promise<void> {
   }
 }
 
-function switchMode(next: "login" | "register"): void {
-  mode.value = next;
-}
-
 onUnmounted(() => {
   if (countdownTimer !== null) {
     window.clearInterval(countdownTimer);
@@ -241,22 +237,18 @@ onUnmounted(() => {
     <div class="auth-card">
       <h1 class="title">{{}}</h1>
 
-      <LoginForm v-if="mode === 'login'" ref="loginFormRef" :email="email" :user-account="userAccount"
-        :password="password" :code="code" :sending-code="sendingCode" :countdown="countdown" :login-method="loginMethod"
-        @update:email="email = $event" @update:userAccount="userAccount = $event" @update:password="password = $event"
-        @update:code="code = $event" @update:loginMethod="loginMethod = $event" @sendCode="handleSendCode"
-        @submit="handleLoginSubmit" />
+      <LoginForm v-if="mode === 'login'" ref="loginFormRef" v-model:email="email" v-model:user-account="userAccount"
+        v-model:password="password" v-model:code="code" v-model:sending-code="sendingCode" v-model:countdown="countdown"
+        v-model:login-method="loginMethod" @sendCode="handleSendCode" @submit="handleLoginSubmit" />
 
-      <RegisterForm v-else ref="registerFormRef" :email="email" :user-account="userAccount" :password="password"
-        :confirm-password="confirmPassword" :nick-name="nickName" :code="code" :sending-code="sendingCode"
-        :countdown="countdown" :user-account-error="userAccountError" @update:email="email = $event"
-        @update:user-account="userAccount = $event" @update:password="password = $event"
-        @update:confirm-password="confirmPassword = $event" @update:nick-name="nickName = $event"
-        @update:code="code = $event" @update:user-account-error="userAccountError = $event" @send-code="handleSendCode"
+      <RegisterForm v-else ref="registerFormRef" v-model:email="email" v-model:user-account="userAccount"
+        v-model:password="password" v-model:confirm-password="confirmPassword" v-model:nick-name="nickName"
+        v-model:code="code" v-model:sending-code="sendingCode" v-model:countdown="countdown"
+        v-model:user-account-error="userAccountError" @send-code="handleSendCode"
         @generate-random-account="generateRandomuserAccount" @validate-account="validateUserAccount"
         @submit="handleRegisterSubmit" />
 
-      <AuthTabs :model-value="mode" @update:model-value="switchMode" />
+      <AuthTabs v-model="mode" />
     </div>
   </div>
 </template>

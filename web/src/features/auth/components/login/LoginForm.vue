@@ -6,27 +6,19 @@ import PasswordInput from './PasswordInput.vue'
 import LoginMethods from './LoginMethods.vue'
 import EmailCodeLogin from './EmailCodeLogin.vue'
 
-interface LoginFormProps {
-    email: string
-    userAccount: string
-    password: string
-    code: string
-    sendingCode: boolean
-    countdown: number
-    loginMethod: 'email' | 'account' | 'email-code'
-}
+const email = defineModel<string>('email')
+const userAccount = defineModel<string>('userAccount')
+const password = defineModel<string>('password')
+const code = defineModel<string>('code')
+const sendingCode = defineModel<boolean>('sendingCode')
+const countdown = defineModel<number>('countdown')
+const loginMethod = defineModel<'email' | 'account' | 'email-code'>('loginMethod')
 
 interface Emits {
-    (e: 'update:email', value: string): void
-    (e: 'update:userAccount', value: string): void
-    (e: 'update:password', value: string): void
-    (e: 'update:code', value: string): void
-    (e: 'update:loginMethod', value: 'email' | 'account' | 'email-code'): void
     (e: 'sendCode'): void
     (e: 'submit'): void
 }
 
-const props = defineProps<LoginFormProps>()
 const emit = defineEmits<Emits>()
 
 const loading = ref(false)
@@ -50,6 +42,7 @@ defineExpose({
         <LoginMethods v-model="loginMethod" />
 
         <EmailInput v-model="email" />
+
         <PasswordInput v-model="password" :required="true" />
 
         <button class="submit" type="submit" :disabled="loading">

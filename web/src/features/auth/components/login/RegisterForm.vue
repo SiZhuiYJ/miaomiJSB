@@ -57,7 +57,7 @@ defineExpose({
     <form class="form" @submit.prevent="handleSubmit">
         <EmailInput v-model="email" />
 
-        <VerificationCodeInput v-model:model-value="code" :sending="sendingCode!" :countdown="countdown!"
+        <VerificationCodeInput v-model="code" :sending="sendingCode!" :countdown="countdown!"
             @send-code="$emit('sendCode')" />
 
         <AccountInput v-model="userAccount" :required="true" :error="userAccountError" @blur="handleValidateAccount"
