@@ -142,17 +142,52 @@ async function handleChangePassword() {
     }
 }
 
-.dialog-footer {
+.method-selector {
+    display: flex;
+    margin-bottom: 16px;
+    background-color: #f3f4f6;
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.code-row {
+    display: flex;
+    gap: 8px;
+}
+
+.code-button {
+    width: 100px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-elevated);
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 10px;
+    padding-right: 10px;
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}
+
+.footer {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
 }
 
 .btn-confirm {
+    margin-top: 10px;
     padding: 8px 16px;
     border-radius: 6px;
     border: none;
-    background: linear-gradient(to right, var(--accent-color), var(--accent-alt));
+    background: var(--accent-alt);
     color: var(--accent-on);
     cursor: pointer;
 

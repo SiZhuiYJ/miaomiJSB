@@ -2,6 +2,10 @@
 import { ref, watch } from "vue";
 import Cropper from "./Cropper.vue";
 
+const emit = defineEmits<{
+  (e: "crop", data: string): void;
+}>();
+
 const imgSrc = ref<string>("");
 const cropped = ref<string>("");
 const croppedWidth = ref<number | null>(null);
@@ -22,6 +26,7 @@ const onFileChange = (e: Event) => {
 const onCropped = (data: string) => {
   // console.log(data);
   cropped.value = data;
+  emit('crop', data)
 };
 
 watch(cropped, (v) => {
@@ -50,16 +55,10 @@ watch(cropped, (v) => {
 
     <div v-if="cropped" style="margin-top: 16px">
       <div style="margin-bottom: 8px; font-weight: 600">裁剪结果预览</div>
-      <img
-        :src="cropped"
-        alt="cropped"
-        style="max-width: 320px; border: 1px solid #ddd"
-      />
+      <img :src="cropped" alt="cropped" style="max-width: 320px; border: 1px solid #ddd" />
       <div style="margin-top: 8px">
         尺寸:
-        <span v-if="croppedWidth !== null"
-          >{{ croppedWidth }}x{{ croppedHeight }}</span
-        ><span v-else>已生成</span>
+        <span v-if="croppedWidth !== null">{{ croppedWidth }}x{{ croppedHeight }}</span><span v-else>已生成</span>
       </div>
     </div>
   </div>
