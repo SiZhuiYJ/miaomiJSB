@@ -192,3 +192,46 @@ public class ChangePasswordRequest
 
     public string Code { get; set; } = string.Empty;
 }
+
+/// <summary>
+/// 微信绑定请求参数，用于将当前登录用户与微信账号进行绑定。
+/// </summary>
+public class WechatBindRequest
+{
+    /// <summary>
+    /// 微信登录临时凭证，由客户端调用微信授权接口获取。
+    /// </summary>
+    public string Code { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// 第三方账号绑定信息响应模型，包含平台类型和绑定时间，但不包含敏感信息如OpenId等。
+/// </summary>
+public class ThirdPartyBindingInfo
+{
+    /// <summary>
+    /// 第三方登录平台类型，例如：wechat、qq、github等。
+    /// </summary>
+    public string Provider { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 绑定时间。
+    /// </summary>
+    public DateTime BoundAt { get; set; }
+    
+    /// <summary>
+    /// 是否已绑定。
+    /// </summary>
+    public bool IsBound { get; set; }
+}
+
+/// <summary>
+/// 用户第三方账号绑定状态响应模型。
+/// </summary>
+public class ThirdPartyBindingsResponse
+{
+    /// <summary>
+    /// 当前用户绑定的所有第三方账号信息。
+    /// </summary>
+    public List<ThirdPartyBindingInfo> Bindings { get; set; } = new();
+}

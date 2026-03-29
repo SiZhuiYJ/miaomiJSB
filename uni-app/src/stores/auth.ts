@@ -1,12 +1,19 @@
 import { defineStore } from 'pinia';
 import http from '@/libs/http/config';
 
+export interface ThirdPartyBinding {
+  provider: string;
+  boundAt: string; // ISO date string
+  isBound: boolean;
+}
+
 export interface AuthUser {
   userId: number;
   email: string;
   nickName: string | null;
   userAccount: string | null;
   avatarKey: string | null;
+  thirdPartyBindings?: ThirdPartyBinding[]; // 新增：第三方绑定信息
 }
 
 export interface AuthState {
@@ -60,6 +67,7 @@ export const useAuthStore = defineStore('auth', {
         nickName: getVal(['nickName', 'NickName']),
         userAccount: getVal(['userAccount', 'UserAccount']),
         avatarKey: getVal(['avatarKey', 'AvatarKey']) || null,
+        thirdPartyBindings: getVal(['thirdPartyBindings', 'ThirdPartyBindings']) || [], // 添加第三方绑定信息
       };
       this.accessToken = getVal(['token', 'Token']);
       this.refreshToken = getVal(['refreshToken', 'RefreshToken']);
@@ -101,6 +109,9 @@ export const useAuthStore = defineStore('auth', {
 
           const avatarKey = getVal(['avatarKey', 'AvatarKey']);
           if (avatarKey !== undefined) updateData.avatarKey = avatarKey;
+
+          const thirdPartyBindings = getVal(['thirdPartyBindings', 'ThirdPartyBindings']);
+          if (thirdPartyBindings !== undefined) updateData.thirdPartyBindings = thirdPartyBindings;
 
           this.updateUser(updateData);
         }

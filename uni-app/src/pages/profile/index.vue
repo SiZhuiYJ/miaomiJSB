@@ -15,7 +15,24 @@ const loading = ref(false);
 onShow(async () => {
   themeStore.updateNavBarColor();
   await authStore.fetchUserInfo();
+  // 获取第三方绑定信息
+  await fetchThirdPartyBindings();
 });
+
+// 获取第三方绑定信息
+async function fetchThirdPartyBindings() {
+  try {
+    const res = await http.get('/mm/Auth/bindings');
+    if (res.statusCode === 200 && res.data) {
+      // 更新用户信息中的第三方绑定数据
+      authStore.updateUser({ 
+        thirdPartyBindings: res.data.bindings || []
+      });
+    }
+  } catch (error) {
+    console.error('Failed to fetch third party bindings', error);
+  }
+}
 
 function handleNavigate(url: string) {
   uni.navigateTo({ url });
@@ -185,7 +202,7 @@ function startCodeCountdown(seconds: number = 60) {
   }, 1000);
 }
 
-async function handleSendVerificationCode(actionType: 'change-password' | 'deactivate') {
+async function handleSendVerificationCode(actionType: 'deactivate') {
   if (!authStore.user?.email) {
     notifyError('无法获取用户邮箱');
     return;
@@ -206,67 +223,6 @@ async function handleSendVerificationCode(actionType: 'change-password' | 'deact
     else notifyError('发送失败');
   } finally {
     sendingCode.value = false;
-  }
-}
-
-// Change Password
-const changePasswordVisible = ref(false);
-const verificationMethod = ref<'password' | 'code'>('password');
-const pwdForm = reactive({
-  oldPassword: '',
-  newPassword: '',
-  confirmPassword: '',
-  code: ''
-});
-
-function openChangePassword() {
-  pwdForm.oldPassword = '';
-  pwdForm.newPassword = '';
-  pwdForm.confirmPassword = '';
-  pwdForm.code = '';
-  verificationMethod.value = 'password';
-  changePasswordVisible.value = true;
-}
-
-async function handleChangePassword() {
-  if (pwdForm.newPassword !== pwdForm.confirmPassword) {
-    notifyError('两次输入的新密码不一致');
-    return;
-  }
-
-  if (verificationMethod.value === 'code' && !pwdForm.code) {
-    notifyError('请输入验证码');
-    return;
-  }
-
-  if (verificationMethod.value === 'password' && !pwdForm.oldPassword) {
-    notifyError('请输入旧密码');
-    return;
-  }
-
-  loading.value = true;
-  try {
-    const payload: any = {
-      newPassword: pwdForm.newPassword
-    };
-
-    if (verificationMethod.value === 'password') {
-      payload.oldPassword = pwdForm.oldPassword;
-    } else {
-      payload.code = pwdForm.code;
-    }
-
-    await http.post('/mm/Auth/change-password', payload);
-    notifySuccess('密码修改成功，请重新登录');
-    changePasswordVisible.value = false;
-    authStore.clear();
-    uni.reLaunch({ url: '/pages/auth/index' });
-  } catch (error: any) {
-    if (error.statusCode === 401) notifyError('旧密码错误');
-    else if (error.statusCode === 400) notifyError('请求无效');
-    else notifyError('修改失败');
-  } finally {
-    loading.value = false;
   }
 }
 
@@ -339,9 +295,24 @@ async function handleDeactivateConfirm() {
             <image class="arrow-icon" src="/static/svg/turn-right.svg" mode="aspectFit" />
           </view>
         </view>
-        <view class="list-item" @click="openChangePassword">
+        <view class="list-item" @click="handleNavigate('/pages/profile/update-password')">
           <text class="item-label">修改密码</text>
           <view class="item-value">
+            <text class="value-text">点击修改</text>
+            <image class="arrow-icon" src="/static/svg/turn-right.svg" mode="aspectFit" />
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="list-group">
+        <view class="list-item" @click="handleNavigate('/pages/profile/third-party-binds')">
+          <text class="item-label">第三方账号绑定</text>
+          <view class="item-value">
+            <text class="value-text">
+              {{ authStore.user?.thirdPartyBindings?.length ? authStore.user.thirdPartyBindings.length + '个已绑定' : '未绑定' }}
+            </text>
             <image class="arrow-icon" src="/static/svg/turn-right.svg" mode="aspectFit" />
           </view>
         </view>
@@ -352,42 +323,6 @@ async function handleDeactivateConfirm() {
       <button class="btn-deactivate" @click="openDeactivate">注销账号</button>
     </view>
 
-
-    <!-- Change Password Modal -->
-    <view class="modal-mask" v-if="changePasswordVisible">
-      <view class="modal-content">
-        <view class="modal-header">修改密码</view>
-        <view class="modal-body">
-          <view class="method-selector">
-            <view :class="['method-tab', verificationMethod === 'password' ? 'active' : '']"
-              @click="verificationMethod = 'password'">旧密码验证</view>
-            <view :class="['method-tab', verificationMethod === 'code' ? 'active' : '']"
-              @click="verificationMethod = 'code'">验证码验证</view>
-          </view>
-
-          <input v-if="verificationMethod === 'password'" class="input" v-model="pwdForm.oldPassword" password
-            placeholder="旧密码" placeholder-class="input-placeholder" />
-
-          <view v-if="verificationMethod === 'code'" class="code-row">
-            <input class="input code-input" v-model="pwdForm.code" placeholder="验证码"
-              placeholder-class="input-placeholder" />
-            <button class="code-btn" :disabled="sendingCode || codeCountdown > 0"
-              @click="handleSendVerificationCode('change-password')">
-              {{ codeCountdown > 0 ? `${codeCountdown}s` : (sendingCode ? '发送中...' : '获取验证码') }}
-            </button>
-          </view>
-
-          <input class="input" v-model="pwdForm.newPassword" password placeholder="新密码"
-            placeholder-class="input-placeholder" />
-          <input class="input" v-model="pwdForm.confirmPassword" password placeholder="确认新密码"
-            placeholder-class="input-placeholder" />
-        </view>
-        <view class="modal-footer">
-          <button class="modal-btn cancel" @click="changePasswordVisible = false">取消</button>
-          <button class="modal-btn confirm" :loading="loading" @click="handleChangePassword">确定</button>
-        </view>
-      </view>
-    </view>
 
     <!-- Deactivate Modal -->
     <view class="modal-mask" v-if="deactivateVisible">

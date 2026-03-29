@@ -1212,8 +1212,188 @@ public class AuthController(
         await _redisDb.KeyDeleteAsync($"refresh_token:{userId}");
     }
 
+    /// <summary>
+    /// 微信绑定接口，将当前登录用户与微信账号进行绑定。
+    /// 仅允许未绑定过微信的用户执行此操作，绑定成功后可用于后续微信登录。
+    /// </summary>
+    /// <remarks>
+    /// 绑定流程说明：
+    /// 1. 用户触发微信授权获取临时登录凭证(code)
+    /// 2. 调用微信code2session接口换取openId/unionId
+    /// 3. 检查当前用户是否已绑定微信账号
+    /// 4. 检查该微信账号是否已被其他用户绑定
+    /// 5. 创建用户与微信账号的绑定关系
+    /// 
+    /// 安全考虑：
+    /// • 需要有效的访问令牌才能调用此接口
+    /// • 防止重复绑定不同微信账号
+    /// • 防止多个用户绑定同一个微信账号
+    /// • 验证微信登录凭证的有效性
+    /// 
+    /// 业务规则：
+    /// • 一个用户只能绑定一个微信账号
+    /// • 一个微信账号只能被一个用户绑定
+    /// • 绑定成功后可以使用微信登录
+    /// </remarks>
+    /// <param name="request">微信绑定请求参数，包含微信登录临时凭证。</param>
+    /// <param name="cancellationToken">取消操作标记，用于取消长时间运行的操作。</param>
+    /// <returns>
+    /// 成功时返回200 OK，包含绑定结果信息；
+    /// 失败时返回相应的错误状态码和消息。
+    /// </returns>
+    /// <response code="200">绑定成功</response>
+    /// <response code="400">微信登录凭证为空或无效</response>
+    /// <response code="401">用户认证失败或账号被禁用</response>
+    /// <response code="409">当前用户已绑定微信或该微信账号已被其他用户绑定</response>
+    [HttpPost("wechat/bind")]
+    [Authorize]
+    public async Task<ActionResult> BindWechat(WechatBindRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.Code))
+            return BadRequest("微信登录凭证不能为空");
+
+        var wechatSession = await _wechatAuthService.GetSessionAsync(request.Code, cancellationToken);
+        if (!wechatSession.IsSuccess)
+            return Unauthorized(wechatSession.ErrorMessage ?? "微信授权失败");
+
+        var userId = GetUserId();
+
+        // 检查当前用户是否已经绑定了微信
+        var currentUserOauth = await _db.UserOauthAccounts
+            .AnyAsync(x => x.UserId == userId && x.Provider == "wechat", cancellationToken);
+        if (currentUserOauth)
+            return Conflict("您已绑定过微信账号，无法重复绑定");
+
+        // 检查该微信账号是否已被其他用户绑定
+        var existsOauth = await _db.UserOauthAccounts
+            .AnyAsync(x => x.Provider == "wechat" && x.OpenId == wechatSession.OpenId, cancellationToken);
+        if (existsOauth)
+            return Conflict("该微信账号已被其他用户绑定");
+
+        // 创建用户与微信账号的绑定关系
+        var oauthAccount = new UserOauthAccount
+        {
+            UserId = userId,
+            Provider = "wechat",
+            OpenId = wechatSession.OpenId,
+            UnionId = wechatSession.UnionId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _db.UserOauthAccounts.Add(oauthAccount);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new { message = "微信绑定成功" });
+    }
+
+    /// <summary>
+    /// 微信解绑接口，解除当前登录用户与微信账号的绑定关系。
+    /// 解绑后将无法再通过微信登录该账户，但不影响其他登录方式。
+    /// </summary>
+    /// <remarks>
+    /// 解绑流程说明：
+    /// 1. 验证用户身份
+    /// 2. 查找用户与微信的绑定关系
+    /// 3. 删除绑定关系
+    /// 
+    /// 注意事项：
+    /// • 解绑后无法使用微信登录，仍可通过其他方式登录
+    /// • 需要用户身份验证才能执行解绑操作
+    /// • 解绑不会影响用户其他数据
+    /// </remarks>
+    /// <param name="cancellationToken">取消操作标记，用于取消长时间运行的操作。</param>
+    /// <returns>
+    /// 成功时返回200 OK，包含解绑结果信息；
+    /// 失败时返回相应的错误状态码和消息。
+    /// </returns>
+    /// <response code="200">解绑成功</response>
+    /// <response code="401">用户认证失败或账号被禁用</response>
+    /// <response code="404">当前用户未绑定微信账号</response>
+    [HttpDelete("wechat/unbind")]
+    [Authorize]
+    public async Task<ActionResult> UnbindWechat(CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+
+        // 查找当前用户的微信绑定关系
+        var oauthAccount = await _db.UserOauthAccounts
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.Provider == "wechat", cancellationToken);
+
+        if (oauthAccount == null)
+            return NotFound("当前用户未绑定微信账号");
+
+        // 删除绑定关系
+        _db.UserOauthAccounts.Remove(oauthAccount);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new { message = "微信解绑成功" });
+    }
+
     static string BuildWechatEmail(string openId)
     {
         return $"wx_{openId.ToLowerInvariant()}@wechat.local";
+    }
+
+    /// <summary>
+    /// 获取当前用户的第三方账号绑定状态接口。
+    /// 返回用户绑定的所有第三方账号信息，但不包含敏感信息如OpenId等。
+    /// </summary>
+    /// <remarks>
+    /// 返回的绑定信息包括：
+    /// • Provider: 第三方平台类型（如wechat等）
+    /// • BoundAt: 绑定时间
+    /// • IsBound: 是否已绑定
+    /// 
+    /// 隐私安全措施：
+    /// • 不返回任何敏感信息如OpenId、UnionId等
+    /// • 仅返回当前登录用户自己的绑定信息
+    /// • 需要有效的身份验证才能访问
+    /// </remarks>
+    /// <param name="cancellationToken">取消操作标记，用于取消查询操作。</param>
+    /// <returns>
+    /// 成功时返回200 OK，包含第三方账号绑定状态信息；
+    /// 失败时返回相应错误状态码。
+    /// </returns>
+    /// <response code="200">获取绑定状态成功</response>
+    /// <response code="401">用户认证失败或会话已过期</response>
+    /// <response code="404">用户不存在</response>
+    [HttpGet("bindings")]
+    [Authorize]
+    public async Task<ActionResult<ThirdPartyBindingsResponse>> GetUserBindings(CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        var user = await _db.Users.SingleOrDefaultAsync(x => x.Id == userId && !x.IsDeleted, cancellationToken);
+        if (user == null)
+            return NotFound("用户不存在");
+
+        if (user.Status == false)
+            return Unauthorized("账号已被禁用");
+
+        // 获取用户的所有第三方绑定信息
+        var oauthAccounts = await _db.UserOauthAccounts
+            .Where(x => x.UserId == userId)
+            .ToListAsync(cancellationToken);
+
+        // 构造返回的绑定信息列表
+        var bindings = new List<ThirdPartyBindingInfo>();
+
+        foreach (var account in oauthAccounts)
+        {
+            bindings.Add(new ThirdPartyBindingInfo
+            {
+                Provider = account.Provider,
+                BoundAt = account.CreatedAt,
+                IsBound = true
+            });
+        }
+
+        // 可以根据需要添加更多第三方平台
+        var response = new ThirdPartyBindingsResponse
+        {
+            Bindings = bindings
+        };
+
+        return Ok(response);
     }
 }
