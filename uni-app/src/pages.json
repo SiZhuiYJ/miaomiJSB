@@ -74,6 +74,14 @@
             }
         },
         {
+            "path": "pages/profile/deactivate",
+            "style": {
+                "navigationBarTitleText": "注销账号",
+                "navigationBarBackgroundColor": "#F1F1EB",
+                "navigationBarTextStyle": "black"
+            }
+        },
+        {
             "path": "pages/profile/update-password",
             "style": {
                 "navigationBarTitleText": "修改密码",

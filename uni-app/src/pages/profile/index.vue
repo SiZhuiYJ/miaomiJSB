@@ -25,7 +25,7 @@ async function fetchThirdPartyBindings() {
     const res = await http.get('/mm/Auth/bindings');
     if (res.statusCode === 200 && res.data) {
       // 更新用户信息中的第三方绑定数据
-      authStore.updateUser({ 
+      authStore.updateUser({
         thirdPartyBindings: res.data.bindings || []
       });
     }
@@ -182,81 +182,7 @@ async function handleAvatarClick() {
   handleEditAvatar();
 }
 
-// Verification Code Logic
-const codeCountdown = ref(0);
-let codeTimer: number | null = null;
-const sendingCode = ref(false);
-
-function startCodeCountdown(seconds: number = 60) {
-  codeCountdown.value = seconds;
-  if (codeTimer) clearInterval(codeTimer);
-  codeTimer = setInterval(() => {
-    if (codeCountdown.value > 0) {
-      codeCountdown.value--;
-    } else {
-      if (codeTimer) {
-        clearInterval(codeTimer);
-        codeTimer = null;
-      }
-    }
-  }, 1000);
-}
-
-async function handleSendVerificationCode(actionType: 'deactivate') {
-  if (!authStore.user?.email) {
-    notifyError('无法获取用户邮箱');
-    return;
-  }
-  if (sendingCode.value || codeCountdown.value > 0) return;
-
-  sendingCode.value = true;
-  try {
-    await http.post('/mm/Auth/email-code', {
-      email: authStore.user.email,
-      actionType: actionType
-    });
-    notifySuccess('验证码已发送');
-    startCodeCountdown();
-  } catch (error: any) {
-    const status = error.statusCode;
-    if (status === 429) notifyError('请求过于频繁');
-    else notifyError('发送失败');
-  } finally {
-    sendingCode.value = false;
-  }
-}
-
-// Deactivate Account
-const deactivateVisible = ref(false);
-const deactivateCode = ref('');
-
-function openDeactivate() {
-  deactivateCode.value = '';
-  deactivateVisible.value = true;
-}
-
-async function handleDeactivateConfirm() {
-  if (!deactivateCode.value) {
-    notifyError('请输入验证码');
-    return;
-  }
-
-  loading.value = true;
-  try {
-    await http.post('/mm/Auth/deactivate', {
-      code: deactivateCode.value
-    });
-    notifySuccess('账号已注销');
-    deactivateVisible.value = false;
-    authStore.clear();
-    uni.reLaunch({ url: '/pages/auth/index' });
-  } catch (error: any) {
-    if (error.statusCode === 400) notifyError('验证码错误');
-    else notifyError('注销失败');
-  } finally {
-    loading.value = false;
-  }
-}
+// 注销逻辑已移至独立页面 /pages/profile/deactivate
 </script>
 
 <template>
@@ -311,7 +237,8 @@ async function handleDeactivateConfirm() {
           <text class="item-label">第三方账号绑定</text>
           <view class="item-value">
             <text class="value-text">
-              {{ authStore.user?.thirdPartyBindings?.length ? authStore.user.thirdPartyBindings.length + '个已绑定' : '未绑定' }}
+              {{ authStore.user?.thirdPartyBindings?.length ? authStore.user.thirdPartyBindings.length + '个已绑定' : '未绑定'
+              }}
             </text>
             <image class="arrow-icon" src="/static/svg/turn-right.svg" mode="aspectFit" />
           </view>
@@ -320,30 +247,7 @@ async function handleDeactivateConfirm() {
     </view>
 
     <view class="actions">
-      <button class="btn-deactivate" @click="openDeactivate">注销账号</button>
-    </view>
-
-
-    <!-- Deactivate Modal -->
-    <view class="modal-mask" v-if="deactivateVisible">
-      <view class="modal-content">
-        <view class="modal-header">注销账号</view>
-        <view class="modal-body">
-          <text class="warning-text">注销后账号将无法登录，所有数据保留30天后彻底删除。</text>
-          <view class="code-row">
-            <input class="input code-input" v-model="deactivateCode" placeholder="验证码"
-              placeholder-class="input-placeholder" />
-            <button class="code-btn" :disabled="sendingCode || codeCountdown > 0"
-              @click="handleSendVerificationCode('deactivate')">
-              {{ codeCountdown > 0 ? `${codeCountdown}s` : (sendingCode ? '发送中...' : '获取验证码') }}
-            </button>
-          </view>
-        </view>
-        <view class="modal-footer">
-          <button class="modal-btn cancel" @click="deactivateVisible = false">取消</button>
-          <button class="modal-btn danger" :loading="loading" @click="handleDeactivateConfirm">确认注销</button>
-        </view>
-      </view>
+      <button class="btn-deactivate" @click="handleNavigate('/pages/profile/deactivate')">注销账号</button>
     </view>
   </view>
 </template>
