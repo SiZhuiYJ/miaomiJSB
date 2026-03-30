@@ -26,10 +26,19 @@ const url = computed(() => {
 <template>
     <el-image v-if="user?.avatarKey" style="width: 100px; height: 100px" :src="url" :fit="fit"
         :preview-src-list="[url]" />
-    <text v-else class="avatar-text-large" @click.stop="handleViewAvatar">
-        {{ (user ? 'U' : (user?.nickName || user?.userAccount || user?.email))[0].toUpperCase() }}
-    </text>
+    <span v-else class="avatar-text-large">
+        {{ (user ? (user?.nickName || user?.userAccount || user?.email).slice(0, 1).toUpperCase() : 'U') }}
+    </span>
     <ImageUploader @crop="onCropped" />
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.avatar-text-large {
+    width: 100px;
+    height: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--accent-alt);
+}
+</style>
