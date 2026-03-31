@@ -1,9 +1,7 @@
 /**
- * Date utility functions for the uni-app project.
- */
-
-/**
- * Formats a Date object to a local YYYY-MM-DD string.
+ * 将日期转换为 YYYY-MM-DD 格式的字符串
+ * @param date 要转换的 Date 对象
+ * @return 转换后的日期字符串，格式为 "YYYY-MM-DD"
  */
 export function toLocalDateOnlyString(date: Date): string {
   const y = date.getFullYear();
@@ -13,7 +11,9 @@ export function toLocalDateOnlyString(date: Date): string {
 }
 
 /**
- * Parses a YYYY-MM-DD string into a Date object (at midnight local time).
+ * 字符串格式化日期，输入格式为 "YYYY-MM-DD"，输出为 Date 对象
+ * @param input 日期字符串，格式为 "YYYY-MM-DD"
+ * @return 解析后的 Date 对象
  */
 export function parseDateOnly(input: string): Date {
   const parts = input.split("-");
@@ -38,14 +38,18 @@ export function padNumber(
 }
 
 /**
- * Gets the current date as a YYYY-MM-DD string.
+ * 获取今天的日期字符串（YYYY-MM-DD）
+ * @returns 今天的日期字符串
  */
 export function getTodayString(): string {
   return toLocalDateOnlyString(new Date());
 }
 
 /**
- * Returns an array of Date objects representing each day in a given month.
+ * 获取指定月份的每一天
+ * @param year 年份
+ * @param month 月份（1-12）
+ * @return 包含该月每一天的 Date 对象数组
  */
 export function getMonthDays(year: number, month: number): Date[] {
   const days: Date[] = [];
@@ -60,7 +64,9 @@ export function getMonthDays(year: number, month: number): Date[] {
 }
 
 /**
- * Checks if a date is today.
+ *  判断一个日期是否是今天
+ * @param date 日期对象或日期字符串（YYYY-MM-DD）
+ * @returns 如果日期是今天返回 true，否则返回 false
  */
 export function isToday(date: Date | string): boolean {
   const dateStr = typeof date === "string" ? date : toLocalDateOnlyString(date);
@@ -68,7 +74,9 @@ export function isToday(date: Date | string): boolean {
 }
 
 /**
- * Checks if a date is in the past compared to today.
+ * 判断一个日期是否在今天之前
+ * @param date 日期对象或日期字符串（YYYY-MM-DD）
+ * @returns 如果日期在今天之前返回 true，否则返回 false
  */
 export function isPast(date: Date | string): boolean {
   const dateStr = typeof date === "string" ? date : toLocalDateOnlyString(date);

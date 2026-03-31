@@ -90,14 +90,6 @@
             }
         },
         {
-            "path": "pages/profile/bind-wechat",
-            "style": {
-                "navigationBarTitleText": "绑定微信",
-                "navigationBarBackgroundColor": "#F1F1EB",
-                "navigationBarTextStyle": "black"
-            }
-        },
-        {
             "path": "pages/profile/third-party-binds",
             "style": {
                 "navigationBarTitleText": "第三方账号绑定",
