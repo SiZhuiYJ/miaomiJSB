@@ -1,8 +1,8 @@
 import http from "@/libs/http";
 
-export const FileApi = {
+export const SettingApi = {
   UploadImage(formData: FormData) {
-    return http.post<{ url: string }>("/mm/Files/images", formData);
+    return http.post<{ key: string }>("/mm/Files/avatar", formData);
   },
   GetImage(url: string) {
     return http.download<Blob>(url);

@@ -37,13 +37,13 @@ defineExpose({
 </script>
 
 <template>
+    <!-- 邮箱验证码登录 -->
     <form class="form" @submit.prevent="handleSubmit">
-        <LoginMethods v-model="loginMethod" />
 
         <EmailInput v-model="email" />
 
         <VerificationCodeInput v-model="code" :sending="sendingCode!" :countdown="countdown!" placeholder="请输入验证码"
-            @send-code="$emit('sendCode')" />
+            @send-code="emit('sendCode')" />
 
         <button class="submit" type="submit" :disabled="loading || !email || !code">
             登录

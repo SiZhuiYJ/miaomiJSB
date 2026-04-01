@@ -5,6 +5,7 @@ import AccountInput from './AccountInput.vue'
 import PasswordInput from './PasswordInput.vue'
 import LoginMethods from './LoginMethods.vue'
 import EmailCodeLogin from './EmailCodeLogin.vue'
+import CodeLogin from './CodeLogin.vue'
 
 const email = defineModel<string>('email')
 const userAccount = defineModel<string>('userAccount')
@@ -37,9 +38,9 @@ defineExpose({
 </script>
 
 <template>
+    <LoginMethods v-model="loginMethod" />
     <!-- 邮箱密码登录 -->
     <form v-if="loginMethod === 'email'" class="form" @submit.prevent="handleSubmit">
-        <LoginMethods v-model="loginMethod" />
 
         <EmailInput v-model="email" />
 
@@ -52,7 +53,6 @@ defineExpose({
 
     <!-- 账号密码登录 -->
     <form v-else-if="loginMethod === 'account'" class="form" @submit.prevent="handleSubmit">
-        <LoginMethods v-model="loginMethod" />
 
         <AccountInput v-model="userAccount" :required="true" />
 
@@ -67,6 +67,8 @@ defineExpose({
     <EmailCodeLogin v-else-if="loginMethod === 'email-code'" v-model:email="email" :code="code"
         :sending-code="sendingCode" :countdown="countdown" :login-method="loginMethod" @send-code="$emit('sendCode')"
         @submit="handleSubmit" />
+
+    <!-- <CodeLogin /> -->
 </template>
 
 <style scoped lang="scss">

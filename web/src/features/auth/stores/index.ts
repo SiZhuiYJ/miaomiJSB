@@ -35,7 +35,7 @@ export const useAuthStore = defineStore(
       refreshToken.value = payload.refreshToken;
       accessTokenExpiresAt.value = payload.accessTokenExpiresAt;
       refreshTokenExpiresAt.value = payload.refreshTokenExpiresAt;
-      
+
       // 设置自动刷新定时器
       setupAutoRefresh();
     }
@@ -47,24 +47,27 @@ export const useAuthStore = defineStore(
         clearTimeout(refreshTimer);
         refreshTimer = null;
       }
-      
+
       if (!accessTokenExpiresAt.value || !refreshToken.value) return;
-      
+
       try {
         const expiresAt = new Date(accessTokenExpiresAt.value);
         const now = new Date();
         const timeUntilExpiry = expiresAt.getTime() - now.getTime();
-        
+
         // 在token过期前5分钟刷新
         const refreshTime = Math.max(timeUntilExpiry - 5 * 60 * 1000, 0);
-        
+
         if (refreshTime > 0) {
           refreshTimer = setTimeout(async () => {
             try {
               // 调用刷新接口
-              const refreshResponse = await http.post<AuthData>("/mm/Auth/refresh", {
-                refreshToken: refreshToken.value
-              });
+              const refreshResponse = await http.post<AuthData>(
+                "/mm/Auth/refresh",
+                {
+                  refreshToken: refreshToken.value,
+                },
+              );
               setSession(refreshResponse.data);
             } catch (error) {
               console.error("自动刷新token失败:", error);
@@ -80,12 +83,15 @@ export const useAuthStore = defineStore(
     function updateUser(payload: {
       userAccount?: string | null;
       nickName?: string | null;
+      avatarKey?: string | null;
     }): void {
       if (user.value) {
         if (payload.userAccount !== undefined)
           user.value.userAccount = payload.userAccount;
         if (payload.nickName !== undefined)
           user.value.nickName = payload.nickName;
+        if (payload.avatarKey !== undefined)
+          user.value.avatarKey = payload.avatarKey;
       }
     }
 
@@ -95,13 +101,13 @@ export const useAuthStore = defineStore(
       refreshToken.value = null;
       accessTokenExpiresAt.value = null;
       refreshTokenExpiresAt.value = null;
-      
+
       // 清除定时器
       if (refreshTimer) {
         clearTimeout(refreshTimer);
         refreshTimer = null;
       }
-      
+
       try {
         localStorage.clear();
         sessionStorage.clear();
@@ -127,7 +133,12 @@ export const useAuthStore = defineStore(
       // 存储方式：localStorage
       storage: localStorage,
       // 指定持久化字段
-      pick: ["accessToken", "refreshToken", "accessTokenExpiresAt", "refreshTokenExpiresAt"],
+      pick: [
+        "accessToken",
+        "refreshToken",
+        "accessTokenExpiresAt",
+        "refreshTokenExpiresAt",
+      ],
     },
   },
 );
