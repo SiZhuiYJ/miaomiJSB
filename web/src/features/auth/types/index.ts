@@ -4,6 +4,13 @@ export interface AuthUser {
   nickName: string | null;
   userAccount: string | null;
   avatarKey: string | null;
+  thirdPartyBindings?: ThirdPartyBinding[]; // 新增：第三方绑定信息
+}
+
+export interface ThirdPartyBinding {
+  provider: string;
+  boundAt: string; // ISO date string
+  isBound: boolean;
 }
 
 export interface AuthState {

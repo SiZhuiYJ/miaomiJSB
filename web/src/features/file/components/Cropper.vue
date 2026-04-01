@@ -48,10 +48,9 @@ const doCrop = () => {
       :full="option.full" :info-true="option.infoTrue" :center-box="option.centerBox" :output-size="option.outputSize"
       :output-type="option.outputType" :fixed-number="option.fixedNumber">
     </vue-cropper>
-
-    <div style="margin-top: 20px; text-align: center">
-      <button type="button" @click="doCrop">截取并返回图片</button>
-    </div>
+  </div>
+  <div style="margin-top: 20px; text-align: center">
+    <button type="button" @click="doCrop">截取并返回图片</button>
   </div>
 </template>
 

@@ -273,8 +273,8 @@ async function handleDeactivateConfirm(): Promise<void> {
         @command="handleCommand">
         <div class="user-info-trigger">
           <el-avatar v-if="user.avatarKey" fit="cover"
-            :src="user.avatarKey ? `${API_BASE_URL}mm/Files/users/${user.userId}/${user.avatarKey}` : ''" :size="30"
-            mode="aspectFill" />
+            :title="`${API_BASE_URL}mm/Files/users/${user.userId}/${user.avatarKey}`"
+            :src="`${API_BASE_URL}mm/Files/users/${user.userId}/${user.avatarKey}`" :size="30" mode="aspectFill" />
           <el-avatar v-else :size="30">
             {{ user.nickName ? user.nickName.charAt(0).toUpperCase() : "U" }}
           </el-avatar>

@@ -45,7 +45,7 @@ watch(() => user.value?.email, (newEmail) => {
                 <el-button icon="EditPen" @click="emailDisabled = !emailDisabled" />
             </template>
             <template #append>
-                <el-select v-model="select" placeholder="Select" style="width: 150px">
+                <el-select v-model="select" placeholder="Select" :disabled="emailDisabled" style="width: 150px">
                     <el-option v-for="(value, index) in emailFix" :label="value" :value="index" />
                 </el-select>
             </template>

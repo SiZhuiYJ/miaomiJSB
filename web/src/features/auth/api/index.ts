@@ -9,7 +9,8 @@ import type {
   PasswordPayload,
   RegisterRecord,
   AccountStatus,
-  UserProfile
+  UserProfile,
+  ThirdPartyBinding,
 } from "../types";
 /**
  * 认证API服务
@@ -130,6 +131,13 @@ export const authApi = {
    */
   async updateProfileInfo(data: UserProfile) {
     return await http.post<AuthData>('/mm/Auth/profile', data);
+  },
+  /**
+   * 获取用户第三方平台绑定信息
+   * @returns Promise<{ provider: string; boundAt: string; isBound: boolean }[] }
+   */
+  async getThirdPartyBindings() {
+    return await http.get<ThirdPartyBinding[]>('/mm/Auth/bindings');
   },
 };
 

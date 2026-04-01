@@ -289,48 +289,49 @@ defineExpose({
     transform 0.1s ease;
   cursor: pointer;
   /* 提示可点击 */
-}
 
-/* 当按钮被点击（按下）时轻微的缩放感 */
-.upload-button:active {
-  transform: scale(0.97);
-}
 
-/* 当内部隐藏的input获得焦点时，给按钮加上发光外圈 — 键盘友好 */
-.upload-button:focus-within {
-  outline: none;
-  box-shadow:
-    0 0 0 2px rgba(79, 70, 229, 0.4),
-    0 4px 16px -6px #4f46e5;
-  background-color: #e0e7ff;
-  /* 稍微深一点的底色，反馈焦点 */
-}
+  /* 当按钮被点击（按下）时轻微的缩放感 */
+  &:active {
+    transform: scale(0.97);
+  }
 
-/* 鼠标悬停时，底色稍微加深，加号颜色也可以微调 —— 这里保留加号颜色不变，改变背景色 */
-.upload-button:hover {
-  background-color: #d9e0fc;
-  /* 稍微明显的悬停色 */
-}
+  /* 当内部隐藏的input获得焦点时，给按钮加上发光外圈 — 键盘友好 */
+  &:focus-within {
+    outline: none;
+    box-shadow:
+      0 0 0 2px rgba(79, 70, 229, 0.4),
+      0 4px 16px -6px #4f46e5;
+    background-color: #e0e7ff;
+    /* 稍微深一点的底色，反馈焦点 */
+  }
 
-/* 真正的 input[type=file] 被透明地覆盖在整个按钮上，保证点击区域精准，同时隐藏原生样式 */
-.upload-button input[type="file"] {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  /* 完全透明，但依然可点击、可聚焦 */
-  cursor: pointer;
-  /* 明确指针形状 */
-  z-index: 2;
-  /* 确保它在上层接收点击（背景在下面） */
-  margin: 0;
-  /* 移除默认边距 */
-  padding: 0;
-  border: none;
-  /* 以下为兼容屏幕阅读器，保留元素尺寸且可聚焦 */
-  font-size: 0;
-  /* 避免极少数浏览器出现文本节点 */
+  /* 鼠标悬停时，底色稍微加深，加号颜色也可以微调 —— 这里保留加号颜色不变，改变背景色 */
+  &:hover {
+    background-color: #d9e0fc;
+    /* 稍微明显的悬停色 */
+  }
+
+  /* 真正的 input[type=file] 被透明地覆盖在整个按钮上，保证点击区域精准，同时隐藏原生样式 */
+  input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    /* 完全透明，但依然可点击、可聚焦 */
+    cursor: pointer;
+    /* 明确指针形状 */
+    z-index: 2;
+    /* 确保它在上层接收点击（背景在下面） */
+    margin: 0;
+    /* 移除默认边距 */
+    padding: 0;
+    border: none;
+    /* 以下为兼容屏幕阅读器，保留元素尺寸且可聚焦 */
+    font-size: 0;
+    /* 避免极少数浏览器出现文本节点 */
+  }
 }
 </style>

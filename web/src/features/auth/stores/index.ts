@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-import type { AuthData, AuthUser } from "@/features/auth/types";
+import type { AuthData, AuthUser, ThirdPartyBinding } from "@/features/auth/types";
+import router from "@/routers";
 import { CACHE_PREFIX } from "@/config";
 import { authApi } from "../api";
 import http from "@/libs/http";
@@ -81,9 +82,10 @@ export const useAuthStore = defineStore(
     }
 
     function updateUser(payload: {
-      userAccount?: string | null;
-      nickName?: string | null;
-      avatarKey?: string | null;
+      userAccount?: string;
+      nickName?: string;
+      avatarKey?: string;
+      thirdPartyBindings?: ThirdPartyBinding[]; // 新增：第三方绑定信息
     }): void {
       if (user.value) {
         if (payload.userAccount !== undefined)
@@ -92,6 +94,8 @@ export const useAuthStore = defineStore(
           user.value.nickName = payload.nickName;
         if (payload.avatarKey !== undefined)
           user.value.avatarKey = payload.avatarKey;
+        if (payload.thirdPartyBindings !== undefined)
+          user.value.thirdPartyBindings = payload.thirdPartyBindings;
       }
     }
 
@@ -111,7 +115,8 @@ export const useAuthStore = defineStore(
       try {
         localStorage.clear();
         sessionStorage.clear();
-      } catch {}
+        router.push('/login');
+      } catch { }
     }
 
     return {

@@ -23,3 +23,15 @@ export function isToday(date: Date): boolean {
     date.getDate() === today.getDate()
   );
 }
+/**
+ * 字符串格式化日期，输入格式为 "YYYY-MM-DD"，输出为 Date 对象
+ * @param input 日期字符串，格式为 "YYYY-MM-DD"
+ * @return 解析后的 Date 对象
+ */
+export function parseDateOnly(input: string): Date {
+  const parts = input.split("-");
+  const y = Number(parts[0] ?? "0") || 0;
+  const m = Number(parts[1] ?? "1") || 1;
+  const d = Number(parts[2] ?? "1") || 1;
+  return new Date(y, m - 1, d);
+}

@@ -9,6 +9,7 @@ const menuList = ref([
     { name: "头像修改", path: "/setting/avatar" },
     { name: "注销账号", path: "/setting/deactivate" },
     { name: "密码修改", path: "/setting/password" },
+    { name: "平台绑定", path: "/setting/bind" },
 ]);
 // 默认显示第一个菜单名称
 const menuName = ref(menuList.value[0]?.name ?? "");

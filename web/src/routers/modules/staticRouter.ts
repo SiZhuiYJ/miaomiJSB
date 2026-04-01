@@ -103,6 +103,19 @@ export const staticRouter: RouteRecordRaw[] = [
           isKeepAlive: "0",
           isFull: "1",
         }
+      },
+      {
+        path: "/setting/bind", // [唯一]
+        component: () => import("@/views/setting/bind/index.vue"),
+        meta: {
+          title: "第三方绑定",
+          enName: "ThirdParty",
+          icon: "Link",
+          isHide: "1",
+          isLink: "",
+          isKeepAlive: "0",
+          isFull: "1",
+        }
       }
     ]
   },

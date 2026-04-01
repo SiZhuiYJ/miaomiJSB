@@ -40,9 +40,9 @@ async function handleChangePassword() {
     changePasswordLoading.value = true;
     try {
         const payload: PasswordPayload = {
-            oldPassword: null,
+            oldPassword: '',
             newPassword: changePasswordForm.newPassword,
-            code: null,
+            code: '',
         };
 
         if (verificationMethod.value === "password") {
@@ -62,6 +62,7 @@ async function handleChangePassword() {
         else notifyError("修改失败");
     } finally {
         changePasswordLoading.value = false;
+        authStore.initialAuth();
     }
 }
 </script>
