@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import type { AuthData, AuthUser, ThirdPartyBinding } from "@/features/auth/types";
+import type {  ThirdPartyBinding } from "@/features/auth/types";
 import { ref, onMounted, watch } from 'vue';
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia'
 import { authApi } from '@/features/auth/api';
-import { notifySuccess, notifyError, notifyWarning } from '@/utils/notification';
-import { API_BASE_URL } from '@/config';
-import { uploadFile, dataURLToFile } from '@/features/setting/composables/useImage'
+import { notifySuccess, notifyError } from '@/utils/notification';
 import { toLocalDateOnlyString, parseDateOnly } from "@/utils/date";
-import { f } from "vue-router/dist/router-CWoNjPRp.mjs";
 
 const authStore = useAuthStore();
 const { user } = storeToRefs(authStore);
@@ -246,7 +243,7 @@ async function fetchThirdPartyBindings() {
 // 检查特定提供商是否已绑定
 function hasProviderBind(provider: string) {
     const bindings = user.value?.thirdPartyBindings;
-    
+
     // 确保bindings是数组后再调用some方法
     if (Array.isArray(bindings)) {
         return bindings.some((binding: ThirdPartyBinding) => binding.provider === provider);

@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import ImageUploader from '@/features/file/components/ImageUploader.vue';
-import { ref, onMounted, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia'
-import { authApi } from '@/features/auth/api';
-import { notifySuccess, notifyError, notifyWarning } from '@/utils/notification';
+import { notifySuccess } from '@/utils/notification';
 import { API_BASE_URL } from '@/config';
 import { uploadFile, dataURLToFile } from '@/features/setting/composables/useImage'
 

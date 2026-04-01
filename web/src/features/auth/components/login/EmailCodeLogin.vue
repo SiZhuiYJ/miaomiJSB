@@ -2,13 +2,11 @@
 import { ref } from 'vue'
 import EmailInput from './EmailInput.vue'
 import VerificationCodeInput from './VerificationCodeInput.vue'
-import LoginMethods from './LoginMethods.vue'
 
 const email = defineModel<string>('email')
 const code = defineModel<string>('code')
 const sendingCode = defineModel<boolean>('sendingCode')
 const countdown = defineModel<number>('countdown')
-const loginMethod = defineModel<'email' | 'account' | 'email-code'>('loginMethod')
 
 
 interface Emits {

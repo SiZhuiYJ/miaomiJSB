@@ -5,7 +5,6 @@ import AccountInput from './AccountInput.vue'
 import PasswordInput from './PasswordInput.vue'
 import LoginMethods from './LoginMethods.vue'
 import EmailCodeLogin from './EmailCodeLogin.vue'
-import CodeLogin from './CodeLogin.vue'
 
 const email = defineModel<string>('email')
 const userAccount = defineModel<string>('userAccount')
