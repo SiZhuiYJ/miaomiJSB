@@ -1,4 +1,4 @@
-import type { Directive, DirectiveBinding } from 'vue'
+import type { Directive } from 'vue'
 // 自适应表格高度
 interface ExHTMLElement extends HTMLElement {
   resizeListener: EventListener;
