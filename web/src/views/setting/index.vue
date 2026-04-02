@@ -19,9 +19,13 @@ const scrollToTop = () => {
 
 <template>
   <header class="topbar">
-    <el-icon @click="router.push('/home')">
-      <CaretLeft />
-    </el-icon>
+    <div class="topbar-left" @click="router.push('/home')">
+      <el-icon>
+        <CaretLeft />
+      </el-icon>
+      返回
+    </div>
+
     <SettingsMenu />
   </header>
   <el-scrollbar ref="scrollbarRef" wrap-style="max-height: calc(100vh - var(--header-h));" view-class="">
@@ -45,6 +49,15 @@ const scrollToTop = () => {
   justify-content: space-between;
   border-bottom: 1px solid var(--border-color);
   background: rgba($color: #000000, $alpha: 0);
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    color: var(--text-color);
+    cursor: pointer;
+  }
 }
 
 .open {

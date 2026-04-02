@@ -25,7 +25,7 @@ function handleRemove(index: number): void {
   <div v-if="props.sources.length" class="image-list">
     <div v-for="(src, index) in props.sources" :key="src" class="image-item">
       <el-image :src="src" :preview-src-list="props.sources" :initial-index="index" fit="cover"
-        class="detail-image clickable-image" />
+        class="detail-image clickable-image" lazy />
       <button v-if="props.removable" type="button" class="image-remove" @click.stop="handleRemove(index)">
         ×
       </button>

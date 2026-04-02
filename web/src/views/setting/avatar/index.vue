@@ -49,7 +49,7 @@ function uploadImage() {
 
 <template>
     <el-image v-if="user?.avatarKey" style="width: 400px; height: 400px" :src="url" :fit="fit"
-        :preview-src-list="[url]" />
+        :preview-src-list="[url]" lazy />
     <span v-else class="avatar-text-large">
         {{ (user ? (user?.nickName || user?.userAccount || user?.email).slice(0, 1).toUpperCase() : 'U') }}
     </span>

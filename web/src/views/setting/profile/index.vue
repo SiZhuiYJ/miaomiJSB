@@ -20,10 +20,10 @@ const url = computed(() => {
 const emailFix = ref<string[]>(['@qq.com', '@163.com', '@126.com', '@sina.com', '@aliyun.com']);
 const select = ref<string>();
 const fit = 'fill';
-watch(() => user.value?.email, (newEmail) => {
+watch(() => user.value?.email, (newEmail: string | null) => {
     if (newEmail) {
         inputEmail.value = extractEmail(newEmail);
-        select.value = extractDomain(newEmail);
+        select.value = '@' + extractDomain(newEmail);
         emailDisabled.value = true;
     } else {
         inputEmail.value = '';
@@ -34,8 +34,7 @@ watch(() => user.value?.email, (newEmail) => {
 
 <template>
     <div class="container">
-        <el-image style="width: 100px; height: 100px" :src="url" :fit="fit" :preview-src-list="[url]">
-        </el-image>
+        <el-image style="width: 100px; height: 100px" :src="url" :fit="fit" :preview-src-list="[url]" lazy />
         <el-icon @click="router.push('/setting/avatar')">
             <Upload />
         </el-icon>

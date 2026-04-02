@@ -119,36 +119,6 @@ async function handleSendVerificationCode(
   }
 }
 
-// Profile Dialog
-const profileVisible = ref(false);
-const profileForm = reactive({
-  userAccount: "",
-  nickName: "",
-  avatarKey: "",
-});
-const profileLoading = ref(false);
-
-async function handleUpdateProfile(): Promise<void> {
-  profileLoading.value = true;
-  try {
-    const response = await authApi.updateProfile({
-      nickName: profileForm.nickName || null,
-      avatarKey: profileForm.avatarKey || null,
-    });
-    authStore.setSession(response.data);
-    notifySuccess("用户信息更新成功");
-    profileVisible.value = false;
-  } catch (error: any) {
-    if (error.response?.status === 409) {
-      notifyError("用户名已被占用");
-    } else {
-      notifyError("更新失败");
-    }
-  } finally {
-    profileLoading.value = false;
-  }
-}
-
 // Change Password Dialog
 const changePasswordVisible = ref(false);
 const verificationMethod = ref<"password" | "code">("password");
@@ -267,22 +237,30 @@ async function handleDeactivateConfirm(): Promise<void> {
         :title="theme === 'dark' ? '切换到白昼模式' : '切换到暗夜模式'">
         <component :is="theme === 'dark' ? SunIcon : MoonIcon" />
       </button>
-
+      <!-- 'p' | 'text' | 'h1' | 'h3' | 'caption' | 'button' | 'image' | 'circle' | 'rect' -->
       <!-- 头像 -->
       <el-dropdown v-if="user" trigger="click" placement="bottom-end" popper-class="user-dropdown-popper"
         @command="handleCommand">
         <div class="user-info-trigger">
-          <el-avatar v-if="user.avatarKey" fit="cover"
-            :title="`${API_BASE_URL}mm/Files/users/${user.userId}/${user.avatarKey}`"
-            :src="`${API_BASE_URL}mm/Files/users/${user.userId}/${user.avatarKey}`" :size="30" mode="aspectFill" />
-          <el-avatar v-else :size="30">
-            {{ user.nickName ? user.nickName.charAt(0).toUpperCase() : "U" }}
-          </el-avatar>
-          <span class="email">
-            {{ maskEmail(user.email) }}
-            <span v-if="user.nickName">({{ maskString(user.nickName) }})</span>
-          </span>
-          <el-icon class="dropdown-arrow"><arrow-down /></el-icon>
+          <el-skeleton style="display: flex;align-items: center;gap: 8px;" :loading="!user" animated>
+            <template #template>
+              <el-skeleton-item variant="circle" style="width: 30px; height: 30px" />
+              <el-skeleton-item variant="caption" style="width: calc(300px - 76px);" />
+              <el-skeleton-item variant="circle" style="width: 30px; height: 30px" />
+            </template>
+            <template #default>
+              <el-avatar v-if="user.avatarKey" fit="cover"
+                :src="`${API_BASE_URL}mm/Files/users/${user.userId}/${user.avatarKey}`" :size="30" mode="aspectFill" />
+              <el-avatar v-else :size="30">
+                {{ user.nickName ? user.nickName.charAt(0).toUpperCase() : "U" }}
+              </el-avatar>
+              <span class="email">
+                {{ maskEmail(user.email) }}
+                <span v-if="user.nickName">({{ maskString(user.nickName) }})</span>
+              </span>
+              <el-icon class="dropdown-arrow"><arrow-down /></el-icon>
+            </template>
+          </el-skeleton>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
@@ -294,33 +272,6 @@ async function handleDeactivateConfirm(): Promise<void> {
         </template>
       </el-dropdown>
     </div>
-
-    <el-dialog v-model="profileVisible" title="个人设置" width="400px">
-      <div class="profile-form">
-        <label class="field">
-          <span>账号名 (全局唯一)</span>
-          <input v-model="profileForm.userAccount" type="text" placeholder="设置账号名" />
-        </label>
-        <label class="field">
-          <span>昵称</span>
-          <input v-model="profileForm.nickName" type="text" placeholder="设置昵称" />
-        </label>
-        <label class="field">
-          <span>头像 URL</span>
-          <input v-model="profileForm.avatarKey" type="text" placeholder="https://..." />
-        </label>
-      </div>
-      <template #footer>
-        <span class="dialog-footer">
-          <button class="btn-cancel" @click="profileVisible = false">
-            取消
-          </button>
-          <button class="btn-confirm" :disabled="profileLoading" @click="handleUpdateProfile">
-            {{ profileLoading ? "保存中..." : "保存" }}
-          </button>
-        </span>
-      </template>
-    </el-dialog>
 
     <!-- Change Password Dialog -->
     <el-dialog v-model="changePasswordVisible" title="修改密码" width="400px">
@@ -436,6 +387,7 @@ async function handleDeactivateConfirm(): Promise<void> {
   gap: 8px;
   cursor: pointer;
   padding: 4px;
+  width: 300px;
   border-radius: 100px;
   transition: background-color 0.2s;
 
@@ -447,6 +399,7 @@ async function handleDeactivateConfirm(): Promise<void> {
 .email {
   font-size: 14px;
   color: var(--text-muted);
+  width: calc(300px - 76px);
 }
 
 .dropdown-arrow {
