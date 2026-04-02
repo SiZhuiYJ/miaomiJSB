@@ -22,7 +22,7 @@ export default defineConfig({
     vue(),
     // 自动导入插件，自动导入Vue和Pinia相关函数，并自动注册Element Plus组件
     AutoImport({
-      imports: ["vue", "pinia"],
+      // imports: ["vue", "pinia"],
       resolvers: [ElementPlusResolver()],
       dts: "src/auto-imports.d.ts",
     }),

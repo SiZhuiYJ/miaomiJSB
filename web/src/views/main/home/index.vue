@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
 import { usePlansStore, useCheckinsStore } from "@/stores";
 import type { PlanSummary } from "@/features/plans/types";
 import { notifyWarning } from "@/utils/notification";
@@ -45,7 +44,7 @@ onMounted(async () => {
 
 watch(
   () => [selectedPlanId.value, currentYear.value, currentMonth.value],
-  async (vals) => {
+  async (vals: [number | null, number, number]) => {
     const planId = vals[0];
     if (!planId) return;
     await checkinsStore.loadCalendar(
@@ -153,59 +152,26 @@ function handleOpenCheckinFromDetail(): void {
 </script>
 
 <template>
-  <el-scrollbar
-    wrap-style="height: calc(100vh - var(--header-h))"
-    view-class="dashboard"
-  >
-    <DesktopMainView
-      v-model:selected-plan-id="selectedPlanId"
-      v-model:checkin-date="checkinDate"
-      :get-day-status-class="getDayStatusClass"
-      :get-day-status-style="getDayStatusStyle"
-      @create="handleCreatePlan"
-      @edit="handleEditPlan"
-      @date-click="handleDateClick"
-    />
+  <el-scrollbar wrap-style="height: calc(100vh - var(--header-h))" view-class="dashboard">
+    <DesktopMainView v-model:selected-plan-id="selectedPlanId" v-model:checkin-date="checkinDate"
+      :get-day-status-class="getDayStatusClass" :get-day-status-style="getDayStatusStyle" @create="handleCreatePlan"
+      @edit="handleEditPlan" @date-click="handleDateClick" />
 
-    <MobilePlanCards
-      :mobile-mode="mobileMode"
-      :progress-percent-by-plan="progressPercentByPlan"
-      :month-stats-by-plan="monthStatsByPlan"
-      :mini-calendar-cells="miniCalendarCells"
-      :get-mini-day-class-for-plan="getMiniDayClassForPlan"
-      :is-in-plan-range-for-plan="isInPlanRangeForPlan"
-      @select-plan="handleMobileCardSelect"
-      @create="handleCreatePlan"
-    />
+    <MobilePlanCards :mobile-mode="mobileMode" :progress-percent-by-plan="progressPercentByPlan"
+      :month-stats-by-plan="monthStatsByPlan" :mini-calendar-cells="miniCalendarCells"
+      :get-mini-day-class-for-plan="getMiniDayClassForPlan" :is-in-plan-range-for-plan="isInPlanRangeForPlan"
+      @select-plan="handleMobileCardSelect" @create="handleCreatePlan" />
 
-    <MobileCalendarPage
-      :selected-plan-id="selectedPlanId"
-      :checkin-date="checkinDate"
-      :mobile-mode="mobileMode"
-      :get-day-status-class="getDayStatusClass"
-      :get-day-status-style="getDayStatusStyle"
-      @update:checkin-date="(v) => (checkinDate = v)"
-      @back="handleMobileCalendarBack"
-      @edit="handleEditPlan"
-      @date-click="handleDateClick"
-    />
+    <MobileCalendarPage :selected-plan-id="selectedPlanId" :checkin-date="checkinDate" :mobile-mode="mobileMode"
+      :get-day-status-class="getDayStatusClass" :get-day-status-style="getDayStatusStyle"
+      @update:checkin-date="(v: Date) => (checkinDate = v)" @back="handleMobileCalendarBack" @edit="handleEditPlan"
+      @date-click="handleDateClick" />
 
-    <CreatePlanDrawer
-      v-model="showPlanDrawer"
-      :edit-plan="drawerPlan"
-      @created="handlePlanCreated"
-      @deleted="handlePlanDeleted"
-    />
+    <CreatePlanDrawer v-model="showPlanDrawer" :edit-plan="drawerPlan" @created="handlePlanCreated"
+      @deleted="handlePlanDeleted" />
 
-    <CheckinDetailDrawer
-      v-if="selectedPlanId"
-      v-model="showDetailDrawer"
-      :plan-id="selectedPlanId"
-      :date="checkinDate"
-      :time-slots="selectedPlan?.timeSlots"
-      :mode="getTimeSlotMode()"
-      @open-checkin="handleOpenCheckinFromDetail"
-    />
+    <CheckinDetailDrawer v-if="selectedPlanId" v-model="showDetailDrawer" :plan-id="selectedPlanId" :date="checkinDate"
+      :time-slots="selectedPlan?.timeSlots" :mode="getTimeSlotMode()" @open-checkin="handleOpenCheckinFromDetail" />
   </el-scrollbar>
 </template>
 

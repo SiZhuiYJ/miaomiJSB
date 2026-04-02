@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from "vue";
 // 使用语义化的 `isOpen` 表示菜单是否展开，默认关闭
 const isOpen = ref<boolean>(false);
 </script>

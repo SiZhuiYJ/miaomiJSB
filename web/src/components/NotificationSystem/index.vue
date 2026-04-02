@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, reactive } from "vue";
 import { toRgba, darkenColor } from "@/utils/color";
 import gsap from "gsap";
 

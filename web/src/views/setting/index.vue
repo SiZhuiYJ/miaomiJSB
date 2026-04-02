@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import router from "@/routers";
-import { useTemplateRef } from "vue";
 import { ElScrollbar } from "element-plus";
 import SettingsMenu from "@/features/auth/components/Settings/menu.vue";
 import { smoothScrollTo } from "@/utils/smoothScroll"; // 引入上面的工具函数

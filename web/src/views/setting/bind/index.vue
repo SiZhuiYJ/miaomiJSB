@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { ThirdPartyBinding } from "@/features/auth/types";
-import { ref, onMounted, watch } from 'vue';
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia'
 import { authApi } from '@/features/auth/api';
@@ -209,13 +208,6 @@ const thirdPartyBindings = ref<thirdBinds[]>([
     },
 
 ]);
-
-watch(() => user.value?.thirdPartyBindings, (newBindings) => {
-    if (newBindings) {
-        // 当用户信息中的第三方绑定数据发生变化时，更新本地的绑定状态
-        // fetchThirdPartyBindings();
-    }
-}, { deep: true });
 
 onMounted(async () => {
     // 获取最新的第三方绑定信息

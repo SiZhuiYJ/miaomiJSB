@@ -2,7 +2,7 @@
 import SettingsMenu from "@/components/Menu/SettingsMenu.vue";
 import SettingsMenuItem from "@/components/Menu/SettingsMenuItem.vue";
 import router from "@/routers/index";
-import { ref } from "vue";
+
 const menuList = ref([
     { name: "个人信息", path: "/setting/profile" },
     { name: "账号修改", path: "/setting/account" },

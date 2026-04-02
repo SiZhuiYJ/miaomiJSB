@@ -1,4 +1,4 @@
-import { ref } from "vue";
+
 
 export default function useData() {
   const data = ref<{ id: Number; name: string }>();

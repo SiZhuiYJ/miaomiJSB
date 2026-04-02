@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, h } from "vue";
+
 import { useAuthStore } from "@/features/auth/stores";
 import { authApi } from "@/features/auth/api/index";
 import type { PasswordPayload } from "@/features/auth/types";

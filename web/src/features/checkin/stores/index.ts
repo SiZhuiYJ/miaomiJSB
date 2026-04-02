@@ -6,7 +6,7 @@ import type {
   CheckinRecord,
   RetroCheckinRecord,
 } from "../types";
-import { ref } from "vue";
+
 
 export const useCheckinsStore = defineStore("checkins", () => {
   const calendar = ref<CalendarItem[]>([]);

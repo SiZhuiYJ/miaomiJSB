@@ -1,4 +1,4 @@
-import type { App } from "vue";
+
 // import auth from "./modules/auth";
 import waterMarker from "./modules/waterMarker";
 import draggable from "./modules/draggable";
@@ -13,7 +13,7 @@ import videoObserver from "./modules/videoObserver";
 import slideIn from "./modules/slideIn";
 import progressive from "./modules/progressive";
 
-const directivesList: any = {
+const directivesList: { [key: string]: Directive } = {
   // auth,
   waterMarker,
   draggable,

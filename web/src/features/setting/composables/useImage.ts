@@ -1,7 +1,6 @@
 import { useAuthStore } from "@/stores"; // 根据实际路径调整
 import { notifySuccess, notifyError } from "@/utils/notification"; // 根据实际路径调整
 import { SettingApi } from "@/features/setting/api";
-import type { Ref } from "vue";
 
 // 假设 loading 是外部传入的响应式变量（ref）
 export function uploadFile(file: File, loading: Ref<boolean>) {

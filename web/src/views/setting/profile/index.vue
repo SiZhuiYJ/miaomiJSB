@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import nickname from '@/features/auth/components/Settings/nickname.vue';
 import router from "@/routers";
-import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import { API_BASE_URL } from '@/config';

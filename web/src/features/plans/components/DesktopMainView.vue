@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+
 import PlanSidebar from "@/features/plans/components/PlanSidebar.vue";
 import CalendarCell from "./CalendarCell.vue";
 import { usePlansStore } from "@/stores";

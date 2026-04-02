@@ -1,5 +1,4 @@
-import type { Directive, DirectiveBinding } from "vue";
-
+import type { Directive, DirectiveBinding } from 'vue'
 // 自适应表格高度
 interface ExHTMLElement extends HTMLElement {
   resizeListener: EventListener;
@@ -17,8 +16,8 @@ const setTableHeight = (el: ExHTMLElement, binding: DirectiveBinding) => {
   el.style.overflowY = "auto";
 };
 
-const resizeDirective: Directive<ExHTMLElement> = {
-  mounted(el, binding) {
+const resizeDirective: Directive = {
+  mounted(el: ExHTMLElement, binding: DirectiveBinding) {
     el.resizeListener = () => {
       requestAnimationFrame(() => {
         setTableHeight(el, binding);
@@ -29,10 +28,10 @@ const resizeDirective: Directive<ExHTMLElement> = {
     // 监听窗口大小变化事件
     window.addEventListener("resize", el.resizeListener);
   },
-  unmounted(el) {
+  unmounted(el: ExHTMLElement) {
     window.removeEventListener("resize", el.resizeListener);
   },
-  updated(el, binding) {
+  updated(el: ExHTMLElement, binding: DirectiveBinding) {
     // 确保更新后重新设置表格高度
     requestAnimationFrame(() => {
       setTableHeight(el, binding);

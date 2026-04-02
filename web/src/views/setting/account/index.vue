@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from "vue";
 import { useAuthStore } from "@/stores";
 import { authApi } from "@/features/auth/api";
 import { notifySuccess, notifyError } from "@/utils/notification";

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import ImageUploader from '@/features/file/components/ImageUploader.vue';
-import { ref, watch } from 'vue';
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia'
 import { notifySuccess } from '@/utils/notification';
@@ -29,7 +28,7 @@ const url = computed(() => {
 });
 watch(
     () => image.value,
-    (newVal) => {
+    (newVal: string) => {
         console.log(newVal)
     },
     {
@@ -48,8 +47,8 @@ function uploadImage() {
 </script>
 
 <template>
-    <el-image v-if="user?.avatarKey" style="width: 400px; height: 400px" :src="url" :fit="fit"
-        :preview-src-list="[url]" lazy />
+    <el-image v-if="user?.avatarKey" style="width: 400px; height: 400px" :src="url" :fit="fit" :preview-src-list="[url]"
+        lazy />
     <span v-else class="avatar-text-large">
         {{ (user ? (user?.nickName || user?.userAccount || user?.email).slice(0, 1).toUpperCase() : 'U') }}
     </span>

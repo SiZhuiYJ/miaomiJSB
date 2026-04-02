@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // 2495550774@qq.com
-import { ref, onMounted, useTemplateRef } from "vue";
-import { ElConfigProvider, dayjs } from "element-plus";
+
+import { dayjs } from "element-plus";
 import { setNotificationInstance } from "@/utils/notification";
 import NotificationSystem from "@/components/NotificationSystem/index.vue";
 import {
@@ -54,8 +54,6 @@ onMounted(async () => {
   }, 6000);
 });
 
-import { computed, nextTick, shallowReactive } from "vue";
-
 import type { ButtonInstance, DialogTransition } from "element-plus";
 
 type GlobalConfig = {
@@ -83,7 +81,7 @@ const globalConfig = computed<GlobalConfig>(() => {
     if (isObjectTransition.value) {
       transition = {
         css: false,
-        onBeforeEnter(el) {
+        onBeforeEnter(el: HTMLElement) {
           nextTick(() => {
             if (buttonRef.value) {
               const buttonRect = buttonRef.value.ref!.getBoundingClientRect();
@@ -107,7 +105,7 @@ const globalConfig = computed<GlobalConfig>(() => {
             }
           });
         },
-        onEnter(el, done) {
+        onEnter(el: HTMLElement, done: () => void) {
           nextTick(() => {
             const dialogEl = el.querySelector(".el-dialog") as HTMLElement;
             if (dialogEl) {
@@ -130,7 +128,7 @@ const globalConfig = computed<GlobalConfig>(() => {
             }
           });
         },
-        onLeave(el, done) {
+        onLeave(el: HTMLElement, done: () => void) {
           const dialogEl = el.querySelector(".el-dialog") as HTMLElement;
           if (dialogEl) {
             if (buttonRef.value) {
