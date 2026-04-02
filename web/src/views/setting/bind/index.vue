@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import type {  ThirdPartyBinding } from "@/features/auth/types";
+import type { ThirdPartyBinding } from "@/features/auth/types";
 import { ref, onMounted, watch } from 'vue';
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia'
 import { authApi } from '@/features/auth/api';
 import { notifySuccess, notifyError } from '@/utils/notification';
 import { toLocalDateOnlyString, parseDateOnly } from "@/utils/date";
+import SvgIcon from '@/components/SvgIcon/index.vue'
 
 const authStore = useAuthStore();
 const { user } = storeToRefs(authStore);
@@ -24,186 +25,186 @@ const thirdPartyBindings = ref<thirdBinds[]>([
     {
         name: '微信',
         provider: 'wechat',
-        icon: '/assets/icons/appIco/weixin.svg',
+        icon: 'appIcon-weixin',
         toggleBind: toggleWechatBind
     }, {
         name: '百度',
         provider: 'baidu',
-        icon: '/assets/icons/appIco/baidu.svg',
+        icon: 'appIcon-baidu',
         toggleBind: toggleBind
     },
     {
         name: '爱奇艺',
         provider: 'aiqiyi',
-        icon: '/assets/icons/appIco/aiqiyi.svg',
+        icon: 'appIcon-aiqiyi',
         toggleBind: toggleBind
     },
     {
         name: '百度贴吧',
         provider: 'baidutieba',
-        icon: '/assets/icons/appIco/baidutieba.svg',
+        icon: 'appIcon-baidutieba',
         toggleBind: toggleBind
     },
     {
         name: '哔哩哔哩',
         provider: 'bilibili',
-        icon: '/assets/icons/appIco/bilibili.svg',
+        icon: 'appIcon-bilibili',
         toggleBind: toggleBind
     },
     {
         name: '钉钉',
         provider: 'dingding',
-        icon: '/assets/icons/appIco/dingding.svg',
+        icon: 'appIcon-dingding',
         toggleBind: toggleBind
     },
     {
         name: '豆瓣网站',
         provider: 'doubanwang',
-        icon: '/assets/icons/appIco/doubanwang.svg',
+        icon: 'appIcon-doubanwang',
         toggleBind: toggleBind
     },
     {
         name: '饿了么',
         provider: 'elemo',
-        icon: '/assets/icons/appIco/elemo.svg',
+        icon: 'appIcon-elemo',
         toggleBind: toggleBind
     },
     {
         name: 'Facebook',
         provider: 'facebook',
-        icon: '/assets/icons/appIco/facebook.svg',
+        icon: 'appIcon-facebook',
         toggleBind: toggleBind
     },
     {
         name: '公众号',
         provider: 'gongzhonghao',
-        icon: '/assets/icons/appIco/gongzhonghao.svg',
+        icon: 'appIcon-gongzhonghao',
         toggleBind: toggleBind
     },
     {
         name: '谷歌',
         provider: 'google',
-        icon: '/assets/icons/appIco/google.svg',
+        icon: 'appIcon-google',
         toggleBind: toggleBind
     },
     {
         name: '花瓣网',
         provider: 'huabanwang',
-        icon: '/assets/icons/appIco/huabanwang.svg',
+        icon: 'appIcon-huabanwang',
         toggleBind: toggleBind
     },
     {
         name: '快手',
         provider: 'kuaishou',
-        icon: '/assets/icons/appIco/kuaishou.svg',
+        icon: 'appIcon-kuaishou',
         toggleBind: toggleBind
     },
     {
         name: '酷狗音乐',
         provider: 'kugouyinle',
-        icon: '/assets/icons/appIco/kugouyinle.svg',
+        icon: 'appIcon-kugouyinle',
         toggleBind: toggleBind
     },
     {
         name: 'LinkedIn',
         provider: 'linkedin',
-        icon: '/assets/icons/appIco/linkedin.svg',
+        icon: 'appIcon-linkedin',
         toggleBind: toggleBind
     },
     {
         name: '美团',
         provider: 'meituan',
-        icon: '/assets/icons/appIco/meituan.svg',
+        icon: 'appIcon-meituan',
         toggleBind: toggleBind
     },
     {
         name: '陌陌',
         provider: 'momo',
-        icon: '/assets/icons/appIco/momo.svg',
+        icon: 'appIcon-momo',
         toggleBind: toggleBind
     },
     {
         name: '企业微信',
         provider: 'qiyeweixin',
-        icon: '/assets/icons/appIco/qiyeweixin.svg',
+        icon: 'appIcon-qiyeweixin',
         toggleBind: toggleBind
     },
     {
         name: 'QQ音乐',
         provider: 'QQyinle',
-        icon: '/assets/icons/appIco/QQyinle.svg',
+        icon: 'appIcon-QQyinle',
         toggleBind: toggleBind
     },
     {
         name: '淘宝',
         provider: 'taobao',
-        icon: '/assets/icons/appIco/taobao.svg',
+        icon: 'appIcon-taobao',
         toggleBind: toggleBind
     },
     {
         name: '腾讯会议',
         provider: 'tengxunhuiyi',
-        icon: '/assets/icons/appIco/tengxunhuiyi.svg',
+        icon: 'appIcon-tengxunhuiyi',
         toggleBind: toggleBind
     },
     {
         name: '腾讯QQ',
         provider: 'tengxunQQ',
-        icon: '/assets/icons/appIco/tengxunQQ.svg',
+        icon: 'appIcon-tengxunQQ',
         toggleBind: toggleBind
     },
     {
         name: '腾讯视频',
         provider: 'tengxunshipin',
-        icon: '/assets/icons/appIco/tengxunshipin.svg',
+        icon: 'appIcon-tengxunshipin',
         toggleBind: toggleBind
     },
     {
         name: '腾讯微视',
         provider: 'tengxunweishi',
-        icon: '/assets/icons/appIco/tengxunweishi.svg',
+        icon: 'appIcon-tengxunweishi',
         toggleBind: toggleBind
     },
     {
         name: '推特',
         provider: 'twitter',
-        icon: '/assets/icons/appIco/twitter.svg',
+        icon: 'appIcon-twitter',
         toggleBind: toggleBind
     },
     {
         name: '网易云音乐',
         provider: 'wangyiyunyinle',
-        icon: '/assets/icons/appIco/wangyiyunyinle.svg',
+        icon: 'appIcon-wangyiyunyinle',
         toggleBind: toggleBind
     },
     {
         name: '小红书',
         provider: 'xiaohongshu',
-        icon: '/assets/icons/appIco/xiaohongshu.svg',
+        icon: 'appIcon-xiaohongshu',
         toggleBind: toggleBind
     },
     {
         name: '新浪微博',
         provider: 'xinlang',
-        icon: '/assets/icons/appIco/xinlang.svg',
+        icon: 'appIcon-xinlang',
         toggleBind: toggleBind
     },
     {
         name: 'YouTube',
         provider: 'youtube',
-        icon: '/assets/icons/appIco/youtube.svg',
+        icon: 'appIcon-youtube',
         toggleBind: toggleBind
     },
     {
         name: '支付宝',
         provider: 'zhifubao',
-        icon: '/assets/icons/appIco/zhifubao.svg',
+        icon: 'appIcon-zhifubao',
         toggleBind: toggleBind
     },
     {
         name: '知乎',
         provider: 'zhihu',
-        icon: '/assets/icons/appIco/zhihu.svg',
+        icon: 'appIcon-zhihu',
         toggleBind: toggleBind
     },
 
@@ -226,10 +227,11 @@ async function fetchThirdPartyBindings() {
     loading.value = true;
     try {
         const { data } = await authApi.getThirdPartyBindings();
+        console.log(data)
         if (data) {
             // 更新用户信息中的第三方绑定数据
             authStore.updateUser({
-                thirdPartyBindings: data
+                thirdPartyBindings: data.bindings
             });
         }
     } catch (error) {
@@ -243,7 +245,7 @@ async function fetchThirdPartyBindings() {
 // 检查特定提供商是否已绑定
 function hasProviderBind(provider: string) {
     const bindings = user.value?.thirdPartyBindings;
-
+    console.log(provider, Array.isArray(bindings), bindings?.some((binding: ThirdPartyBinding) => binding.provider === provider))
     // 确保bindings是数组后再调用some方法
     if (Array.isArray(bindings)) {
         return bindings.some((binding: ThirdPartyBinding) => binding.provider === provider);
@@ -360,21 +362,21 @@ async function toggleBind(bindName: string) {
 
         <div class="page-card">
             <div class="form-field">
-                <text class="label">第三方账号绑定</text>
+                <label class="label">第三方账号绑定</label>
                 <div class="desc">管理您绑定的第三方账号，用于便捷登录</div>
             </div>
 
             <div class="bind-list" v-if="!loading">
                 <div class="bind-item" v-for="binding in thirdPartyBindings" :key="binding.provider">
                     <div class="bind-info">
-                        <image class="bind-icon" :src="binding.icon" mode="aspectFit" />
+                        <svg-icon class="bind-icon" :icon-class="binding.icon" color="red" size="40px" />
                         <div class="bind-details">
-                            <text class="bind-name">{{ binding.name }}</text>
-                            <text class="bind-desc">
+                            <span class="bind-name">{{ binding.name }}</span>
+                            <span class="bind-desc">
                                 {{ hasProviderBind(binding.provider) ? '已绑定，' +
                                     toLocalDateOnlyString(parseDateOnly(getBindingDate(binding.provider)!))
                                     : '未绑定' }}
-                            </text>
+                            </span>
                         </div>
                     </div>
                     <button class="bind-btn"
@@ -391,6 +393,10 @@ async function toggleBind(bindName: string) {
 
 
 <style scoped lang="scss">
+.page-container {
+    min-width: 600px;
+}
+
 .bind-list {
     margin-top: 20px;
 }
@@ -399,7 +405,7 @@ async function toggleBind(bindName: string) {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 0;
+    padding: 8px 0;
     border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
 
     &:last-child {
@@ -443,16 +449,19 @@ async function toggleBind(bindName: string) {
     font-size: 14px;
     border: none;
     margin-left: 16px;
+
 }
 
 .bind-btn-primary {
     background-color: var(--theme-primary);
-    color: white;
+    color: var(--accent-alt);
+    border: 1px solid var(--accent-alt);
 }
 
 .unbind-btn {
     background-color: #f0f0f0;
     color: #ff4757;
+    border: 1px solid #ff4757;
 }
 
 .desc {

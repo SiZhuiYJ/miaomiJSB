@@ -13,8 +13,7 @@ import Components from "unplugin-vue-components/vite";
 import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 
 // 引入SVG图标插件
-import svgSprite from "vite-plugin-svg-sprite";
-// const { createSvgIconsPlugin } = vitePluginSvgIcons;
+import { createSvgIconsPlugin } from "vite-plugin-svg-icons";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -33,18 +32,18 @@ export default defineConfig({
       dts: "src/components.d.ts",
     }),
     // SVG图标插件，用于处理SVG雪碧图
-    svgSprite({
+    createSvgIconsPlugin({
       // 指定存放SVG图标的目录
-      include: ["src/assets/icons/**/*.svg", "src/assets/icons/*.svg"],
+      iconDirs: [path.resolve(__dirname, "src/assets/icons")],
       // 生成 symbol ID 格式
-      symbolId: "icon-[name]",
+      symbolId: "icon-[dir]-[name]",
     }),
     visualizer({
-      filename: 'stats.html', // 分析报告生成的文件名和路径
-      open: true,                  // 构建完成后自动在浏览器中打开报告
-      gzipSize: true,              // 显示 gzip 压缩后的大小
-      brotliSize: true,            // 显示 brotli 压缩后的大小
-      emitFile: true,              // 如果为 false，则不会生成文件，只在控制台输出
+      filename: "stats.html", // 分析报告生成的文件名和路径
+      open: true, // 构建完成后自动在浏览器中打开报告
+      gzipSize: true, // 显示 gzip 压缩后的大小
+      brotliSize: true, // 显示 brotli 压缩后的大小
+      emitFile: true, // 如果为 false，则不会生成文件，只在控制台输出
     }),
   ],
   // 开发服务器配置

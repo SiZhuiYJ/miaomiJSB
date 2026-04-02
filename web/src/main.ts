@@ -4,6 +4,9 @@ import App from "./App.vue";
 // 导入style样式
 import "./styles/index.scss";
 
+// svg图标
+import "virtual:svg-icons-register";
+
 // element-plus 主题样式
 import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";

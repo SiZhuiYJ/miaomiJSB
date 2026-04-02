@@ -130,14 +130,16 @@ export const authApi = {
    * @returns Promise<AuthData>
    */
   async updateProfileInfo(data: UserProfile) {
-    return await http.post<AuthData>('/mm/Auth/profile', data);
+    return await http.post<AuthData>("/mm/Auth/profile", data);
   },
   /**
    * 获取用户第三方平台绑定信息
    * @returns Promise<{ provider: string; boundAt: string; isBound: boolean }[] }
    */
   async getThirdPartyBindings() {
-    return await http.get<ThirdPartyBinding[]>('/mm/Auth/bindings');
+    return await http.get<{ bindings: ThirdPartyBinding[] }>(
+      "/mm/Auth/bindings",
+    );
   },
 };
 

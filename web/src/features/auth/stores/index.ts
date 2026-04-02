@@ -1,5 +1,9 @@
 import { defineStore } from "pinia";
-import type { AuthData, AuthUser, ThirdPartyBinding } from "@/features/auth/types";
+import type {
+  AuthData,
+  AuthUser,
+  ThirdPartyBinding,
+} from "@/features/auth/types";
 import router from "@/routers";
 import { CACHE_PREFIX } from "@/config";
 import { authApi } from "../api";
@@ -94,8 +98,13 @@ export const useAuthStore = defineStore(
           user.value.nickName = payload.nickName;
         if (payload.avatarKey !== undefined)
           user.value.avatarKey = payload.avatarKey;
-        if (payload.thirdPartyBindings !== undefined)
+        if (payload.thirdPartyBindings !== undefined) {
+          console.log(
+            payload.thirdPartyBindings,
+            user.value.thirdPartyBindings,
+          );
           user.value.thirdPartyBindings = payload.thirdPartyBindings;
+        }
       }
     }
 
@@ -115,8 +124,8 @@ export const useAuthStore = defineStore(
       try {
         localStorage.clear();
         sessionStorage.clear();
-        router.push('/login');
-      } catch { }
+        router.push("/login");
+      } catch {}
     }
 
     return {
