@@ -36,14 +36,14 @@ public class AuthController(
     IJwtTokenService jwtTokenService,
     IVerificationCodeService verificationCodeService,
     IWechatAuthService wechatAuthService,
-    IConnectionMultiplexer redis) : ControllerBase
+    IConnectionMultiplexer? redis) : ControllerBase
 {
     readonly DailyCheckDbContext _db = db;
     readonly IConfiguration _config = config;
     readonly IJwtTokenService _jwtTokenService = jwtTokenService;
     readonly IVerificationCodeService _verificationCodeService = verificationCodeService;
     readonly IWechatAuthService _wechatAuthService = wechatAuthService;
-    readonly IDatabase _redisDb = redis.GetDatabase();
+    readonly IDatabase? _redisDb = redis?.GetDatabase();
 
     /// <summary>
     /// 用户注册接口，创建新账号并返回访问令牌和刷新令牌。
@@ -599,6 +599,9 @@ public class AuthController(
             return Unauthorized("账号已被禁用");
 
         // 检查刷新令牌是否存在于Redis中
+        if (_redisDb == null)
+            return Unauthorized("服务端会话存储未启用，无法刷新登录状态");
+
         var storedRefreshToken = await _redisDb.StringGetAsync($"refresh_token:{userId}");
         if (storedRefreshToken.IsNullOrEmpty || storedRefreshToken != request.RefreshToken)
         {
@@ -979,10 +982,13 @@ public class AuthController(
             return Unauthorized("账号已被禁用");
 
         // 检查令牌是否仍然有效
-        var storedAccessToken = await _redisDb.StringGetAsync($"access_token:{userId}");
-        if (storedAccessToken.IsNullOrEmpty)
+        if (_redisDb != null)
         {
-            return Unauthorized("会话已过期，请重新登录");
+            var storedAccessToken = await _redisDb.StringGetAsync($"access_token:{userId}");
+            if (storedAccessToken.IsNullOrEmpty)
+            {
+                return Unauthorized("会话已过期，请重新登录");
+            }
         }
 
         return Ok(new UserBasicResponse
@@ -1192,6 +1198,9 @@ public class AuthController(
     /// <param name="cancellationToken">取消操作标记</param>
     private async Task StoreTokensInRedis(ulong userId, string accessToken, string refreshToken, CancellationToken cancellationToken)
     {
+        if (_redisDb == null)
+            return;
+
         // 存储访问令牌，设置过期时间 从appsettings获取更合理的过期时间
         var accessTokenExpiry = _config.GetValue<int>("jwt:AccessTokenMinutes", 1); // 默认值30
         await _redisDb.StringSetAsync($"access_token:{userId}", accessToken, TimeSpan.FromMinutes(accessTokenExpiry));
@@ -1208,6 +1217,9 @@ public class AuthController(
     /// <returns></returns>
     private async Task DeleteTokensFromRedis(ulong userId)
     {
+        if (_redisDb == null)
+            return;
+
         await _redisDb.KeyDeleteAsync($"access_token:{userId}");
         await _redisDb.KeyDeleteAsync($"refresh_token:{userId}");
     }
