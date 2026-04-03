@@ -17,21 +17,27 @@ namespace api.Infrastructure;
 public class RedisTokenValidationMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly IDatabase _redisDb;
+    private readonly IDatabase? _redisDb;
     private readonly JwtOptions _jwtOptions;
 
     public RedisTokenValidationMiddleware(
         RequestDelegate next, 
-        IConnectionMultiplexer redis,
+        IConnectionMultiplexer? redis,
         IOptions<JwtOptions> jwtOptions)
     {
         _next = next;
-        _redisDb = redis.GetDatabase();
+        _redisDb = redis?.GetDatabase();
         _jwtOptions = jwtOptions.Value;
     }
 
     public async Task InvokeAsync(HttpContext context)
     {
+        if (_redisDb == null)
+        {
+            await _next(context);
+            return;
+        }
+
         // 排除不需要token验证的接口
         var path = context.Request.Path.Value?.ToLowerInvariant();
         if (path == "/mm/auth/refresh" || 

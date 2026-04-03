@@ -38,6 +38,7 @@ public interface IFileService
 public class LocalFileService(IWebHostEnvironment env) : IFileService
 {
     readonly IWebHostEnvironment _env = env;
+    const long MaxImageBytes = 10 * 1024 * 1024;
 
     static readonly string[] AllowedExtensions = [
         ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"
@@ -48,6 +49,8 @@ public class LocalFileService(IWebHostEnvironment env) : IFileService
     {
         if (file == null || file.Length == 0)
             throw new InvalidOperationException("File is required");
+        if (file.Length > MaxImageBytes)
+            throw new InvalidOperationException("Image exceeds maximum size limit");
 
         var originalExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!AllowedExtensions.Contains(originalExtension))
@@ -57,7 +60,7 @@ public class LocalFileService(IWebHostEnvironment env) : IFileService
         Directory.CreateDirectory(root);
 
         string fileId;
-        using (var hashStream = file.OpenReadStream())
+        using (var hashStream = file.OpenReadStream(MaxImageBytes))
         {
             var hash = await SHA256.HashDataAsync(hashStream, cancellationToken);
             fileId = Convert.ToHexString(hash).ToLowerInvariant();
@@ -72,13 +75,13 @@ public class LocalFileService(IWebHostEnvironment env) : IFileService
             // 如果已经是 WebP，直接保存；否则转换
             if (originalExtension == ".webp")
             {
-                using var stream = file.OpenReadStream();
+                using var stream = file.OpenReadStream(MaxImageBytes);
                 using var fileStream = new FileStream(webpFilePath, FileMode.CreateNew, FileAccess.Write);
                 await stream.CopyToAsync(fileStream, cancellationToken);
             }
             else
             {
-                using var stream = file.OpenReadStream();
+                using var stream = file.OpenReadStream(MaxImageBytes);
                 using var image = await Image.LoadAsync(stream, cancellationToken);
                 await image.SaveAsWebpAsync(webpFilePath, cancellationToken);
             }
