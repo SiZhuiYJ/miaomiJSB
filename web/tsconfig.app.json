@@ -25,7 +25,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "src/typings/**/*.d.ts",
+    "src/**/*.d.ts",
     "src/auto-imports.d.ts" // 包含生成的类型文件
   ]
 }
