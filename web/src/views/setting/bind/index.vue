@@ -358,7 +358,7 @@ async function toggleBind(bindName: string) {
                 <div class="desc">管理您绑定的第三方账号，用于便捷登录</div>
             </div>
 
-            <div class="bind-list" v-if="!loading">
+            <div class="bind-list" v-loading="loading">
                 <div class="bind-item" v-for="binding in thirdPartyBindings" :key="binding.provider">
                     <div class="bind-info">
                         <svg-icon class="bind-icon" :icon-class="binding.icon" color="red" size="40px" />

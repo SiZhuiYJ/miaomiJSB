@@ -17,6 +17,7 @@ declare module 'vue' {
     ElCard: typeof import('element-plus/es')['ElCard']
     ElCollapse: typeof import('element-plus/es')['ElCollapse']
     ElCollapseItem: typeof import('element-plus/es')['ElCollapseItem']
+    ElConfigProvider: typeof import('element-plus/es')['ElConfigProvider']
     ElDatePicker: typeof import('element-plus/es')['ElDatePicker']
     ElDialog: typeof import('element-plus/es')['ElDialog']
     ElDrawer: typeof import('element-plus/es')['ElDrawer']
@@ -44,5 +45,8 @@ declare module 'vue' {
     SettingsMenu: typeof import('./components/Menu/SettingsMenu.vue')['default']
     SettingsMenuItem: typeof import('./components/Menu/SettingsMenuItem.vue')['default']
     SvgIcon: typeof import('./components/SvgIcon/index.vue')['default']
+  }
+  export interface GlobalDirectives {
+    vLoading: typeof import('element-plus/es')['ElLoadingDirective']
   }
 }

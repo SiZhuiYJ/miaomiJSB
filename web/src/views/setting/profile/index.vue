@@ -19,16 +19,18 @@ const url = computed(() => {
 const emailFix = ref<string[]>(['@qq.com', '@163.com', '@126.com', '@sina.com', '@aliyun.com']);
 const select = ref<string>();
 const fit = 'fill';
-watch(() => user.value?.email, (newEmail: string | null) => {
-    if (newEmail) {
-        inputEmail.value = extractEmail(newEmail);
-        select.value = '@' + extractDomain(newEmail);
-        emailDisabled.value = true;
-    } else {
-        inputEmail.value = '';
-        emailDisabled.value = false;
-    }
-}, { immediate: true });
+watch(
+    () => user.value?.email,
+    (newVal?: string) => {
+        if (newVal) {
+            inputEmail.value = extractEmail(newVal);
+            select.value = '@' + extractDomain(newVal);
+            emailDisabled.value = true;
+        } else {
+            inputEmail.value = '';
+            emailDisabled.value = false;
+        }
+    }, { immediate: true });
 </script>
 
 <template>

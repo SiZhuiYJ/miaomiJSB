@@ -55,7 +55,7 @@ onMounted(() => {
   </div>
 
   <div class="actions">
-    <button class="btn-save" :loading="loading" @click="handleSave">保存</button>
+    <el-button class="btn-save" :loading="loading" @click="handleSave">保存</el-button>
   </div>
 </template>
 
@@ -94,8 +94,6 @@ onMounted(() => {
 }
 
 .btn-save {
-  background-color: var(--theme-primary);
-  color: #fff;
   border-radius: 8px;
   font-size: 16px;
   height: 44px;
