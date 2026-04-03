@@ -122,6 +122,47 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
         return Ok(plans);
     }
 
+
+    /// <summary>
+    /// 获取当前登录用户的单个打卡计划详情。
+    /// </summary>
+    /// <param name="planId">计划ID。</param>
+    /// <returns>计划详情。</returns>
+    [HttpGet("{planId:ulong}")]
+    public async Task<ActionResult<PlanSummary>> GetPlanById(ulong planId)
+    {
+        var userId = GetUserId();
+        var plan = await _db.CheckinPlans
+            .Include(x => x.CheckinPlanTimeSlots)
+            .Where(x => x.Id == planId && x.UserId == userId && !x.IsDeleted)
+            .Select(x => new PlanSummary
+            {
+                Id = (long)x.Id,
+                CheckinMode = x.CheckinMode,
+                Title = x.Title,
+                Description = x.Description,
+                StartDate = x.StartDate,
+                EndDate = x.EndDate,
+                IsActive = x.IsActive,
+                TimeSlots = x.CheckinPlanTimeSlots
+                    .Where(ts => ts.IsActive == true)
+                    .OrderBy(ts => ts.OrderNum)
+                    .ThenBy(ts => ts.StartTime)
+                    .Select(ts => new TimeSlotDto
+                    {
+                        Id = ts.Id,
+                        SlotName = ts.SlotName,
+                        StartTime = ts.StartTime,
+                        EndTime = ts.EndTime,
+                        OrderNum = ts.OrderNum,
+                        IsActive = ts.IsActive ?? true
+                    }).ToList()
+            })
+            .SingleOrDefaultAsync();
+
+        return plan == null ? NotFound(new { message = "未找到计划" }) : Ok(plan);
+    }
+
     /// <summary>
     /// 创建新的打卡计划接口。
     /// 支持设置计划标题、描述、时间范围和时间段配置。
@@ -237,7 +278,7 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
             })]
         };
 
-        return CreatedAtAction(nameof(GetMyPlans), new { id = plan.Id }, result);
+        return CreatedAtAction(nameof(GetPlanById), new { planId = plan.Id }, result);
     }
 
     /// <summary>
@@ -278,14 +319,13 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
     /// <response code="204">计划更新成功</response>
     /// <response code="400">请求参数错误或时间段设置无效</response>
     /// <response code="404">计划不存在或无权限访问</response>
-    [HttpPost]
-    [Route("update")]
-    public async Task<ActionResult> UpdatePlan(UpdatePlanRequest request)
+    [HttpPut("{planId:ulong}")]
+    public async Task<ActionResult> UpdatePlan(ulong planId, [FromBody] UpdatePlanRequest request)
     {
         var userId = GetUserId();
         var plan = await _db.CheckinPlans
             .Include(x => x.CheckinPlanTimeSlots)
-            .FirstOrDefaultAsync(x => x.Id == request.Id && x.UserId == userId && !x.IsDeleted);
+            .FirstOrDefaultAsync(x => x.Id == planId && x.UserId == userId && !x.IsDeleted);
         if (plan == null)
         {
             return NotFound(new { message = "未找到计划" });
@@ -379,13 +419,12 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
     /// </returns>
     /// <response code="204">计划删除成功</response>
     /// <response code="404">计划不存在或无权限访问</response>
-    [HttpPost]
-    [Route("delete")]
-    public async Task<ActionResult> DeletePlan(ulong PlanId)
+    [HttpDelete("{planId:ulong}")]
+    public async Task<ActionResult> DeletePlan(ulong planId)
     {
         var userId = GetUserId();
         var plan = await _db.CheckinPlans
-            .FirstOrDefaultAsync(x => x.Id == PlanId && x.UserId == userId && !x.IsDeleted);
+            .FirstOrDefaultAsync(x => x.Id == planId && x.UserId == userId && !x.IsDeleted);
         if (plan == null)
         {
             return NotFound(new { message = "未找到计划" });
@@ -394,6 +433,27 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
         plan.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return NoContent();
+    }
+
+
+    /// <summary>
+    /// 兼容旧版客户端的计划删除接口（建议迁移到 DELETE /mm/plans/{planId}）。
+    /// </summary>
+    [HttpPost("delete")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public Task<ActionResult> DeletePlanLegacy([FromQuery] ulong planId)
+    {
+        return DeletePlan(planId);
+    }
+
+    /// <summary>
+    /// 兼容旧版客户端的计划更新接口（建议迁移到 PUT /mm/plans/{planId}）。
+    /// </summary>
+    [HttpPost("update")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public Task<ActionResult> UpdatePlanLegacy([FromBody] UpdatePlanRequest request)
+    {
+        return UpdatePlan(request.Id, request);
     }
 
 
