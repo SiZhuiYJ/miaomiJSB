@@ -73,8 +73,8 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
     /// <response code="400">参数错误、计划未开始、时间不在范围内或图片数量不符合要求</response>
     /// <response code="404">计划不存在</response>
     /// <response code="409">当天已打卡（重复打卡）</response>
-    [HttpPost("daily")]
-    public async Task<ActionResult> Daily(DailyCheckinRequest request)
+    [HttpPost]
+    public async Task<ActionResult> CreateTodayCheckin([FromBody] DailyCheckinRequest request)
     {
         var userId = GetUserId();
         var today = DateOnly.FromDateTime(DateTime.UtcNow.Date);
@@ -139,6 +139,17 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
         return Ok();
     }
 
+
+    /// <summary>
+    /// 兼容旧版客户端的当日打卡接口（建议迁移到 POST /mm/checkins）。
+    /// </summary>
+    [HttpPost("daily")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public Task<ActionResult> Daily([FromBody] DailyCheckinRequest request)
+    {
+        return CreateTodayCheckin(request);
+    }
+
     /// <summary>
     /// 补打卡接口，用于补录历史日期的打卡记录。
     /// 严格限制补打卡时间范围，防止滥用。
@@ -174,8 +185,8 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
     /// <response code="400">日期无效、计划未激活、时间验证失败或图片数量不符合要求</response>
     /// <response code="404">计划不存在</response>
     /// <response code="409">指定日期已存在打卡记录</response>
-    [HttpPost("retro")]
-    public async Task<ActionResult> Retro(RetroCheckinRequest request)
+    [HttpPost("backfill")]
+    public async Task<ActionResult> CreateBackfillCheckin([FromBody] RetroCheckinRequest request)
     {
         var userId = GetUserId();
         var now = DateTime.UtcNow.AddHours(8);
@@ -246,6 +257,17 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
         return Ok();
     }
 
+
+    /// <summary>
+    /// 兼容旧版客户端的补打卡接口（建议迁移到 POST /mm/checkins/backfill）。
+    /// </summary>
+    [HttpPost("retro")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public Task<ActionResult> Retro([FromBody] RetroCheckinRequest request)
+    {
+        return CreateBackfillCheckin(request);
+    }
+
     /// <summary>
     /// 获取指定打卡计划的月度打卡日历状态接口。
     /// 支持两种打卡模式：默认模式和时间段模式。
@@ -290,8 +312,8 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
     /// </returns>
     /// <response code="200">获取日历状态成功</response>
     /// <response code="404">计划不存在或无权限访问</response>
-    [HttpGet("calendar")]
-    public async Task<ActionResult<List<CalendarStatusItem>>> GetCalendar(long planId, int year, int month)
+    [HttpGet("plans/{planId:long}/calendar")]
+    public async Task<ActionResult<List<CalendarStatusItem>>> GetCalendar(long planId, [FromQuery] int year, [FromQuery] int month)
     {
         var userId = GetUserId();
         var plan = await db.CheckinPlans.SingleOrDefaultAsync(x => x.Id == (ulong)planId && x.UserId == userId && !x.IsDeleted);
@@ -394,6 +416,17 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
         return Ok(result);
     }
 
+
+    /// <summary>
+    /// 兼容旧版客户端的日历接口（建议迁移到 GET /mm/checkins/plans/{planId}/calendar）。
+    /// </summary>
+    [HttpGet("calendar")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public Task<ActionResult<List<CalendarStatusItem>>> GetCalendarLegacy([FromQuery] long planId, [FromQuery] int year, [FromQuery] int month)
+    {
+        return GetCalendar(planId, year, month);
+    }
+
     /// <summary>
     /// 获取指定日期的打卡详情接口。
     /// 返回特定日期的所有打卡记录，包括图片、备注等详细信息。
@@ -436,8 +469,8 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
     /// </returns>
     /// <response code="200">获取打卡详情成功</response>
     /// <response code="404">计划不存在或指定日期无打卡记录</response>
-    [HttpGet("detail")]
-    public async Task<ActionResult<List<CheckinDetailResponse>>> GetDetail(long planId, DateOnly date)
+    [HttpGet("plans/{planId:long}/details")]
+    public async Task<ActionResult<List<CheckinDetailResponse>>> GetDetail(long planId, [FromQuery] DateOnly date)
     {
         var userId = GetUserId();
 
@@ -479,6 +512,17 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
         }).ToList();
 
         return Ok(result); // 注意：这里返回类型变为了 List，前端需要适配
+    }
+
+
+    /// <summary>
+    /// 兼容旧版客户端的打卡详情接口（建议迁移到 GET /mm/checkins/plans/{planId}/details）。
+    /// </summary>
+    [HttpGet("detail")]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public Task<ActionResult<List<CheckinDetailResponse>>> GetDetailLegacy([FromQuery] long planId, [FromQuery] DateOnly date)
+    {
+        return GetDetail(planId, date);
     }
 
     /// <summary>
