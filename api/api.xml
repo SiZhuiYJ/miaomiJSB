@@ -536,14 +536,13 @@
             <response code="400">账号名为空</response>
             <response code="409">账号名已被占用</response>
         </member>
-        <member name="M:api.Controllers.AuthController.StoreTokensInRedis(System.UInt64,System.String,System.String,System.Threading.CancellationToken)">
+        <member name="M:api.Controllers.AuthController.StoreTokensInRedis(System.UInt64,System.String,System.String)">
             <summary>
             将访问令牌和刷新令牌存储到Redis
             </summary>
             <param name="userId">用户ID</param>
             <param name="accessToken">访问令牌</param>
             <param name="refreshToken">刷新令牌</param>
-            <param name="cancellationToken">取消操作标记</param>
         </member>
         <member name="M:api.Controllers.AuthController.DeleteTokensFromRedis(System.UInt64)">
             <summary>
@@ -685,8 +684,48 @@
             </remarks>
             <param name="db">打卡系统数据库上下文，用于数据持久化操作。</param>
         </member>
-        <!-- Badly formed XML comment ignored for member "M:api.Controllers.CheckinsController.Daily(api.Models.DailyCheckinRequest)" -->
-        <member name="M:api.Controllers.CheckinsController.Retro(api.Models.RetroCheckinRequest)">
+        <member name="M:api.Controllers.CheckinsController.CreateTodayCheckin(api.Models.DailyCheckinRequest)">
+             <summary>
+             用户当日打卡接口，用于记录用户当天的打卡行为。
+             支持时间段打卡模式，验证打卡时间是否在有效范围内。
+             强制要求上传1-3张图片作为打卡凭证。
+             自动检测重复打卡，防止同一时间段多次打卡。
+             </summary>
+             <remarks>
+             打卡规则说明：
+             • 时间验证：必须在指定时间段内打卡
+             • 图片要求：1-3张图片作为打卡凭证
+             • 防重复：同一时间段当天只能打卡一次
+             • 计划检查：验证计划是否激活且已开始
+             
+             时间段打卡逻辑：
+             • 有时间段的计划：必须选择具体时间段
+             • 无时间段的计划：全天任意时间可打卡
+             • 时间窗口：开始时间 ≤ 当前时间 ≤ 结束时间
+            
+             数据验证：
+             • 计划存在性检查
+             • 用户权限验证
+             • 时间有效性验证
+             • 图片数量验证
+             • 重复打卡检测
+             </remarks>
+             <param name="request">当日打卡请求参数，包含计划ID、图片URL和备注。</param>
+             <returns>
+             成功时返回200 OK；
+             失败时返回相应错误状态码和详细信息。
+             </returns>
+             <response code="200">打卡成功</response>
+             <response code="400">参数错误、计划未开始、时间不在范围内或图片数量不符合要求</response>
+             <response code="404">计划不存在</response>
+             <response code="409">当天已打卡（重复打卡）</response>
+        </member>
+        <member name="M:api.Controllers.CheckinsController.Daily(api.Models.DailyCheckinRequest)">
+            <summary>
+            兼容旧版客户端的当日打卡接口（建议迁移到 POST /mm/checkins）。
+            </summary>
+        </member>
+        <member name="M:api.Controllers.CheckinsController.CreateBackfillCheckin(api.Models.RetroCheckinRequest)">
             <summary>
             补打卡接口，用于补录历史日期的打卡记录。
             严格限制补打卡时间范围，防止滥用。
@@ -722,6 +761,11 @@
             <response code="400">日期无效、计划未激活、时间验证失败或图片数量不符合要求</response>
             <response code="404">计划不存在</response>
             <response code="409">指定日期已存在打卡记录</response>
+        </member>
+        <member name="M:api.Controllers.CheckinsController.Retro(api.Models.RetroCheckinRequest)">
+            <summary>
+            兼容旧版客户端的补打卡接口（建议迁移到 POST /mm/checkins/backfill）。
+            </summary>
         </member>
         <member name="M:api.Controllers.CheckinsController.GetCalendar(System.Int64,System.Int32,System.Int32)">
             <summary>
@@ -769,6 +813,11 @@
             <response code="200">获取日历状态成功</response>
             <response code="404">计划不存在或无权限访问</response>
         </member>
+        <member name="M:api.Controllers.CheckinsController.GetCalendarLegacy(System.Int64,System.Int32,System.Int32)">
+            <summary>
+            兼容旧版客户端的日历接口（建议迁移到 GET /mm/checkins/plans/{planId}/calendar）。
+            </summary>
+        </member>
         <member name="M:api.Controllers.CheckinsController.GetDetail(System.Int64,System.DateOnly)">
             <summary>
             获取指定日期的打卡详情接口。
@@ -812,6 +861,11 @@
             </returns>
             <response code="200">获取打卡详情成功</response>
             <response code="404">计划不存在或指定日期无打卡记录</response>
+        </member>
+        <member name="M:api.Controllers.CheckinsController.GetDetailLegacy(System.Int64,System.DateOnly)">
+            <summary>
+            兼容旧版客户端的打卡详情接口（建议迁移到 GET /mm/checkins/plans/{planId}/details）。
+            </summary>
         </member>
         <member name="M:api.Controllers.CheckinsController.GetUserId">
             <summary>
@@ -1121,6 +1175,13 @@
             </returns>
             <response code="200">获取计划列表成功</response>
         </member>
+        <member name="M:api.Controllers.PlansController.GetPlanById(System.UInt64)">
+            <summary>
+            获取当前登录用户的单个打卡计划详情。
+            </summary>
+            <param name="planId">计划ID。</param>
+            <returns>计划详情。</returns>
+        </member>
         <member name="M:api.Controllers.PlansController.CreatePlan(api.Models.CreatePlanRequest)">
             <summary>
             创建新的打卡计划接口。
@@ -1157,7 +1218,7 @@
             <response code="201">计划创建成功</response>
             <response code="400">请求参数错误，如时间段设置无效</response>
         </member>
-        <member name="M:api.Controllers.PlansController.UpdatePlan(api.Models.UpdatePlanRequest)">
+        <member name="M:api.Controllers.PlansController.UpdatePlan(System.UInt64,api.Models.UpdatePlanRequest)">
             <summary>
             更新指定打卡计划接口。
             支持更新计划的基本信息和时间段配置。
@@ -1234,6 +1295,16 @@
             </returns>
             <response code="204">计划删除成功</response>
             <response code="404">计划不存在或无权限访问</response>
+        </member>
+        <member name="M:api.Controllers.PlansController.DeletePlanLegacy(System.UInt64)">
+            <summary>
+            兼容旧版客户端的计划删除接口（建议迁移到 DELETE /mm/plans/{planId}）。
+            </summary>
+        </member>
+        <member name="M:api.Controllers.PlansController.UpdatePlanLegacy(api.Models.UpdatePlanRequest)">
+            <summary>
+            兼容旧版客户端的计划更新接口（建议迁移到 PUT /mm/plans/{planId}）。
+            </summary>
         </member>
         <member name="M:api.Controllers.PlansController.GetUserId">
             <summary>
@@ -1885,6 +1956,11 @@
             <summary>
             Redis Token验证中间件，在每个请求前检查Redis中的token状态
             确保访问令牌在Redis中仍然有效，避免JWT过期时间与Redis状态不一致的问题
+            </summary>
+        </member>
+        <member name="T:api.Infrastructure.ULongRouteConstraint">
+            <summary>
+            支持在路由模板中使用 <c>{id:ulong}</c> 约束。
             </summary>
         </member>
         <member name="T:api.Infrastructure.SendCodeStatus">
