@@ -128,7 +128,7 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
     /// </summary>
     /// <param name="planId">计划ID。</param>
     /// <returns>计划详情。</returns>
-    [HttpGet("{planId:ulong}")]
+    [HttpGet("{planId}")]
     public async Task<ActionResult<PlanSummary>> GetPlanById(ulong planId)
     {
         var userId = GetUserId();
@@ -319,7 +319,7 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
     /// <response code="204">计划更新成功</response>
     /// <response code="400">请求参数错误或时间段设置无效</response>
     /// <response code="404">计划不存在或无权限访问</response>
-    [HttpPut("{planId:ulong}")]
+    [HttpPut("{planId}")]
     public async Task<ActionResult> UpdatePlan(ulong planId, [FromBody] UpdatePlanRequest request)
     {
         var userId = GetUserId();
@@ -419,7 +419,7 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
     /// </returns>
     /// <response code="204">计划删除成功</response>
     /// <response code="404">计划不存在或无权限访问</response>
-    [HttpDelete("{planId:ulong}")]
+    [HttpDelete("{planId}")]
     public async Task<ActionResult> DeletePlan(ulong planId)
     {
         var userId = GetUserId();
