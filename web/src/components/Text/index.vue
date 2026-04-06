@@ -29,8 +29,8 @@ const props = withDefaults(defineProps<Props>(), {
     gap: 40,
 });
 
-const containerRef = ref<HTMLElement>();
-const contentRef = ref<HTMLElement>();
+// const containerRef = ref<HTMLElement>();
+// const contentRef = ref<HTMLElement>();
 const textRef = ref<HTMLElement>();
 
 const textWidth = ref(0);

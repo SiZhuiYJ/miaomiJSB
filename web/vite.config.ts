@@ -70,6 +70,7 @@ export default defineConfig({
    * 构建配置
    */
   build: {
+    cssCodeSplit: true, // 保持CSS分包
     rollupOptions: {
       output: {
         chunkFileNames: "js/[name]-[hash].js", // 引入文件名的名称

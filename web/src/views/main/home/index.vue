@@ -43,7 +43,7 @@ onMounted(async () => {
 });
 
 watch(
-  () => [selectedPlanId.value, currentYear.value, currentMonth.value],
+  () => [selectedPlanId.value, currentYear.value, currentMonth.value] as [number | null, number, number],
   async (vals: [number | null, number, number]) => {
     const planId = vals[0];
     if (!planId) return;

@@ -52,186 +52,186 @@ const thirdPartyBindings = ref<thirdBinds[]>([
   {
     name: '微信',
     provider: 'wechat',
-    icon: '/static/svg/appIco/weixin.svg',
+    icon: '/static/svg/appIcon/weixin.svg',
     toggleBind: toggleWechatBind
   }, {
     name: '百度',
     provider: 'baidu',
-    icon: '/static/svg/appIco/baidu.svg',
+    icon: '/static/svg/appIcon/baidu.svg',
     toggleBind: toggleBind
   },
   {
     name: '爱奇艺',
     provider: 'aiqiyi',
-    icon: '/static/svg/appIco/aiqiyi.svg',
+    icon: '/static/svg/appIcon/aiqiyi.svg',
     toggleBind: toggleBind
   },
   {
     name: '百度贴吧',
     provider: 'baidutieba',
-    icon: '/static/svg/appIco/baidutieba.svg',
+    icon: '/static/svg/appIcon/baidutieba.svg',
     toggleBind: toggleBind
   },
   {
     name: '哔哩哔哩',
     provider: 'bilibili',
-    icon: '/static/svg/appIco/bilibili.svg',
+    icon: '/static/svg/appIcon/bilibili.svg',
     toggleBind: toggleBind
   },
   {
     name: '钉钉',
     provider: 'dingding',
-    icon: '/static/svg/appIco/dingding.svg',
+    icon: '/static/svg/appIcon/dingding.svg',
     toggleBind: toggleBind
   },
   {
     name: '豆瓣网站',
     provider: 'doubanwang',
-    icon: '/static/svg/appIco/doubanwang.svg',
+    icon: '/static/svg/appIcon/doubanwang.svg',
     toggleBind: toggleBind
   },
   {
     name: '饿了么',
     provider: 'elemo',
-    icon: '/static/svg/appIco/elemo.svg',
+    icon: '/static/svg/appIcon/elemo.svg',
     toggleBind: toggleBind
   },
   {
     name: 'Facebook',
     provider: 'facebook',
-    icon: '/static/svg/appIco/facebook.svg',
+    icon: '/static/svg/appIcon/facebook.svg',
     toggleBind: toggleBind
   },
   {
     name: '公众号',
     provider: 'gongzhonghao',
-    icon: '/static/svg/appIco/gongzhonghao.svg',
+    icon: '/static/svg/appIcon/gongzhonghao.svg',
     toggleBind: toggleBind
   },
   {
     name: '谷歌',
     provider: 'google',
-    icon: '/static/svg/appIco/google.svg',
+    icon: '/static/svg/appIcon/google.svg',
     toggleBind: toggleBind
   },
   {
     name: '花瓣网',
     provider: 'huabanwang',
-    icon: '/static/svg/appIco/huabanwang.svg',
+    icon: '/static/svg/appIcon/huabanwang.svg',
     toggleBind: toggleBind
   },
   {
     name: '快手',
     provider: 'kuaishou',
-    icon: '/static/svg/appIco/kuaishou.svg',
+    icon: '/static/svg/appIcon/kuaishou.svg',
     toggleBind: toggleBind
   },
   {
     name: '酷狗音乐',
     provider: 'kugouyinle',
-    icon: '/static/svg/appIco/kugouyinle.svg',
+    icon: '/static/svg/appIcon/kugouyinle.svg',
     toggleBind: toggleBind
   },
   {
     name: 'LinkedIn',
     provider: 'linkedin',
-    icon: '/static/svg/appIco/linkedin.svg',
+    icon: '/static/svg/appIcon/linkedin.svg',
     toggleBind: toggleBind
   },
   {
     name: '美团',
     provider: 'meituan',
-    icon: '/static/svg/appIco/meituan.svg',
+    icon: '/static/svg/appIcon/meituan.svg',
     toggleBind: toggleBind
   },
   {
     name: '陌陌',
     provider: 'momo',
-    icon: '/static/svg/appIco/momo.svg',
+    icon: '/static/svg/appIcon/momo.svg',
     toggleBind: toggleBind
   },
   {
     name: '企业微信',
     provider: 'qiyeweixin',
-    icon: '/static/svg/appIco/qiyeweixin.svg',
+    icon: '/static/svg/appIcon/qiyeweixin.svg',
     toggleBind: toggleBind
   },
   {
     name: 'QQ音乐',
     provider: 'QQyinle',
-    icon: '/static/svg/appIco/QQyinle.svg',
+    icon: '/static/svg/appIcon/QQyinle.svg',
     toggleBind: toggleBind
   },
   {
     name: '淘宝',
     provider: 'taobao',
-    icon: '/static/svg/appIco/taobao.svg',
+    icon: '/static/svg/appIcon/taobao.svg',
     toggleBind: toggleBind
   },
   {
     name: '腾讯会议',
     provider: 'tengxunhuiyi',
-    icon: '/static/svg/appIco/tengxunhuiyi.svg',
+    icon: '/static/svg/appIcon/tengxunhuiyi.svg',
     toggleBind: toggleBind
   },
   {
     name: '腾讯QQ',
     provider: 'tengxunQQ',
-    icon: '/static/svg/appIco/tengxunQQ.svg',
+    icon: '/static/svg/appIcon/tengxunQQ.svg',
     toggleBind: toggleBind
   },
   {
     name: '腾讯视频',
     provider: 'tengxunshipin',
-    icon: '/static/svg/appIco/tengxunshipin.svg',
+    icon: '/static/svg/appIcon/tengxunshipin.svg',
     toggleBind: toggleBind
   },
   {
     name: '腾讯微视',
     provider: 'tengxunweishi',
-    icon: '/static/svg/appIco/tengxunweishi.svg',
+    icon: '/static/svg/appIcon/tengxunweishi.svg',
     toggleBind: toggleBind
   },
   {
     name: '推特',
     provider: 'twitter',
-    icon: '/static/svg/appIco/twitter.svg',
+    icon: '/static/svg/appIcon/twitter.svg',
     toggleBind: toggleBind
   },
   {
     name: '网易云音乐',
     provider: 'wangyiyunyinle',
-    icon: '/static/svg/appIco/wangyiyunyinle.svg',
+    icon: '/static/svg/appIcon/wangyiyunyinle.svg',
     toggleBind: toggleBind
   },
   {
     name: '小红书',
     provider: 'xiaohongshu',
-    icon: '/static/svg/appIco/xiaohongshu.svg',
+    icon: '/static/svg/appIcon/xiaohongshu.svg',
     toggleBind: toggleBind
   },
   {
     name: '新浪微博',
     provider: 'xinlang',
-    icon: '/static/svg/appIco/xinlang.svg',
+    icon: '/static/svg/appIcon/xinlang.svg',
     toggleBind: toggleBind
   },
   {
     name: 'YouTube',
     provider: 'youtube',
-    icon: '/static/svg/appIco/youtube.svg',
+    icon: '/static/svg/appIcon/youtube.svg',
     toggleBind: toggleBind
   },
   {
     name: '支付宝',
     provider: 'zhifubao',
-    icon: '/static/svg/appIco/zhifubao.svg',
+    icon: '/static/svg/appIcon/zhifubao.svg',
     toggleBind: toggleBind
   },
   {
     name: '知乎',
     provider: 'zhihu',
-    icon: '/static/svg/appIco/zhihu.svg',
+    icon: '/static/svg/appIcon/zhihu.svg',
     toggleBind: toggleBind
   },
 

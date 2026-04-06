@@ -81,11 +81,11 @@ const globalConfig = computed<GlobalConfig>(() => {
     if (isObjectTransition.value) {
       transition = {
         css: false,
-        onBeforeEnter(el: HTMLElement) {
+        onBeforeEnter(el: Element) {
           nextTick(() => {
             if (buttonRef.value) {
               const buttonRect = buttonRef.value.ref!.getBoundingClientRect();
-              const dialogEl = el.querySelector(".el-dialog") as HTMLElement;
+              const dialogEl = (el as HTMLElement).querySelector(".el-dialog") as HTMLElement;
 
               if (dialogEl) {
                 const dialogRect = dialogEl.getBoundingClientRect();
@@ -105,9 +105,9 @@ const globalConfig = computed<GlobalConfig>(() => {
             }
           });
         },
-        onEnter(el: HTMLElement, done: () => void) {
+        onEnter(el: Element, done: () => void) {
           nextTick(() => {
-            const dialogEl = el.querySelector(".el-dialog") as HTMLElement;
+            const dialogEl = (el as HTMLElement).querySelector(".el-dialog") as HTMLElement | null;
             if (dialogEl) {
               // force reflow
               dialogEl.offsetHeight;
@@ -128,11 +128,11 @@ const globalConfig = computed<GlobalConfig>(() => {
             }
           });
         },
-        onLeave(el: HTMLElement, done: () => void) {
-          const dialogEl = el.querySelector(".el-dialog") as HTMLElement;
+        onLeave(el: Element, done: () => void) {
+          const dialogEl = (el as HTMLElement).querySelector(".el-dialog") as HTMLElement | null;
           if (dialogEl) {
-            if (buttonRef.value) {
-              const buttonRect = buttonRef.value.ref!.getBoundingClientRect();
+            if (buttonRef.value?.ref) {
+              const buttonRect = (buttonRef.value.ref as HTMLElement).getBoundingClientRect();
               const dialogRect = dialogEl.getBoundingClientRect();
 
               const currentTransform = dialogEl.style.transform;

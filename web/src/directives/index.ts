@@ -1,5 +1,6 @@
 
 // import auth from "./modules/auth";
+import type { App, Directive } from "vue";
 import waterMarker from "./modules/waterMarker";
 import draggable from "./modules/draggable";
 import debounce from "./modules/debounce";
@@ -33,7 +34,10 @@ const directives = {
   install: function (app: App<Element>) {
     Object.keys(directivesList).forEach((key) => {
       // 注册所有自定义指令
-      app.directive(key, directivesList[key]);
+      const directive = directivesList[key];
+      if (directive) {
+        app.directive(key, directive);
+      }
     });
   },
 };
