@@ -349,12 +349,11 @@ async function toggleBind(bindName: string) {
 }
 </script>
 <template>
-    <div class="page-container">
-
-        <div class="page-card">
-            <div class="form-field">
-                <label class="label">第三方账号绑定</label>
-                <div class="desc">管理您绑定的第三方账号，用于便捷登录</div>
+    <div class="setting-subpage">
+        <div class="setting-card">
+            <div class="setting-header">
+                <h3 class="setting-title">第三方账号绑定</h3>
+                <p class="setting-subtitle">管理您绑定的第三方账号，用于便捷登录。</p>
             </div>
 
             <div class="bind-list" v-loading="loading">
@@ -384,12 +383,37 @@ async function toggleBind(bindName: string) {
 
 
 <style scoped lang="scss">
-.page-container {
-    min-width: 600px;
+.setting-subpage {
+    width: min(760px, 92vw);
+    margin: 24px auto;
+}
+
+.setting-card {
+    background-color: var(--bg-elevated);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.setting-header {
+    margin-bottom: 16px;
+}
+
+.setting-title {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-color);
+}
+
+.setting-subtitle {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 13px;
 }
 
 .bind-list {
-    margin-top: 20px;
+    margin-top: 8px;
 }
 
 .bind-item {
@@ -453,11 +477,5 @@ async function toggleBind(bindName: string) {
     background-color: #f0f0f0;
     color: #ff4757;
     border: 1px solid #ff4757;
-}
-
-.desc {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-top: 8px;
 }
 </style>

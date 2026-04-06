@@ -63,8 +63,12 @@ async function handleSave() {
 </script>
 
 <template>
-  <div class="container">
-    <div class="card">
+  <div class="setting-subpage">
+    <div class="setting-card">
+      <div class="setting-header">
+        <h3 class="setting-title">账号修改</h3>
+        <p class="setting-subtitle">账号名将作为全局唯一标识，请谨慎修改。</p>
+      </div>
       <div class="form-group">
         <div class="field">
           <text class="label">账号名 (全局唯一)</text>
@@ -90,18 +94,34 @@ async function handleSave() {
 </template>
 
 <style scoped lang="scss">
-.container {
-  min-height: 100vh;
-  box-sizing: border-box;
-  background-color: var(--bg-color);
-  padding: 20px;
+.setting-subpage {
+  width: min(760px, 92vw);
+  margin: 24px auto;
 }
 
-.card {
+.setting-card {
   background-color: var(--bg-elevated);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 16px;
+  padding: 24px;
   margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.setting-header {
+  margin-bottom: 16px;
+}
+
+.setting-title {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text-color);
+}
+
+.setting-subtitle {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 .form-group {
@@ -170,6 +190,6 @@ async function handleSave() {
 }
 
 .actions {
-  padding: 0 10px;
+  padding: 0;
 }
 </style>
