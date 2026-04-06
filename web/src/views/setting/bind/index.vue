@@ -237,7 +237,6 @@ async function fetchThirdPartyBindings() {
 // 检查特定提供商是否已绑定
 function hasProviderBind(provider: string) {
     const bindings = user.value?.thirdPartyBindings;
-    console.log(provider, Array.isArray(bindings), bindings?.some((binding: ThirdPartyBinding) => binding.provider === provider))
     // 确保bindings是数组后再调用some方法
     if (Array.isArray(bindings)) {
         return bindings.some((binding: ThirdPartyBinding) => binding.provider === provider);

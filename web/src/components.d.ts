@@ -38,6 +38,7 @@ declare module 'vue' {
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTimePicker: typeof import('element-plus/es')['ElTimePicker']
     GlobalIcon: typeof import('./components/GlobalIcon/index.vue')['default']
+    Intex: typeof import('./components/Text/intex.vue')['default']
     NotificationSystem: typeof import('./components/NotificationSystem/index.vue')['default']
     ProgressBar: typeof import('./components/ProgressBar/index.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
@@ -45,6 +46,7 @@ declare module 'vue' {
     SettingsMenu: typeof import('./components/Menu/SettingsMenu.vue')['default']
     SettingsMenuItem: typeof import('./components/Menu/SettingsMenuItem.vue')['default']
     SvgIcon: typeof import('./components/SvgIcon/index.vue')['default']
+    Text: typeof import('./components/Text/index.vue')['default']
   }
   export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']
