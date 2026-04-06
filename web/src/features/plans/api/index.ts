@@ -4,15 +4,15 @@ import type { PlanSummary, PlanPayload, UpdatePlan } from "../types";
 
 export const plansApi = {
   async getPlans() {
-    return await http.get<PlanSummary[]>("/mm/Plans");
+    return await http.get<PlanSummary[]>("/mm/plans");
   },
   async CreatePlan(data: PlanPayload) {
-    return await http.post<PlanSummary>("/mm/Plans", data);
+    return await http.post<PlanSummary>("/mm/plans", data);
   },
   async UpdatePlan(data: UpdatePlan) {
-    return await http.post("/mm/Plans/update", data);
+    return await http.put(`/mm/plans/${data.id}`, data);
   },
   async deletePlan(id: number) {
-    return await http.post(`/mm/Plans/delete?PlanId=${id}`);
+    return await http.delete(`/mm/plans/${id}`);
   },
 };

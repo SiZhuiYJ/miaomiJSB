@@ -29,8 +29,8 @@ export const useCheckinsStore = defineStore('checkins', {
   actions: {
     async loadCalendar(planId: number, year: number, month: number): Promise<void> {
       const response = await http.get<CalendarItem[]>(
-        '/mm/Checkins/calendar',
-        { params: { planId, year, month } },
+        `/mm/checkins/plans/${planId}/calendar`,
+        { params: { year, month } },
       );
       this.calendar = response.data;
       this.calendarByPlan[planId] = response.data;
@@ -84,8 +84,8 @@ export const useCheckinsStore = defineStore('checkins', {
           
           // Use a separate request that doesn't affect state.calendarByPlan
           tasks.push(
-            http.get<CalendarItem[]>('/mm/Checkins/calendar', { 
-              params: { planId: plan.id, year: y, month: m } 
+            http.get<CalendarItem[]>(`/mm/checkins/plans/${plan.id}/calendar`, { 
+              params: { year: y, month: m } 
             }).then(res => res.data)
           );
 
@@ -129,7 +129,7 @@ export const useCheckinsStore = defineStore('checkins', {
       note?: string;
       timeSlotId?: number;
     }): Promise<void> {
-      await http.post('/mm/Checkins/daily', payload);
+      await http.post('/mm/checkins', payload);
     },
     async retroCheckin(payload: {
       planId: number;
@@ -138,12 +138,12 @@ export const useCheckinsStore = defineStore('checkins', {
       note?: string;
       timeSlotId?: number;
     }): Promise<void> {
-      await http.post('/mm/Checkins/retro', payload);
+      await http.post('/mm/checkins/backfill', payload);
     },
     async getCheckinDetail(planId: number, date: string): Promise<CheckinDetail[]> {
       const response = await http.get<CheckinDetail[]>(
-        '/mm/Checkins/detail',
-        { params: { planId, date } },
+        `/mm/checkins/plans/${planId}/details`,
+        { params: { date } },
       );
       return response.data;
     },

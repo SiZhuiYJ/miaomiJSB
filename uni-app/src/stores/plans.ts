@@ -34,7 +34,7 @@ export const usePlansStore = defineStore('plans', {
     async fetchMyPlans(): Promise<void> {
       this.loading = true;
       try {
-        const response = await http.get<PlanSummary[]>('/mm/Plans');
+        const response = await http.get<PlanSummary[]>('/mm/plans');
         this.items = response.data;
       } finally {
         this.loading = false;
@@ -47,7 +47,7 @@ export const usePlansStore = defineStore('plans', {
       endDate?: string | null;
       timeSlots?: TimeSlotDto[];
     }): Promise<PlanSummary> {
-      const response = await http.post<PlanSummary>('/mm/Plans', payload);
+      const response = await http.post<PlanSummary>('/mm/plans', payload);
       const created = response.data;
       this.items.push(created);
       return created;
@@ -61,12 +61,12 @@ export const usePlansStore = defineStore('plans', {
       isActive: boolean;
       timeSlots?: TimeSlotDto[];
     }): Promise<void> {
-      await http.post('/mm/Plans/update', payload);
+      await http.put(`/mm/plans/${payload.id}`, payload);
       // Ideally we should just refetch to get updated server state (especially IDs for new time slots)
       await this.fetchMyPlans();
     },
     async deletePlan(id: number): Promise<void> {
-      await http.post(`/mm/Plans/delete?PlanId=${id}`);
+      await http.delete(`/mm/plans/${id}`);
       const index = this.items.findIndex((x) => x.id === id);
       if (index !== -1) {
         this.items.splice(index, 1);
