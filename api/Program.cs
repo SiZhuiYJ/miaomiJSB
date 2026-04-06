@@ -27,6 +27,10 @@ builder.Services.AddCors(o => o.AddPolicy("MyCors", b => b.AllowAnyHeader().Allo
 //builder.Services.Configure<AppSettingModel>(Configuration.GetSection("Appsettings"));
 
 builder.Services.AddControllers();
+builder.Services.AddRouting(options =>
+{
+    options.ConstraintMap["ulong"] = typeof(ULongRouteConstraint);
+});
 builder.Services.AddEndpointsApiExplorer();
 
 #region Swagger配置
