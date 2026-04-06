@@ -56,7 +56,7 @@ public class CheckinsController(DailyCheckDbContext db) : ControllerBase
     /// • 有时间段的计划：必须选择具体时间段
     /// • 无时间段的计划：全天任意时间可打卡
     /// • 时间窗口：开始时间 ≤ 当前时间 ≤ 结束时间
-
+    ///
     /// 数据验证：
     /// • 计划存在性检查
     /// • 用户权限验证

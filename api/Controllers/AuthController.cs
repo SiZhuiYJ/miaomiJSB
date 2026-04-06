@@ -122,7 +122,7 @@ public class AuthController(
         var tokens = _jwtTokenService.GenerateTokens(user);
 
         // 将令牌存储到Redis
-        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, cancellationToken);
+        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken);
 
         return Ok(CreateAuthResponse(user, tokens));
     }
@@ -171,7 +171,7 @@ public class AuthController(
         var tokens = _jwtTokenService.GenerateTokens(user);
 
         // 将令牌存储到Redis
-        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, CancellationToken.None);
+        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken);
 
         return Ok(CreateAuthResponse(user, tokens));
     }
@@ -223,7 +223,7 @@ public class AuthController(
         var tokens = _jwtTokenService.GenerateTokens(user);
 
         // 将令牌存储到Redis
-        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, CancellationToken.None);
+        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken);
 
         return Ok(CreateAuthResponse(user, tokens));
     }
@@ -312,7 +312,7 @@ public class AuthController(
         await _db.SaveChangesAsync(cancellationToken);
 
         var tokens = _jwtTokenService.GenerateTokens(user);
-        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, cancellationToken);
+        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken);
 
         return Ok(CreateAuthResponse(user, tokens));
     }
@@ -364,7 +364,7 @@ public class AuthController(
         user.UpdatedAt = DateTime.UtcNow;
 
         var tokens = _jwtTokenService.GenerateTokens(user);
-        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, cancellationToken);
+        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken);
         await _db.SaveChangesAsync(cancellationToken);
 
         return Ok(CreateAuthResponse(user, tokens));
@@ -408,8 +408,6 @@ public class AuthController(
             .SingleOrDefaultAsync(x => x.Provider == "wechat" && x.OpenId == wechatSession.OpenId, cancellationToken);
 
         User user;
-        bool isNewUser = false;
-
         if (oauthAccount == null || oauthAccount.User == null || oauthAccount.User.IsDeleted)
         {
             // 用户未注册，执行自动注册
@@ -454,7 +452,6 @@ public class AuthController(
             _db.UserOauthAccounts.Add(newOauthAccount);
             await _db.SaveChangesAsync(cancellationToken);
             
-            isNewUser = true;
         }
         else
         {
@@ -471,7 +468,7 @@ public class AuthController(
         }
 
         var tokens = _jwtTokenService.GenerateTokens(user);
-        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, cancellationToken);
+        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken);
 
         var response = CreateAuthResponse(user, tokens);
         // 可以根据需要在响应中标识是否为新用户
@@ -543,7 +540,7 @@ public class AuthController(
         var tokens = _jwtTokenService.GenerateTokens(user);
 
         // 将令牌存储到Redis
-        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, cancellationToken);
+        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken);
 
         return Ok(CreateAuthResponse(user, tokens));
     }
@@ -611,7 +608,7 @@ public class AuthController(
         var tokens = _jwtTokenService.GenerateTokens(user);
 
         // 更新Redis中的令牌
-        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, CancellationToken.None);
+        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken);
 
         return Ok(CreateAuthResponse(user, tokens));
     }
@@ -932,7 +929,7 @@ public class AuthController(
         var tokens = _jwtTokenService.GenerateTokens(user);
 
         // 更新Redis中的令牌
-        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, cancellationToken);
+        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken);
 
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -1125,7 +1122,7 @@ public class AuthController(
         var tokens = _jwtTokenService.GenerateTokens(user);
 
         // 更新Redis中的令牌
-        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken, cancellationToken);
+        await StoreTokensInRedis(user.Id, tokens.AccessToken, tokens.RefreshToken);
 
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -1195,8 +1192,7 @@ public class AuthController(
     /// <param name="userId">用户ID</param>
     /// <param name="accessToken">访问令牌</param>
     /// <param name="refreshToken">刷新令牌</param>
-    /// <param name="cancellationToken">取消操作标记</param>
-    private async Task StoreTokensInRedis(ulong userId, string accessToken, string refreshToken, CancellationToken cancellationToken)
+    private async Task StoreTokensInRedis(ulong userId, string accessToken, string refreshToken)
     {
         if (_redisDb == null)
             return;
