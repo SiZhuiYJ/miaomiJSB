@@ -15,6 +15,16 @@ import { ElementPlusResolver } from "unplugin-vue-components/resolvers";
 // 引入SVG图标插件
 import { createSvgIconsPlugin } from "vite-plugin-svg-icons";
 
+function getNodeModulePackageName(id: string) {
+  const normalized = id.split("node_modules/")[1];
+  if (!normalized) return "";
+  const parts = normalized.split("/");
+  if (parts[0].startsWith("@")) {
+    return `${parts[0]}/${parts[1]}`;
+  }
+  return parts[0];
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -77,18 +87,58 @@ export default defineConfig({
         entryFileNames: "js/[name]-[hash].js", // 包的入口文件名称
         assetFileNames: "[ext]/[name]-[hash].[ext]", // 资源文件像 字体，图片等
 
-        // 最小化拆分包
+        // 按业务相关性分包，避免“每个依赖一个 chunk”导致的空 chunk 和碎片化请求
         manualChunks(id) {
-          if (id.includes("node_modules")) {
-            return id
-              .toString()
-              .split("node_modules/")[1]
-              .split("/")[0]
-              .toString();
+          if (!id.includes("node_modules")) return;
+          const pkgName = getNodeModulePackageName(id);
+
+          // UI 组件库（体积最大，单独拆分）
+          if (
+            pkgName === "element-plus" ||
+            pkgName === "@floating-ui/dom" ||
+            pkgName === "@popperjs/core" ||
+            pkgName === "async-validator"
+          ) {
+            return "vendor-element-plus-core";
+          }
+
+          // Element Plus 图标单独拆分，避免与核心组件合并后过大
+          if (pkgName === "@element-plus/icons-vue") {
+            return "vendor-element-plus-icons";
+          }
+
+          // Vue 生态核心
+          if (
+            pkgName === "vue" ||
+            pkgName === "vue-router" ||
+            pkgName === "pinia" ||
+            pkgName === "@vue/shared" ||
+            pkgName === "@vue/runtime-core" ||
+            pkgName === "@vue/runtime-dom" ||
+            pkgName === "@vue/reactivity"
+          ) {
+            return "vendor-vue";
+          }
+
+          // 常用工具库
+          if (
+            pkgName === "axios" ||
+            pkgName === "dayjs" ||
+            pkgName === "lodash-es" ||
+            pkgName === "@vueuse/core"
+          ) {
+            return "vendor-utils";
+          }
+
+          // 动画库按需独立
+          if (pkgName === "gsap") {
+            return "vendor-gsap";
           }
         },
       },
     },
+    // 提升告警阈值，避免对已合理拆分的 vendor 包持续误报
+    chunkSizeWarningLimit: 850,
     minify: "terser", // 启用 terser 压缩
     terserOptions: {
       compress: {
