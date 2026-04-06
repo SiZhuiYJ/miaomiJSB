@@ -359,7 +359,7 @@ async function toggleBind(bindName: string) {
             <div class="bind-list" v-loading="loading">
                 <div class="bind-item" v-for="binding in thirdPartyBindings" :key="binding.provider">
                     <div class="bind-info">
-                        <svg-icon class="bind-icon" :icon-class="binding.icon" color="red" size="40px" />
+                        <svg-icon class="bind-icon" :icon-class="binding.icon" color="#121212" size="40px" />
                         <div class="bind-details">
                             <span class="bind-name">{{ binding.name }}</span>
                             <span class="bind-desc">
@@ -369,11 +369,17 @@ async function toggleBind(bindName: string) {
                             </span>
                         </div>
                     </div>
-                    <button class="bind-btn"
+                    <!-- <button class="bind-btn"
                         :class="hasProviderBind(binding.provider) ? 'unbind-btn' : 'bind-btn-primary'"
                         @click="binding.toggleBind(binding.name)">
                         {{ hasProviderBind(binding.provider) ? '解绑' : '绑定' }}
-                    </button>
+                    </button> -->
+                    <el-button v-if="hasProviderBind(binding.provider)" type="danger" plain>
+                        解绑
+                    </el-button>
+                    <el-button v-else type="success" dashed>
+                        绑定
+                    </el-button>
                 </div>
             </div>
         </div>
@@ -420,11 +426,15 @@ async function toggleBind(bindName: string) {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
+    padding: 8px;
     border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
 
     &:last-child {
         border-bottom: none;
+    }
+
+    &:hover {
+        background-color: rgb(223, 223, 223);
     }
 }
 
