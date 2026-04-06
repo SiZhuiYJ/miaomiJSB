@@ -60,7 +60,7 @@ public class LocalFileService(IWebHostEnvironment env) : IFileService
         Directory.CreateDirectory(root);
 
         string fileId;
-        using (var hashStream = file.OpenReadStream(MaxImageBytes))
+        using (var hashStream = file.OpenReadStream())
         {
             var hash = await SHA256.HashDataAsync(hashStream, cancellationToken);
             fileId = Convert.ToHexString(hash).ToLowerInvariant();
@@ -75,13 +75,13 @@ public class LocalFileService(IWebHostEnvironment env) : IFileService
             // 如果已经是 WebP，直接保存；否则转换
             if (originalExtension == ".webp")
             {
-                using var stream = file.OpenReadStream(MaxImageBytes);
+                using var stream = file.OpenReadStream();
                 using var fileStream = new FileStream(webpFilePath, FileMode.CreateNew, FileAccess.Write);
                 await stream.CopyToAsync(fileStream, cancellationToken);
             }
             else
             {
-                using var stream = file.OpenReadStream(MaxImageBytes);
+                using var stream = file.OpenReadStream();
                 using var image = await Image.LoadAsync(stream, cancellationToken);
                 await image.SaveAsWebpAsync(webpFilePath, cancellationToken);
             }
