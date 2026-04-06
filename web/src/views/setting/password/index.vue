@@ -68,53 +68,91 @@ async function handleChangePassword() {
 </script>
 
 <template>
-    <div class="profile-form">
-        <div class="method-selector">
-            <label class="radio-label">
-                <input type="radio" value="password" v-model="verificationMethod" />
-                旧密码验证
-            </label>
-            <label class="radio-label">
-                <input type="radio" value="code" v-model="verificationMethod" />
-                验证码验证
-            </label>
-        </div>
-
-        <label class="field" v-if="verificationMethod === 'password'">
-            <span>旧密码</span>
-            <input v-model="changePasswordForm.oldPassword" type="password" placeholder="请输入旧密码" />
-        </label>
-
-        <div class="field code-field" v-if="verificationMethod === 'code'">
-            <span>邮箱验证码</span>
-            <div class="code-row">
-                <input v-model="changePasswordForm.code" type="text" maxlength="6" placeholder="验证码" />
-                <button type="button" class="code-button" :disabled="sendingCode || codeCountdown > 0"
-                    @click="handleSendVerificationCode('change-password')">
-                    <span v-if="codeCountdown > 0">{{ codeCountdown }}s</span>
-                    <span v-else-if="sendingCode">发送中...</span>
-                    <span v-else>获取验证码</span>
-                </button>
+    <div class="setting-subpage">
+        <div class="setting-card">
+            <div class="setting-header">
+                <h3 class="setting-title">密码修改</h3>
+                <p class="setting-subtitle">支持旧密码和验证码两种校验方式。</p>
             </div>
-        </div>
+            <div class="profile-form">
+                <div class="method-selector">
+                    <label class="radio-label">
+                        <input type="radio" value="password" v-model="verificationMethod" />
+                        旧密码验证
+                    </label>
+                    <label class="radio-label">
+                        <input type="radio" value="code" v-model="verificationMethod" />
+                        验证码验证
+                    </label>
+                </div>
 
-        <label class="field">
-            <span>新密码</span>
-            <input v-model="changePasswordForm.newPassword" type="password" placeholder="请输入新密码" />
-        </label>
-        <label class="field">
-            <span>确认新密码</span>
-            <input v-model="changePasswordForm.confirmPassword" type="password" placeholder="请再次输入新密码" />
-        </label>
+                <label class="field" v-if="verificationMethod === 'password'">
+                    <span>旧密码</span>
+                    <input v-model="changePasswordForm.oldPassword" type="password" placeholder="请输入旧密码" />
+                </label>
+
+                <div class="field code-field" v-if="verificationMethod === 'code'">
+                    <span>邮箱验证码</span>
+                    <div class="code-row">
+                        <input v-model="changePasswordForm.code" type="text" maxlength="6" placeholder="验证码" />
+                        <button type="button" class="code-button" :disabled="sendingCode || codeCountdown > 0"
+                            @click="handleSendVerificationCode('change-password')">
+                            <span v-if="codeCountdown > 0">{{ codeCountdown }}s</span>
+                            <span v-else-if="sendingCode">发送中...</span>
+                            <span v-else>获取验证码</span>
+                        </button>
+                    </div>
+                </div>
+
+                <label class="field">
+                    <span>新密码</span>
+                    <input v-model="changePasswordForm.newPassword" type="password" placeholder="请输入新密码" />
+                </label>
+                <label class="field">
+                    <span>确认新密码</span>
+                    <input v-model="changePasswordForm.confirmPassword" type="password" placeholder="请再次输入新密码" />
+                </label>
+            </div>
+
+            <span class="footer">
+                <button class="btn-confirm" :disabled="changePasswordLoading" @click="handleChangePassword">
+                    {{ changePasswordLoading ? "提交中..." : "确认修改" }}
+                </button>
+            </span>
+        </div>
     </div>
-    <span class="footer">
-        <button class="btn-confirm" :disabled="changePasswordLoading" @click="handleChangePassword">
-            {{ changePasswordLoading ? "提交中..." : "确认修改" }}
-        </button>
-    </span>
 </template>
 
 <style scoped lang="scss">
+.setting-subpage {
+    width: min(760px, 92vw);
+    margin: 24px auto;
+}
+
+.setting-card {
+    background-color: var(--bg-elevated);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.setting-header {
+    margin-bottom: 16px;
+}
+
+.setting-title {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-color);
+}
+
+.setting-subtitle {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
 .profile-form {
     display: flex;
     flex-direction: column;
@@ -146,9 +184,20 @@ async function handleChangePassword() {
 .method-selector {
     display: flex;
     margin-bottom: 16px;
-    background-color: #f3f4f6;
+    background-color: var(--bg-color);
     padding: 4px;
     border-radius: 8px;
+}
+
+.radio-label {
+    flex: 1;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 6px 10px;
 }
 
 .code-row {
@@ -179,17 +228,18 @@ async function handleChangePassword() {
 
 .footer {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 8px;
+    margin-top: 18px;
 }
 
 .btn-confirm {
-    margin-top: 10px;
-    padding: 8px 16px;
-    border-radius: 6px;
+    width: min(320px, 100%);
+    padding: 10px 16px;
+    border-radius: 10px;
     border: none;
-    background: var(--accent-alt);
-    color: var(--accent-on);
+    background: var(--theme-primary);
+    color: #fff;
     cursor: pointer;
 
     &:disabled {

@@ -9,6 +9,7 @@ import { APP_TITLE, API_BASE_URL } from "@/config";
 import { storeToRefs } from "pinia";
 import router from "@/routers/index";
 import { maskEmail, maskString } from "@/utils/auth";
+import Txet from '@/components/Text/index.vue'
 const { user } = storeToRefs(useAuthStore());
 
 // SVG Icons
@@ -237,15 +238,15 @@ async function handleDeactivateConfirm(): Promise<void> {
         :title="theme === 'dark' ? '切换到白昼模式' : '切换到暗夜模式'">
         <component :is="theme === 'dark' ? SunIcon : MoonIcon" />
       </button>
-      <!-- 'p' | 'text' | 'h1' | 'h3' | 'caption' | 'button' | 'image' | 'circle' | 'rect' -->
-      <!-- 头像 -->
+      <!-- 'p' | 'text' | 'h1' | 'h3' | 'caption' | 'button' | 'image' | 'circle' | 'rect' 
+      头像 -->
       <el-dropdown v-if="user" trigger="click" placement="bottom-end" popper-class="user-dropdown-popper"
         @command="handleCommand">
         <div class="user-info-trigger">
           <el-skeleton style="display: flex;align-items: center;gap: 8px;" :loading="!user" animated>
             <template #template>
               <el-skeleton-item variant="circle" style="width: 30px; height: 30px" />
-              <el-skeleton-item variant="caption" style="width: calc(300px - 76px);" />
+              <el-skeleton-item variant="caption" style="width: 150px;" />
               <el-skeleton-item variant="circle" style="width: 30px; height: 30px" />
             </template>
             <template #default>
@@ -254,10 +255,8 @@ async function handleDeactivateConfirm(): Promise<void> {
               <el-avatar v-else :size="30">
                 {{ user.nickName ? user.nickName.charAt(0).toUpperCase() : "U" }}
               </el-avatar>
-              <span class="email">
-                {{ maskEmail(user.email) }}
-                <span v-if="user.nickName">({{ maskString(user.nickName) }})</span>
-              </span>
+              <Txet :text="`${maskEmail(user.email)}${user.nickName ? `(${maskString(user.nickName!)})` : ''}`"
+                :width="150" :speed="10" mode="bounce" shrinkWhenShort />
               <el-icon class="dropdown-arrow"><arrow-down /></el-icon>
             </template>
           </el-skeleton>
@@ -387,7 +386,7 @@ async function handleDeactivateConfirm(): Promise<void> {
   gap: 8px;
   cursor: pointer;
   padding: 4px;
-  width: 300px;
+  // width: 300px;
   border-radius: 100px;
   transition: background-color 0.2s;
 

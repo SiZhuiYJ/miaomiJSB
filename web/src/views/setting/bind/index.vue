@@ -237,7 +237,6 @@ async function fetchThirdPartyBindings() {
 // 检查特定提供商是否已绑定
 function hasProviderBind(provider: string) {
     const bindings = user.value?.thirdPartyBindings;
-    console.log(provider, Array.isArray(bindings), bindings?.some((binding: ThirdPartyBinding) => binding.provider === provider))
     // 确保bindings是数组后再调用some方法
     if (Array.isArray(bindings)) {
         return bindings.some((binding: ThirdPartyBinding) => binding.provider === provider);
@@ -350,18 +349,17 @@ async function toggleBind(bindName: string) {
 }
 </script>
 <template>
-    <div class="page-container">
-
-        <div class="page-card">
-            <div class="form-field">
-                <label class="label">第三方账号绑定</label>
-                <div class="desc">管理您绑定的第三方账号，用于便捷登录</div>
+    <div class="setting-subpage">
+        <div class="setting-card">
+            <div class="setting-header">
+                <h3 class="setting-title">第三方账号绑定</h3>
+                <p class="setting-subtitle">管理您绑定的第三方账号，用于便捷登录。</p>
             </div>
 
-            <div class="bind-list" v-if="!loading">
+            <div class="bind-list" v-loading="loading">
                 <div class="bind-item" v-for="binding in thirdPartyBindings" :key="binding.provider">
                     <div class="bind-info">
-                        <svg-icon class="bind-icon" :icon-class="binding.icon" color="red" size="40px" />
+                        <svg-icon class="bind-icon" :icon-class="binding.icon" color="#121212" size="40px" />
                         <div class="bind-details">
                             <span class="bind-name">{{ binding.name }}</span>
                             <span class="bind-desc">
@@ -371,11 +369,17 @@ async function toggleBind(bindName: string) {
                             </span>
                         </div>
                     </div>
-                    <button class="bind-btn"
+                    <!-- <button class="bind-btn"
                         :class="hasProviderBind(binding.provider) ? 'unbind-btn' : 'bind-btn-primary'"
                         @click="binding.toggleBind(binding.name)">
                         {{ hasProviderBind(binding.provider) ? '解绑' : '绑定' }}
-                    </button>
+                    </button> -->
+                    <el-button v-if="hasProviderBind(binding.provider)" type="danger" plain>
+                        解绑
+                    </el-button>
+                    <el-button v-else type="success" dashed>
+                        绑定
+                    </el-button>
                 </div>
             </div>
         </div>
@@ -385,23 +389,52 @@ async function toggleBind(bindName: string) {
 
 
 <style scoped lang="scss">
-.page-container {
-    min-width: 600px;
+.setting-subpage {
+    width: min(760px, 92vw);
+    margin: 24px auto;
+}
+
+.setting-card {
+    background-color: var(--bg-elevated);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.setting-header {
+    margin-bottom: 16px;
+}
+
+.setting-title {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-color);
+}
+
+.setting-subtitle {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 13px;
 }
 
 .bind-list {
-    margin-top: 20px;
+    margin-top: 8px;
 }
 
 .bind-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
+    padding: 8px;
     border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
 
     &:last-child {
         border-bottom: none;
+    }
+
+    &:hover {
+        background-color: rgb(223, 223, 223);
     }
 }
 
@@ -454,11 +487,5 @@ async function toggleBind(bindName: string) {
     background-color: #f0f0f0;
     color: #ff4757;
     border: 1px solid #ff4757;
-}
-
-.desc {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-top: 8px;
 }
 </style>

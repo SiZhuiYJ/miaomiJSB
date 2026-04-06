@@ -97,10 +97,6 @@ export const useAuthStore = defineStore("auth", () => {
       if (payload.avatarKey !== undefined)
         user.value.avatarKey = payload.avatarKey;
       if (payload.thirdPartyBindings !== undefined) {
-        console.log(
-          payload.thirdPartyBindings,
-          user.value.thirdPartyBindings,
-        );
         user.value.thirdPartyBindings = payload.thirdPartyBindings;
       }
     }

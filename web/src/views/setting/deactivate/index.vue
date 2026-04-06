@@ -45,37 +45,72 @@ async function handleDeactivateConfirm(): Promise<void> {
 </script>
 
 <template>
-    <div class="profile-form">
-        <p class="warning-text">
-            注销后账号将无法登录，所有数据保留30天后彻底删除。请输入验证码确认注销。
-        </p>
-        <div class="field code-field">
-            <span>邮箱验证码</span>
-            <div class="code-row">
-                <input v-model="deactivateCode" type="text" maxlength="6" placeholder="验证码" />
-                <button type="button" class="code-button" :disabled="sendingCode || codeCountdown > 0"
-                    @click="handleSendVerificationCode('deactivate')">
-                    <span v-if="codeCountdown > 0">{{ codeCountdown }}s</span>
-                    <span v-else-if="sendingCode">发送中...</span>
-                    <span v-else>获取验证码</span>
-                </button>
+    <div class="setting-subpage">
+        <div class="setting-card">
+            <div class="setting-header">
+                <h3 class="setting-title">注销账号</h3>
+                <p class="setting-subtitle">该操作不可逆，请谨慎处理。</p>
             </div>
+            <div class="profile-form">
+                <p class="warning-text">
+                    注销后账号将无法登录，所有数据保留30天后彻底删除。请输入验证码确认注销。
+                </p>
+                <div class="field code-field">
+                    <span>邮箱验证码</span>
+                    <div class="code-row">
+                        <input v-model="deactivateCode" type="text" maxlength="6" placeholder="验证码" />
+                        <button type="button" class="code-button" :disabled="sendingCode || codeCountdown > 0"
+                            @click="handleSendVerificationCode('deactivate')">
+                            <span v-if="codeCountdown > 0">{{ codeCountdown }}s</span>
+                            <span v-else-if="sendingCode">发送中...</span>
+                            <span v-else>获取验证码</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <span class="footer">
+                <button class="btn-confirm btn-danger" :disabled="deactivateLoading" @click="handleDeactivateConfirm">
+                    {{ deactivateLoading ? "处理中..." : "确认注销" }}
+                </button>
+            </span>
         </div>
     </div>
-    <span class="footer">
-        <button class="btn-confirm btn-danger" :disabled="deactivateLoading" @click="handleDeactivateConfirm">
-            {{ deactivateLoading ? "处理中..." : "确认注销" }}
-        </button>
-    </span>
 </template>
 
 <style scoped lang="scss">
+.setting-subpage {
+    width: min(760px, 92vw);
+    margin: 24px auto;
+}
+
+.setting-card {
+    background-color: var(--bg-elevated);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+.setting-header {
+    margin-bottom: 16px;
+}
+
+.setting-title {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-color);
+}
+
+.setting-subtitle {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
 .profile-form {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    width: 80%;
-
 
     .field {
         display: flex;
@@ -109,8 +144,9 @@ async function handleDeactivateConfirm(): Promise<void> {
 
 .footer {
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
     gap: 8px;
+    margin-top: 18px;
 }
 
 .btn-danger {
@@ -122,10 +158,11 @@ async function handleDeactivateConfirm(): Promise<void> {
 }
 
 .btn-confirm {
-    padding: 8px 16px;
-    border-radius: 6px;
+    width: min(320px, 100%);
+    padding: 10px 16px;
+    border-radius: 10px;
     border: none;
-    background: red;
+    background: var(--theme-primary);
     color: var(--accent-on);
     cursor: pointer;
 
