@@ -1,24 +1,59 @@
-// @/libs/api/user/type.ts
+// @/libs/http/type.ts
 
-// 基础响应结构
-export interface ResponseData<T> {
+import type { AxiosRequestConfig } from "axios";
+
+/**
+ * 后端接口统一响应结构。
+ */
+export interface ApiResponse<T = unknown> {
   code: number;
   data: T;
   message: string;
-  success: boolean;
+  success?: boolean;
 }
-// 扩展 axios 配置类型
+
+/**
+ * HTTP 请求扩展配置（在 AxiosRequestConfig 基础上追加能力）。
+ */
+export interface HttpRequestConfig extends AxiosRequestConfig {
+  /**
+   * 是否显示默认错误提示，默认 true。
+   */
+  showError?: boolean;
+
+  /**
+   * 是否返回原始 AxiosResponse（不进行 data 解包）。
+   */
+  originalResponse?: boolean;
+
+  /**
+   * 失败后重试次数，仅对 5xx 生效。
+   */
+  retryCount?: number;
+
+  /**
+   * 是否允许并发复用（关闭后会复用相同请求的 Promise 结果）。
+   */
+  allowDuplicate?: boolean;
+
+  /**
+   * 内部重试计数，不对外暴露。
+   */
+  _retryCount?: number;
+
+  /**
+   * 内部标记：是否已经做过 401 重试。
+   */
+  _retry?: boolean;
+}
+
 declare module "axios" {
   interface AxiosRequestConfig {
-    /**
-     * @description 是否显示错误提示
-     */
     showError?: boolean;
-    /**
-     * @description 是否返回原始响应（不经过拦截器处理）
-     */
     originalResponse?: boolean;
+    retryCount?: number;
+    allowDuplicate?: boolean;
+    _retryCount?: number;
+    _retry?: boolean;
   }
-
-  interface AxiosResponse<T = any> extends ResponseData<T> {}
 }
