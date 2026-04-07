@@ -4,7 +4,6 @@ import type {
   AxiosResponse,
   InternalAxiosRequestConfig,
   AxiosError,
-
 } from "axios";
 import axios, { AxiosHeaders } from "axios";
 import type { AuthData } from "@/features/auth/types";
@@ -191,7 +190,6 @@ class MM {
     }
   }
 
-  // axios.ts (部分修改)
   async get<T>(url: string, data?: object): Promise<AxiosResponse<T>> {
     const headers = new AxiosHeaders();
     return this.requestWithControl<T>({
