@@ -620,6 +620,7 @@ secrets.tmp
 
 # 数据库导出文件（可能包含敏感数据）
 *.sql
+!sql/*.sql
 *.dump
 *.backup
 
