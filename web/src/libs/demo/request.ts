@@ -2,6 +2,7 @@
 import { useAuthStore } from "@/stores";
 import { API_BASE_URL } from "@/config/index";
 import axios, { AxiosError, AxiosHeaders } from "axios";
+import router from "@/routers/index";
 import type {
   AxiosInstance,
   AxiosRequestConfig,
@@ -76,8 +77,8 @@ async function handleResponseError(error: AxiosError): Promise<AxiosError> {
   if (config?.allowDuplicate !== true) removePending(config);
   if (error.code === "ERR_CANCELED") return Promise.reject(error);
   if (error.response?.status === 401) {
-    localStorage.removeItem("token");
-    window.location.href = "/login";
+    useAuthStore().clear();
+    router.push("/login");
     return Promise.reject(error);
   }
   config._retryCount = config?._retryCount ?? 0;
