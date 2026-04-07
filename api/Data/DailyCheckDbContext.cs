@@ -98,7 +98,7 @@ public partial class DailyCheckDbContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("updated_at");
 
-            entity.HasOne(d => d.OwnerUser).WithMany(p => p.ChatConversationOwnerUsers)
+            entity.HasOne(d => d.OwnerUser).WithMany(p => p.ChatConversations)
                 .HasForeignKey(d => d.OwnerUserId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_chat_conversations_owner");
@@ -130,11 +130,9 @@ public partial class DailyCheckDbContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
             entity.Property(e => e.IsMuted)
-                .HasDefaultValueSql("'0'")
                 .HasComment("是否消息免打扰：1是，0否")
                 .HasColumnName("is_muted");
             entity.Property(e => e.IsPinned)
-                .HasDefaultValueSql("'0'")
                 .HasComment("是否置顶会话：1是，0否")
                 .HasColumnName("is_pinned");
             entity.Property(e => e.JoinedAt)
@@ -211,7 +209,6 @@ public partial class DailyCheckDbContext : DbContext
                 .HasColumnType("json")
                 .HasColumnName("extra");
             entity.Property(e => e.IsRecalled)
-                .HasDefaultValueSql("'0'")
                 .HasComment("是否撤回：1是，0否")
                 .HasColumnName("is_recalled");
             entity.Property(e => e.MessageType)
@@ -564,6 +561,8 @@ public partial class DailyCheckDbContext : DbContext
 
             entity.HasIndex(e => e.Email, "ux_users_email").IsUnique();
 
+            entity.HasIndex(e => e.UserAccount, "ux_users_user_account").IsUnique();
+
             entity.Property(e => e.Id)
                 .HasComment("主键ID")
                 .HasColumnName("id");
@@ -732,9 +731,13 @@ public partial class DailyCheckDbContext : DbContext
                 .ToTable("user_oauth_accounts", tb => tb.HasComment("用户第三方登录账号绑定表"))
                 .UseCollation("utf8mb4_unicode_ci");
 
+            entity.HasIndex(e => e.UnionId, "idx_oauth_union_id");
+
             entity.HasIndex(e => e.UserId, "idx_oauth_user");
 
             entity.HasIndex(e => new { e.Provider, e.OpenId }, "ux_oauth_provider_open").IsUnique();
+
+            entity.HasIndex(e => new { e.Provider, e.UnionId }, "ux_oauth_provider_union").IsUnique();
 
             entity.Property(e => e.Id)
                 .HasComment("主键ID")
@@ -752,7 +755,6 @@ public partial class DailyCheckDbContext : DbContext
                 .HasColumnType("enum('wechat','google','apple')")
                 .HasColumnName("provider");
             entity.Property(e => e.UnionId)
-                .HasMaxLength(255)
                 .HasComment("第三方平台union_id（可选）")
                 .HasColumnName("union_id");
             entity.Property(e => e.UpdatedAt)

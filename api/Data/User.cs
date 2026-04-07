@@ -16,7 +16,7 @@ public partial class User
     /// <summary>
     /// 用户邮箱（唯一）
     /// </summary>
-    public string Email { get; set; } = null!;
+    public string? Email { get; set; }
 
     /// <summary>
     /// 密码哈希（如bcrypt）
@@ -87,6 +87,14 @@ public partial class User
     /// username更新时间
     /// </summary>
     public DateTime? AccountUpdatedAt { get; set; }
+
+    public virtual ICollection<ChatConversationMember> ChatConversationMembers { get; set; } = new List<ChatConversationMember>();
+
+    public virtual ICollection<ChatConversation> ChatConversations { get; set; } = new List<ChatConversation>();
+
+    public virtual ICollection<ChatMessageReceipt> ChatMessageReceipts { get; set; } = new List<ChatMessageReceipt>();
+
+    public virtual ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
 
     public virtual ICollection<CheckinPlan> CheckinPlans { get; set; } = new List<CheckinPlan>();
 
