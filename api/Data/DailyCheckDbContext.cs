@@ -16,6 +16,14 @@ public partial class DailyCheckDbContext : DbContext
     {
     }
 
+    public virtual DbSet<ChatConversation> ChatConversations { get; set; }
+
+    public virtual DbSet<ChatConversationMember> ChatConversationMembers { get; set; }
+
+    public virtual DbSet<ChatMessage> ChatMessages { get; set; }
+
+    public virtual DbSet<ChatMessageReceipt> ChatMessageReceipts { get; set; }
+
     public virtual DbSet<Checkin> Checkins { get; set; }
 
     public virtual DbSet<CheckinPlan> CheckinPlans { get; set; }
@@ -39,6 +47,243 @@ public partial class DailyCheckDbContext : DbContext
         modelBuilder
             .UseCollation("utf8mb4_0900_ai_ci")
             .HasCharSet("utf8mb4");
+
+        modelBuilder.Entity<ChatConversation>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity
+                .ToTable("chat_conversations", tb => tb.HasComment("聊天会话主表"))
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => e.IsActive, "idx_chat_conversations_active");
+
+            entity.HasIndex(e => e.OwnerUserId, "idx_chat_conversations_owner");
+
+            entity.HasIndex(e => e.ConversationType, "idx_chat_conversations_type");
+
+            entity.Property(e => e.Id)
+                .HasComment("会话ID")
+                .HasColumnName("id");
+            entity.Property(e => e.AvatarKey)
+                .HasMaxLength(512)
+                .HasComment("会话头像")
+                .HasColumnName("avatar_key");
+            entity.Property(e => e.ConversationType)
+                .HasDefaultValueSql("'group'")
+                .HasComment("会话类型：direct=双人，group=多人/群聊")
+                .HasColumnType("enum('direct','group')")
+                .HasColumnName("conversation_type");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("创建时间")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("'1'")
+                .HasComment("是否可用：1可用，0停用")
+                .HasColumnName("is_active");
+            entity.Property(e => e.OwnerUserId)
+                .HasComment("群主/创建者用户ID")
+                .HasColumnName("owner_user_id");
+            entity.Property(e => e.Title)
+                .HasMaxLength(128)
+                .HasComment("会话标题（群聊可配置）")
+                .HasColumnName("title");
+            entity.Property(e => e.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("更新时间")
+                .HasColumnType("datetime")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.OwnerUser).WithMany(p => p.ChatConversations)
+                .HasForeignKey(d => d.OwnerUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_chat_conversations_owner");
+        });
+
+        modelBuilder.Entity<ChatConversationMember>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity
+                .ToTable("chat_conversation_members", tb => tb.HasComment("会话成员关系表"))
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => e.ConversationId, "idx_chat_members_conversation");
+
+            entity.HasIndex(e => e.UserId, "idx_chat_members_user");
+
+            entity.HasIndex(e => new { e.ConversationId, e.UserId }, "ux_chat_members_conversation_user").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasComment("主键ID")
+                .HasColumnName("id");
+            entity.Property(e => e.ConversationId)
+                .HasComment("会话ID")
+                .HasColumnName("conversation_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("创建时间")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.IsMuted)
+                .HasComment("是否消息免打扰：1是，0否")
+                .HasColumnName("is_muted");
+            entity.Property(e => e.IsPinned)
+                .HasComment("是否置顶会话：1是，0否")
+                .HasColumnName("is_pinned");
+            entity.Property(e => e.JoinedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("加入时间")
+                .HasColumnType("datetime")
+                .HasColumnName("joined_at");
+            entity.Property(e => e.LastReadMessageId)
+                .HasComment("最后已读消息ID（逻辑引用）")
+                .HasColumnName("last_read_message_id");
+            entity.Property(e => e.LeftAt)
+                .HasComment("离开时间（NULL表示仍在会话中）")
+                .HasColumnType("datetime")
+                .HasColumnName("left_at");
+            entity.Property(e => e.MemberRole)
+                .HasDefaultValueSql("'member'")
+                .HasComment("成员角色")
+                .HasColumnType("enum('owner','admin','member')")
+                .HasColumnName("member_role");
+            entity.Property(e => e.MuteUntil)
+                .HasComment("禁言截至时间（NULL表示不禁言）")
+                .HasColumnType("datetime")
+                .HasColumnName("mute_until");
+            entity.Property(e => e.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("更新时间")
+                .HasColumnType("datetime")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.UserId)
+                .HasComment("用户ID")
+                .HasColumnName("user_id");
+
+            entity.HasOne(d => d.Conversation).WithMany(p => p.ChatConversationMembers)
+                .HasForeignKey(d => d.ConversationId)
+                .HasConstraintName("fk_chat_members_conversation");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ChatConversationMembers)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("fk_chat_members_user");
+        });
+
+        modelBuilder.Entity<ChatMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity
+                .ToTable("chat_messages", tb => tb.HasComment("聊天消息表"))
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => new { e.ConversationId, e.CreatedAt }, "idx_chat_messages_conversation_time");
+
+            entity.HasIndex(e => e.ReplyToMessageId, "idx_chat_messages_reply");
+
+            entity.HasIndex(e => e.SenderUserId, "idx_chat_messages_sender");
+
+            entity.Property(e => e.Id)
+                .HasComment("消息ID")
+                .HasColumnName("id");
+            entity.Property(e => e.Content)
+                .HasComment("消息文本内容")
+                .HasColumnType("text")
+                .HasColumnName("content");
+            entity.Property(e => e.ConversationId)
+                .HasComment("会话ID")
+                .HasColumnName("conversation_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("发送时间")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Extra)
+                .HasComment("扩展字段(JSON)，如图片/文件信息、@信息等")
+                .HasColumnType("json")
+                .HasColumnName("extra");
+            entity.Property(e => e.IsRecalled)
+                .HasComment("是否撤回：1是，0否")
+                .HasColumnName("is_recalled");
+            entity.Property(e => e.MessageType)
+                .HasDefaultValueSql("'text'")
+                .HasComment("消息类型")
+                .HasColumnType("enum('text','image','file','system')")
+                .HasColumnName("message_type");
+            entity.Property(e => e.RecalledAt)
+                .HasComment("撤回时间")
+                .HasColumnType("datetime")
+                .HasColumnName("recalled_at");
+            entity.Property(e => e.ReplyToMessageId)
+                .HasComment("引用回复的消息ID")
+                .HasColumnName("reply_to_message_id");
+            entity.Property(e => e.SenderUserId)
+                .HasComment("发送者用户ID")
+                .HasColumnName("sender_user_id");
+            entity.Property(e => e.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("更新时间")
+                .HasColumnType("datetime")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Conversation).WithMany(p => p.ChatMessages)
+                .HasForeignKey(d => d.ConversationId)
+                .HasConstraintName("fk_chat_messages_conversation");
+
+            entity.HasOne(d => d.ReplyToMessage).WithMany(p => p.InverseReplyToMessage)
+                .HasForeignKey(d => d.ReplyToMessageId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_chat_messages_reply");
+
+            entity.HasOne(d => d.SenderUser).WithMany(p => p.ChatMessages)
+                .HasForeignKey(d => d.SenderUserId)
+                .HasConstraintName("fk_chat_messages_sender");
+        });
+
+        modelBuilder.Entity<ChatMessageReceipt>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity
+                .ToTable("chat_message_receipts", tb => tb.HasComment("消息已读回执表"))
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => e.ReadAt, "idx_chat_receipts_read_at");
+
+            entity.HasIndex(e => e.UserId, "idx_chat_receipts_user");
+
+            entity.HasIndex(e => new { e.MessageId, e.UserId }, "ux_chat_receipts_message_user").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasComment("主键ID")
+                .HasColumnName("id");
+            entity.Property(e => e.MessageId)
+                .HasComment("消息ID")
+                .HasColumnName("message_id");
+            entity.Property(e => e.ReadAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("已读时间")
+                .HasColumnType("datetime")
+                .HasColumnName("read_at");
+            entity.Property(e => e.UserId)
+                .HasComment("已读用户ID")
+                .HasColumnName("user_id");
+
+            entity.HasOne(d => d.Message).WithMany(p => p.ChatMessageReceipts)
+                .HasForeignKey(d => d.MessageId)
+                .HasConstraintName("fk_chat_receipts_message");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ChatMessageReceipts)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("fk_chat_receipts_user");
+        });
 
         modelBuilder.Entity<Checkin>(entity =>
         {
@@ -316,6 +561,8 @@ public partial class DailyCheckDbContext : DbContext
 
             entity.HasIndex(e => e.Email, "ux_users_email").IsUnique();
 
+            entity.HasIndex(e => e.UserAccount, "ux_users_user_account").IsUnique();
+
             entity.Property(e => e.Id)
                 .HasComment("主键ID")
                 .HasColumnName("id");
@@ -484,9 +731,13 @@ public partial class DailyCheckDbContext : DbContext
                 .ToTable("user_oauth_accounts", tb => tb.HasComment("用户第三方登录账号绑定表"))
                 .UseCollation("utf8mb4_unicode_ci");
 
+            entity.HasIndex(e => e.UnionId, "idx_oauth_union_id");
+
             entity.HasIndex(e => e.UserId, "idx_oauth_user");
 
             entity.HasIndex(e => new { e.Provider, e.OpenId }, "ux_oauth_provider_open").IsUnique();
+
+            entity.HasIndex(e => new { e.Provider, e.UnionId }, "ux_oauth_provider_union").IsUnique();
 
             entity.Property(e => e.Id)
                 .HasComment("主键ID")
@@ -504,7 +755,6 @@ public partial class DailyCheckDbContext : DbContext
                 .HasColumnType("enum('wechat','google','apple')")
                 .HasColumnName("provider");
             entity.Property(e => e.UnionId)
-                .HasMaxLength(255)
                 .HasComment("第三方平台union_id（可选）")
                 .HasColumnName("union_id");
             entity.Property(e => e.UpdatedAt)
