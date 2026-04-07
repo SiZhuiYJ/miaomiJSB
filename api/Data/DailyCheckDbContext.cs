@@ -18,6 +18,13 @@ public partial class DailyCheckDbContext : DbContext
 
     public virtual DbSet<Checkin> Checkins { get; set; }
 
+
+    public virtual DbSet<ChatMessage> ChatMessages { get; set; }
+
+    public virtual DbSet<ChatSession> ChatSessions { get; set; }
+
+    public virtual DbSet<ChatSessionMember> ChatSessionMembers { get; set; }
+
     public virtual DbSet<CheckinPlan> CheckinPlans { get; set; }
 
     public virtual DbSet<CheckinPlanTimeSlot> CheckinPlanTimeSlots { get; set; }
@@ -240,6 +247,212 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasOne(d => d.Plan).WithMany(p => p.CheckinPlanTimeSlots)
                 .HasForeignKey(d => d.PlanId)
                 .HasConstraintName("fk_slots_plan");
+        });
+
+
+        modelBuilder.Entity<ChatMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity
+                .ToTable("chat_messages", tb => tb.HasComment("聊天消息表"))
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => e.IsDeleted, "idx_chat_messages_deleted");
+
+            entity.HasIndex(e => new { e.SenderUserId, e.CreatedAt }, "idx_chat_messages_sender_created");
+
+            entity.HasIndex(e => new { e.SessionId, e.CreatedAt }, "idx_chat_messages_session_created");
+
+            entity.HasIndex(e => new { e.SessionId, e.ClientMsgNo }, "ux_chat_messages_session_client_no").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasComment("主键ID")
+                .HasColumnName("id");
+            entity.Property(e => e.ClientMsgNo)
+                .HasMaxLength(64)
+                .HasComment("客户端消息号（幂等去重）")
+                .HasColumnName("client_msg_no");
+            entity.Property(e => e.Content)
+                .HasComment("消息内容")
+                .HasColumnType("text")
+                .HasColumnName("content");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("发送时间")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.DeletedAt)
+                .HasComment("伪删除时间")
+                .HasColumnType("datetime")
+                .HasColumnName("deleted_at");
+            entity.Property(e => e.IsDeleted)
+                .HasComment("是否伪删除：0正常，1已删除")
+                .HasColumnName("is_deleted");
+            entity.Property(e => e.MessageType)
+                .HasComment("消息类型：1文本")
+                .HasColumnName("message_type");
+            entity.Property(e => e.SendStatus)
+                .HasComment("发送状态：0失败，1成功，2撤回")
+                .HasColumnName("send_status");
+            entity.Property(e => e.SenderUserId)
+                .HasComment("发送者用户ID")
+                .HasColumnName("sender_user_id");
+            entity.Property(e => e.SessionId)
+                .HasComment("会话ID")
+                .HasColumnName("session_id");
+            entity.Property(e => e.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("更新时间")
+                .HasColumnType("datetime")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.SenderUser).WithMany(p => p.ChatMessages)
+                .HasForeignKey(d => d.SenderUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_chat_messages_sender");
+
+            entity.HasOne(d => d.Session).WithMany(p => p.ChatMessages)
+                .HasForeignKey(d => d.SessionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_chat_messages_session");
+        });
+
+        modelBuilder.Entity<ChatSession>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity
+                .ToTable("chat_sessions", tb => tb.HasComment("聊天会话表（双人私聊）"))
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => e.CreatedByUserId, "idx_chat_sessions_creator");
+
+            entity.HasIndex(e => e.IsDeleted, "idx_chat_sessions_deleted");
+
+            entity.HasIndex(e => e.LastMessageAt, "idx_chat_sessions_last_message_at");
+
+            entity.HasIndex(e => e.SessionNo, "ux_chat_sessions_session_no").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasComment("主键ID")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("创建时间")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CreatedByUserId)
+                .HasComment("创建会话的用户ID")
+                .HasColumnName("created_by_user_id");
+            entity.Property(e => e.DeletedAt)
+                .HasComment("伪删除时间")
+                .HasColumnType("datetime")
+                .HasColumnName("deleted_at");
+            entity.Property(e => e.IsDeleted)
+                .HasComment("是否伪删除：0正常，1已删除")
+                .HasColumnName("is_deleted");
+            entity.Property(e => e.LastMessageAt)
+                .HasComment("最后消息时间（用于会话排序）")
+                .HasColumnType("datetime")
+                .HasColumnName("last_message_at");
+            entity.Property(e => e.LastMessageId)
+                .HasComment("最后一条消息ID（冗余字段，不做外键以保证脚本可重复执行）")
+                .HasColumnName("last_message_id");
+            entity.Property(e => e.SessionNo)
+                .HasMaxLength(64)
+                .HasComment("会话唯一编号（业务侧生成）")
+                .HasColumnName("session_no");
+            entity.Property(e => e.SessionType)
+                .HasDefaultValueSql("'1'")
+                .HasComment("会话类型：1双人私聊")
+                .HasColumnName("session_type");
+            entity.Property(e => e.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("更新时间")
+                .HasColumnType("datetime")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.ChatSessions)
+                .HasForeignKey(d => d.CreatedByUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_chat_sessions_creator");
+        });
+
+        modelBuilder.Entity<ChatSessionMember>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity
+                .ToTable("chat_session_members", tb => tb.HasComment("聊天会话成员表（双人私聊固定2人）"))
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => e.IsDeleted, "idx_chat_members_deleted");
+
+            entity.HasIndex(e => e.SessionId, "idx_chat_members_session");
+
+            entity.HasIndex(e => e.UserId, "idx_chat_members_user");
+
+            entity.HasIndex(e => new { e.SessionId, e.UserId }, "ux_chat_members_session_user").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasComment("主键ID")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("创建时间")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.DeletedAt)
+                .HasComment("伪删除时间")
+                .HasColumnType("datetime")
+                .HasColumnName("deleted_at");
+            entity.Property(e => e.IsDeleted)
+                .HasComment("是否伪删除：0正常，1已删除")
+                .HasColumnName("is_deleted");
+            entity.Property(e => e.JoinedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("加入会话时间")
+                .HasColumnType("datetime")
+                .HasColumnName("joined_at");
+            entity.Property(e => e.LastReadAt)
+                .HasComment("最后已读时间")
+                .HasColumnType("datetime")
+                .HasColumnName("last_read_at");
+            entity.Property(e => e.LastReadMessageId)
+                .HasComment("最后已读消息ID")
+                .HasColumnName("last_read_message_id");
+            entity.Property(e => e.Role)
+                .HasDefaultValueSql("'1'")
+                .HasComment("成员角色：1普通成员")
+                .HasColumnName("role");
+            entity.Property(e => e.SessionId)
+                .HasComment("会话ID")
+                .HasColumnName("session_id");
+            entity.Property(e => e.UnreadCount)
+                .HasComment("未读消息数（冗余字段）")
+                .HasColumnName("unread_count");
+            entity.Property(e => e.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("更新时间")
+                .HasColumnType("datetime")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.UserId)
+                .HasComment("成员用户ID")
+                .HasColumnName("user_id");
+
+            entity.HasOne(d => d.Session).WithMany(p => p.ChatSessionMembers)
+                .HasForeignKey(d => d.SessionId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_chat_members_session");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ChatSessionMembers)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_chat_members_user");
         });
 
         modelBuilder.Entity<Efmigrationshistory>(entity =>
