@@ -392,7 +392,6 @@ ehthumbs.db
 Desktop.ini
 
 # 环境变量和本地配置
-.env
 .env.local
 .env.*.local
 config.local.json
@@ -526,8 +525,6 @@ api/secrets.json
 api/*.secrets
 
 # 环境变量文件
-.env
-.env.*
 .env.local
 .env.*.local
 
