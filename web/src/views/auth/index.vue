@@ -107,6 +107,7 @@ async function handleLoginSubmit(): Promise<void> {
     }
 
     if (response) {
+      console.log("Login successful", response);
       auth.setSession(response.data);
       notifySuccess("登录成功");
       router.push("/home");

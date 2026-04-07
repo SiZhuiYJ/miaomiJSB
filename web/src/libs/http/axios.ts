@@ -89,7 +89,7 @@ class MM {
     return Promise.resolve(config);
   }
 
-  private async handleRequestError(error: AxiosError) {
+  private async handleRequestError(error: AxiosError): Promise<AxiosError> {
     return Promise.reject(error);
   }
 
@@ -97,11 +97,11 @@ class MM {
    * 响应拦截：默认将后端包裹结构 ApiResponse<T> 解包为 T。
    * 如需拿原始 AxiosResponse，请传 originalResponse: true。
    */
-  private async handleResponse<T>(response: AxiosResponse<ApiResponse<T>>) {
+  private async handleResponse<T>(response: AxiosResponse<ApiResponse<T>>): Promise<AxiosResponse<ApiResponse<T>>> {
     const config = response.config as HttpRequestConfig;
 
     if (config.originalResponse) {
-      return response;
+      return Promise.resolve(response);
     }
 
     const payload = response.data;
@@ -110,15 +110,15 @@ class MM {
     }
 
     // 兼容后端 code 约定：0 / 200 视为成功。
-    if (payload.code !== 0 && payload.code !== 200) {
-      if (config.showError !== false) {
-        notifyWarning(payload.message || "请求失败");
-      }
-      return Promise.reject(new Error(payload.message || "请求失败"));
-    }
+    // if (payload.code !== 0 && payload.code !== 200) {
+    //   if (config.showError !== false) {
+    //     notifyWarning(payload.message || "请求失败");
+    //   }
+    //   return Promise.reject(new Error(payload.message || "请求失败"));
+    // }
 
     // 保持对现有业务调用兼容：仍返回 AxiosResponse，但将 data 替换为业务 data。
-    response.data = payload.data as ApiResponse<T>;
+    // response.data = payload.data as ApiResponse<T>;
     return Promise.resolve(response);
   }
 
