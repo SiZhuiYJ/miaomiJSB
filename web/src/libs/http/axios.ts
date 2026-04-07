@@ -80,13 +80,13 @@ class MM {
   /**
    * 请求拦截：注入 accessToken。
    */
-  private async handleRequest(config: InternalAxiosRequestConfig) {
+  private async handleRequest(config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> {
     const auth = useAuthStore();
     if (auth.accessToken) {
       config.headers = config.headers ?? {};
       config.headers.Authorization = `Bearer ${auth.accessToken}`;
     }
-    return config;
+    return Promise.resolve(config);
   }
 
   private async handleRequestError(error: AxiosError) {
@@ -119,7 +119,7 @@ class MM {
 
     // 保持对现有业务调用兼容：仍返回 AxiosResponse，但将 data 替换为业务 data。
     response.data = payload.data as ApiResponse<T>;
-    return response;
+    return Promise.resolve(response);
   }
 
   /**
