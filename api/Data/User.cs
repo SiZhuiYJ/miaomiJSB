@@ -90,6 +90,13 @@ public partial class User
 
     public virtual ICollection<CheckinPlan> CheckinPlans { get; set; } = new List<CheckinPlan>();
 
+
+    public virtual ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
+
+    public virtual ICollection<ChatSessionMember> ChatSessionMembers { get; set; } = new List<ChatSessionMember>();
+
+    public virtual ICollection<ChatSession> ChatSessions { get; set; } = new List<ChatSession>();
+
     public virtual ICollection<Checkin> Checkins { get; set; } = new List<Checkin>();
 
     public virtual User? FreezeOperator { get; set; }
