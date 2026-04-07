@@ -1,6 +1,6 @@
 # DailyCheck API 接口文档（按最新控制器同步）
 
-> 更新时间：2026-04-06  
+> 更新时间：2026-04-07  
 > 服务基路径：`/mm`  
 > 认证方式：`Authorization: Bearer <access_token>`（标记匿名的接口除外）
 
@@ -110,7 +110,32 @@
 
 ---
 
-## 5. 本次客户端迁移结论
+## 5. 聊天（Chat）
+
+控制器：`ChatController`  
+路由前缀：`/mm/chat`
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/conversations` | 创建会话（支持 `direct` 双人 / `group` 多人） |
+| GET | `/conversations` | 获取当前用户会话列表（含最后一条消息和未读数） |
+| GET | `/conversations/{conversationId}` | 获取会话详情（含成员列表） |
+| POST | `/conversations/{conversationId}/messages` | 发送消息 |
+| GET | `/conversations/{conversationId}/messages?beforeMessageId=&pageSize=` | 分页拉取消息记录 |
+| POST | `/conversations/{conversationId}/read` | 更新当前用户会话已读位置 |
+
+请求要点：
+- `POST /conversations`
+  - `conversationType`: `direct` 或 `group`
+  - `memberUserIds`: 参与聊天的用户 ID 列表（服务端会自动加入当前登录用户）
+  - `direct` 必须恰好 2 人；`group` 至少 2 人。
+- `POST /conversations/{conversationId}/messages`
+  - `messageType`: `text` / `image` / `file` / `system`
+  - 文本消息必须提供 `content`。
+- `POST /conversations/{conversationId}/read`
+  - 可传 `lastReadMessageId`；不传时自动标记到会话最新消息。
+
+## 6. 本次客户端迁移结论
 
 - `web` 与 `uni-app` 中 `plans/checkins` 已统一迁移到新接口：
   - `POST /mm/plans/update` -> `PUT /mm/plans/{planId}`
