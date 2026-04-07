@@ -121,19 +121,88 @@
 | GET | `/conversations` | 获取当前用户会话列表（含最后一条消息和未读数） |
 | GET | `/conversations/{conversationId}` | 获取会话详情（含成员列表） |
 | POST | `/conversations/{conversationId}/messages` | 发送消息 |
-| GET | `/conversations/{conversationId}/messages?beforeMessageId=&pageSize=` | 分页拉取消息记录 |
-| POST | `/conversations/{conversationId}/read` | 更新当前用户会话已读位置 |
+| GET | `/conversations/{conversationId}/messages?beforeMessageId=&pageSize=` | 分页拉取消息记录（默认20，最大100） |
+| POST | `/conversations/{conversationId}/read` | 更新当前用户会话已读位置并写入回执 |
 
-请求要点：
-- `POST /conversations`
-  - `conversationType`: `direct` 或 `group`
-  - `memberUserIds`: 参与聊天的用户 ID 列表（服务端会自动加入当前登录用户）
-  - `direct` 必须恰好 2 人；`group` 至少 2 人。
-- `POST /conversations/{conversationId}/messages`
-  - `messageType`: `text` / `image` / `file` / `system`
-  - 文本消息必须提供 `content`。
-- `POST /conversations/{conversationId}/read`
-  - 可传 `lastReadMessageId`；不传时自动标记到会话最新消息。
+### 5.1 创建会话
+
+`POST /mm/chat/conversations`
+
+请求体：
+```json
+{
+  "conversationType": "direct",
+  "title": "项目讨论群",
+  "avatarKey": "public/chat/group-1.webp",
+  "memberUserIds": [8, 11]
+}
+```
+
+约束：
+- `conversationType` 仅支持 `direct`、`group`。
+- 服务端会自动补入当前登录用户 ID 并去重。
+- `direct` 必须恰好 2 人，若两人会话已存在则直接返回已存在会话详情。
+- `group` 至少 2 人。
+- 所有成员必须是有效用户（未删除且状态正常）。
+
+### 5.2 会话列表
+
+`GET /mm/chat/conversations`
+
+返回字段要点：
+- `unreadCount`：当前用户未读消息数（按 `lastReadMessageId` 计算）。
+- `lastMessage`：会话最新一条消息摘要。
+- 置顶会话优先排序，其次按最新消息倒序。
+
+### 5.3 会话详情
+
+`GET /mm/chat/conversations/{conversationId}`
+
+返回字段要点：
+- `conversationType`、`title`、`ownerUserId`、`isActive`。
+- `members[]`：成员列表，包含 `memberRole`、`joinedAt`、`lastReadMessageId`。
+
+### 5.4 发送消息
+
+`POST /mm/chat/conversations/{conversationId}/messages`
+
+请求体：
+```json
+{
+  "messageType": "text",
+  "content": "今天晚点同步一下进度",
+  "extra": null,
+  "replyToMessageId": null
+}
+```
+
+约束：
+- `messageType`：`text` / `image` / `file` / `system`。
+- 文本消息必须提供非空 `content`。
+- `replyToMessageId`（可选）必须属于当前会话。
+
+### 5.5 拉取消息记录
+
+`GET /mm/chat/conversations/{conversationId}/messages?beforeMessageId=123&pageSize=20`
+
+说明：
+- 未传 `beforeMessageId` 时返回最新一页。
+- 按消息时间正序返回（便于直接渲染时间线）。
+
+### 5.6 标记已读
+
+`POST /mm/chat/conversations/{conversationId}/read`
+
+请求体：
+```json
+{
+  "lastReadMessageId": 456
+}
+```
+
+说明：
+- `lastReadMessageId` 可选，不传时自动标记到当前会话最新消息。
+- 会同步写入 `chat_message_receipts` 回执记录（仅对他人消息写入）。
 
 ## 6. 本次客户端迁移结论
 
