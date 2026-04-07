@@ -98,7 +98,7 @@ public interface IJwtTokenService
 public class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenService
 {
     readonly JwtOptions _options = options.Value;
-    
+
     // 移除内存存储，完全依赖Redis
     // static readonly ConcurrentDictionary<string, string> RefreshTokenJtiByUserId = new();
 
@@ -111,7 +111,7 @@ public class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenService
     {
         var jti = Guid.NewGuid().ToString("N");
         // 不再使用内存字典存储，完全由Redis管理
-        
+
         var accessExpires = DateTime.UtcNow.AddMinutes(_options.AccessTokenMinutes);
         var refreshExpires = DateTime.UtcNow.AddDays(_options.RefreshTokenDays);
 

@@ -1312,6 +1312,201 @@
             </summary>
             <returns>当前登录用户的 ID。</returns>
         </member>
+        <member name="T:api.Data.ChatConversation">
+            <summary>
+            聊天会话主表
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversation.Id">
+            <summary>
+            会话ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversation.ConversationType">
+            <summary>
+            会话类型：direct=双人，group=多人/群聊
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversation.Title">
+            <summary>
+            会话标题（群聊可配置）
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversation.OwnerUserId">
+            <summary>
+            群主/创建者用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversation.AvatarKey">
+            <summary>
+            会话头像
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversation.IsActive">
+            <summary>
+            是否可用：1可用，0停用
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversation.CreatedAt">
+            <summary>
+            创建时间
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversation.UpdatedAt">
+            <summary>
+            更新时间
+            </summary>
+        </member>
+        <member name="T:api.Data.ChatConversationMember">
+            <summary>
+            会话成员关系表
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.Id">
+            <summary>
+            主键ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.ConversationId">
+            <summary>
+            会话ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.UserId">
+            <summary>
+            用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.MemberRole">
+            <summary>
+            成员角色
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.JoinedAt">
+            <summary>
+            加入时间
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.LeftAt">
+            <summary>
+            离开时间（NULL表示仍在会话中）
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.MuteUntil">
+            <summary>
+            禁言截至时间（NULL表示不禁言）
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.IsPinned">
+            <summary>
+            是否置顶会话：1是，0否
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.IsMuted">
+            <summary>
+            是否消息免打扰：1是，0否
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.LastReadMessageId">
+            <summary>
+            最后已读消息ID（逻辑引用）
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.CreatedAt">
+            <summary>
+            创建时间
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.UpdatedAt">
+            <summary>
+            更新时间
+            </summary>
+        </member>
+        <member name="T:api.Data.ChatMessage">
+            <summary>
+            聊天消息表
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessage.Id">
+            <summary>
+            消息ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessage.ConversationId">
+            <summary>
+            会话ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessage.SenderUserId">
+            <summary>
+            发送者用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessage.MessageType">
+            <summary>
+            消息类型
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessage.Content">
+            <summary>
+            消息文本内容
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessage.Extra">
+            <summary>
+            扩展字段(JSON)，如图片/文件信息、@信息等
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessage.ReplyToMessageId">
+            <summary>
+            引用回复的消息ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessage.IsRecalled">
+            <summary>
+            是否撤回：1是，0否
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessage.RecalledAt">
+            <summary>
+            撤回时间
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessage.CreatedAt">
+            <summary>
+            发送时间
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessage.UpdatedAt">
+            <summary>
+            更新时间
+            </summary>
+        </member>
+        <member name="T:api.Data.ChatMessageReceipt">
+            <summary>
+            消息已读回执表
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessageReceipt.Id">
+            <summary>
+            主键ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessageReceipt.MessageId">
+            <summary>
+            消息ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessageReceipt.UserId">
+            <summary>
+            已读用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatMessageReceipt.ReadAt">
+            <summary>
+            已读时间
+            </summary>
+        </member>
         <member name="T:api.Data.Checkin">
             <summary>
             打卡记录表
@@ -2052,18 +2247,6 @@
             <param name="code">用户提交的验证码。</param>
             <param name="cancellationToken">取消操作标记。</param>
             <returns>校验结果状态。</returns>
-        </member>
-        <member name="T:api.Migrations.RemovePlanDateUniqueIndex">
-            <inheritdoc />
-        </member>
-        <member name="M:api.Migrations.RemovePlanDateUniqueIndex.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:api.Migrations.RemovePlanDateUniqueIndex.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:api.Migrations.RemovePlanDateUniqueIndex.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
-            <inheritdoc />
         </member>
         <member name="T:api.Models.RegisterRequest">
             <summary>

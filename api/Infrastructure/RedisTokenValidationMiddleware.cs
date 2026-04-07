@@ -21,7 +21,7 @@ public class RedisTokenValidationMiddleware
     private readonly JwtOptions _jwtOptions;
 
     public RedisTokenValidationMiddleware(
-        RequestDelegate next, 
+        RequestDelegate next,
         IConnectionMultiplexer? redis,
         IOptions<JwtOptions> jwtOptions)
     {
@@ -40,8 +40,8 @@ public class RedisTokenValidationMiddleware
 
         // 排除不需要token验证的接口
         var path = context.Request.Path.Value?.ToLowerInvariant();
-        if (path == "/mm/auth/refresh" || 
-            path == "/mm/auth/login" || 
+        if (path == "/mm/auth/refresh" ||
+            path == "/mm/auth/login" ||
             path == "/mm/auth/login-account" ||
             path == "/mm/auth/register" ||
             path == "/mm/auth/email-code" ||
@@ -50,20 +50,20 @@ public class RedisTokenValidationMiddleware
             await _next(context);
             return;
         }
-        
+
         // 获取Authorization头
         var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-        
+
         // 检查是否为Bearer token
         if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
         {
             var token = authHeader.Substring(7).Trim();
-            
+
             try
             {
                 // 解析JWT获取用户ID
                 var handler = new JwtSecurityTokenHandler();
-                
+
                 // 验证JWT签名（使用相同的配置）
                 var key = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(_jwtOptions.Key));
                 var parameters = new TokenValidationParameters
@@ -79,7 +79,7 @@ public class RedisTokenValidationMiddleware
                 };
 
                 var principal = handler.ValidateToken(token, parameters, out var validatedToken);
-                
+
                 if (validatedToken is JwtSecurityToken jwtToken)
                 {
                     // 从JWT中提取用户ID
@@ -88,14 +88,14 @@ public class RedisTokenValidationMiddleware
                     {
                         // 检查Redis中是否存在对应的access_token
                         var storedAccessToken = await _redisDb.StringGetAsync($"access_token:{userId}");
-                        
+
                         // 如果Redis中没有存储的token，或者存储的token与当前请求的token不匹配
                         if (storedAccessToken.IsNullOrEmpty || storedAccessToken != token)
                         {
                             // 记录日志
                             Console.WriteLine($"[TokenValidation] Token validation failed for user {userId}: " +
                                 $"stored={storedAccessToken.IsNullOrEmpty}, match={(!storedAccessToken.IsNullOrEmpty && storedAccessToken == token)}");
-                            
+
                             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                             await context.Response.WriteAsync("访问令牌无效或已过期，请重新登录");
                             return;

@@ -451,7 +451,7 @@ public class AuthController(
             _db.Users.Add(user);
             _db.UserOauthAccounts.Add(newOauthAccount);
             await _db.SaveChangesAsync(cancellationToken);
-            
+
         }
         else
         {
@@ -473,7 +473,7 @@ public class AuthController(
         var response = CreateAuthResponse(user, tokens);
         // 可以根据需要在响应中标识是否为新用户
         // 注意：CreateAuthResponse方法目前不包含IsNewUser字段，如需此信息需要扩展模型
-        
+
         return Ok(response);
     }
 

@@ -89,7 +89,6 @@ builder.Services.AddHttpClient<IWechatAuthService, WechatAuthService>(client =>
     client.BaseAddress = new Uri("https://api.weixin.qq.com/");
     client.Timeout = TimeSpan.FromSeconds(10);
 });
-
 #endregion
 
 #region 缓存与验证码服务配置
