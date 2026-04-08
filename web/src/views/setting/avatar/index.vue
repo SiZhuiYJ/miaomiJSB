@@ -22,7 +22,7 @@ const onCropped = (data: string) => {
 const fit = 'fill';
 const url = computed(() => {
     if (user.value?.avatarKey) {
-        return `${API_BASE_URL}mm/Files/users/${user.value.userId}/${user.value.avatarKey}`;
+        return `${API_BASE_URL}/mm/Files/users/${user.value.userId}/${user.value.avatarKey}`;
     }
     return '';
 });

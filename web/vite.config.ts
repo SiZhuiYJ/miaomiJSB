@@ -70,6 +70,12 @@ export default defineConfig({
         // 允许代理服务器使用自签名证书
         secure: false,
       },
+      "/hubs/chat": {
+        target: "https://check.meowmemoirs.cn",
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
     },
     watch: {
       usePolling: true, // 启用轮询

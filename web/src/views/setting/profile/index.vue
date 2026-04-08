@@ -11,7 +11,7 @@ const inputEmail = ref<string>('');
 const emailDisabled = ref<boolean>(true);
 const url = computed(() => {
     if (user.value?.avatarKey) {
-        return `${API_BASE_URL}mm/Files/users/${user.value.userId}/${user.value.avatarKey}`;
+        return `${API_BASE_URL}/mm/Files/users/${user.value.userId}/${user.value.avatarKey}`;
     }
     return '';
 });
