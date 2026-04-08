@@ -165,6 +165,7 @@ export default defineConfig({
       "@libs": path.resolve(__dirname, "src/libs"),
       "@utils": path.resolve(__dirname, "src/utils"),
       "@views": path.resolve(__dirname, "src/views"),
+      "@microsoft/signalr": path.resolve(__dirname, "src/shims/microsoft-signalr.ts"),
     },
   },
 });

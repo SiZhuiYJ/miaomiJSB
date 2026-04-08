@@ -67,6 +67,14 @@ public class SendMessageRequest
     public ulong? ReplyToMessageId { get; set; }
 }
 
+
+public class MessageDeltaDto
+{
+    public ulong LastMessageId { get; set; }
+    public bool HasMore { get; set; }
+    public List<MessageSummaryDto> Messages { get; set; } = new();
+}
+
 public class ReadConversationRequest
 {
     public ulong? LastReadMessageId { get; set; }
