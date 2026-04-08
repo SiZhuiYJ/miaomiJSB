@@ -268,7 +268,7 @@ async function handleDeactivateConfirm(): Promise<void> {
           <el-dropdown-menu>
             <el-dropdown-item command="profile">个人设置</el-dropdown-item>
             <el-dropdown-item command="changePassword">修改密码</el-dropdown-item>
-            <el-dropdown-item command="chat" divided>飞猫传书</el-dropdown-item>
+            <el-dropdown-item command="chat" divided style="color: #22c55e">飞猫传书</el-dropdown-item>
             <el-dropdown-item command="deactivate" divided style="color: #ef4444">注销账号</el-dropdown-item>
             <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
           </el-dropdown-menu>
