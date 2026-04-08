@@ -1,42 +1,52 @@
-// @/features/auth/api/index.ts
-// 认证相关API的统一出口
-
-import http from "@/libs/http";
+import http from '@/libs/http';
 import type {
   ConversationDetail,
   ConversationSummary,
   CreateConversationPayload,
+  MessageDeltaResponse,
   MessageSummary,
   SendMessagePayload,
-} from "../types";
+} from '../types';
 
 export async function getConversations() {
-  return await http.get<ConversationSummary[]>("/mm/chat/conversations");
+  return await http.get<ConversationSummary[]>('/mm/chat/conversations');
 }
+
 export async function getConversation(id: number) {
   return await http.get<ConversationDetail>(`/mm/chat/conversations/${id}`);
 }
+
 export async function createConversation(payload: CreateConversationPayload) {
-  return await http.post<ConversationDetail>("/mm/chat/conversations", payload);
+  return await http.post<ConversationDetail>('/mm/chat/conversations', payload);
 }
+
 export async function getMessages(
   id: number,
   beforeMessageId?: number,
   pageSize = 20,
 ) {
-  return await http.get<MessageSummary[]>(
-    `/mm/chat/conversations/${id}/messages`,
+  return await http.get<MessageSummary[]>(`/mm/chat/conversations/${id}/messages`, {
+    params: { beforeMessageId, pageSize },
+  });
+}
+
+export async function getMessageDelta(
+  id: number,
+  afterMessageId?: number,
+  pageSize = 20,
+) {
+  return await http.get<MessageDeltaResponse>(
+    `/mm/chat/conversations/${id}/messages/delta`,
     {
-      params: { beforeMessageId, pageSize },
+      params: { afterMessageId, pageSize },
     },
   );
 }
+
 export async function sendMessage(id: number, payload: SendMessagePayload) {
-  return await http.post<MessageSummary>(
-    `/mm/chat/conversations/${id}/messages`,
-    payload,
-  );
+  return await http.post<MessageSummary>(`/mm/chat/conversations/${id}/messages`, payload);
 }
+
 export async function markRead(id: number, lastReadMessageId?: number) {
   return await http.post<{ lastReadMessageId?: number }>(
     `/mm/chat/conversations/${id}/read`,
@@ -45,11 +55,13 @@ export async function markRead(id: number, lastReadMessageId?: number) {
     },
   );
 }
+
 export default {
   getConversations,
   getConversation,
   sendMessage,
   getMessages,
+  getMessageDelta,
   createConversation,
   markRead,
 };

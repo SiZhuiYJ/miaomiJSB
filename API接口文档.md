@@ -122,6 +122,7 @@
 | GET | `/conversations/{conversationId}` | 获取会话详情（含成员列表） |
 | POST | `/conversations/{conversationId}/messages` | 发送消息 |
 | GET | `/conversations/{conversationId}/messages?beforeMessageId=&pageSize=` | 分页拉取消息记录（默认20，最大100） |
+| GET | `/conversations/{conversationId}/messages/delta?afterMessageId=&pageSize=` | 拉取增量消息（用于推送/轮询） |
 | POST | `/conversations/{conversationId}/read` | 更新当前用户会话已读位置并写入回执 |
 
 ### 5.1 创建会话
@@ -189,7 +190,19 @@
 - 未传 `beforeMessageId` 时返回最新一页。
 - 按消息时间正序返回（便于直接渲染时间线）。
 
-### 5.6 标记已读
+### 5.6 拉取消息增量（推送轮询）
+
+`GET /mm/chat/conversations/{conversationId}/messages/delta?afterMessageId=456&pageSize=50`
+
+说明：
+- `afterMessageId` 可选，不传时等同于从 0 开始拉取。
+- 返回结构包含：
+  - `messages[]`：本次增量消息（按 ID 升序）。
+  - `lastMessageId`：当前会话最新消息 ID（便于前端对齐游标）。
+  - `hasMore`：是否仍有未拉取的增量。
+- 建议前端每 3~5 秒轮询一次该接口，实现“信息推送”体验。
+
+### 5.7 标记已读
 
 `POST /mm/chat/conversations/{conversationId}/read`
 
@@ -203,6 +216,21 @@
 说明：
 - `lastReadMessageId` 可选，不传时自动标记到当前会话最新消息。
 - 会同步写入 `chat_message_receipts` 回执记录（仅对他人消息写入）。
+
+### 5.8 实时通信（SignalR）
+
+Hub 路径：`/hubs/chat`（JWT 鉴权，客户端通过 `access_token` Query 传递）
+
+客户端推荐策略：
+- 使用 `@microsoft/signalr` 自动协商传输，优先 WebSocket，不可用时回落 Long Polling。
+- 若 SignalR 建链失败（网络/代理限制等），前端自动降级为 `messages/delta` 轮询模式。
+
+服务端事件：
+- `chat:message-updated`：当会话有新消息时推送，携带 `conversationId`、`messageId`、`messageType`、`createdAt`。
+
+客户端 Hub 方法：
+- `SubscribeConversation(conversationId)`：订阅会话消息推送。
+- `UnsubscribeConversation(conversationId)`：取消订阅。
 
 ## 6. 本次客户端迁移结论
 

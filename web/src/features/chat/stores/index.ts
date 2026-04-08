@@ -6,7 +6,7 @@ import type {
 } from "@/features/auth/types";
 import router from "@/routers";
 import { CACHE_PREFIX } from "@/config";
-import { authApi } from "../api";
+import { authApi } from "@/features/auth/api";
 import http from "@/libs/http";
 
 export const useAuthStore = defineStore("auth", () => {
