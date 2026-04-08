@@ -1,5 +1,8 @@
 import { computed, onBeforeUnmount, ref } from 'vue';
-import * as signalR from '@microsoft/signalr';
+import {
+  HubConnectionBuilder,
+  HttpTransportType,
+} from '@microsoft/signalr';
 
 interface PushOptions {
   fetchConversations: () => Promise<void>;
@@ -62,13 +65,11 @@ export function useChatPush(options: PushOptions) {
     const token = options.getToken();
     if (!token) throw new Error('缺少登录令牌，无法建立 SignalR 连接');
 
-    const signalRNs = await signalR.loadSignalR();
-    connection = new signalRNs.HubConnectionBuilder()
-      .withUrl(`${options.getBaseUrl()}/hubs/chat`, {
+    const baseUrl = options.getBaseUrl().replace(/\/+$/, '');
+    connection = new HubConnectionBuilder()
+      .withUrl(`${baseUrl}/hubs/chat`, {
         accessTokenFactory: () => options.getToken(),
-        transport:
-          signalRNs.HttpTransportType.WebSockets |
-          signalRNs.HttpTransportType.LongPolling,
+        transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,
       })
       .withAutomaticReconnect()
       .build();

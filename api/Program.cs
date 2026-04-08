@@ -21,7 +21,25 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 #region 跨域配置
-builder.Services.AddCors(o => o.AddPolicy("MyCors", b => b.AllowAnyHeader().AllowAnyOrigin().AllowAnyMethod()));
+var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ??
+    (builder.Environment.IsDevelopment()
+        ? ["http://localhost:5173", "http://127.0.0.1:5173"]
+        : Array.Empty<string>());
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("MyCors", policy =>
+    {
+        policy.AllowAnyHeader()
+              .AllowAnyMethod();
+
+        if (corsOrigins.Length > 0)
+        {
+            policy.WithOrigins(corsOrigins)
+                  .AllowCredentials();
+        }
+    });
+});
 #endregion
 
 //则是自动初始化AppSettings实例并且映射appSettings里的配置

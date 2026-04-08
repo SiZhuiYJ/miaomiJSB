@@ -32,6 +32,29 @@ export function useChat() {
 
   const selectedConversationId = computed(() => currentConversation.value?.id || 0);
 
+  function mergeMessages(
+    current: MessageSummary[],
+    incoming: MessageSummary[],
+    mode: 'append' | 'prepend' = 'append',
+  ) {
+    if (incoming.length === 0) return current;
+
+    const merged = mode === 'prepend'
+      ? [...incoming, ...current]
+      : [...current, ...incoming];
+
+    const seen = new Set<number>();
+    const deduped: MessageSummary[] = [];
+
+    for (const message of merged) {
+      if (seen.has(message.id)) continue;
+      seen.add(message.id);
+      deduped.push(message);
+    }
+
+    return deduped;
+  }
+
   function setError(error: any, fallback: string) {
     errorMessage.value =
       error?.response?.data?.message || error?.message || fallback;
@@ -131,7 +154,7 @@ export function useChat() {
     ).data;
 
     if (delta.messages.length > 0) {
-      messages.value = [...messages.value, ...delta.messages];
+      messages.value = mergeMessages(messages.value, delta.messages, 'append');
     }
   }
 
@@ -145,7 +168,7 @@ export function useChat() {
     ).data;
 
     if (older.length > 0) {
-      messages.value = [...older, ...messages.value];
+      messages.value = mergeMessages(messages.value, older, 'prepend');
     }
   }
 

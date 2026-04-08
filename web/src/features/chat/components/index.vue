@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { API_BASE_URL } from '@/config';
 import { useAuthStore } from '@/stores';
 import router from '@/routers';
@@ -8,8 +8,19 @@ import ConversationSidebar from './ConversationSidebar.vue';
 import MessagePanel from './MessagePanel.vue';
 import { useChat } from '../composables/useChat';
 import { useChatPush } from '../composables/useChatPush';
+import type { ConversationSummary } from '../types';
 
 const chat = useChat();
+const isMobile = ref(false);
+
+function syncViewport() {
+  isMobile.value = window.innerWidth <= 768;
+}
+
+const showConversationList = computed(() => {
+  if (!isMobile.value) return true;
+  return !chat.selectedConversationId.value;
+});
 
 const push = useChatPush({
   fetchConversations: chat.loadConversations,
@@ -28,8 +39,25 @@ watch(
   },
 );
 
-chat.loadConversations();
-void push.startPush();
+async function handleSelectConversation(item: ConversationSummary) {
+  await chat.selectConversation(item);
+}
+
+function handleBackToList() {
+  chat.currentConversation.value = null;
+  chat.messages.value = [];
+}
+
+onMounted(() => {
+  syncViewport();
+  window.addEventListener('resize', syncViewport);
+  void chat.loadConversations();
+  void push.startPush();
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', syncViewport);
+});
 </script>
 
 <template>
@@ -45,30 +73,30 @@ void push.startPush();
 
     <p v-if="chat.errorMessage.value" class="error">{{ chat.errorMessage.value }}</p>
 
-    <div class="layout">
+    <div class="layout" :class="{ mobile: isMobile }">
       <ConversationSidebar
-        :create-conversation-type="chat.createConversationType.value"
-        :create-title="chat.createTitle.value"
-        :create-members-text="chat.createMembersText.value"
+        v-if="showConversationList"
+        v-model:create-conversation-type="chat.createConversationType.value"
+        v-model:create-title="chat.createTitle.value"
+        v-model:create-members-text="chat.createMembersText.value"
         :selected-conversation-id="chat.selectedConversationId.value"
         :conversations="chat.conversations.value"
-        @update-create-conversation-type="(v) => (chat.createConversationType.value = v)"
-        @update-create-title="(v) => (chat.createTitle.value = v)"
-        @update-create-members-text="(v) => (chat.createMembersText.value = v)"
         @create-conversation="chat.createConversation"
-        @select-conversation="chat.selectConversation"
+        @select-conversation="handleSelectConversation"
       />
 
       <MessagePanel
+        v-if="!isMobile || !showConversationList"
+        v-model="chat.composeText.value"
         :current-conversation="chat.currentConversation.value"
         :messages="chat.messages.value"
         :me-user-id="chat.meUserId.value"
-        :compose-text="chat.composeText.value"
         :loading="chat.loading.value"
-        @update-compose-text="(v) => (chat.composeText.value = v)"
+        :show-back-to-list="isMobile"
         @load-more="chat.loadMore"
         @send-text-message="chat.sendTextMessage"
         @mark-read="chat.markRead"
+        @back-to-list="handleBackToList"
       />
     </div>
   </div>

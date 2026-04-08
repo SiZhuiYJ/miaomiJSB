@@ -1,7 +1,7 @@
 // 全局默认配置项
 
 // 接口地址
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 
 //网页名称
 export const APP_TITLE = import.meta.env.VITE_APP_TITLE;

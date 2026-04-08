@@ -1,45 +1,41 @@
 <script setup lang="ts">
 import type { ConversationSummary } from '../types';
 
+const createConversationType = defineModel<'direct' | 'group'>('createConversationType');
+const createTitle = defineModel<string>('createTitle');
+const createMembersText = defineModel<string>('createMembersText');
+
 const props = defineProps<{
-  createConversationType: 'direct' | 'group';
-  createTitle: string;
-  createMembersText: string;
   selectedConversationId: number;
   conversations: ConversationSummary[];
 }>();
 
 const emit = defineEmits<{
-  updateCreateConversationType: [value: 'direct' | 'group'];
-  updateCreateTitle: [value: string];
-  updateCreateMembersText: [value: string];
   createConversation: [];
   selectConversation: [item: ConversationSummary];
 }>();
+
+const createConversationTypeOptions = [
+  { value: 'direct', label: '单聊' },
+  { value: 'group', label: '群聊' },
+];
 </script>
 
 <template>
   <aside class="left-panel">
     <div class="create-box">
       <h3>创建会话</h3>
-      <select
-        :value="props.createConversationType"
-        @change="emit('updateCreateConversationType', ($event.target as HTMLSelectElement).value as 'direct' | 'group')"
-      >
-        <option value="direct">direct 双人</option>
-        <option value="group">group 多人</option>
-      </select>
-      <input
-        :value="props.createTitle"
-        placeholder="群聊标题（direct 可不填）"
-        @input="emit('updateCreateTitle', ($event.target as HTMLInputElement).value)"
-      />
-      <input
-        :value="props.createMembersText"
-        placeholder="成员ID，逗号分隔：8,11"
-        @input="emit('updateCreateMembersText', ($event.target as HTMLInputElement).value)"
-      />
-      <button @click="emit('createConversation')">创建</button>
+      <el-select v-model="createConversationType" placeholder="会话类型" class="conversation-type-select">
+        <el-option
+          v-for="item in createConversationTypeOptions"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value"
+        />
+      </el-select>
+      <el-input v-model="createTitle" clearable placeholder="群聊标题，可选" />
+      <el-input v-model="createMembersText" clearable placeholder="成员 ID，使用逗号分隔" />
+      <el-button color="#111827" @click="emit('createConversation')">创建</el-button>
     </div>
 
     <ul class="conversation-list">
