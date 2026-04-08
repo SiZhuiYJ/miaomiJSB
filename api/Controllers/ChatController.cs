@@ -4,19 +4,22 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using api.Data;
+using api.Hubs;
 using api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 
 namespace api.Controllers;
 
 [ApiController]
 [Route("mm/[controller]")]
 [Authorize]
-public class ChatController(DailyCheckDbContext db) : ControllerBase
+public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubContext) : ControllerBase
 {
     readonly DailyCheckDbContext _db = db;
+    readonly IHubContext<ChatHub> _hubContext = hubContext;
     static readonly HashSet<string> AllowedMessageTypes = new(["text", "image", "file", "system"]);
 
     [HttpPost("conversations")]
@@ -223,6 +226,14 @@ public class ChatController(DailyCheckDbContext db) : ControllerBase
 
         await _db.SaveChangesAsync();
 
+        await _hubContext.Clients.Group(ChatHub.GroupName(conversationId)).SendAsync("chat:message-updated", new
+        {
+            conversationId,
+            messageId = message.Id,
+            messageType = messageType,
+            createdAt = now
+        });
+
         var result = await _db.ChatMessages
             .Where(m => m.Id == message.Id)
             .Select(m => new MessageSummaryDto
@@ -278,6 +289,53 @@ public class ChatController(DailyCheckDbContext db) : ControllerBase
 
         messages.Reverse();
         return Ok(messages);
+    }
+
+    [HttpGet("conversations/{conversationId:ulong}/messages/delta")]
+    public async Task<ActionResult<MessageDeltaDto>> GetMessageDelta(ulong conversationId, [FromQuery] ulong? afterMessageId, [FromQuery] int pageSize = 50)
+    {
+        var userId = GetUserId();
+        var isMember = await _db.ChatConversationMembers
+            .AnyAsync(m => m.ConversationId == conversationId && m.UserId == userId && m.LeftAt == null);
+        if (!isMember)
+            return NotFound(new { message = "会话不存在或无权限访问" });
+
+        var normalizedPageSize = Math.Clamp(pageSize, 1, 100);
+        var threshold = afterMessageId ?? 0;
+        var lastMessageId = await _db.ChatMessages
+            .Where(m => m.ConversationId == conversationId)
+            .OrderByDescending(m => m.Id)
+            .Select(m => (ulong?)m.Id)
+            .FirstOrDefaultAsync() ?? 0;
+
+        var records = await _db.ChatMessages
+            .Where(m => m.ConversationId == conversationId && m.Id > threshold)
+            .OrderBy(m => m.Id)
+            .Take(normalizedPageSize + 1)
+            .Select(m => new MessageSummaryDto
+            {
+                Id = m.Id,
+                SenderUserId = m.SenderUserId,
+                SenderNickName = m.SenderUser.NickName,
+                MessageType = m.MessageType,
+                Content = m.Content,
+                Extra = m.Extra,
+                ReplyToMessageId = m.ReplyToMessageId,
+                IsRecalled = m.IsRecalled,
+                CreatedAt = m.CreatedAt
+            })
+            .ToListAsync();
+
+        var hasMore = records.Count > normalizedPageSize;
+        if (hasMore)
+            records = records.Take(normalizedPageSize).ToList();
+
+        return Ok(new MessageDeltaDto
+        {
+            LastMessageId = lastMessageId,
+            HasMore = hasMore,
+            Messages = records
+        });
     }
 
     [HttpPost("conversations/{conversationId:ulong}/read")]

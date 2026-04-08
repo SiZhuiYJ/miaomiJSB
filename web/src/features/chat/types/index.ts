@@ -58,3 +58,9 @@ export interface SendMessagePayload {
   extra?: string;
   replyToMessageId?: number;
 }
+
+export interface MessageDeltaResponse {
+  hasMore: boolean;
+  lastMessageId: number;
+  messages: MessageSummary[];
+}
