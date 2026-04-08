@@ -113,7 +113,7 @@ button {
 }
 
 .message-scroll-wrap {
-  height: calc(100vh - 300px);
+  height: calc(100vh - 55px - 45px - 48px);
   overflow: auto;
 }
 
@@ -147,6 +147,16 @@ button {
 
 .msg-item.mine .bubble {
   background: #dbeafe;
+}
+.chat-header {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.open-detail {
+  padding: 0 8px;
 }
 
 .composer {
