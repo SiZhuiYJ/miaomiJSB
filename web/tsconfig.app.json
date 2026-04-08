@@ -9,6 +9,9 @@
     "paths": {
       "@/*": [
         "src/*"
+      ],
+      "@microsoft/signalr": [
+        "src/shims/microsoft-signalr"
       ]
     },
     /* Linting */
