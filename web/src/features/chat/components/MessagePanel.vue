@@ -89,7 +89,7 @@ watch(
           <h3>{{ props.currentConversation.title || `会话 #${props.currentConversation.id}` }}</h3>
         </div>
 
-        <el-button color="#111827" class="open-detail" @click="isChatDetail = true">
+        <el-button color="#111827" class="open-detail" icon="Document" @click="isChatDetail = true">
           详情
         </el-button>
       </div>
