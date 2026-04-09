@@ -1,36 +1,51 @@
-  ➜  Local:   http://localhost:5173/
-  ➜  Network: http://172.19.0.1:5173/
-  ➜  Network: http://192.168.0.4:5173/
-  ➜  Network: http://192.168.43.34:5173/
-  
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                }
-                                                                                                                                                                                                                                                                        }
-                                                                                                                                                                                                                              }
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                                  }
-                                                                                                                                                                                                                                              }
-                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                  }
-                                                                                                                                                                                                                          }
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                                              }
-                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                          }
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                                      }
-                                                                                                                                                                                                                            }
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                          })
-                                                                                                                                                                                                                  }
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                              }
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                          }
-                                                                                                                                                                                                          ])
-                                                                                                                                                                                                          }
+~/miaomiJSB/web $ npm run build
+
+> web@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.1 building client environment for production...
+node_modules/@microsoft/signalr/dist/esm/Utils.js (189:0): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@microsoft/signalr/dist/esm/Utils.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+node_modules/@microsoft/signalr/dist/esm/Utils.js (207:0): A comment
+
+"/*#__PURE__*/"
+
+in "node_modules/@microsoft/signalr/dist/esm/Utils.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 1941 modules transformed.
+dist/index.html                                     0.96 kB │ gzip:   0.43 kB
+dist/stats.html                                 1,139.55 kB │ gzip: 138.88 kB
+dist/css/index-DKS9XnEk.css                         1.26 kB │ gzip:   0.46 kB
+dist/css/index-CWMNbtSE.css                         1.44 kB │ gzip:   0.52 kB
+dist/css/index-C8B3eo8R.css                         1.59 kB │ gzip:   0.59 kB
+dist/css/index-Blas2tkg.css                         1.81 kB │ gzip:   0.63 kB
+dist/css/index-DLF9LPh9.css                         1.92 kB │ gzip:   0.63 kB
+dist/css/index-Dv7EcBKd.css                         2.88 kB │ gzip:   0.95 kB
+dist/css/index-Dcw7yFpj.css                         4.23 kB │ gzip:   1.38 kB
+dist/css/index-Cu8bZVCb.css                         5.33 kB │ gzip:   1.61 kB
+dist/css/index-4-MxzVZZ.css                         5.94 kB │ gzip:   1.16 kB
+dist/css/index-C90FZIZq.css                        10.72 kB │ gzip:   2.92 kB
+dist/css/index-CgxyMYAl.css                        11.81 kB │ gzip:   2.66 kB
+dist/css/vendor-element-plus-core-BV0tnLtg.css    130.45 kB │ gzip:  18.42 kB
+dist/js/date-DL0-yNJT.js                            0.40 kB │ gzip:   0.23 kB
+dist/js/useCode-DWU4Add6.js                         0.76 kB │ gzip:   0.54 kB
+dist/js/404-kkugataz.js                             1.97 kB │ gzip:   0.64 kB
+dist/js/index-DYFwHkP9.js                           2.23 kB │ gzip:   1.29 kB
+dist/js/index-CVhMgcPz.js                           2.24 kB │ gzip:   1.22 kB
+dist/js/index-BBoBMKxk.js                           3.05 kB │ gzip:   1.61 kB
+dist/js/index-Btaaz3WE.js                           3.29 kB │ gzip:   1.71 kB
+dist/js/index-BA5Hu0s6.js                           3.54 kB │ gzip:   1.55 kB
+dist/js/index-dp094we0.js                           5.09 kB │ gzip:   2.07 kB
+dist/js/index-CnnLu5aQ.js                          14.14 kB │ gzip:   3.99 kB
+dist/js/index-B58hj1W1.js                          28.72 kB │ gzip:   9.66 kB
+dist/js/index-DoSNvrnD.js                          35.63 kB │ gzip:  10.38 kB
+dist/js/vendor-gsap-B6lbc1vE.js                    69.58 kB │ gzip:  27.04 kB
+dist/js/index-FbIKFj4H.js                          70.13 kB │ gzip:  19.42 kB
+dist/js/vendor-utils-Cjc_Le79.js                   89.25 kB │ gzip:  32.36 kB
+dist/js/index-Lq4jeZvY.js                         108.13 kB │ gzip:  43.54 kB
+dist/js/vendor-vue-BnPn6Qtf.js                    109.53 kB │ gzip:  41.06 kB
+dist/js/vendor-element-plus-icons-CDicQe5x.js     168.14 kB │ gzip:  43.81 kB
+dist/js/vendor-element-plus-core-D_-vq8vQ.js      802.83 kB │ gzip: 246.42 kB
+✓ built in 49.46s
