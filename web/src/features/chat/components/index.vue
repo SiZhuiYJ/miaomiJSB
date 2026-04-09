@@ -62,42 +62,24 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="chat-page">
-    <ChatToolbar
-      :status-text="push.statusText.value"
-      :polling="push.polling.value || push.realtimeConnected.value"
-      :loading="chat.loading.value"
-      @back="router.push('/home')"
-      @refresh="chat.loadConversations"
-      @toggle-push="push.togglePush"
-    />
+    <ChatToolbar :status-text="push.statusText.value" :polling="push.polling.value || push.realtimeConnected.value"
+      :loading="chat.loading.value" @back="router.push('/home')" @refresh="chat.loadConversations"
+      @toggle-push="push.togglePush" />
 
     <p v-if="chat.errorMessage.value" class="error">{{ chat.errorMessage.value }}</p>
 
     <div class="layout" :class="{ mobile: isMobile }">
-      <ConversationSidebar
-        v-if="showConversationList"
+      <ConversationSidebar v-if="showConversationList" :errorMessage="chat.errorMessage.value"
         v-model:create-conversation-type="chat.createConversationType.value"
-        v-model:create-title="chat.createTitle.value"
-        v-model:create-members-text="chat.createMembersText.value"
-        :selected-conversation-id="chat.selectedConversationId.value"
-        :conversations="chat.conversations.value"
-        @create-conversation="chat.createConversation"
-        @select-conversation="handleSelectConversation"
-      />
+        v-model:create-title="chat.createTitle.value" v-model:create-members-text="chat.createMembersText.value"
+        :selected-conversation-id="chat.selectedConversationId.value" :conversations="chat.conversations.value"
+        @create-conversation="chat.createConversation" @select-conversation="handleSelectConversation" />
 
-      <MessagePanel
-        v-if="!isMobile || !showConversationList"
-        v-model="chat.composeText.value"
-        :current-conversation="chat.currentConversation.value"
-        :messages="chat.messages.value"
-        :me-user-id="chat.meUserId.value"
-        :loading="chat.loading.value"
-        :show-back-to-list="isMobile"
-        @load-more="chat.loadMore"
-        @send-text-message="chat.sendTextMessage"
-        @mark-read="chat.markRead"
-        @back-to-list="handleBackToList"
-      />
+      <MessagePanel v-if="!isMobile || !showConversationList" v-model="chat.composeText.value"
+        :current-conversation="chat.currentConversation.value" :messages="chat.messages.value"
+        :me-user-id="chat.meUserId.value" :loading="chat.loading.value" :show-back-to-list="isMobile"
+        @load-more="chat.loadMore" @send-text-message="chat.sendTextMessage" @mark-read="chat.markRead"
+        @back-to-list="handleBackToList" />
     </div>
   </div>
 </template>

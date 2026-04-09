@@ -48,8 +48,7 @@ watch(
         </el-button>
       </div>
 
-      <!-- <div ref="scrollBodyRef" class="message-scroll-wrap"> -->
-      <el-scrollbar ref="scrollbarRef" wrap-style="max-height: calc(100vh - var(--header-h));" view-class="">
+      <el-scrollbar ref="scrollbarRef" wrap-style="" view-class="">
         <div class="message-list">
           <div v-for="msg in props.messages" :key="msg.id"
             :class="['msg-item', { mine: props.meUserId && msg.senderUserId === props.meUserId }]">
@@ -60,7 +59,6 @@ watch(
           </div>
         </div>
       </el-scrollbar>
-      <!-- </div> -->
 
       <div class="composer">
         <el-input v-model="model" clearable placeholder="输入消息" @keyup.enter="emit('sendTextMessage')" />
@@ -86,3 +84,38 @@ watch(
     <div v-else class="empty">请选择一个会话开始聊天。</div>
   </main>
 </template>
+<style lang="scss" scoped>
+.conversation-detail {
+  position: relative;
+}
+
+%glass {
+  flex-shrink: 0;
+  backdrop-filter: blur(6px);
+}
+
+.chat-header {
+  @extend %glass;
+  background: linear-gradient(var(--chat-surface), transparent);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+.composer {
+  @extend %glass;
+  background: linear-gradient(to top, var(--chat-surface), transparent);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+}
+
+.message-list {
+  padding-top: 44px;
+  padding-bottom: 44px;
+}
+</style>

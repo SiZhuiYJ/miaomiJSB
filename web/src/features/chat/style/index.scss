@@ -1,4 +1,4 @@
-.el-button+.el-button {
+.el-button + .el-button {
   margin-left: 0 !important;
 }
 
@@ -95,8 +95,9 @@
   cursor: pointer;
   border: 1px solid var(--chat-border);
   border-radius: 14px;
-  padding: 10px 12px;
-  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+  padding: 12px;
+  transition: transform 160ms ease, border-color 160ms ease,
+    background-color 160ms ease;
 }
 
 .conversation-list li:hover {
@@ -170,7 +171,8 @@
 }
 
 .msg-item {
-  max-width: min(72%, 640px);
+  width: fit-content;
+  max-width: 75%;
 }
 
 .msg-item.mine {
@@ -190,10 +192,12 @@
   background: #f3f4f6;
   line-height: 1.5;
   word-break: break-word;
+  width: fit-content;
 }
 
 .msg-item.mine .bubble {
   background: var(--chat-accent-soft);
+  margin-left: auto;
 }
 
 .composer {

@@ -35,6 +35,7 @@ declare module 'vue' {
     ElSkeleton: typeof import('element-plus/es')['ElSkeleton']
     ElSkeletonItem: typeof import('element-plus/es')['ElSkeletonItem']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
+    ElText: typeof import('element-plus/es')['ElText']
     ElTimePicker: typeof import('element-plus/es')['ElTimePicker']
     GlobalIcon: typeof import('./components/GlobalIcon/index.vue')['default']
     NotificationSystem: typeof import('./components/NotificationSystem/index.vue')['default']
