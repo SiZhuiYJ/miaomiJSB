@@ -184,7 +184,12 @@ builder.Services.AddAuthentication(options =>
 #endregion
 
 builder.Services.AddAuthorization();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(45);
+    options.HandshakeTimeout = TimeSpan.FromSeconds(15);
+});
 
 var app = builder.Build();
 

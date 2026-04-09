@@ -19,15 +19,49 @@ const emit = defineEmits<{
   backToList: [];
 }>();
 
-const scrollBodyRef = ref<HTMLElement | null>(null);
+const scrollbarRef = ref<any>(null);
 const isChatDetail = ref(false);
+const pendingAutoScroll = ref(true);
+
+function getScrollWrap() {
+  return (scrollbarRef.value?.wrapRef as HTMLElement | undefined) ?? null;
+}
+
+function isLatestMessageInView(threshold = 24) {
+  const wrap = getScrollWrap();
+  if (!wrap) return true;
+  const distanceToBottom = wrap.scrollHeight - (wrap.scrollTop + wrap.clientHeight);
+  return distanceToBottom <= threshold;
+}
+
+function scrollToBottom(behavior: ScrollBehavior = 'auto') {
+  const wrap = getScrollWrap();
+  if (!wrap) return;
+  wrap.scrollTo({ top: wrap.scrollHeight, behavior });
+}
 
 watch(
   () => props.messages.length,
+  async (newLength, oldLength) => {
+    const hasNewMessage = newLength > oldLength;
+    if (hasNewMessage) {
+      pendingAutoScroll.value = isLatestMessageInView();
+    }
+
+    await nextTick();
+
+    if (hasNewMessage && pendingAutoScroll.value) {
+      scrollToBottom('smooth');
+    }
+  },
+  { flush: 'pre' },
+);
+
+watch(
+  () => props.currentConversation?.id,
   async () => {
     await nextTick();
-    if (!scrollBodyRef.value) return;
-    scrollBodyRef.value.scrollTop = scrollBodyRef.value.scrollHeight;
+    scrollToBottom();
   },
 );
 </script>
