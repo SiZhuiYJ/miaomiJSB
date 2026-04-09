@@ -62,6 +62,15 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="chat-page">
+    <el-alert
+      v-if="chat.errorMessage.value || push.syncError.value"
+      :title="chat.errorMessage.value || push.syncError.value"
+      type="error"
+      :closable="false"
+      show-icon
+      class="connection-alert"
+    />
+
     <ChatToolbar :status-text="push.statusText.value" :polling="push.polling.value || push.realtimeConnected.value"
       :loading="chat.loading.value" @back="router.push('/home')" @refresh="chat.loadConversations"
       @toggle-push="push.togglePush" />
@@ -81,3 +90,9 @@ onBeforeUnmount(() => {
     </div>
   </div>
 </template>
+
+<style scoped lang="scss">
+.connection-alert {
+  margin-bottom: 12px;
+}
+</style>
