@@ -32,7 +32,7 @@ const createConversationTypeOptions = [
         <el-option v-for="item in createConversationTypeOptions" :key="item.value" :label="item.label"
           :value="item.value" />
       </el-select>
-      <el-input v-model="createTitle" clearable placeholder="群聊标题，可选" />
+      <el-input v-model="createTitle" clearable placeholder="群聊标题，可选" :disabled="createConversationType == 'direct'" />
       <el-input v-model="createMembersText" clearable placeholder="成员 ID，使用逗号分隔" />
       <el-button color="#111827" @click="emit('createConversation')">创建</el-button>
     </div>
@@ -44,7 +44,6 @@ const createConversationTypeOptions = [
           <strong>{{ item.title || `会话 #${item.id}` }}</strong>
           <span v-if="item.unreadCount" class="badge">{{ item.unreadCount }}</span>
         </div>
-        <!-- <small>{{ item.lastMessage?.content || item.lastMessage?.messageType || '暂无消息' }}</small> -->
         <el-text line-clamp="1">{{ item.lastMessage?.content || item.lastMessage?.messageType || '暂无消息' }}</el-text>
       </li>
     </ul>

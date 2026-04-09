@@ -16,7 +16,6 @@ const emit = defineEmits<{
   <header class="toolbar">
     <el-button color="#111827" @click="emit('back')">返回</el-button>
     <el-input :value="statusText" placeholder="连接状态" disabled />
-    <!-- <div class="push-status">{{ statusText }}</div> -->
     <el-button color="#111827" @click="emit('refresh')">刷新</el-button>
     <el-button color="#111827" :disabled="loading" @click="emit('togglePush')">
       {{ polling ? '停止推送' : '开启推送' }}
