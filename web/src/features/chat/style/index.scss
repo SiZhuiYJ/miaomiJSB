@@ -109,8 +109,8 @@
 }
 
 .left-panel {
-  padding: 12px;
-  overflow: auto;
+  position: relative;
+  height: 100%;
 }
 
 .main-panel {
@@ -120,10 +120,26 @@
 .create-box {
   display: grid;
   gap: 12px;
-  margin-bottom: 12px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin-left: 12px;
+  margin-right: 12px;
+  padding-top: 12px;
+  flex-shrink: 0;
+  backdrop-filter: blur(6px);
+  background: linear-gradient(var(--chat-surface), transparent);
 }
 
-.create-box h3 {
+.create-box-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 32px;
+}
+
+.create-box .create-box-item h3 {
   margin: 0;
   font-size: 16px;
 }
@@ -134,9 +150,9 @@
 
 .conversation-list {
   display: grid;
-  gap: 8px;
+  gap: 12px;
   margin: 0;
-  padding: 0;
+  padding: 144px 12px 12px;
   list-style: none;
 }
 
@@ -175,8 +191,6 @@
 }
 
 .conversation-detail {
-  display: grid;
-  grid-template-rows: auto 1fr auto;
   height: 100%;
 }
 

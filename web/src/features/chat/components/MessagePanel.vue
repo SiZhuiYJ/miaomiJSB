@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue';
+import { nextTick, ref, watch, useTemplateRef } from 'vue';
 import type { ConversationDetail, MessageSummary } from '../types';
 
 const model = defineModel<string>({ default: '' });
@@ -19,7 +19,7 @@ const emit = defineEmits<{
   backToList: [];
 }>();
 
-const scrollbarRef = ref<any>(null);
+const scrollbarRef = useTemplateRef('scrollbarRef');
 const isChatDetail = ref(false);
 const pendingAutoScroll = ref(true);
 
@@ -69,7 +69,6 @@ watch(
 <template>
   <main class="main-panel">
     <div v-if="props.currentConversation" class="conversation-detail">
-
 
       <el-scrollbar ref="scrollbarRef" wrap-style="" view-class="">
         <div class="message-list">
