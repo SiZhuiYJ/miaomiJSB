@@ -130,6 +130,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 AvatarKey = c.AvatarKey,
                 IsActive = c.IsActive ?? true,
                 UpdatedAt = c.UpdatedAt,
+                IsPinned = c.ChatConversationMembers.OrderByDescending(m => m.Id).FirstOrDefault().IsPinned,
+                IsMuted = c.ChatConversationMembers.OrderByDescending(m => m.Id).FirstOrDefault().IsMuted,
                 LastMessage = c.ChatMessages
                     .OrderByDescending(m => m.Id)
                     .Select(m => new MessageSummaryDto
@@ -141,7 +143,6 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                         Content = m.Content,
                         Extra = m.Extra,
                         ReplyToMessageId = m.ReplyToMessageId,
-                        IsRecalled = m.IsRecalled,
                         CreatedAt = m.CreatedAt
                     })
                     .FirstOrDefault()
@@ -163,6 +164,48 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             .ToList();
 
         return Ok(ordered);
+    }
+    // 更新会话信息
+    [HttpPost("/conversations/{conversationId}")]
+    public async Task<ActionResult<ConversationDetailDto>> UpdateConversation(ulong conversationId, UpdateConversationRequest request)
+    {
+        var userId = GetUserId();
+        var conversation = await _db.ChatConversations
+            .Include(c => c.ChatConversationMembers)
+            .FirstOrDefaultAsync(c => c.Id == conversationId && c.IsActive == true);
+
+        if (conversation == null)
+        {
+            return NotFound(new { message = "会话不存在" });
+        }
+        if (!conversation.ChatConversationMembers.Any(m => m.UserId == userId && m.LeftAt == null))
+        {
+            return NotFound(new { message = "会话不存在或无权限访问" });
+        }
+        // 更新会话信息到数据库
+        var chatConversationMember = conversation.ChatConversationMembers.OrderByDescending(m => m.Id).FirstOrDefault();
+        if (chatConversationMember == null)
+        {
+            return NotFound(new { message = "会话不存在" });
+        }
+        if (string.IsNullOrEmpty(request.Title))
+            conversation.Title = request.Title;
+        if (string.IsNullOrEmpty(request.AvatarKey))
+            conversation.AvatarKey = request.AvatarKey;
+        if (request.IsActive != null)
+            conversation.IsActive = request.IsActive;
+        if (request.IsMuted != null)
+            chatConversationMember.IsMuted = request.IsMuted ?? chatConversationMember.IsMuted;
+        if (request.IsPinned != null)
+            chatConversationMember.IsPinned = request.IsPinned ?? chatConversationMember.IsPinned;
+
+        var Length = _db.SaveChanges();
+        if (Length <= 0)
+        {
+            return NotFound(new { message = "更新失败" });
+        }
+        var detail = await BuildConversationDetail(conversationId);
+        return detail == null ? NotFound(new { message = "会话不存在" }) : Ok(detail);
     }
 
     [HttpGet("conversations/{conversationId:ulong}")]
@@ -286,7 +329,6 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 CreatedAt = m.CreatedAt
             })
             .ToListAsync();
-
         messages.Reverse();
         return Ok(messages);
     }
@@ -421,6 +463,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 Title = c.Title,
                 AvatarKey = c.AvatarKey,
                 IsActive = c.IsActive ?? true,
+                IsPinned = c.ChatConversationMembers.OrderByDescending(m => m.Id).FirstOrDefault().IsPinned,
+                IsMuted = c.ChatConversationMembers.OrderByDescending(m => m.Id).FirstOrDefault().IsMuted,
                 OwnerUserId = c.OwnerUserId,
                 CreatedAt = c.CreatedAt,
                 UpdatedAt = c.UpdatedAt,

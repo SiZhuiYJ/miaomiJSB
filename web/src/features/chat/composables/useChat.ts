@@ -125,6 +125,8 @@ export function useChat() {
         title: detail.title,
         avatarKey: detail.avatarKey,
         isActive: detail.isActive,
+        isPinned: detail.isPinned,
+        isMuted: detail.isMuted,
         updatedAt: detail.updatedAt,
         unreadCount: 0,
         lastMessage: null,
@@ -135,7 +137,29 @@ export function useChat() {
       loading.value = false;
     }
   }
-
+  // 更新会话信息
+  async function updateConversation(item: ConversationSummary) {
+    loading.value = true;
+    errorMessage.value = '';
+    try {
+      const { data } = (
+        await API.updateConversation(item.id, {
+          title: item.title,
+          avatarKey: item.avatarKey,
+          isActive: item.isActive,
+          isPinned: item.isPinned,
+          isMuted: item.isMuted,
+        })
+      )
+      console.log(data)
+      await loadConversations();
+    }
+    catch (error: any) {
+      setError(error, '更新会话失败');
+    } finally {
+      loading.value = false;
+    }
+  }
   async function sendTextMessage() {
     if (!selectedConversationId.value || !composeText.value.trim()) return;
     loading.value = true;
@@ -213,6 +237,7 @@ export function useChat() {
     selectConversation,
     createConversation,
     sendTextMessage,
+    updateConversation,
     pullLatestMessages,
     loadMore,
     markRead,

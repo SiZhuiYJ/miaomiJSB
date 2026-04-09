@@ -28,9 +28,13 @@ const createConversationTypeOptions = [
       <ul class="conversation-list">
         <li v-for="item in props.conversations" :key="item.id" class="conversation-item"
           :class="{ active: item.id === props.selectedConversationId }" @click="emit('selectConversation', item)">
-          <el-badge :value="item.unreadCount" :show-zero="false" :max="99" :offset="[-22, 5]" class="item">
+          <el-badge :value="item.unreadCount" :show-zero="false" :max="99" :offset="[-22, 5]"
+            :color="item.isMuted ? '#f5f7fa' : ''" class="item">
             <div class="title-row">
               <strong>{{ item.title || `会话 #${item.id}` }}</strong>
+              <el-icon v-if="item.isMuted" class="muted-icon">
+                <MuteNotification />
+              </el-icon>
             </div>
             <el-text line-clamp="1">{{ item.lastMessage?.content || item.lastMessage?.messageType || '暂无消息' }}</el-text>
             <template #content="{ value }">

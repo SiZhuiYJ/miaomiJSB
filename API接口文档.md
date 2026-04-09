@@ -120,6 +120,7 @@
 | POST | `/conversations` | 创建会话（支持 `direct` 双人 / `group` 多人） |
 | GET | `/conversations` | 获取当前用户会话列表（含最后一条消息和未读数） |
 | GET | `/conversations/{conversationId}` | 获取会话详情（含成员列表） |
+| POST | `/conversations/{conversationId}` | 更新会话信息 |
 | POST | `/conversations/{conversationId}/messages` | 发送消息 |
 | GET | `/conversations/{conversationId}/messages?beforeMessageId=&pageSize=` | 分页拉取消息记录（默认20，最大100） |
 | GET | `/conversations/{conversationId}/messages/delta?afterMessageId=&pageSize=` | 拉取增量消息（用于推送/轮询） |

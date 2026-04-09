@@ -11,6 +11,16 @@ public class CreateConversationRequest
     public List<ulong> MemberUserIds { get; set; } = new();
 }
 
+// 更新会话信息
+public class UpdateConversationRequest
+{
+    public string? Title { get; set; }
+    public string? AvatarKey { get; set; }
+    public bool? IsActive { get; set; }
+    public bool? IsPinned { get; set; }
+    public bool? IsMuted { get; set; }
+}
+
 public class ConversationMemberDto
 {
     public ulong UserId { get; set; }
@@ -41,6 +51,8 @@ public class ConversationSummaryDto
     public string? Title { get; set; }
     public string? AvatarKey { get; set; }
     public bool IsActive { get; set; }
+    public bool IsPinned { get; set; }
+    public bool IsMuted { get; set; }
     public DateTime UpdatedAt { get; set; }
     public int UnreadCount { get; set; }
     public MessageSummaryDto? LastMessage { get; set; }
@@ -53,6 +65,8 @@ public class ConversationDetailDto
     public string? Title { get; set; }
     public string? AvatarKey { get; set; }
     public bool IsActive { get; set; }
+    public bool IsPinned { get; set; }
+    public bool IsMuted { get; set; }
     public ulong? OwnerUserId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

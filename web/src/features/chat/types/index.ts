@@ -19,6 +19,8 @@ export interface ConversationSummary {
   title?: string | null;
   avatarKey?: string | null;
   isActive: boolean;
+  isPinned: boolean;
+  isMuted: boolean;
   updatedAt: string;
   unreadCount: number;
   lastMessage?: MessageSummary | null;
@@ -39,6 +41,8 @@ export interface ConversationDetail {
   title?: string | null;
   avatarKey?: string | null;
   isActive: boolean;
+  isPinned: boolean;
+  isMuted: boolean;
   ownerUserId?: number | null;
   createdAt: string;
   updatedAt: string;
@@ -63,4 +67,11 @@ export interface MessageDeltaResponse {
   hasMore: boolean;
   lastMessageId: number;
   messages: MessageSummary[];
+}
+export interface UpdateConversation {
+  title?: string | null;
+  avatarKey?: string | null;
+  isActive: boolean;
+  isPinned: boolean;
+  isMuted: boolean;
 }

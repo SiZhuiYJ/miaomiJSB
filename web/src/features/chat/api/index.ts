@@ -6,6 +6,7 @@ import type {
   MessageDeltaResponse,
   MessageSummary,
   SendMessagePayload,
+  UpdateConversation
 } from '../types';
 
 export async function getConversations() {
@@ -19,7 +20,10 @@ export async function getConversation(id: number) {
 export async function createConversation(payload: CreateConversationPayload) {
   return await http.post<ConversationDetail>('/mm/chat/conversations', payload);
 }
-
+// 更新会话信息
+export async function updateConversation(id: number, payload: UpdateConversation) {
+  return await http.post<ConversationDetail>(`/mm/chat/conversations/${id}`, payload);
+}
 export async function getMessages(
   id: number,
   beforeMessageId?: number,
@@ -63,5 +67,6 @@ export default {
   getMessages,
   getMessageDelta,
   createConversation,
+  updateConversation,
   markRead,
 };
