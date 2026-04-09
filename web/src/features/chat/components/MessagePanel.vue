@@ -35,18 +35,7 @@ watch(
 <template>
   <main class="main-panel">
     <div v-if="props.currentConversation" class="conversation-detail">
-      <div class="chat-header">
-        <div class="chat-header-main">
-          <el-button v-if="props.showBackToList" color="#111827" class="back-to-list" @click="emit('backToList')">
-            会话列表
-          </el-button>
-          <h3>{{ props.currentConversation.title || `会话 #${props.currentConversation.id}` }}</h3>
-        </div>
 
-        <el-button color="#111827" class="open-detail" @click="isChatDetail = true">
-          详情
-        </el-button>
-      </div>
 
       <el-scrollbar ref="scrollbarRef" wrap-style="" view-class="">
         <div class="message-list">
@@ -59,7 +48,18 @@ watch(
           </div>
         </div>
       </el-scrollbar>
+      <div class="chat-header">
+        <div class="chat-header-main">
+          <el-button v-if="props.showBackToList" color="#111827" class="back-to-list" @click="emit('backToList')">
+            会话列表
+          </el-button>
+          <h3>{{ props.currentConversation.title || `会话 #${props.currentConversation.id}` }}</h3>
+        </div>
 
+        <el-button color="#111827" class="open-detail" @click="isChatDetail = true">
+          详情
+        </el-button>
+      </div>
       <div class="composer">
         <el-input v-model="model" clearable placeholder="输入消息" @keyup.enter="emit('sendTextMessage')" />
         <el-button color="#111827" :disabled="props.loading" @click="emit('sendTextMessage')">发送</el-button>
@@ -84,38 +84,4 @@ watch(
     <div v-else class="empty">请选择一个会话开始聊天。</div>
   </main>
 </template>
-<style lang="scss" scoped>
-.conversation-detail {
-  position: relative;
-}
-
-%glass {
-  flex-shrink: 0;
-  backdrop-filter: blur(6px);
-}
-
-.chat-header {
-  @extend %glass;
-  background: linear-gradient(var(--chat-surface), transparent);
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-}
-
-.composer {
-  @extend %glass;
-  background: linear-gradient(to top, var(--chat-surface), transparent);
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-
-}
-
-.message-list {
-  padding-top: 44px;
-  padding-bottom: 44px;
-}
-</style>
+<style lang="scss" scoped></style>

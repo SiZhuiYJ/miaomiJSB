@@ -28,10 +28,42 @@
     --chat-vh: 100dvh;
   }
 }
+.conversation-detail {
+  position: relative;
+}
 
+%glass {
+  flex-shrink: 0;
+  backdrop-filter: blur(6px);
+}
+
+.chat-header {
+  @extend %glass;
+  background: linear-gradient(var(--chat-surface), transparent);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding-top: 12px;
+}
+
+.composer {
+  @extend %glass;
+  background: linear-gradient(to top, var(--chat-surface), transparent);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding-bottom: 12px;
+}
+
+.message-list {
+  padding-top: 56px;
+  padding-bottom: 56px;
+}
 .toolbar {
-  display: grid;
-  grid-template-columns: 80px 1fr 80px 120px;
+  display: flex;
   gap: 10px;
   margin-bottom: 0;
 }
@@ -82,7 +114,7 @@
 }
 
 .main-panel {
-  padding: 12px 0;
+  padding: 0;
 }
 
 .create-box {
@@ -150,7 +182,7 @@
 
 .chat-header,
 .composer {
-  padding: 0 12px;
+  margin: 0 12px;
 }
 
 .chat-header {
@@ -183,8 +215,9 @@
 
 .message-list {
   display: grid;
-  gap: 10px;
-  padding: 12px;
+  gap: 12px;
+  padding-left: 12px;
+  padding-right: 12px;
 }
 
 .msg-item {
@@ -218,8 +251,7 @@
 }
 
 .composer {
-  display: grid;
-  grid-template-columns: 1fr 90px 110px;
+  display: flex;
   gap: 8px;
 }
 
@@ -240,11 +272,8 @@
 
 @media (max-width: 768px) {
   .chat-page {
-    padding: 10px;
-  }
-
-  .toolbar {
-    grid-template-columns: 1fr 1fr;
+    padding: 6px;
+    gap: 6px;
   }
 
   .push-status {
@@ -253,6 +282,7 @@
   }
 
   .layout {
+    height: calc(100vh - 50px);
     grid-template-columns: 1fr;
     min-height: 0;
   }
@@ -262,50 +292,28 @@
     min-height: 0;
     height: 100%;
   }
+  .chat-header,
+  .composer {
+    margin: 0 6px;
+  }
 
   .chat-header {
     align-items: flex-start;
+    padding-top: 6px;
   }
-
-  .message-list,
-  .chat-header,
   .composer {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-bottom: 6px;
   }
-
+  .message-list {
+    gap: 6px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
   .msg-item {
     max-width: 88%;
   }
 
-  .composer {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .composer :first-child {
-    grid-column: 1 / -1;
-  }
-
   .back-to-list {
     flex-shrink: 0;
-  }
-}
-
-@media (max-width: 480px) {
-  .toolbar {
-    grid-template-columns: 1fr;
-  }
-
-  .layout.mobile .left-panel,
-  .layout.mobile .main-panel {
-    min-height: 0;
-  }
-
-  .composer {
-    grid-template-columns: 1fr;
-  }
-
-  .msg-item {
-    max-width: 94%;
   }
 }

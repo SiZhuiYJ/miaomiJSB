@@ -66,8 +66,6 @@ onBeforeUnmount(() => {
       :loading="chat.loading.value" @back="router.push('/home')" @refresh="chat.loadConversations"
       @toggle-push="push.togglePush" />
 
-    <p v-if="chat.errorMessage.value" class="error">{{ chat.errorMessage.value }}</p>
-
     <div class="layout" :class="{ mobile: isMobile }">
       <ConversationSidebar v-if="showConversationList" :errorMessage="chat.errorMessage.value"
         v-model:create-conversation-type="chat.createConversationType.value"
