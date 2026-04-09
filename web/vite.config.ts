@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 // 引入Vue插件
 import vue from "@vitejs/plugin-vue";
 // 引入路径别名解析插件
@@ -26,8 +26,13 @@ function getNodeModulePackageName(id: string) {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  const isAnalyze = env.ANALYZE === "true";
+  const dropConsole = env.VITE_DROP_CONSOLE !== "false";
+
+  return {
+    plugins: [
     // 引入Vue插件
     vue(),
     // 自动导入插件，自动导入Vue和Pinia相关函数，并自动注册Element Plus组件
@@ -48,16 +53,20 @@ export default defineConfig({
       // 生成 symbol ID 格式
       symbolId: "icon-[dir]-[name]",
     }),
-    visualizer({
-      filename: "stats.html", // 分析报告生成的文件名和路径
-      open: true, // 构建完成后自动在浏览器中打开报告
-      gzipSize: true, // 显示 gzip 压缩后的大小
-      brotliSize: true, // 显示 brotli 压缩后的大小
-      emitFile: true, // 如果为 false，则不会生成文件，只在控制台输出
-    }),
-  ],
-  // 开发服务器配置
-  server: {
+      ...(isAnalyze
+        ? [
+            visualizer({
+              filename: "stats.html", // 分析报告生成的文件名和路径
+              open: true, // 构建完成后自动在浏览器中打开报告
+              gzipSize: true, // 显示 gzip 压缩后的大小
+              brotliSize: true, // 显示 brotli 压缩后的大小
+              emitFile: true, // 如果为 false，则不会生成文件，只在控制台输出
+            }),
+          ]
+        : []),
+    ],
+    // 开发服务器配置
+    server: {
     proxy: {
       "/mm": {
         target: "https://8.137.127.7",
@@ -81,11 +90,11 @@ export default defineConfig({
       usePolling: true, // 启用轮询
       interval: 100, // 轮询间隔（毫秒）
     },
-  },
-  /**
-   * 构建配置
-   */
-  build: {
+    },
+    /**
+     * 构建配置
+     */
+    build: {
     cssCodeSplit: true, // 保持CSS分包
     rollupOptions: {
       output: {
@@ -146,24 +155,23 @@ export default defineConfig({
     // 提升告警阈值，避免对已合理拆分的 vendor 包持续误报
     chunkSizeWarningLimit: 850,
     minify: "terser", // 启用 terser 压缩
-    terserOptions: {
-      compress: {
-        // 只删除 console.log
-        // pure_funcs: ["console.log"],
-        // 删除 debugger
-        // drop_debugger: true,
+      terserOptions: {
+        compress: {
+          // 生产环境默认移除 console/debugger，必要时可通过 VITE_DROP_CONSOLE=false 关闭
+          drop_console: dropConsole,
+          drop_debugger: dropConsole,
+        },
       },
     },
-  },
-  esbuild: {
-    // 删除 所有的console 和 debugger
-    // drop: ["console", "debugger"],
-  },
-  /**
-   * 路径解析配置
-   * 设置模块导入路径别名，提高代码可读性和维护性
-   */
-  resolve: {
+    esbuild: {
+      // 删除 所有的console 和 debugger
+      // drop: ["console", "debugger"],
+    },
+    /**
+     * 路径解析配置
+     * 设置模块导入路径别名，提高代码可读性和维护性
+     */
+    resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
       "@assets": path.resolve(__dirname, "src/assets"),
@@ -172,5 +180,6 @@ export default defineConfig({
       "@utils": path.resolve(__dirname, "src/utils"),
       "@views": path.resolve(__dirname, "src/views"),
     },
-  },
+    },
+  };
 });
