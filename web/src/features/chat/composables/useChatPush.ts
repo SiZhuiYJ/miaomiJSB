@@ -42,6 +42,20 @@ export function useChatPush(options: PushOptions) {
       lastSyncAt.value = new Date().toISOString();
       syncError.value = '';
     } catch (error: any) {
+      const isTimeout = error?.code === 'ECONNABORTED';
+      const isNetworkError =
+        error?.message === 'Network Error' || !error?.response;
+
+      if (isTimeout) {
+        syncError.value = '同步超时，正在重试';
+        return;
+      }
+
+      if (isNetworkError) {
+        syncError.value = '无法连接服务器，已切换为重试模式';
+        return;
+      }
+
       syncError.value = error?.response?.data?.message || error?.message || '同步失败';
     }
   }
@@ -149,8 +163,17 @@ export function useChatPush(options: PushOptions) {
       await connectRealtime();
       syncError.value = '';
     } catch (error: any) {
-      syncError.value =
-        error?.message || 'SignalR 不可用，已自动降级为轮询模式';
+      const isTimeout = error?.code === 'ECONNABORTED';
+      const isNetworkError =
+        error?.message === 'Network Error' || !error?.response;
+
+      if (isTimeout) {
+        syncError.value = '连接超时，已自动降级为轮询模式';
+      } else if (isNetworkError) {
+        syncError.value = '无法连接服务器，已自动降级为轮询模式';
+      } else {
+        syncError.value = error?.message || 'SignalR 不可用，已自动降级为轮询模式';
+      }
       startPolling();
     }
   }
