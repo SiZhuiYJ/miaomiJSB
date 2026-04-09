@@ -1,6 +1,7 @@
 import { computed, onBeforeUnmount, ref } from 'vue';
 import {
   HubConnectionBuilder,
+  LogLevel,
   HttpTransportType,
 } from '@microsoft/signalr';
 
@@ -21,6 +22,7 @@ export function useChatPush(options: PushOptions) {
   const syncError = ref('');
   let timer: ReturnType<typeof setInterval> | null = null;
   let connection: any = null;
+  let shouldKeepRealtime = false;
 
   const statusText = computed(() => {
     if (syncError.value) return `推送异常：${syncError.value}`;
@@ -71,7 +73,10 @@ export function useChatPush(options: PushOptions) {
         accessTokenFactory: () => options.getToken(),
         transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,
       })
+      .configureLogging(LogLevel.Warning)
       .withAutomaticReconnect()
+      .withKeepAliveInterval(15000)
+      .withServerTimeout(45000)
       .build();
 
     connection.on('chat:message-updated', async (payload: any) => {
@@ -84,7 +89,31 @@ export function useChatPush(options: PushOptions) {
 
     connection.onclose(() => {
       realtimeConnected.value = false;
+      if (!shouldKeepRealtime) return;
       startPolling();
+    });
+
+    connection.onreconnecting((error: any) => {
+      realtimeConnected.value = false;
+      syncError.value = error?.message || 'SignalR 重连中，已临时启用轮询';
+      startPolling();
+    });
+
+    connection.onreconnected(async () => {
+      try {
+        realtimeConnected.value = true;
+        stopPolling();
+        syncError.value = '';
+        await options.fetchConversations();
+        await subscribeConversation(options.getConversationId());
+        if (options.hasConversation()) {
+          await options.pullLatestMessages();
+          await options.markRead();
+        }
+      } catch (error: any) {
+        syncError.value = error?.message || '重连后同步失败，已回退轮询';
+        startPolling();
+      }
     });
 
     await connection.start();
@@ -104,6 +133,7 @@ export function useChatPush(options: PushOptions) {
   }
 
   async function disconnectRealtime() {
+    shouldKeepRealtime = false;
     if (!connection) return;
     try {
       await connection.stop();
@@ -114,6 +144,7 @@ export function useChatPush(options: PushOptions) {
   }
 
   async function startPush() {
+    shouldKeepRealtime = true;
     try {
       await connectRealtime();
       syncError.value = '';
@@ -125,6 +156,7 @@ export function useChatPush(options: PushOptions) {
   }
 
   async function stopPush() {
+    shouldKeepRealtime = false;
     stopPolling();
     await disconnectRealtime();
   }
