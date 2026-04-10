@@ -2,6 +2,7 @@
 import { nextTick, ref, watch, useTemplateRef, computed } from 'vue';
 import type { ConversationDetail, MessageSummary, ConversationMember } from '../types';
 import { useDebounceFn } from '@/utils/debounce'
+import { API_BASE_URL } from '@/config';
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia'
 const { user } = storeToRefs(useAuthStore());
@@ -119,7 +120,7 @@ const url = computed(() => {
       if (getOtherUser(currentConversation.value.members, user.value.userId))
         if (getOtherUser(currentConversation.value.members, user.value.userId)?.userId)
           if (getOtherUser(currentConversation.value.members, user.value.userId)?.avatarKey)
-            return `/mm/Files/users/${getOtherUser(currentConversation.value.members, user.value.userId)?.userId}/${getOtherUser(currentConversation.value.members, user.value.userId)?.avatarKey}`;
+            return `${API_BASE_URL}/mm/Files/users/${getOtherUser(currentConversation.value.members, user.value.userId)?.userId}/${getOtherUser(currentConversation.value.members, user.value.userId)?.avatarKey}`;
   return '';
 });
 </script>
