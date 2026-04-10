@@ -183,7 +183,9 @@ function getMemberAvatarBySender(senderUserId: number) {
       </div>
       <div class="composer">
         <el-input v-model="model" clearable placeholder="输入消息" @keyup.enter="emit('sendTextMessage')" />
-        <el-button color="#111827" :disabled="props.loading" @click="emit('sendTextMessage')" />
+        <el-button color="#111827" :disabled="props.loading" @click="emit('sendTextMessage')">
+          发送
+        </el-button>
         <el-button color="#111827" :disabled="props.loading" @click="emit('markRead')">
           标为已读
         </el-button>

@@ -1,4 +1,4 @@
-.el-button + .el-button {
+.el-button+.el-button {
   margin-left: 0 !important;
 }
 
@@ -96,7 +96,7 @@
   min-height: 0;
 }
 
-.layout > * {
+.layout>* {
   min-width: 0;
 }
 
@@ -262,6 +262,15 @@
 .msg-item.mine {
   flex-direction: row-reverse;
   margin-left: auto;
+
+  .content {
+    align-items: flex-end;
+  }
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
 }
 
 .meta {
@@ -272,6 +281,8 @@
   color: var(--chat-muted);
   font-size: 12px;
   flex-direction: row-reverse;
+
+
 }
 
 .conversation-avatar {
