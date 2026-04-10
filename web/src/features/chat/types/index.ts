@@ -18,6 +18,7 @@ export interface ConversationSummary {
   conversationType: ConversationType;
   title?: string | null;
   avatarKey?: string | null;
+  avatarUserId?: number | null;
   isActive: boolean;
   isPinned: boolean;
   isMuted: boolean;
@@ -40,6 +41,7 @@ export interface ConversationDetail {
   conversationType: ConversationType;
   title?: string | null;
   avatarKey?: string | null;
+  avatarUserId?: number | null;
   isActive: boolean;
   isPinned: boolean;
   isMuted: boolean;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ConversationSummary } from '../types';
+import { API_BASE_URL } from '@/config';
 
 const createConversationType = defineModel<'direct' | 'group'>('createConversationType');
 const createTitle = defineModel<string>('createTitle');
@@ -20,6 +21,17 @@ const createConversationTypeOptions = [
   { value: 'direct', label: '单聊' },
   { value: 'group', label: '群聊' },
 ];
+
+function getConversationAvatar(item: ConversationSummary) {
+  if (!item.avatarKey || !item.avatarUserId) return '';
+  return `${API_BASE_URL}/mm/Files/users/${item.avatarUserId}/${item.avatarKey}`;
+}
+
+function getConversationMessagePreview(item: ConversationSummary) {
+  if (!item.lastMessage) return '暂无消息';
+  if (item.lastMessage.content) return item.lastMessage.content;
+  return `[${item.lastMessage.messageType}]`;
+}
 </script>
 
 <template>
@@ -28,6 +40,9 @@ const createConversationTypeOptions = [
       <ul class="conversation-list">
         <li v-for="item in props.conversations" :key="item.id" class="conversation-item"
           :class="{ active: item.id === props.selectedConversationId }" @click="emit('selectConversation', item)">
+          <el-avatar class="conversation-avatar" :src="getConversationAvatar(item)">
+            {{ (item.title || `#${item.id}`).slice(0, 1) }}
+          </el-avatar>
           <el-badge :value="item.unreadCount" :show-zero="false" :max="99" :offset="[-22, 5]"
             :color="item.isMuted ? '#f5f7fa' : ''" class="item">
             <div class="title-row">
@@ -36,7 +51,10 @@ const createConversationTypeOptions = [
                 <MuteNotification />
               </el-icon>
             </div>
-            <el-text line-clamp="1">{{ item.lastMessage?.content || item.lastMessage?.messageType || '暂无消息' }}</el-text>
+            <el-text line-clamp="1">
+              {{ item.lastMessage?.senderNickName || item.lastMessage?.senderUserId || '系统' }}：
+              {{ getConversationMessagePreview(item) }}
+            </el-text>
             <template #content="{ value }">
               <div class="custom-content">
                 <el-icon>

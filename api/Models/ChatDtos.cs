@@ -50,6 +50,7 @@ public class ConversationSummaryDto
     public string ConversationType { get; set; } = "direct";
     public string? Title { get; set; }
     public string? AvatarKey { get; set; }
+    public ulong? AvatarUserId { get; set; }
     public bool IsActive { get; set; }
     public bool IsPinned { get; set; }
     public bool IsMuted { get; set; }
@@ -64,6 +65,7 @@ public class ConversationDetailDto
     public string ConversationType { get; set; } = "direct";
     public string? Title { get; set; }
     public string? AvatarKey { get; set; }
+    public ulong? AvatarUserId { get; set; }
     public bool IsActive { get; set; }
     public bool IsPinned { get; set; }
     public bool IsMuted { get; set; }

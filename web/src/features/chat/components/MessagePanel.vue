@@ -123,6 +123,21 @@ const url = computed(() => {
             return `${API_BASE_URL}/mm/Files/users/${getOtherUser(currentConversation.value.members, user.value.userId)?.userId}/${getOtherUser(currentConversation.value.members, user.value.userId)?.avatarKey}`;
   return '';
 });
+
+function formatChatTime(value: string) {
+  return new Date(value).toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getMemberAvatarBySender(senderUserId: number) {
+  const member = currentConversation.value?.members.find((item) => item.userId === senderUserId);
+  if (!member?.avatarKey) return '';
+  return `${API_BASE_URL}/mm/Files/users/${member.userId}/${member.avatarKey}`;
+}
 </script>
 
 <template>
@@ -133,7 +148,11 @@ const url = computed(() => {
           <div v-for="msg in props.messages" :key="msg.id"
             :class="['msg-item', { mine: props.meUserId && msg.senderUserId === props.meUserId }]">
             <div class="meta">
-              #{{ msg.id }} · {{ msg.senderNickName || msg.senderUserId }} · {{ msg.messageType }}
+              <el-avatar class="message-avatar" :src="getMemberAvatarBySender(msg.senderUserId)">
+                {{ (msg.senderNickName || String(msg.senderUserId)).slice(0, 1) }}
+              </el-avatar>
+              <span>#{{ msg.id }} · {{ msg.senderNickName || msg.senderUserId }} · {{ msg.messageType }}</span>
+              <span>{{ formatChatTime(msg.createdAt) }}</span>
             </div>
             <div class="bubble">{{ msg.content || msg.extra || '[空消息]' }}</div>
           </div>
@@ -164,6 +183,10 @@ const url = computed(() => {
       <el-dialog v-model="isChatDetail" title="会话详情" width="min(92vw, 520px)">
         <el-image v-if="currentConversation.conversationType == 'direct'" class="avatar-preview" :src="url" fit="fill"
           :preview-src-list="[url]" lazy />
+        <p class="members">会话类型：{{ currentConversation.conversationType === 'group' ? '群聊' : '单聊' }}</p>
+        <p class="members">会话ID：{{ currentConversation.id }}</p>
+        <p class="members">创建时间：{{ formatChatTime(currentConversation.createdAt) }}</p>
+        <p class="members">更新时间：{{ formatChatTime(currentConversation.updatedAt) }}</p>
         <p class="members">
           成员：
           {{
