@@ -128,6 +128,7 @@ export function useChat() {
         conversationType: detail.conversationType,
         title: detail.title,
         avatarKey: detail.avatarKey,
+        avatarUserId: detail.avatarUserId,
         isActive: detail.isActive,
         isPinned: detail.isPinned,
         isMuted: detail.isMuted,

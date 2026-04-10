@@ -126,12 +126,34 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             {
                 Id = c.Id,
                 ConversationType = c.ConversationType,
-                Title = c.Title,
-                AvatarKey = c.AvatarKey,
                 IsActive = c.IsActive ?? true,
                 UpdatedAt = c.UpdatedAt,
-                IsPinned = c.ChatConversationMembers.OrderByDescending(m => m.Id).FirstOrDefault().IsPinned,
-                IsMuted = c.ChatConversationMembers.OrderByDescending(m => m.Id).FirstOrDefault().IsMuted,
+                Title = c.ConversationType == "direct"
+                    ? c.ChatConversationMembers
+                        .Where(m => m.UserId != userId && m.LeftAt == null)
+                        .Select(m => m.User.NickName)
+                        .FirstOrDefault() ?? c.Title
+                    : c.Title,
+                AvatarKey = c.ConversationType == "direct"
+                    ? c.ChatConversationMembers
+                        .Where(m => m.UserId != userId && m.LeftAt == null)
+                        .Select(m => m.User.AvatarKey)
+                        .FirstOrDefault() ?? c.AvatarKey
+                    : c.AvatarKey,
+                AvatarUserId = c.ConversationType == "direct"
+                    ? c.ChatConversationMembers
+                        .Where(m => m.UserId != userId && m.LeftAt == null)
+                        .Select(m => (ulong?)m.UserId)
+                        .FirstOrDefault()
+                    : c.OwnerUserId,
+                IsPinned = c.ChatConversationMembers
+                    .Where(m => m.UserId == userId && m.LeftAt == null)
+                    .Select(m => m.IsPinned)
+                    .FirstOrDefault(),
+                IsMuted = c.ChatConversationMembers
+                    .Where(m => m.UserId == userId && m.LeftAt == null)
+                    .Select(m => m.IsMuted)
+                    .FirstOrDefault(),
                 LastMessage = c.ChatMessages
                     .OrderByDescending(m => m.Id)
                     .Select(m => new MessageSummaryDto
@@ -166,7 +188,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         return Ok(ordered);
     }
     
-    [HttpPost("/conversations/{conversationId:ulong}")]
+    [HttpPost("conversations/{conversationId:ulong}")]
     public async Task<ActionResult<ConversationDetailDto>> UpdateConversation(ulong conversationId, UpdateConversationRequest request)
     {
         var userId = GetUserId();
@@ -183,14 +205,15 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             return NotFound(new { message = "会话不存在或无权限访问" });
         }
         // 更新会话信息到数据库
-        var chatConversationMember = conversation.ChatConversationMembers.OrderByDescending(m => m.Id).FirstOrDefault();
+        var chatConversationMember = conversation.ChatConversationMembers
+            .FirstOrDefault(m => m.UserId == userId && m.LeftAt == null);
         if (chatConversationMember == null)
         {
             return NotFound(new { message = "会话不存在" });
         }
-        if (string.IsNullOrEmpty(request.Title))
+        if (!string.IsNullOrWhiteSpace(request.Title))
             conversation.Title = request.Title;
-        if (string.IsNullOrEmpty(request.AvatarKey))
+        if (!string.IsNullOrWhiteSpace(request.AvatarKey))
             conversation.AvatarKey = request.AvatarKey;
         if (request.IsActive != null)
             conversation.IsActive = request.IsActive;
@@ -199,8 +222,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         if (request.IsPinned != null)
             chatConversationMember.IsPinned = request.IsPinned ?? chatConversationMember.IsPinned;
 
-        var Length = _db.SaveChanges();
-        if (Length <= 0)
+        var length = await _db.SaveChangesAsync();
+        if (length <= 0)
         {
             return NotFound(new { message = "更新失败" });
         }
@@ -460,11 +483,33 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             {
                 Id = c.Id,
                 ConversationType = c.ConversationType,
-                Title = c.Title,
-                AvatarKey = c.AvatarKey,
+                Title = c.ConversationType == "direct"
+                    ? c.ChatConversationMembers
+                        .Where(m => m.UserId != userId && m.LeftAt == null)
+                        .Select(m => m.User.NickName)
+                        .FirstOrDefault() ?? c.Title
+                    : c.Title,
+                AvatarKey = c.ConversationType == "direct"
+                    ? c.ChatConversationMembers
+                        .Where(m => m.UserId != userId && m.LeftAt == null)
+                        .Select(m => m.User.AvatarKey)
+                        .FirstOrDefault() ?? c.AvatarKey
+                    : c.AvatarKey,
+                AvatarUserId = c.ConversationType == "direct"
+                    ? c.ChatConversationMembers
+                        .Where(m => m.UserId != userId && m.LeftAt == null)
+                        .Select(m => (ulong?)m.UserId)
+                        .FirstOrDefault()
+                    : c.OwnerUserId,
                 IsActive = c.IsActive ?? true,
-                IsPinned = c.ChatConversationMembers.OrderByDescending(m => m.Id).FirstOrDefault().IsPinned,
-                IsMuted = c.ChatConversationMembers.OrderByDescending(m => m.Id).FirstOrDefault().IsMuted,
+                IsPinned = c.ChatConversationMembers
+                    .Where(m => m.UserId == userId && m.LeftAt == null)
+                    .Select(m => m.IsPinned)
+                    .FirstOrDefault(),
+                IsMuted = c.ChatConversationMembers
+                    .Where(m => m.UserId == userId && m.LeftAt == null)
+                    .Select(m => m.IsMuted)
+                    .FirstOrDefault(),
                 OwnerUserId = c.OwnerUserId,
                 CreatedAt = c.CreatedAt,
                 UpdatedAt = c.UpdatedAt,
