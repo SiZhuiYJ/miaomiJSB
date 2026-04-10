@@ -17,6 +17,7 @@ export interface ConversationSummary {
   id: number;
   conversationType: ConversationType;
   title?: string | null;
+  userAccount?: string | null;
   avatarKey?: string | null;
   avatarUserId?: number | null;
   isActive: boolean;
@@ -30,6 +31,7 @@ export interface ConversationSummary {
 export interface ConversationMember {
   userId: number;
   nickName?: string | null;
+  userAccount?: string | null;
   avatarKey?: string | null;
   memberRole: 'owner' | 'admin' | 'member';
   joinedAt: string;

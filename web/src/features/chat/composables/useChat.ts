@@ -4,6 +4,7 @@ import { storeToRefs } from "pinia";
 import API from "../api";
 import type {
   ConversationDetail,
+  ConversationMember,
   ConversationSummary,
   MessageSummary,
 } from "../types";
@@ -33,6 +34,47 @@ export function useChat() {
   const selectedConversationId = computed(
     () => currentConversation.value?.id || 0,
   );
+
+  function getMemberDisplayName(member?: ConversationMember | null) {
+    if (!member) return "";
+    return (
+      member.nickName?.trim() ||
+      member.userAccount?.trim() ||
+      String(member.userId)
+    );
+  }
+
+  function getDirectPeerDisplayName(detail: ConversationDetail) {
+    const currentUserId = user.value?.userId;
+    const peer = detail.members.find((member) => member.userId !== currentUserId);
+    return getMemberDisplayName(peer);
+  }
+
+  function updateConversationSummaryTitle(conversationId: number, title: string) {
+    const target = conversations.value.find((item) => item.id === conversationId);
+    if (target) target.title = title;
+  }
+
+  async function hydrateDirectConversationTitles(items: ConversationSummary[]) {
+    const directItems = items.filter((item) => item.conversationType === "direct");
+    if (directItems.length === 0) return;
+
+    const detailResults = await Promise.allSettled(
+      directItems.map((item) => API.getConversation(item.id)),
+    );
+
+    detailResults.forEach((result, index) => {
+      if (result.status !== "fulfilled") return;
+
+      const detail = result.value.data;
+      const displayName = getDirectPeerDisplayName(detail);
+      if (!displayName) return;
+
+      const conversationId = directItems[index]?.id;
+      if (!conversationId) return;
+      updateConversationSummaryTitle(conversationId, displayName);
+    });
+  }
 
   function mergeMessages(
     current: MessageSummary[],
@@ -81,7 +123,9 @@ export function useChat() {
     loading.value = true;
     errorMessage.value = "";
     try {
-      conversations.value = (await API.getConversations()).data;
+      const items = (await API.getConversations()).data;
+      conversations.value = items;
+      await hydrateDirectConversationTitles(items);
     } catch (error: any) {
       setError(error, "加载会话失败");
     } finally {
@@ -94,6 +138,16 @@ export function useChat() {
     errorMessage.value = "";
     try {
       currentConversation.value = (await API.getConversation(item.id)).data;
+      if (
+        currentConversation.value?.conversationType === "direct" &&
+        currentConversation.value
+      ) {
+        const directName = getDirectPeerDisplayName(currentConversation.value);
+        if (directName) {
+          currentConversation.value.title = directName;
+          updateConversationSummaryTitle(currentConversation.value.id, directName);
+        }
+      }
       messages.value = (await API.getMessages(item.id)).data;
       await markRead();
     } catch (error: any) {

@@ -118,6 +118,14 @@ const directPeer = computed(() => {
   return getOtherUser(currentConversation.value.members, user.value.userId);
 });
 
+const conversationHeaderTitle = computed(() => {
+  if (!currentConversation.value) return '';
+  if (currentConversation.value.conversationType === 'direct') {
+    return directPeer.value?.nickName || directPeer.value?.userAccount || String(directPeer.value?.userId || currentConversation.value.id);
+  }
+  return currentConversation.value.title || `会话 #${currentConversation.value.id}`;
+});
+
 const url = computed(() => {
   if (!directPeer.value?.avatarKey) return '';
   return `${API_BASE_URL}/mm/Files/users/${directPeer.value.userId}/${directPeer.value.avatarKey}`;
@@ -164,7 +172,7 @@ function getMemberAvatarBySender(senderUserId: number) {
           <el-button v-if="props.showBackToList" color="#111827" class="back-to-list" @click="emit('backToList')">
             会话列表
           </el-button>
-          <h3>{{ currentConversation.title || `会话 #${currentConversation.id}` }}</h3>
+          <h3>{{ conversationHeaderTitle }}</h3>
         </div>
 
         <el-button color="#111827" class="open-detail" icon="Document" @click="isChatDetail = true">

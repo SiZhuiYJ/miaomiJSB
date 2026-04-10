@@ -30,8 +30,15 @@ function getConversationAvatar(item: ConversationSummary) {
 }
 
 function getConversationAvatarText(item: ConversationSummary) {
-  if (item.conversationType === 'direct') return (item.title || `#${item.id}`).slice(0, 1);
+  if (item.conversationType === 'direct') return (getConversationDisplayTitle(item)).slice(0, 1);
   return (item.title || `群#${item.id}`).slice(0, 1);
+}
+
+function getConversationDisplayTitle(item: ConversationSummary) {
+  if (item.conversationType === 'direct') {
+    return item.title || item.userAccount || String(item.avatarUserId || item.id);
+  }
+  return item.title || `会话 #${item.id}`;
 }
 
 function getConversationMessagePreview(item: ConversationSummary) {
@@ -53,7 +60,7 @@ function getConversationMessagePreview(item: ConversationSummary) {
           <el-badge :value="item.unreadCount" :show-zero="false" :max="99" :offset="[-22, 5]"
             :color="item.isMuted ? '#f5f7fa' : ''" class="item">
             <div class="title-row">
-              <strong>{{ item.title || `会话 #${item.id}` }}</strong>
+              <strong>{{ getConversationDisplayTitle(item) }}</strong>
               <el-icon v-if="item.isMuted" class="muted-icon">
                 <MuteNotification />
               </el-icon>
