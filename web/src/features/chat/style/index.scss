@@ -1,4 +1,4 @@
-.el-button+.el-button {
+.el-button + .el-button {
   margin-left: 0 !important;
 }
 
@@ -96,7 +96,7 @@
   min-height: 0;
 }
 
-.layout>* {
+.layout > * {
   min-width: 0;
 }
 
@@ -137,6 +137,7 @@
 .create-box-item {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   height: 32px;
 }

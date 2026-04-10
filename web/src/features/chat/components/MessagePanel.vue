@@ -6,7 +6,6 @@ import { API_BASE_URL } from '@/config';
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia'
 const { user } = storeToRefs(useAuthStore());
-import SvgIcon from '@/components/SvgIcon/index.vue'
 import IsPin from './IsPin.vue'
 
 const model = defineModel<string>({ default: '' });
@@ -144,7 +143,7 @@ function getMemberAvatarBySender(senderUserId: number) {
 
 <template>
   <main class="main-panel">
-    <div v-if="currentConversation" class="conversation-detail" >
+    <div v-if="currentConversation" class="conversation-detail">
       <el-scrollbar ref="scrollbarRef" wrap-style="" view-class="">
         <div class="message-list">
           <div v-for="msg in props.messages" :key="msg.id"
@@ -174,9 +173,7 @@ function getMemberAvatarBySender(senderUserId: number) {
       </div>
       <div class="composer">
         <el-input v-model="model" clearable placeholder="输入消息" @keyup.enter="emit('sendTextMessage')" />
-        <el-button color="#111827" :disabled="props.loading" @click="emit('sendTextMessage')">
-          <svg-icon class="bind-icon" icon-class="general-enter" color="red" size="1rem" />发送
-        </el-button>
+        <el-button color="#111827" :disabled="props.loading" @click="emit('sendTextMessage')" />
         <el-button color="#111827" :disabled="props.loading" @click="emit('markRead')">
           标为已读
         </el-button>
