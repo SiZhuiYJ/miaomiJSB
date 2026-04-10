@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using api.Data;
@@ -62,7 +63,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
 
             if (existingDirect != 0)
             {
-                return Ok(await BuildConversationDetail(existingDirect));
+                return Ok(await BuildConversationDetail(existingDirect, userId));
             }
         }
 
@@ -95,7 +96,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         _db.ChatConversations.Add(conversation);
         await _db.SaveChangesAsync();
 
-        var detail = await BuildConversationDetail(conversation.Id);
+        var detail = await BuildConversationDetail(conversation.Id, userId);
         return CreatedAtAction(nameof(GetConversationById), new { conversationId = conversation.Id }, detail);
     }
 
@@ -121,59 +122,15 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         var conversationIds = memberships.Select(m => m.ConversationId).ToList();
 
         var conversationDtos = await _db.ChatConversations
+            .AsNoTracking()
             .Where(c => conversationIds.Contains(c.Id))
-            .Select(c => new ConversationSummaryDto
-            {
-                Id = c.Id,
-                ConversationType = c.ConversationType,
-                IsActive = c.IsActive ?? true,
-                UpdatedAt = c.UpdatedAt,
-                Title = c.ConversationType == "direct"
-                    ? c.ChatConversationMembers
-                        .Where(m => m.UserId != userId && m.LeftAt == null)
-                        .Select(m => m.User.NickName)
-                        .FirstOrDefault() ?? c.Title
-                    : c.Title,
-                AvatarKey = c.ConversationType == "direct"
-                    ? c.ChatConversationMembers
-                        .Where(m => m.UserId != userId && m.LeftAt == null)
-                        .Select(m => m.User.AvatarKey)
-                        .FirstOrDefault() ?? c.AvatarKey
-                    : c.AvatarKey,
-                AvatarUserId = c.ConversationType == "direct"
-                    ? c.ChatConversationMembers
-                        .Where(m => m.UserId != userId && m.LeftAt == null)
-                        .Select(m => (ulong?)m.UserId)
-                        .FirstOrDefault()
-                    : c.OwnerUserId,
-                IsPinned = c.ChatConversationMembers
-                    .Where(m => m.UserId == userId && m.LeftAt == null)
-                    .Select(m => m.IsPinned)
-                    .FirstOrDefault(),
-                IsMuted = c.ChatConversationMembers
-                    .Where(m => m.UserId == userId && m.LeftAt == null)
-                    .Select(m => m.IsMuted)
-                    .FirstOrDefault(),
-                LastMessage = c.ChatMessages
-                    .OrderByDescending(m => m.Id)
-                    .Select(m => new MessageSummaryDto
-                    {
-                        Id = m.Id,
-                        SenderUserId = m.SenderUserId,
-                        SenderNickName = m.SenderUser.NickName,
-                        MessageType = m.MessageType,
-                        Content = m.Content,
-                        Extra = m.Extra,
-                        ReplyToMessageId = m.ReplyToMessageId,
-                        CreatedAt = m.CreatedAt
-                    })
-                    .FirstOrDefault()
-            })
+            .Select(BuildConversationSummaryProjection(userId))
             .ToListAsync();
 
+        var membershipMap = memberships.ToDictionary(x => x.ConversationId);
         foreach (var item in conversationDtos)
         {
-            var membership = memberships.First(x => x.ConversationId == item.Id);
+            var membership = membershipMap[item.Id];
             var lastReadMessageId = membership.LastReadMessageId ?? 0;
             item.UnreadCount = await _db.ChatMessages
                 .Where(m => m.ConversationId == item.Id && m.Id > lastReadMessageId && m.SenderUserId != userId)
@@ -181,7 +138,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         }
 
         var ordered = conversationDtos
-            .OrderByDescending(x => memberships.First(m => m.ConversationId == x.Id).IsPinned)
+            .OrderByDescending(x => membershipMap[x.Id].IsPinned)
             .ThenByDescending(x => x.LastMessage?.Id ?? 0)
             .ToList();
 
@@ -227,7 +184,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         {
             return NotFound(new { message = "更新失败" });
         }
-        var detail = await BuildConversationDetail(conversationId);
+        var detail = await BuildConversationDetail(conversationId, userId);
         return detail == null ? NotFound(new { message = "会话不存在" }) : Ok(detail);
     }
 
@@ -241,7 +198,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         if (!isMember)
             return NotFound(new { message = "会话不存在或无权限访问" });
 
-        var detail = await BuildConversationDetail(conversationId);
+        var detail = await BuildConversationDetail(conversationId, userId);
         return detail == null ? NotFound(new { message = "会话不存在" }) : Ok(detail);
     }
 
@@ -475,7 +432,58 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         return Ok(new { lastReadMessageId = membership.LastReadMessageId });
     }
 
-    async Task<ConversationDetailDto?> BuildConversationDetail(ulong conversationId)
+    static Expression<Func<ChatConversation, ConversationSummaryDto>> BuildConversationSummaryProjection(ulong userId)
+    {
+        return c => new ConversationSummaryDto
+        {
+            Id = c.Id,
+            ConversationType = c.ConversationType,
+            IsActive = c.IsActive ?? true,
+            UpdatedAt = c.UpdatedAt,
+            Title = c.ConversationType == "direct"
+                ? c.ChatConversationMembers
+                    .Where(m => m.UserId != userId && m.LeftAt == null)
+                    .Select(m => m.User.NickName)
+                    .FirstOrDefault() ?? c.Title
+                : c.Title,
+            AvatarKey = c.ConversationType == "direct"
+                ? c.ChatConversationMembers
+                    .Where(m => m.UserId != userId && m.LeftAt == null)
+                    .Select(m => m.User.AvatarKey)
+                    .FirstOrDefault() ?? c.AvatarKey
+                : c.AvatarKey,
+            AvatarUserId = c.ConversationType == "direct"
+                ? c.ChatConversationMembers
+                    .Where(m => m.UserId != userId && m.LeftAt == null)
+                    .Select(m => (ulong?)m.UserId)
+                    .FirstOrDefault()
+                : c.OwnerUserId,
+            IsPinned = c.ChatConversationMembers
+                .Where(m => m.UserId == userId && m.LeftAt == null)
+                .Select(m => m.IsPinned)
+                .FirstOrDefault(),
+            IsMuted = c.ChatConversationMembers
+                .Where(m => m.UserId == userId && m.LeftAt == null)
+                .Select(m => m.IsMuted)
+                .FirstOrDefault(),
+            LastMessage = c.ChatMessages
+                .OrderByDescending(m => m.Id)
+                .Select(m => new MessageSummaryDto
+                {
+                    Id = m.Id,
+                    SenderUserId = m.SenderUserId,
+                    SenderNickName = m.SenderUser.NickName,
+                    MessageType = m.MessageType,
+                    Content = m.Content,
+                    Extra = m.Extra,
+                    ReplyToMessageId = m.ReplyToMessageId,
+                    CreatedAt = m.CreatedAt
+                })
+                .FirstOrDefault()
+        };
+    }
+
+    async Task<ConversationDetailDto?> BuildConversationDetail(ulong conversationId, ulong userId)
     {
         return await _db.ChatConversations
             .Where(c => c.Id == conversationId)

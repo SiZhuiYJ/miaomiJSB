@@ -114,14 +114,14 @@ function getOtherUser(users: ConversationMember[], targetId: number | string): C
   return other ?? null;
 }
 
+const directPeer = computed(() => {
+  if (!currentConversation.value || currentConversation.value.conversationType !== 'direct' || !user.value) return null;
+  return getOtherUser(currentConversation.value.members, user.value.userId);
+});
+
 const url = computed(() => {
-  if (currentConversation.value?.conversationType == 'direct')
-    if (user.value)
-      if (getOtherUser(currentConversation.value.members, user.value.userId))
-        if (getOtherUser(currentConversation.value.members, user.value.userId)?.userId)
-          if (getOtherUser(currentConversation.value.members, user.value.userId)?.avatarKey)
-            return `${API_BASE_URL}/mm/Files/users/${getOtherUser(currentConversation.value.members, user.value.userId)?.userId}/${getOtherUser(currentConversation.value.members, user.value.userId)?.avatarKey}`;
-  return '';
+  if (!directPeer.value?.avatarKey) return '';
+  return `${API_BASE_URL}/mm/Files/users/${directPeer.value.userId}/${directPeer.value.avatarKey}`;
 });
 
 function formatChatTime(value: string) {
