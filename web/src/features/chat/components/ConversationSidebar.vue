@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import type { ConversationSummary } from '../types';
+import type { ConversationSummary, ConversationDetail, ConversationMember } from '../types';
 import { API_BASE_URL } from '@/config';
-
+import { useAuthStore } from '@/stores';
+import { storeToRefs } from 'pinia'
+const { user } = storeToRefs(useAuthStore());
 const createConversationType = defineModel<'direct' | 'group'>('createConversationType');
 const createTitle = defineModel<string>('createTitle');
 const createMembersText = defineModel<string>('createMembersText');
@@ -21,12 +23,19 @@ const createConversationTypeOptions = [
   { value: 'direct', label: '单聊' },
   { value: 'group', label: '群聊' },
 ];
-
+function getOtherUser(users: ConversationMember[], targetId: number | string): ConversationMember | null {
+  const other = users.find(user => user.userId !== targetId);
+  return other ?? null;
+}
 function getConversationAvatar(item: ConversationSummary) {
-  if (item.conversationType === 'direct') {
-    if (!item.avatarKey || !item.avatarUserId) return '';
-    return `${API_BASE_URL}/mm/Files/users/${item.avatarUserId}/${item.avatarKey}`;
-  }
+  // console.log(props.conversationDetail)
+  // console.log(props.conversationDetail.members)
+  // console.log(item.conversationType)
+  // if (item.conversationType === 'direct') {
+  //   console.log(getOtherUser(props.conversationDetail.members, user.value?.userId!))
+  //   if (!getOtherUser(props.conversationDetail.members, user.value?.userId!)?.avatarKey || !getOtherUser(props.conversationDetail.members, user.value?.userId!)?.userId) return '';
+  //   return `${API_BASE_URL}/mm/Files/users/${getOtherUser(props.conversationDetail.members, user.value?.userId!)?.userId}/${getOtherUser(props.conversationDetail.members, user.value?.userId!)?.avatarKey}`;
+  // }
   if (!item.avatarKey || !item.avatarUserId) return '';
   return `${API_BASE_URL}/mm/Files/users/${item.avatarUserId}/${item.avatarKey}`;
 }

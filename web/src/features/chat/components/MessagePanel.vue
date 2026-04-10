@@ -138,11 +138,13 @@ function getMemberAvatarBySender(senderUserId: number) {
   if (!member?.avatarKey) return '';
   return `${API_BASE_URL}/mm/Files/users/${member.userId}/${member.avatarKey}`;
 }
+
+
 </script>
 
 <template>
   <main class="main-panel">
-    <div v-if="currentConversation" class="conversation-detail">
+    <div v-if="currentConversation" class="conversation-detail" >
       <el-scrollbar ref="scrollbarRef" wrap-style="" view-class="">
         <div class="message-list">
           <div v-for="msg in props.messages" :key="msg.id"

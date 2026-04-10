@@ -81,7 +81,7 @@ onBeforeUnmount(() => {
         v-model:conversation-detail="chat.currentConversation.value!" :messages="chat.messages.value"
         :me-user-id="chat.meUserId.value" :loading="chat.loading.value" :show-back-to-list="isMobile"
         @load-more="chat.loadMore" @send-text-message="chat.sendTextMessage" @mark-read="chat.markRead"
-        @back-to-list="handleBackToList" @update-conversation="chat.updateConversation"/>
+        @back-to-list="handleBackToList" @update-conversation="chat.updateConversation" />
     </div>
   </div>
 </template>
