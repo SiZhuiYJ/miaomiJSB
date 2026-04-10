@@ -78,10 +78,10 @@ onBeforeUnmount(() => {
         @create-conversation="chat.createConversation" @select-conversation="handleSelectConversation" />
 
       <MessagePanel v-if="!isMobile || !showConversationList" v-model="chat.composeText.value"
-        :current-conversation="chat.currentConversation.value" :messages="chat.messages.value"
+        v-model:conversation-detail="chat.currentConversation.value!" :messages="chat.messages.value"
         :me-user-id="chat.meUserId.value" :loading="chat.loading.value" :show-back-to-list="isMobile"
         @load-more="chat.loadMore" @send-text-message="chat.sendTextMessage" @mark-read="chat.markRead"
-        @back-to-list="handleBackToList" />
+        @back-to-list="handleBackToList" @update-conversation="chat.updateConversation"/>
     </div>
   </div>
 </template>

@@ -1,12 +1,12 @@
-import { computed, ref, watch } from 'vue';
-import { useAuthStore } from '@/stores';
-import { storeToRefs } from 'pinia';
-import API from '../api';
+import { computed, ref, watch } from "vue";
+import { useAuthStore } from "@/stores";
+import { storeToRefs } from "pinia";
+import API from "../api";
 import type {
   ConversationDetail,
   ConversationSummary,
   MessageSummary,
-} from '../types';
+} from "../types";
 
 export function useChat() {
   const { user } = storeToRefs(useAuthStore());
@@ -23,25 +23,28 @@ export function useChat() {
   const currentConversation = ref<ConversationDetail | null>(null);
   const messages = ref<MessageSummary[]>([]);
   const loading = ref(false);
-  const errorMessage = ref('');
+  const errorMessage = ref("");
 
-  const createConversationType = ref<'direct' | 'group'>('direct');
-  const createTitle = ref('');
-  const createMembersText = ref('');
-  const composeText = ref('');
+  const createConversationType = ref<"direct" | "group">("direct");
+  const createTitle = ref("");
+  const createMembersText = ref("");
+  const composeText = ref("");
 
-  const selectedConversationId = computed(() => currentConversation.value?.id || 0);
+  const selectedConversationId = computed(
+    () => currentConversation.value?.id || 0,
+  );
 
   function mergeMessages(
     current: MessageSummary[],
     incoming: MessageSummary[],
-    mode: 'append' | 'prepend' = 'append',
+    mode: "append" | "prepend" = "append",
   ) {
     if (incoming.length === 0) return current;
 
-    const merged = mode === 'prepend'
-      ? [...incoming, ...current]
-      : [...current, ...incoming];
+    const merged =
+      mode === "prepend"
+        ? [...incoming, ...current]
+        : [...current, ...incoming];
 
     const seen = new Set<number>();
     const deduped: MessageSummary[] = [];
@@ -56,30 +59,31 @@ export function useChat() {
   }
 
   function setError(error: any, fallback: string) {
-    const isTimeout = error?.code === 'ECONNABORTED';
+    const isTimeout = error?.code === "ECONNABORTED";
     const isNetworkError =
-      error?.message === 'Network Error' || !error?.response;
+      error?.message === "Network Error" || !error?.response;
 
     if (isTimeout) {
-      errorMessage.value = '请求超时，请检查网络后重试';
+      errorMessage.value = "请求超时，请检查网络后重试";
       return;
     }
 
     if (isNetworkError) {
-      errorMessage.value = '无法连接服务器，请确认服务已启动并检查网络';
+      errorMessage.value = "无法连接服务器，请确认服务已启动并检查网络";
       return;
     }
 
-    errorMessage.value = error?.response?.data?.message || error?.message || fallback;
+    errorMessage.value =
+      error?.response?.data?.message || error?.message || fallback;
   }
 
   async function loadConversations() {
     loading.value = true;
-    errorMessage.value = '';
+    errorMessage.value = "";
     try {
       conversations.value = (await API.getConversations()).data;
     } catch (error: any) {
-      setError(error, '加载会话失败');
+      setError(error, "加载会话失败");
     } finally {
       loading.value = false;
     }
@@ -87,13 +91,13 @@ export function useChat() {
 
   async function selectConversation(item: ConversationSummary) {
     loading.value = true;
-    errorMessage.value = '';
+    errorMessage.value = "";
     try {
       currentConversation.value = (await API.getConversation(item.id)).data;
       messages.value = (await API.getMessages(item.id)).data;
       await markRead();
     } catch (error: any) {
-      setError(error, '加载会话失败');
+      setError(error, "加载会话失败");
     } finally {
       loading.value = false;
     }
@@ -101,12 +105,12 @@ export function useChat() {
 
   async function createConversation() {
     const memberUserIds = createMembersText.value
-      .split(',')
+      .split(",")
       .map((x) => Number(x.trim()))
       .filter((x) => Number.isFinite(x) && x > 0);
 
     loading.value = true;
-    errorMessage.value = '';
+    errorMessage.value = "";
     try {
       const detail = (
         await API.createConversation({
@@ -116,8 +120,8 @@ export function useChat() {
         })
       ).data;
 
-      createTitle.value = '';
-      createMembersText.value = '';
+      createTitle.value = "";
+      createMembersText.value = "";
       await loadConversations();
       await selectConversation({
         id: detail.id,
@@ -132,30 +136,30 @@ export function useChat() {
         lastMessage: null,
       });
     } catch (error: any) {
-      setError(error, '创建会话失败');
+      setError(error, "创建会话失败");
     } finally {
       loading.value = false;
     }
   }
   // 更新会话信息
-  async function updateConversation(item: ConversationSummary) {
+  async function updateConversation() {
     loading.value = true;
-    errorMessage.value = '';
+    errorMessage.value = "";
     try {
-      const { data } = (
-        await API.updateConversation(item.id, {
-          title: item.title,
-          avatarKey: item.avatarKey,
-          isActive: item.isActive,
-          isPinned: item.isPinned,
-          isMuted: item.isMuted,
-        })
-      )
-      console.log(data)
-      await loadConversations();
-    }
-    catch (error: any) {
-      setError(error, '更新会话失败');
+      if (currentConversation.value) {
+        const detail = currentConversation.value;
+        const { data } = await API.updateConversation(detail.id, {
+          title: detail.title,
+          avatarKey: detail.avatarKey,
+          isActive: detail.isActive,
+          isPinned: detail.isPinned,
+          isMuted: detail.isMuted,
+        });
+        console.log(data);
+        await loadConversations();
+      }
+    } catch (error: any) {
+      setError(error, "更新会话失败");
     } finally {
       loading.value = false;
     }
@@ -163,18 +167,18 @@ export function useChat() {
   async function sendTextMessage() {
     if (!selectedConversationId.value || !composeText.value.trim()) return;
     loading.value = true;
-    errorMessage.value = '';
+    errorMessage.value = "";
     try {
       await API.sendMessage(selectedConversationId.value, {
-        messageType: 'text',
+        messageType: "text",
         content: composeText.value.trim(),
       });
 
-      composeText.value = '';
+      composeText.value = "";
       await pullLatestMessages();
       await loadConversations();
     } catch (error: any) {
-      setError(error, '发送消息失败');
+      setError(error, "发送消息失败");
     } finally {
       loading.value = false;
     }
@@ -191,7 +195,7 @@ export function useChat() {
     ).data;
 
     if (delta.messages.length > 0) {
-      messages.value = mergeMessages(messages.value, delta.messages, 'append');
+      messages.value = mergeMessages(messages.value, delta.messages, "append");
     }
   }
 
@@ -205,7 +209,7 @@ export function useChat() {
     ).data;
 
     if (older.length > 0) {
-      messages.value = mergeMessages(messages.value, older, 'prepend');
+      messages.value = mergeMessages(messages.value, older, "prepend");
     }
   }
 

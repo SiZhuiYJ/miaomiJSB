@@ -165,8 +165,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
 
         return Ok(ordered);
     }
-    // 更新会话信息
-    [HttpPost("/conversations/{conversationId}")]
+    
+    [HttpPost("/conversations/{conversationId:ulong}")]
     public async Task<ActionResult<ConversationDetailDto>> UpdateConversation(ulong conversationId, UpdateConversationRequest request)
     {
         var userId = GetUserId();
