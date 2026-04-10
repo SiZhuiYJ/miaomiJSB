@@ -23,6 +23,10 @@ const createConversationTypeOptions = [
 ];
 
 function getConversationAvatar(item: ConversationSummary) {
+  if (item.conversationType === 'direct') {
+    if (!item.avatarKey || !item.avatarUserId) return '';
+    return `${API_BASE_URL}/mm/Files/users/${item.avatarUserId}/${item.avatarKey}`;
+  }
   if (!item.avatarKey || !item.avatarUserId) return '';
   return `${API_BASE_URL}/mm/Files/users/${item.avatarUserId}/${item.avatarKey}`;
 }

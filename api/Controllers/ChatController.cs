@@ -145,7 +145,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                         .Where(m => m.UserId != userId && m.LeftAt == null)
                         .Select(m => (ulong?)m.UserId)
                         .FirstOrDefault()
-                    : null,
+                    : c.OwnerUserId,
                 IsPinned = c.ChatConversationMembers
                     .Where(m => m.UserId == userId && m.LeftAt == null)
                     .Select(m => m.IsPinned)
@@ -500,7 +500,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                         .Where(m => m.UserId != userId && m.LeftAt == null)
                         .Select(m => (ulong?)m.UserId)
                         .FirstOrDefault()
-                    : null,
+                    : c.OwnerUserId,
                 IsActive = c.IsActive ?? true,
                 IsPinned = c.ChatConversationMembers
                     .Where(m => m.UserId == userId && m.LeftAt == null)
