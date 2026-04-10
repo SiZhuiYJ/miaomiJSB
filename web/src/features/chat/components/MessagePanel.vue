@@ -156,14 +156,16 @@ function getMemberAvatarBySender(senderUserId: number) {
         <div class="message-list">
           <div v-for="msg in props.messages" :key="msg.id"
             :class="['msg-item', { mine: props.meUserId && msg.senderUserId === props.meUserId }]">
-            <div class="meta">
-              <el-avatar class="message-avatar" :src="getMemberAvatarBySender(msg.senderUserId)">
-                {{ (msg.senderNickName || String(msg.senderUserId)).slice(0, 1) }}
-              </el-avatar>
-              <span>#{{ msg.id }} · {{ msg.senderNickName || msg.senderUserId }} · {{ msg.messageType }}</span>
-              <span>{{ formatChatTime(msg.createdAt) }}</span>
+            <el-avatar class="message-avatar" :src="getMemberAvatarBySender(msg.senderUserId)" :size="40">
+              {{ (msg.senderNickName || String(msg.senderUserId)).slice(0, 1) }}
+            </el-avatar>
+            <div class="content">
+              <div class="meta">
+                <span>#{{ msg.id }} · {{ msg.senderNickName || msg.senderUserId }} · {{ msg.messageType }}</span>
+                <span>{{ formatChatTime(msg.createdAt) }}</span>
+              </div>
+              <div class="bubble">{{ msg.content || msg.extra || '[空消息]' }}</div>
             </div>
-            <div class="bubble">{{ msg.content || msg.extra || '[空消息]' }}</div>
           </div>
         </div>
       </el-scrollbar>

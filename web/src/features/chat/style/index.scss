@@ -253,12 +253,15 @@
 
 .msg-item {
   width: fit-content;
+  display: flex;
+  flex-direction: row;
   max-width: 75%;
+  gap: 12px;
 }
 
 .msg-item.mine {
+  flex-direction: row-reverse;
   margin-left: auto;
-  text-align: right;
 }
 
 .meta {
@@ -268,6 +271,7 @@
   margin-bottom: 4px;
   color: var(--chat-muted);
   font-size: 12px;
+  flex-direction: row-reverse;
 }
 
 .conversation-avatar {
@@ -275,9 +279,9 @@
 }
 
 .message-avatar {
-  width: 20px;
-  height: 20px;
-  font-size: 10px;
+  // width: 20px;
+  // height: 20px;
+  // font-size: 10px;
   flex-shrink: 0;
 }
 
@@ -290,7 +294,7 @@
   width: fit-content;
 }
 
-.msg-item.mine .bubble {
+.msg-item.content.mine .bubble {
   background: var(--chat-accent-soft);
   margin-left: auto;
 }
@@ -360,6 +364,7 @@
 
   .msg-item {
     max-width: 88%;
+    gap: 6px;
   }
 
   .back-to-list {
