@@ -265,24 +265,52 @@
 
   .content {
     align-items: flex-end;
+
+    .meta {
+      margin-left: auto;
+    }
+
+    .bubble-wrap {
+
+      align-items: flex-end;
+
+      .foot {
+        margin-right: auto;
+        margin-left: 0;
+        flex-direction: row-reverse;
+      }
+    }
+
+
   }
 }
 
 .content {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+
+  .bubble-wrap {
+    display: flex;
+    flex-direction: column;
+  }
 }
 
 .meta {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 4px;
   color: var(--chat-muted);
   font-size: 12px;
-  flex-direction: row-reverse;
+}
 
+.header.meta {
+  margin-bottom: 4px;
+}
 
+.foot.meta {
+  margin-top: 4px;
+  margin-left: auto;
 }
 
 .conversation-avatar {
@@ -290,6 +318,7 @@
 }
 
 .message-avatar {
+  margin: 6px 0;
   // width: 20px;
   // height: 20px;
   // font-size: 10px;

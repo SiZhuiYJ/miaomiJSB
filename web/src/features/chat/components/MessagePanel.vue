@@ -146,7 +146,8 @@ function getMemberAvatarBySender(senderUserId: number) {
   return `${API_BASE_URL}/mm/Files/users/${member.userId}/${member.avatarKey}`;
 }
 
-
+// 是否已读
+const isRead = ref(true);
 </script>
 
 <template>
@@ -160,11 +161,18 @@ function getMemberAvatarBySender(senderUserId: number) {
               {{ (msg.senderNickName || String(msg.senderUserId)).slice(0, 1) }}
             </el-avatar>
             <div class="content">
-              <div class="meta">
+              <div class="meta header">
                 <span>#{{ msg.id }} · {{ msg.senderNickName || msg.senderUserId }} · {{ msg.messageType }}</span>
-                <span>{{ formatChatTime(msg.createdAt) }}</span>
               </div>
-              <div class="bubble">{{ msg.content || msg.extra || '[空消息]' }}</div>
+              <div class="bubble-wrap">
+                <div class="bubble">{{ msg.content || msg.extra || '[空消息]' }}</div>
+                <div class="meta foot">
+                  <span>{{ formatChatTime(msg.createdAt) }}</span>
+                  <el-icon>
+                    <CircleCheck :color="isRead ? '#67c23a' : ''" />
+                  </el-icon>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -212,8 +220,6 @@ function getMemberAvatarBySender(senderUserId: number) {
         </el-icon>
 
         <is-pin :is-pinned="currentConversation.isPinned" @toggle-pinned="togglePinned" />
-
-        <!-- <el-switch v-model="currentConversation.isMuted" inline-prompt active-text="置顶" inactive-text="取消" /> -->
 
         <el-button color="#111827" class="load-more" @click="emit('loadMore')">加载更早消息</el-button>
       </el-dialog>
