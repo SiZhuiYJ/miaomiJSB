@@ -1,9 +1,6 @@
 <script setup lang="ts">
-import type { ConversationSummary, ConversationDetail, ConversationMember } from '../types';
+import type { ConversationSummary } from '../types';
 import { API_BASE_URL } from '@/config';
-import { useAuthStore } from '@/stores';
-import { storeToRefs } from 'pinia'
-const { user } = storeToRefs(useAuthStore());
 const createConversationType = defineModel<'direct' | 'group'>('createConversationType');
 const createTitle = defineModel<string>('createTitle');
 const createMembersText = defineModel<string>('createMembersText');
@@ -23,21 +20,18 @@ const createConversationTypeOptions = [
   { value: 'direct', label: '单聊' },
   { value: 'group', label: '群聊' },
 ];
-function getOtherUser(users: ConversationMember[], targetId: number | string): ConversationMember | null {
-  const other = users.find(user => user.userId !== targetId);
-  return other ?? null;
-}
 function getConversationAvatar(item: ConversationSummary) {
-  // console.log(props.conversationDetail)
-  // console.log(props.conversationDetail.members)
-  // console.log(item.conversationType)
-  // if (item.conversationType === 'direct') {
-  //   console.log(getOtherUser(props.conversationDetail.members, user.value?.userId!))
-  //   if (!getOtherUser(props.conversationDetail.members, user.value?.userId!)?.avatarKey || !getOtherUser(props.conversationDetail.members, user.value?.userId!)?.userId) return '';
-  //   return `${API_BASE_URL}/mm/Files/users/${getOtherUser(props.conversationDetail.members, user.value?.userId!)?.userId}/${getOtherUser(props.conversationDetail.members, user.value?.userId!)?.avatarKey}`;
-  // }
+  if (item.conversationType === 'direct') {
+    if (!item.avatarKey || !item.avatarUserId) return '';
+    return `${API_BASE_URL}/mm/Files/users/${item.avatarUserId}/${item.avatarKey}`;
+  }
   if (!item.avatarKey || !item.avatarUserId) return '';
   return `${API_BASE_URL}/mm/Files/users/${item.avatarUserId}/${item.avatarKey}`;
+}
+
+function getConversationAvatarText(item: ConversationSummary) {
+  if (item.conversationType === 'direct') return (item.title || `#${item.id}`).slice(0, 1);
+  return (item.title || `群#${item.id}`).slice(0, 1);
 }
 
 function getConversationMessagePreview(item: ConversationSummary) {
@@ -54,7 +48,7 @@ function getConversationMessagePreview(item: ConversationSummary) {
         <li v-for="item in props.conversations" :key="item.id" class="conversation-item"
           :class="{ active: item.id === props.selectedConversationId }" @click="emit('selectConversation', item)">
           <el-avatar class="conversation-avatar" :src="getConversationAvatar(item)">
-            {{ (item.title || `#${item.id}`).slice(0, 1) }}
+            {{ getConversationAvatarText(item) }}
           </el-avatar>
           <el-badge :value="item.unreadCount" :show-zero="false" :max="99" :offset="[-22, 5]"
             :color="item.isMuted ? '#f5f7fa' : ''" class="item">
