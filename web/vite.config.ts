@@ -67,29 +67,30 @@ export default defineConfig(({ mode }) => {
     ],
     // 开发服务器配置
     server: {
-    proxy: {
-      "/mm": {
-        target: "https://8.137.127.7",
-        // target: "http://localhost:5210",
-        headers: {
-          host: "check.meowmemoirs.cn",
+      host: '0.0.0.0', // 设置服务器监听所有网络接口
+      proxy: {
+        "/mm": {
+          target: "https://8.137.127.7",
+          // target: "http://localhost:5210",
+          headers: {
+            host: "check.meowmemoirs.cn",
+          },
+          //* 忽略https证书错误 */
+          changeOrigin: true,
+          // 允许代理服务器使用自签名证书
+          secure: false,
         },
-        //* 忽略https证书错误 */
-        changeOrigin: true,
-        // 允许代理服务器使用自签名证书
-        secure: false,
+        "/hubs/chat": {
+          target: "https://check.meowmemoirs.cn",
+          changeOrigin: true,
+          secure: false,
+          ws: true,
+        },
       },
-      "/hubs/chat": {
-        target: "https://check.meowmemoirs.cn",
-        changeOrigin: true,
-        secure: false,
-        ws: true,
+      watch: {
+        usePolling: true, // 启用轮询
+        interval: 100, // 轮询间隔（毫秒）
       },
-    },
-    watch: {
-      usePolling: true, // 启用轮询
-      interval: 100, // 轮询间隔（毫秒）
-    },
     },
     /**
      * 构建配置

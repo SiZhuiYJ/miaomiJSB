@@ -301,16 +301,18 @@
   align-items: center;
   gap: 6px;
   color: var(--chat-muted);
-  font-size: 12px;
+
 }
 
 .header.meta {
   margin-bottom: 4px;
+  font-size: 12px;
 }
 
 .foot.meta {
   margin-top: 4px;
   margin-left: auto;
+  font-size: 8px;
 }
 
 .conversation-avatar {

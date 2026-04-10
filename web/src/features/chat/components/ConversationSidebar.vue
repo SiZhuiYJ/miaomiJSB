@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ConversationSummary } from '../types';
 import { API_BASE_URL } from '@/config';
+// import { MuteNotification, Message, Pushpin as ElIconPushpin } from '@element-plus/icons-vue';
 const createConversationType = defineModel<'direct' | 'group'>('createConversationType');
 const createTitle = defineModel<string>('createTitle');
 const createMembersText = defineModel<string>('createMembersText');
@@ -61,6 +62,9 @@ function getConversationMessagePreview(item: ConversationSummary) {
             :color="item.isMuted ? '#f5f7fa' : ''" class="item">
             <div class="title-row">
               <strong>{{ getConversationDisplayTitle(item) }}</strong>
+              <el-icon v-if="item.isPinned" class="pinned-icon">
+                <Top />
+              </el-icon>
               <el-icon v-if="item.isMuted" class="muted-icon">
                 <MuteNotification />
               </el-icon>
@@ -102,3 +106,6 @@ function getConversationMessagePreview(item: ConversationSummary) {
     </div>
   </aside>
 </template>
+<style lang="scss" scoped>
+
+</style>
