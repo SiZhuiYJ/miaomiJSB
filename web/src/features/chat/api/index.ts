@@ -4,6 +4,7 @@ import type {
   ConversationSummary,
   CreateConversationPayload,
   MessageDeltaResponse,
+  MessageReadStatus,
   MessageSummary,
   SendMessagePayload,
   UpdateConversation
@@ -60,6 +61,10 @@ export async function markRead(id: number, lastReadMessageId?: number) {
   );
 }
 
+export async function getMessageReadStatus(messageId: number) {
+  return await http.get<MessageReadStatus>(`/mm/chat/messages/${messageId}/read-status`);
+}
+
 export default {
   getConversations,
   getConversation,
@@ -69,4 +74,5 @@ export default {
   createConversation,
   updateConversation,
   markRead,
+  getMessageReadStatus,
 };

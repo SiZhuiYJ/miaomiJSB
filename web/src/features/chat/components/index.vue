@@ -30,6 +30,7 @@ const push = useChatPush({
   getConversationId: () => chat.selectedConversationId.value,
   getToken: () => useAuthStore().accessToken || '',
   getBaseUrl: () => API_BASE_URL,
+  onMessageRead: chat.handleMessageRead,
 });
 
 watch(
@@ -80,8 +81,10 @@ onBeforeUnmount(() => {
       <MessagePanel v-if="!isMobile || !showConversationList" v-model="chat.composeText.value"
         v-model:conversation-detail="chat.currentConversation.value!" :messages="chat.messages.value"
         :me-user-id="chat.meUserId.value" :loading="chat.loading.value" :show-back-to-list="isMobile"
+        :message-read-status="chat.messageReadStatus.value"
         @load-more="chat.loadMore" @send-text-message="chat.sendTextMessage" @mark-read="chat.markRead"
-        @back-to-list="handleBackToList" @update-conversation="chat.updateConversation" />
+        @back-to-list="handleBackToList" @update-conversation="chat.updateConversation"
+        @load-message-read-status="chat.loadMessageReadStatus" />
     </div>
   </div>
 </template>

@@ -1,3 +1,4 @@
+
 using System;
 
 namespace api.Models;
@@ -7,14 +8,29 @@ namespace api.Models;
 /// </summary>
 public class RegisterRequest
 {
+    /// <summary>
+    /// 用户邮箱地址
+    /// </summary>
     public string Email { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 用户密码
+    /// </summary>
     public string Password { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 用户昵称，可选
+    /// </summary>
     public string? NickName { get; set; }
 
+    /// <summary>
+    /// 用户账号，可选
+    /// </summary>
     public string? UserAccount { get; set; }
 
+    /// <summary>
+    /// 邮箱验证码
+    /// </summary>
     public string Code { get; set; } = string.Empty;
 }
 
@@ -34,10 +50,19 @@ public class LoginRequest
     public string Password { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// 账号登录请求参数
+/// </summary>
 public class AccountLoginRequest
 {
+    /// <summary>
+    /// 用户账号
+    /// </summary>
     public string UserAccount { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 用户密码
+    /// </summary>
     public string Password { get; set; } = string.Empty;
 }
 
@@ -57,17 +82,35 @@ public class EmailCodeLoginRequest
     public string Code { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// 微信登录请求参数
+/// </summary>
 public class WechatLoginRequest
 {
+    /// <summary>
+    /// 微信登录临时凭证
+    /// </summary>
     public string Code { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// 微信注册请求参数
+/// </summary>
 public class WechatRegisterRequest
 {
+    /// <summary>
+    /// 微信登录临时凭证
+    /// </summary>
     public string Code { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 用户昵称，可选
+    /// </summary>
     public string? NickName { get; set; }
 
+    /// <summary>
+    /// 用户账号，可选
+    /// </summary>
     public string? UserAccount { get; set; }
 }
 
@@ -77,10 +120,19 @@ public class WechatRegisterRequest
 /// </summary>
 public class WechatLoginAutoRequest
 {
+    /// <summary>
+    /// 微信登录临时凭证
+    /// </summary>
     public string Code { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 用户昵称，可选
+    /// </summary>
     public string? NickName { get; set; }
 
+    /// <summary>
+    /// 用户账号，可选
+    /// </summary>
     public string? UserAccount { get; set; }
 }
 
@@ -89,42 +141,96 @@ public class WechatLoginAutoRequest
 /// </summary>
 public class AuthResponse
 {
+    /// <summary>
+    /// 用户ID
+    /// </summary>
     public long UserId { get; set; }
 
+    /// <summary>
+    /// 用户邮箱
+    /// </summary>
     public string Email { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 用户昵称，可选
+    /// </summary>
     public string? NickName { get; set; }
 
+    /// <summary>
+    /// 用户账号，可选
+    /// </summary>
     public string? UserAccount { get; set; }
 
+    /// <summary>
+    /// 头像键，可选
+    /// </summary>
     public string? AvatarKey { get; set; }
 
+    /// <summary>
+    /// 访问令牌
+    /// </summary>
     public string Token { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 刷新令牌
+    /// </summary>
     public string RefreshToken { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 访问令牌过期时间
+    /// </summary>
     public DateTime AccessTokenExpiresAt { get; set; }
 
+    /// <summary>
+    /// 刷新令牌过期时间
+    /// </summary>
     public DateTime RefreshTokenExpiresAt { get; set; }
 }
 
+/// <summary>
+/// 用户基本信息响应模型
+/// </summary>
 public class UserBasicResponse
 {
+    /// <summary>
+    /// 用户ID
+    /// </summary>
     public long UserId { get; set; }
 
+    /// <summary>
+    /// 用户邮箱
+    /// </summary>
     public string Email { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 用户昵称，可选
+    /// </summary>
     public string? NickName { get; set; }
 
+    /// <summary>
+    /// 用户账号，可选
+    /// </summary>
     public string? UserAccount { get; set; }
 
+    /// <summary>
+    /// 头像键，可选
+    /// </summary>
     public string? AvatarKey { get; set; }
 }
 
+/// <summary>
+/// 更新用户资料请求参数
+/// </summary>
 public class UpdateUserProfileRequest
 {
+    /// <summary>
+    /// 新的昵称，可选
+    /// </summary>
     public string? NickName { get; set; }
 
+    /// <summary>
+    /// 新的头像键，可选
+    /// </summary>
     public string? AvatarKey { get; set; }
 }
 
@@ -160,6 +266,9 @@ public class SendEmailCodeRequest
     /// </summary>
     public string Email { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 操作类型，可选
+    /// </summary>
     public string? ActionType { get; set; }
 }
 
@@ -179,17 +288,35 @@ public class VerifyEmailCodeRequest
     public string Code { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// 账号注销请求参数
+/// </summary>
 public class DeactivateAccountRequest
 {
+    /// <summary>
+    /// 验证码
+    /// </summary>
     public string Code { get; set; } = string.Empty;
 }
 
+/// <summary>
+/// 更改密码请求参数
+/// </summary>
 public class ChangePasswordRequest
 {
+    /// <summary>
+    /// 旧密码
+    /// </summary>
     public string OldPassword { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 新密码
+    /// </summary>
     public string NewPassword { get; set; } = string.Empty;
 
+    /// <summary>
+    /// 验证码
+    /// </summary>
     public string Code { get; set; } = string.Empty;
 }
 

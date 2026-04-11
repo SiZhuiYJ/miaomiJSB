@@ -79,3 +79,17 @@ export interface UpdateConversation {
   isPinned: boolean;
   isMuted: boolean;
 }
+
+export interface ReadUser {
+  userId: number;
+  nickName: string;
+  avatarKey?: string | null;
+  readAt: string;
+}
+
+export interface MessageReadStatus {
+  messageId: number;
+  totalRecipients: number;
+  readCount: number;
+  readUsers: ReadUser[];
+}

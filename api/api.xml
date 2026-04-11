@@ -636,6 +636,106 @@
             <response code="401">用户认证失败或会话已过期</response>
             <response code="404">用户不存在</response>
         </member>
+        <member name="T:api.Controllers.ChatController">
+            <summary>
+            聊天控制器，处理会话创建、消息发送、读取等相关功能
+            </summary>
+        </member>
+        <member name="M:api.Controllers.ChatController.#ctor(api.Data.DailyCheckDbContext,Microsoft.AspNetCore.SignalR.IHubContext{api.Hubs.ChatHub})">
+            <summary>
+            聊天控制器，处理会话创建、消息发送、读取等相关功能
+            </summary>
+        </member>
+        <member name="M:api.Controllers.ChatController.CreateConversation(api.Models.CreateConversationRequest)">
+            <summary>
+            创建一个新的聊天会话
+            </summary>
+            <param name="request">创建会话的请求参数</param>
+            <returns>创建成功的会话详情</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.GetMyConversations">
+            <summary>
+            获取当前用户的会话列表
+            </summary>
+            <returns>会话摘要列表</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.UpdateConversation(System.UInt64,api.Models.UpdateConversationRequest)">
+            <summary>
+            更新会话信息
+            </summary>
+            <param name="conversationId">会话ID</param>
+            <param name="request">更新会话的请求参数</param>
+            <returns>更新后的会话详情</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.GetConversationById(System.UInt64)">
+            <summary>
+            根据ID获取会话详情
+            </summary>
+            <param name="conversationId">会话ID</param>
+            <returns>会话详情</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.SendMessage(System.UInt64,api.Models.SendMessageRequest)">
+            <summary>
+            在指定会话中发送消息
+            </summary>
+            <param name="conversationId">会话ID</param>
+            <param name="request">发送消息的请求参数</param>
+            <returns>发送的消息详情</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.GetMessages(System.UInt64,System.Nullable{System.UInt64},System.Int32)">
+            <summary>
+            获取会话中的消息列表
+            </summary>
+            <param name="conversationId">会话ID</param>
+            <param name="beforeMessageId">获取此消息ID之前的消息</param>
+            <param name="pageSize">每页大小，默认为20</param>
+            <returns>消息摘要列表</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.GetMessageDelta(System.UInt64,System.Nullable{System.UInt64},System.Int32)">
+            <summary>
+            获取会话中的消息增量
+            </summary>
+            <param name="conversationId">会话ID</param>
+            <param name="afterMessageId">获取此消息ID之后的消息</param>
+            <param name="pageSize">每页大小，默认为50</param>
+            <returns>消息增量数据</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.MarkConversationRead(System.UInt64,api.Models.ReadConversationRequest)">
+            <summary>
+            标记会话为已读
+            </summary>
+            <param name="conversationId">会话ID</param>
+            <param name="request">标记已读的请求参数</param>
+            <returns>操作结果</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.GetMessageReadStatus(System.UInt64)">
+            <summary>
+            获取消息的已读详情
+            </summary>
+            <param name="messageId">消息ID</param>
+            <returns>消息已读详情</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.BuildConversationSummaryProjection(System.UInt64)">
+            <summary>
+            构建会话摘要投影
+            </summary>
+            <param name="userId">用户ID</param>
+            <returns>会话摘要投影表达式</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.BuildConversationDetail(System.UInt64,System.UInt64)">
+            <summary>
+            构建会话详情
+            </summary>
+            <param name="conversationId">会话ID</param>
+            <param name="userId">用户ID</param>
+            <returns>会话详情</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.GetUserId">
+            <summary>
+            获取当前用户ID
+            </summary>
+            <returns>用户ID</returns>
+        </member>
         <member name="T:api.Controllers.CheckinsController">
             <summary>
             打卡记录管理接口，提供完整的打卡功能实现。
@@ -1932,6 +2032,57 @@
             更新时间
             </summary>
         </member>
+        <member name="T:api.Hubs.ChatHub">
+            <summary>
+            聊天Hub，处理实时通信功能
+            </summary>
+        </member>
+        <member name="M:api.Hubs.ChatHub.#ctor(api.Data.DailyCheckDbContext)">
+            <summary>
+            聊天Hub，处理实时通信功能
+            </summary>
+        </member>
+        <member name="M:api.Hubs.ChatHub.SubscribeConversation(System.UInt64)">
+            <summary>
+            订阅指定的会话以接收实时消息
+            </summary>
+            <param name="conversationId">会话ID</param>
+            <exception cref="T:Microsoft.AspNetCore.SignalR.HubException">当用户不是会话成员时抛出</exception>
+        </member>
+        <member name="M:api.Hubs.ChatHub.UnsubscribeConversation(System.UInt64)">
+            <summary>
+            取消订阅指定的会话
+            </summary>
+            <param name="conversationId">会话ID</param>
+        </member>
+        <member name="M:api.Hubs.ChatHub.MarkMessageRead(System.UInt64,System.UInt64)">
+            <summary>
+            标记消息为已读并广播给发送者
+            </summary>
+            <param name="conversationId">会话ID</param>
+            <param name="messageId">消息ID</param>
+        </member>
+        <member name="M:api.Hubs.ChatHub.GetMessageReadDetail(System.UInt64)">
+            <summary>
+            获取消息的已读详情
+            </summary>
+            <param name="messageId">消息ID</param>
+            <returns>消息已读详情</returns>
+        </member>
+        <member name="M:api.Hubs.ChatHub.GroupName(System.UInt64)">
+            <summary>
+            生成会话群组名称
+            </summary>
+            <param name="conversationId">会话ID</param>
+            <returns>群组名称</returns>
+        </member>
+        <member name="M:api.Hubs.ChatHub.GetUserId">
+            <summary>
+            获取当前用户ID
+            </summary>
+            <returns>用户ID</returns>
+            <exception cref="T:Microsoft.AspNetCore.SignalR.HubException">当无法从令牌中获取用户ID时抛出</exception>
+        </member>
         <member name="T:api.Infrastructure.IEmailService">
             <summary>
             邮件发送服务接口。
@@ -2253,6 +2404,31 @@
             用户注册请求参数。
             </summary>
         </member>
+        <member name="P:api.Models.RegisterRequest.Email">
+            <summary>
+            用户邮箱地址
+            </summary>
+        </member>
+        <member name="P:api.Models.RegisterRequest.Password">
+            <summary>
+            用户密码
+            </summary>
+        </member>
+        <member name="P:api.Models.RegisterRequest.NickName">
+            <summary>
+            用户昵称，可选
+            </summary>
+        </member>
+        <member name="P:api.Models.RegisterRequest.UserAccount">
+            <summary>
+            用户账号，可选
+            </summary>
+        </member>
+        <member name="P:api.Models.RegisterRequest.Code">
+            <summary>
+            邮箱验证码
+            </summary>
+        </member>
         <member name="T:api.Models.LoginRequest">
             <summary>
             用户登录请求参数。
@@ -2266,6 +2442,21 @@
         <member name="P:api.Models.LoginRequest.Password">
             <summary>
             登录密码明文，将在服务端进行哈希验证。
+            </summary>
+        </member>
+        <member name="T:api.Models.AccountLoginRequest">
+            <summary>
+            账号登录请求参数
+            </summary>
+        </member>
+        <member name="P:api.Models.AccountLoginRequest.UserAccount">
+            <summary>
+            用户账号
+            </summary>
+        </member>
+        <member name="P:api.Models.AccountLoginRequest.Password">
+            <summary>
+            用户密码
             </summary>
         </member>
         <member name="T:api.Models.EmailCodeLoginRequest">
@@ -2283,15 +2474,150 @@
             邮箱验证码。
             </summary>
         </member>
+        <member name="T:api.Models.WechatLoginRequest">
+            <summary>
+            微信登录请求参数
+            </summary>
+        </member>
+        <member name="P:api.Models.WechatLoginRequest.Code">
+            <summary>
+            微信登录临时凭证
+            </summary>
+        </member>
+        <member name="T:api.Models.WechatRegisterRequest">
+            <summary>
+            微信注册请求参数
+            </summary>
+        </member>
+        <member name="P:api.Models.WechatRegisterRequest.Code">
+            <summary>
+            微信登录临时凭证
+            </summary>
+        </member>
+        <member name="P:api.Models.WechatRegisterRequest.NickName">
+            <summary>
+            用户昵称，可选
+            </summary>
+        </member>
+        <member name="P:api.Models.WechatRegisterRequest.UserAccount">
+            <summary>
+            用户账号，可选
+            </summary>
+        </member>
         <member name="T:api.Models.WechatLoginAutoRequest">
             <summary>
             微信一键登录请求参数，包含code、可选昵称和账号名。
             如果用户未注册则自动注册，已注册则直接登录。
             </summary>
         </member>
+        <member name="P:api.Models.WechatLoginAutoRequest.Code">
+            <summary>
+            微信登录临时凭证
+            </summary>
+        </member>
+        <member name="P:api.Models.WechatLoginAutoRequest.NickName">
+            <summary>
+            用户昵称，可选
+            </summary>
+        </member>
+        <member name="P:api.Models.WechatLoginAutoRequest.UserAccount">
+            <summary>
+            用户账号，可选
+            </summary>
+        </member>
         <member name="T:api.Models.AuthResponse">
             <summary>
             认证响应数据，包含用户信息和双 token 信息。
+            </summary>
+        </member>
+        <member name="P:api.Models.AuthResponse.UserId">
+            <summary>
+            用户ID
+            </summary>
+        </member>
+        <member name="P:api.Models.AuthResponse.Email">
+            <summary>
+            用户邮箱
+            </summary>
+        </member>
+        <member name="P:api.Models.AuthResponse.NickName">
+            <summary>
+            用户昵称，可选
+            </summary>
+        </member>
+        <member name="P:api.Models.AuthResponse.UserAccount">
+            <summary>
+            用户账号，可选
+            </summary>
+        </member>
+        <member name="P:api.Models.AuthResponse.AvatarKey">
+            <summary>
+            头像键，可选
+            </summary>
+        </member>
+        <member name="P:api.Models.AuthResponse.Token">
+            <summary>
+            访问令牌
+            </summary>
+        </member>
+        <member name="P:api.Models.AuthResponse.RefreshToken">
+            <summary>
+            刷新令牌
+            </summary>
+        </member>
+        <member name="P:api.Models.AuthResponse.AccessTokenExpiresAt">
+            <summary>
+            访问令牌过期时间
+            </summary>
+        </member>
+        <member name="P:api.Models.AuthResponse.RefreshTokenExpiresAt">
+            <summary>
+            刷新令牌过期时间
+            </summary>
+        </member>
+        <member name="T:api.Models.UserBasicResponse">
+            <summary>
+            用户基本信息响应模型
+            </summary>
+        </member>
+        <member name="P:api.Models.UserBasicResponse.UserId">
+            <summary>
+            用户ID
+            </summary>
+        </member>
+        <member name="P:api.Models.UserBasicResponse.Email">
+            <summary>
+            用户邮箱
+            </summary>
+        </member>
+        <member name="P:api.Models.UserBasicResponse.NickName">
+            <summary>
+            用户昵称，可选
+            </summary>
+        </member>
+        <member name="P:api.Models.UserBasicResponse.UserAccount">
+            <summary>
+            用户账号，可选
+            </summary>
+        </member>
+        <member name="P:api.Models.UserBasicResponse.AvatarKey">
+            <summary>
+            头像键，可选
+            </summary>
+        </member>
+        <member name="T:api.Models.UpdateUserProfileRequest">
+            <summary>
+            更新用户资料请求参数
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdateUserProfileRequest.NickName">
+            <summary>
+            新的昵称，可选
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdateUserProfileRequest.AvatarKey">
+            <summary>
+            新的头像键，可选
             </summary>
         </member>
         <member name="T:api.Models.UpdateUserAccountRequest">
@@ -2324,6 +2650,11 @@
             接收验证码的邮箱地址。
             </summary>
         </member>
+        <member name="P:api.Models.SendEmailCodeRequest.ActionType">
+            <summary>
+            操作类型，可选
+            </summary>
+        </member>
         <member name="T:api.Models.VerifyEmailCodeRequest">
             <summary>
             校验邮箱验证码请求参数（当前预留，未公开为独立接口）。
@@ -2337,6 +2668,36 @@
         <member name="P:api.Models.VerifyEmailCodeRequest.Code">
             <summary>
             用户提交的邮箱验证码。
+            </summary>
+        </member>
+        <member name="T:api.Models.DeactivateAccountRequest">
+            <summary>
+            账号注销请求参数
+            </summary>
+        </member>
+        <member name="P:api.Models.DeactivateAccountRequest.Code">
+            <summary>
+            验证码
+            </summary>
+        </member>
+        <member name="T:api.Models.ChangePasswordRequest">
+            <summary>
+            更改密码请求参数
+            </summary>
+        </member>
+        <member name="P:api.Models.ChangePasswordRequest.OldPassword">
+            <summary>
+            旧密码
+            </summary>
+        </member>
+        <member name="P:api.Models.ChangePasswordRequest.NewPassword">
+            <summary>
+            新密码
+            </summary>
+        </member>
+        <member name="P:api.Models.ChangePasswordRequest.Code">
+            <summary>
+            验证码
             </summary>
         </member>
         <member name="T:api.Models.WechatBindRequest">
@@ -2377,6 +2738,376 @@
         <member name="P:api.Models.ThirdPartyBindingsResponse.Bindings">
             <summary>
             当前用户绑定的所有第三方账号信息。
+            </summary>
+        </member>
+        <member name="T:api.Models.CreateConversationRequest">
+            <summary>
+            创建会话请求参数
+            </summary>
+        </member>
+        <member name="P:api.Models.CreateConversationRequest.ConversationType">
+            <summary>
+            会话类型，默认为"direct"
+            </summary>
+        </member>
+        <member name="P:api.Models.CreateConversationRequest.Title">
+            <summary>
+            会话标题，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.CreateConversationRequest.AvatarKey">
+            <summary>
+            头像键，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.CreateConversationRequest.MemberUserIds">
+            <summary>
+            成员用户ID列表
+            </summary>
+        </member>
+        <member name="T:api.Models.UpdateConversationRequest">
+            <summary>
+            更新会话信息请求参数
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdateConversationRequest.Title">
+            <summary>
+            会话标题，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdateConversationRequest.AvatarKey">
+            <summary>
+            头像键，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdateConversationRequest.IsActive">
+            <summary>
+            是否激活，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdateConversationRequest.IsPinned">
+            <summary>
+            是否置顶，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdateConversationRequest.IsMuted">
+            <summary>
+            是否静音，可为空
+            </summary>
+        </member>
+        <member name="T:api.Models.ConversationMemberDto">
+            <summary>
+            会话成员信息数据传输对象
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationMemberDto.UserId">
+            <summary>
+            用户ID
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationMemberDto.NickName">
+            <summary>
+            昵称，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationMemberDto.AvatarKey">
+            <summary>
+            头像键，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationMemberDto.MemberRole">
+            <summary>
+            成员角色，默认为"member"
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationMemberDto.JoinedAt">
+            <summary>
+            加入时间
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationMemberDto.LastReadMessageId">
+            <summary>
+            最后阅读消息ID，可为空
+            </summary>
+        </member>
+        <member name="T:api.Models.MessageSummaryDto">
+            <summary>
+            消息摘要数据传输对象
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageSummaryDto.Id">
+            <summary>
+            消息ID
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageSummaryDto.SenderUserId">
+            <summary>
+            发送者用户ID
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageSummaryDto.SenderNickName">
+            <summary>
+            发送者昵称，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageSummaryDto.MessageType">
+            <summary>
+            消息类型，默认为"text"
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageSummaryDto.Content">
+            <summary>
+            消息内容，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageSummaryDto.Extra">
+            <summary>
+            额外信息，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageSummaryDto.ReplyToMessageId">
+            <summary>
+            回复的消息ID，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageSummaryDto.IsRecalled">
+            <summary>
+            是否撤回
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageSummaryDto.CreatedAt">
+            <summary>
+            创建时间
+            </summary>
+        </member>
+        <member name="T:api.Models.ConversationSummaryDto">
+            <summary>
+            会话摘要数据传输对象
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationSummaryDto.Id">
+            <summary>
+            会话ID
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationSummaryDto.ConversationType">
+            <summary>
+            会话类型，默认为"direct"
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationSummaryDto.Title">
+            <summary>
+            会话标题，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationSummaryDto.AvatarKey">
+            <summary>
+            头像键，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationSummaryDto.AvatarUserId">
+            <summary>
+            头像用户ID，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationSummaryDto.IsActive">
+            <summary>
+            是否激活
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationSummaryDto.IsPinned">
+            <summary>
+            是否置顶
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationSummaryDto.IsMuted">
+            <summary>
+            是否静音
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationSummaryDto.UpdatedAt">
+            <summary>
+            更新时间
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationSummaryDto.UnreadCount">
+            <summary>
+            未读数量
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationSummaryDto.LastMessage">
+            <summary>
+            最后一条消息，可为空
+            </summary>
+        </member>
+        <member name="T:api.Models.ConversationDetailDto">
+            <summary>
+            会话详情数据传输对象
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.Id">
+            <summary>
+            会话ID
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.ConversationType">
+            <summary>
+            会话类型，默认为"direct"
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.Title">
+            <summary>
+            会话标题，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.AvatarKey">
+            <summary>
+            头像键，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.AvatarUserId">
+            <summary>
+            头像用户ID，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.IsActive">
+            <summary>
+            是否激活
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.IsPinned">
+            <summary>
+            是否置顶
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.IsMuted">
+            <summary>
+            是否静音
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.OwnerUserId">
+            <summary>
+            拥有者用户ID，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.CreatedAt">
+            <summary>
+            创建时间
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.UpdatedAt">
+            <summary>
+            更新时间
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.Members">
+            <summary>
+            成员列表
+            </summary>
+        </member>
+        <member name="T:api.Models.SendMessageRequest">
+            <summary>
+            发送消息请求参数
+            </summary>
+        </member>
+        <member name="P:api.Models.SendMessageRequest.MessageType">
+            <summary>
+            消息类型，默认为"text"
+            </summary>
+        </member>
+        <member name="P:api.Models.SendMessageRequest.Content">
+            <summary>
+            消息内容，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.SendMessageRequest.Extra">
+            <summary>
+            额外信息，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.SendMessageRequest.ReplyToMessageId">
+            <summary>
+            回复的消息ID，可为空
+            </summary>
+        </member>
+        <member name="T:api.Models.MessageDeltaDto">
+            <summary>
+            消息增量数据传输对象
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageDeltaDto.LastMessageId">
+            <summary>
+            最后消息ID
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageDeltaDto.HasMore">
+            <summary>
+            是否还有更多消息
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageDeltaDto.Messages">
+            <summary>
+            消息列表
+            </summary>
+        </member>
+        <member name="T:api.Models.ReadConversationRequest">
+            <summary>
+            标记会话已读请求参数
+            </summary>
+        </member>
+        <member name="P:api.Models.ReadConversationRequest.LastReadMessageId">
+            <summary>
+            最后已读消息ID，可为空
+            </summary>
+        </member>
+        <member name="T:api.Models.MessageReadDetailDto">
+            <summary>
+            消息已读详情数据传输对象
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageReadDetailDto.MessageId">
+            <summary>
+            消息ID
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageReadDetailDto.TotalRecipients">
+            <summary>
+            总接收者数量（排除发送者）
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageReadDetailDto.ReadCount">
+            <summary>
+            已读用户数量
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageReadDetailDto.ReadUsers">
+            <summary>
+            已读用户列表
+            </summary>
+        </member>
+        <member name="T:api.Models.ReadUserDto">
+            <summary>
+            已读用户信息数据传输对象
+            </summary>
+        </member>
+        <member name="P:api.Models.ReadUserDto.UserId">
+            <summary>
+            用户ID
+            </summary>
+        </member>
+        <member name="P:api.Models.ReadUserDto.NickName">
+            <summary>
+            昵称
+            </summary>
+        </member>
+        <member name="P:api.Models.ReadUserDto.AvatarKey">
+            <summary>
+            头像键，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.ReadUserDto.ReadAt">
+            <summary>
+            已读时间
             </summary>
         </member>
         <member name="T:api.Models.DailyCheckinRequest">

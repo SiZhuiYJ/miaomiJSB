@@ -13,6 +13,12 @@ interface PushOptions {
   getConversationId: () => number;
   getToken: () => string;
   getBaseUrl: () => string;
+  onMessageRead?: (data: {
+    messageId: number;
+    conversationId: number;
+    readByUserId: number;
+    readAt: string;
+  }) => Promise<void>;
 }
 
 export function useChatPush(options: PushOptions) {
@@ -101,6 +107,18 @@ export function useChatPush(options: PushOptions) {
       }
     });
 
+    // 监听消息已读回执事件
+    connection.on('chat:message-read', async (payload: any) => {
+      if (options.onMessageRead) {
+        await options.onMessageRead({
+          messageId: payload.messageId,
+          conversationId: payload.conversationId,
+          readByUserId: payload.readByUserId,
+          readAt: payload.readAt
+        });
+      }
+    });
+
     connection.onclose(() => {
       realtimeConnected.value = false;
       if (!shouldKeepRealtime) return;
@@ -143,6 +161,21 @@ export function useChatPush(options: PushOptions) {
       await connection.invoke('SubscribeConversation', conversationId);
     } catch (error: any) {
       syncError.value = error?.message || '订阅会话失败';
+    }
+  }
+
+  async function markMessageReadViaSignalR(messageId: number, conversationId: number) {
+    if (!connection || !realtimeConnected.value) {
+      // 降级为 HTTP API
+      await options.markRead();
+      return;
+    }
+
+    try {
+      await connection.invoke('MarkMessageRead', conversationId, messageId);
+    } catch (error: any) {
+      console.error('SignalR 标记已读失败，降级为 HTTP:', error);
+      await options.markRead();
     }
   }
 
@@ -205,5 +238,6 @@ export function useChatPush(options: PushOptions) {
     stopPush,
     togglePush,
     subscribeConversation,
+    markMessageReadViaSignalR,
   };
 }

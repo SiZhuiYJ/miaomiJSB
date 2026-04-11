@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +15,9 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace api.Controllers;
 
+/// <summary>
+/// 聊天控制器，处理会话创建、消息发送、读取等相关功能
+/// </summary>
 [ApiController]
 [Route("mm/[controller]")]
 [Authorize]
@@ -23,6 +27,11 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     readonly IHubContext<ChatHub> _hubContext = hubContext;
     static readonly HashSet<string> AllowedMessageTypes = new(["text", "image", "file", "system"]);
 
+    /// <summary>
+    /// 创建一个新的聊天会话
+    /// </summary>
+    /// <param name="request">创建会话的请求参数</param>
+    /// <returns>创建成功的会话详情</returns>
     [HttpPost("conversations")]
     public async Task<ActionResult<ConversationDetailDto>> CreateConversation(CreateConversationRequest request)
     {
@@ -100,6 +109,10 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         return CreatedAtAction(nameof(GetConversationById), new { conversationId = conversation.Id }, detail);
     }
 
+    /// <summary>
+    /// 获取当前用户的会话列表
+    /// </summary>
+    /// <returns>会话摘要列表</returns>
     [HttpGet("conversations")]
     public async Task<ActionResult<List<ConversationSummaryDto>>> GetMyConversations()
     {
@@ -145,6 +158,12 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         return Ok(ordered);
     }
     
+    /// <summary>
+    /// 更新会话信息
+    /// </summary>
+    /// <param name="conversationId">会话ID</param>
+    /// <param name="request">更新会话的请求参数</param>
+    /// <returns>更新后的会话详情</returns>
     [HttpPost("conversations/{conversationId:ulong}")]
     public async Task<ActionResult<ConversationDetailDto>> UpdateConversation(ulong conversationId, UpdateConversationRequest request)
     {
@@ -188,6 +207,11 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         return detail == null ? NotFound(new { message = "会话不存在" }) : Ok(detail);
     }
 
+    /// <summary>
+    /// 根据ID获取会话详情
+    /// </summary>
+    /// <param name="conversationId">会话ID</param>
+    /// <returns>会话详情</returns>
     [HttpGet("conversations/{conversationId:ulong}")]
     public async Task<ActionResult<ConversationDetailDto>> GetConversationById(ulong conversationId)
     {
@@ -202,6 +226,12 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         return detail == null ? NotFound(new { message = "会话不存在" }) : Ok(detail);
     }
 
+    /// <summary>
+    /// 在指定会话中发送消息
+    /// </summary>
+    /// <param name="conversationId">会话ID</param>
+    /// <param name="request">发送消息的请求参数</param>
+    /// <returns>发送的消息详情</returns>
     [HttpPost("conversations/{conversationId:ulong}/messages")]
     public async Task<ActionResult<MessageSummaryDto>> SendMessage(ulong conversationId, SendMessageRequest request)
     {
@@ -276,6 +306,13 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         return Ok(result);
     }
 
+    /// <summary>
+    /// 获取会话中的消息列表
+    /// </summary>
+    /// <param name="conversationId">会话ID</param>
+    /// <param name="beforeMessageId">获取此消息ID之前的消息</param>
+    /// <param name="pageSize">每页大小，默认为20</param>
+    /// <returns>消息摘要列表</returns>
     [HttpGet("conversations/{conversationId:ulong}/messages")]
     public async Task<ActionResult<List<MessageSummaryDto>>> GetMessages(ulong conversationId, [FromQuery] ulong? beforeMessageId, [FromQuery] int pageSize = 20)
     {
@@ -313,6 +350,13 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         return Ok(messages);
     }
 
+    /// <summary>
+    /// 获取会话中的消息增量
+    /// </summary>
+    /// <param name="conversationId">会话ID</param>
+    /// <param name="afterMessageId">获取此消息ID之后的消息</param>
+    /// <param name="pageSize">每页大小，默认为50</param>
+    /// <returns>消息增量数据</returns>
     [HttpGet("conversations/{conversationId:ulong}/messages/delta")]
     public async Task<ActionResult<MessageDeltaDto>> GetMessageDelta(ulong conversationId, [FromQuery] ulong? afterMessageId, [FromQuery] int pageSize = 50)
     {
@@ -360,6 +404,12 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         });
     }
 
+    /// <summary>
+    /// 标记会话为已读
+    /// </summary>
+    /// <param name="conversationId">会话ID</param>
+    /// <param name="request">标记已读的请求参数</param>
+    /// <returns>操作结果</returns>
     [HttpPost("conversations/{conversationId:ulong}/read")]
     public async Task<ActionResult> MarkConversationRead(ulong conversationId, ReadConversationRequest request)
     {
@@ -432,6 +482,61 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         return Ok(new { lastReadMessageId = membership.LastReadMessageId });
     }
 
+    /// <summary>
+    /// 获取消息的已读详情
+    /// </summary>
+    /// <param name="messageId">消息ID</param>
+    /// <returns>消息已读详情</returns>
+    [HttpGet("messages/{messageId:ulong}/read-status")]
+    public async Task<ActionResult<MessageReadDetailDto>> GetMessageReadStatus(ulong messageId)
+    {
+        var userId = GetUserId();
+
+        var message = await _db.ChatMessages
+            .FirstOrDefaultAsync(m => m.Id == messageId);
+        if (message == null)
+            return NotFound(new { message = "消息不存在" });
+
+        // 验证权限
+        var isMember = await _db.ChatConversationMembers
+            .AnyAsync(m => m.ConversationId == message.ConversationId
+                        && m.UserId == userId
+                        && m.LeftAt == null);
+        if (!isMember)
+            return NotFound(new { message = "无权限查看" });
+
+        // 查询已读用户
+        var readUsers = await _db.ChatMessageReceipts
+            .Where(r => r.MessageId == messageId)
+            .Join(_db.Users, r => r.UserId, u => u.Id, (r, u) => new ReadUserDto
+            {
+                UserId = u.Id,
+                NickName = u.NickName,
+                AvatarKey = u.AvatarKey,
+                ReadAt = r.ReadAt
+            })
+            .ToListAsync();
+
+        // 计算总接收者数（排除发送者）
+        var totalRecipients = await _db.ChatConversationMembers
+            .CountAsync(m => m.ConversationId == message.ConversationId
+                          && m.UserId != message.SenderUserId
+                          && m.LeftAt == null);
+
+        return Ok(new MessageReadDetailDto
+        {
+            MessageId = messageId,
+            TotalRecipients = totalRecipients,
+            ReadCount = readUsers.Count,
+            ReadUsers = readUsers
+        });
+    }
+
+    /// <summary>
+    /// 构建会话摘要投影
+    /// </summary>
+    /// <param name="userId">用户ID</param>
+    /// <returns>会话摘要投影表达式</returns>
     static Expression<Func<ChatConversation, ConversationSummaryDto>> BuildConversationSummaryProjection(ulong userId)
     {
         return c => new ConversationSummaryDto
@@ -483,6 +588,12 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         };
     }
 
+    /// <summary>
+    /// 构建会话详情
+    /// </summary>
+    /// <param name="conversationId">会话ID</param>
+    /// <param name="userId">用户ID</param>
+    /// <returns>会话详情</returns>
     async Task<ConversationDetailDto?> BuildConversationDetail(ulong conversationId, ulong userId)
     {
         return await _db.ChatConversations
@@ -538,6 +649,10 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             .SingleOrDefaultAsync();
     }
 
+    /// <summary>
+    /// 获取当前用户ID
+    /// </summary>
+    /// <returns>用户ID</returns>
     ulong GetUserId()
     {
         var candidateTypes = new[] { ClaimTypes.NameIdentifier, "sub", "nameid", "user_id", "id" };

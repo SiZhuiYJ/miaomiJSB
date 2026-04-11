@@ -3,95 +3,332 @@ using System.Collections.Generic;
 
 namespace api.Models;
 
+/// <summary>
+/// 创建会话请求参数
+/// </summary>
 public class CreateConversationRequest
 {
+    /// <summary>
+    /// 会话类型，默认为"direct"
+    /// </summary>
     public string ConversationType { get; set; } = "direct";
+    /// <summary>
+    /// 会话标题，可为空
+    /// </summary>
     public string? Title { get; set; }
+    /// <summary>
+    /// 头像键，可为空
+    /// </summary>
     public string? AvatarKey { get; set; }
+    /// <summary>
+    /// 成员用户ID列表
+    /// </summary>
     public List<ulong> MemberUserIds { get; set; } = new();
 }
 
-// 更新会话信息
+/// <summary>
+/// 更新会话信息请求参数
+/// </summary>
 public class UpdateConversationRequest
 {
+    /// <summary>
+    /// 会话标题，可为空
+    /// </summary>
     public string? Title { get; set; }
+    /// <summary>
+    /// 头像键，可为空
+    /// </summary>
     public string? AvatarKey { get; set; }
+    /// <summary>
+    /// 是否激活，可为空
+    /// </summary>
     public bool? IsActive { get; set; }
+    /// <summary>
+    /// 是否置顶，可为空
+    /// </summary>
     public bool? IsPinned { get; set; }
+    /// <summary>
+    /// 是否静音，可为空
+    /// </summary>
     public bool? IsMuted { get; set; }
 }
 
+/// <summary>
+/// 会话成员信息数据传输对象
+/// </summary>
 public class ConversationMemberDto
 {
+    /// <summary>
+    /// 用户ID
+    /// </summary>
     public ulong UserId { get; set; }
+    /// <summary>
+    /// 昵称，可为空
+    /// </summary>
     public string? NickName { get; set; }
+    /// <summary>
+    /// 头像键，可为空
+    /// </summary>
     public string? AvatarKey { get; set; }
+    /// <summary>
+    /// 成员角色，默认为"member"
+    /// </summary>
     public string MemberRole { get; set; } = "member";
+    /// <summary>
+    /// 加入时间
+    /// </summary>
     public DateTime JoinedAt { get; set; }
+    /// <summary>
+    /// 最后阅读消息ID，可为空
+    /// </summary>
     public ulong? LastReadMessageId { get; set; }
 }
 
+/// <summary>
+/// 消息摘要数据传输对象
+/// </summary>
 public class MessageSummaryDto
 {
+    /// <summary>
+    /// 消息ID
+    /// </summary>
     public ulong Id { get; set; }
+    /// <summary>
+    /// 发送者用户ID
+    /// </summary>
     public ulong SenderUserId { get; set; }
+    /// <summary>
+    /// 发送者昵称，可为空
+    /// </summary>
     public string? SenderNickName { get; set; }
+    /// <summary>
+    /// 消息类型，默认为"text"
+    /// </summary>
     public string MessageType { get; set; } = "text";
+    /// <summary>
+    /// 消息内容，可为空
+    /// </summary>
     public string? Content { get; set; }
+    /// <summary>
+    /// 额外信息，可为空
+    /// </summary>
     public string? Extra { get; set; }
+    /// <summary>
+    /// 回复的消息ID，可为空
+    /// </summary>
     public ulong? ReplyToMessageId { get; set; }
+    /// <summary>
+    /// 是否撤回
+    /// </summary>
     public bool IsRecalled { get; set; }
+    /// <summary>
+    /// 创建时间
+    /// </summary>
     public DateTime CreatedAt { get; set; }
 }
 
+/// <summary>
+/// 会话摘要数据传输对象
+/// </summary>
 public class ConversationSummaryDto
 {
+    /// <summary>
+    /// 会话ID
+    /// </summary>
     public ulong Id { get; set; }
+    /// <summary>
+    /// 会话类型，默认为"direct"
+    /// </summary>
     public string ConversationType { get; set; } = "direct";
+    /// <summary>
+    /// 会话标题，可为空
+    /// </summary>
     public string? Title { get; set; }
+    /// <summary>
+    /// 头像键，可为空
+    /// </summary>
     public string? AvatarKey { get; set; }
+    /// <summary>
+    /// 头像用户ID，可为空
+    /// </summary>
     public ulong? AvatarUserId { get; set; }
+    /// <summary>
+    /// 是否激活
+    /// </summary>
     public bool IsActive { get; set; }
+    /// <summary>
+    /// 是否置顶
+    /// </summary>
     public bool IsPinned { get; set; }
+    /// <summary>
+    /// 是否静音
+    /// </summary>
     public bool IsMuted { get; set; }
+    /// <summary>
+    /// 更新时间
+    /// </summary>
     public DateTime UpdatedAt { get; set; }
+    /// <summary>
+    /// 未读数量
+    /// </summary>
     public int UnreadCount { get; set; }
+    /// <summary>
+    /// 最后一条消息，可为空
+    /// </summary>
     public MessageSummaryDto? LastMessage { get; set; }
 }
 
+/// <summary>
+/// 会话详情数据传输对象
+/// </summary>
 public class ConversationDetailDto
 {
+    /// <summary>
+    /// 会话ID
+    /// </summary>
     public ulong Id { get; set; }
+    /// <summary>
+    /// 会话类型，默认为"direct"
+    /// </summary>
     public string ConversationType { get; set; } = "direct";
+    /// <summary>
+    /// 会话标题，可为空
+    /// </summary>
     public string? Title { get; set; }
+    /// <summary>
+    /// 头像键，可为空
+    /// </summary>
     public string? AvatarKey { get; set; }
+    /// <summary>
+    /// 头像用户ID，可为空
+    /// </summary>
     public ulong? AvatarUserId { get; set; }
+    /// <summary>
+    /// 是否激活
+    /// </summary>
     public bool IsActive { get; set; }
+    /// <summary>
+    /// 是否置顶
+    /// </summary>
     public bool IsPinned { get; set; }
+    /// <summary>
+    /// 是否静音
+    /// </summary>
     public bool IsMuted { get; set; }
+    /// <summary>
+    /// 拥有者用户ID，可为空
+    /// </summary>
     public ulong? OwnerUserId { get; set; }
+    /// <summary>
+    /// 创建时间
+    /// </summary>
     public DateTime CreatedAt { get; set; }
+    /// <summary>
+    /// 更新时间
+    /// </summary>
     public DateTime UpdatedAt { get; set; }
+    /// <summary>
+    /// 成员列表
+    /// </summary>
     public List<ConversationMemberDto> Members { get; set; } = new();
 }
 
+/// <summary>
+/// 发送消息请求参数
+/// </summary>
 public class SendMessageRequest
 {
+    /// <summary>
+    /// 消息类型，默认为"text"
+    /// </summary>
     public string MessageType { get; set; } = "text";
+    /// <summary>
+    /// 消息内容，可为空
+    /// </summary>
     public string? Content { get; set; }
+    /// <summary>
+    /// 额外信息，可为空
+    /// </summary>
     public string? Extra { get; set; }
+    /// <summary>
+    /// 回复的消息ID，可为空
+    /// </summary>
     public ulong? ReplyToMessageId { get; set; }
 }
 
 
+/// <summary>
+/// 消息增量数据传输对象
+/// </summary>
 public class MessageDeltaDto
 {
+    /// <summary>
+    /// 最后消息ID
+    /// </summary>
     public ulong LastMessageId { get; set; }
+    /// <summary>
+    /// 是否还有更多消息
+    /// </summary>
     public bool HasMore { get; set; }
+    /// <summary>
+    /// 消息列表
+    /// </summary>
     public List<MessageSummaryDto> Messages { get; set; } = new();
 }
 
+/// <summary>
+/// 标记会话已读请求参数
+/// </summary>
 public class ReadConversationRequest
 {
+    /// <summary>
+    /// 最后已读消息ID，可为空
+    /// </summary>
     public ulong? LastReadMessageId { get; set; }
+}
+
+/// <summary>
+/// 消息已读详情数据传输对象
+/// </summary>
+public class MessageReadDetailDto
+{
+    /// <summary>
+    /// 消息ID
+    /// </summary>
+    public ulong MessageId { get; set; }
+    /// <summary>
+    /// 总接收者数量（排除发送者）
+    /// </summary>
+    public int TotalRecipients { get; set; }
+    /// <summary>
+    /// 已读用户数量
+    /// </summary>
+    public int ReadCount { get; set; }
+    /// <summary>
+    /// 已读用户列表
+    /// </summary>
+    public List<ReadUserDto> ReadUsers { get; set; } = new();
+}
+
+/// <summary>
+/// 已读用户信息数据传输对象
+/// </summary>
+public class ReadUserDto
+{
+    /// <summary>
+    /// 用户ID
+    /// </summary>
+    public ulong UserId { get; set; }
+    /// <summary>
+    /// 昵称
+    /// </summary>
+    public string NickName { get; set; } = null!;
+    /// <summary>
+    /// 头像键，可为空
+    /// </summary>
+    public string? AvatarKey { get; set; }
+    /// <summary>
+    /// 已读时间
+    /// </summary>
+    public DateTime ReadAt { get; set; }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, watch, useTemplateRef, computed } from 'vue';
-import type { ConversationDetail, MessageSummary, ConversationMember } from '../types';
+import type { ConversationDetail, MessageSummary, ConversationMember, MessageReadStatus } from '../types';
 import { useDebounceFn } from '@/utils/debounce'
 import { API_BASE_URL } from '@/config';
 import { useAuthStore } from '@/stores';
@@ -16,6 +16,7 @@ const props = defineProps<{
   meUserId?: number;
   loading: boolean;
   showBackToList?: boolean;
+  messageReadStatus?: Map<number, MessageReadStatus>;
 }>();
 
 const emit = defineEmits<{
@@ -24,6 +25,7 @@ const emit = defineEmits<{
   markRead: [];
   backToList: [];
   updateConversation: [];
+  loadMessageReadStatus: [messageId: number];
 }>();
 
 const scrollbarRef = useTemplateRef('scrollbarRef');
@@ -146,8 +148,34 @@ function getMemberAvatarBySender(senderUserId: number) {
   return `${API_BASE_URL}/mm/Files/users/${member.userId}/${member.avatarKey}`;
 }
 
-// 是否已读
-const isRead = ref(true);
+// 获取消息已读状态
+function getMessageReadStatus(messageId: number): MessageReadStatus | undefined {
+  return props.messageReadStatus?.get(messageId);
+}
+
+// 获取已读文本
+function getReadCountText(messageId: number): string {
+  const status = getMessageReadStatus(messageId);
+  if (!status || status.totalRecipients === 0) return '';
+  return `${status.readCount}/${status.totalRecipients} 已读`;
+}
+
+// 获取已读图标颜色
+function getReadIconColor(messageId: number): string {
+  const status = getMessageReadStatus(messageId);
+  if (!status) return '#909399'; // 灰色：未知状态
+  // 单聊：只要有人已读就显示绿色
+  // 群聊：有人已读就显示绿色
+  if (status.readCount > 0) return '#67c23a'; // 绿色：已读
+  return '#909399'; // 灰色：未读
+}
+
+// 消息进入视图时加载已读状态
+function onMessageVisible(messageId: number) {
+  if (!props.messageReadStatus?.has(messageId)) {
+    emit('loadMessageReadStatus', messageId);
+  }
+}
 </script>
 
 <template>
@@ -156,7 +184,8 @@ const isRead = ref(true);
       <el-scrollbar ref="scrollbarRef" wrap-style="" view-class="">
         <div class="message-list">
           <div v-for="msg in props.messages" :key="msg.id"
-            :class="['msg-item', { mine: props.meUserId && msg.senderUserId === props.meUserId }]">
+            :class="['msg-item', { mine: props.meUserId && msg.senderUserId === props.meUserId }]"
+            @vue:mounted="onMessageVisible(msg.id)">
             <el-avatar class="message-avatar" :src="getMemberAvatarBySender(msg.senderUserId)" :size="40">
               {{ (msg.senderNickName || String(msg.senderUserId)).slice(0, 1) }}
             </el-avatar>
@@ -168,9 +197,15 @@ const isRead = ref(true);
                 <div class="bubble">{{ msg.content || msg.extra || '[空消息]' }}</div>
                 <div class="meta foot">
                   <span>{{ formatChatTime(msg.createdAt) }}</span>
-                  <el-icon>
-                    <CircleCheck :color="isRead ? '#67c23a' : ''" />
-                  </el-icon>
+                  <!-- 仅对自己发送的消息显示已读状态 -->
+                  <template v-if="props.meUserId && msg.senderUserId === props.meUserId">
+                    <el-icon>
+                      <CircleCheck :color="getReadIconColor(msg.id)" />
+                    </el-icon>
+                    <span v-if="getReadCountText(msg.id)" class="read-count">
+                      {{ getReadCountText(msg.id) }}
+                    </span>
+                  </template>
                 </div>
               </div>
             </div>
