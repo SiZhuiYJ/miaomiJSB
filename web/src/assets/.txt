@@ -1,17 +1,24 @@
-// utils/user.ts
-export interface User {
-      id: number | string;
-        name: string;
-          // 其他字段...
-}
-
-/**
- * 从双元素数组中排除指定 id 的用户，返回另一个用户
-  * @param users 长度为 2 的用户数组
-   * @param targetId 要剔除的用户 id
-    * @returns 另一个用户对象，若不存在则返回 null
-     */
-     export function getOtherUser(users: User[], targetId: number | string): User | null {
-          const other = users.find(user => user.id !== targetId);
-            return other ?? null;
-     }
+[{
+	"resource": "/data/data/com.termux/files/home/miaomiJSB/web/src/features/chat/components/index.vue",
+	"owner": "typescript",
+	"code": "2551",
+	"severity": 8,
+	"message": "属性“loadMessageReadStatus”在类型“{ meUserId: Ref<number | undefined, number | undefined>; loading: ComputedRef<boolean>; errorMessage: ComputedRef<string>; conversations: Ref<{ ...; }[], ConversationSummary[] | { ...; }[]>; ... 20 more ...; handleCreateConversation: () => Promise<...>; }”上不存在。你是否指的是“messageReadStatus”?",
+	"source": "ts-plugin",
+	"startLineNumber": 77,
+	"startColumn": 41,
+	"endLineNumber": 77,
+	"endColumn": 62,
+	"relatedInformation": [
+		{
+			"startLineNumber": 155,
+			"startColumn": 5,
+			"endLineNumber": 155,
+			"endColumn": 52,
+			"message": "在此处声明了 \"messageReadStatus\"。",
+			"resource": "/data/data/com.termux/files/home/miaomiJSB/web/src/features/chat/composables/useChatCore.ts"
+		}
+	],
+	"modelVersionId": 19,
+	"origin": "extHost2"
+}]

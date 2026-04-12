@@ -1,7 +1,7 @@
 import { computed, ref, watch } from "vue";
 import { useAuthStore } from "@/stores";
 import { storeToRefs } from "pinia";
-import API from "../api";
+import API from "../../api";
 import type {
   ConversationDetail,
   ConversationMember,
@@ -50,17 +50,26 @@ export function useChat() {
 
   function getDirectPeerDisplayName(detail: ConversationDetail) {
     const currentUserId = user.value?.userId;
-    const peer = detail.members.find((member) => member.userId !== currentUserId);
+    const peer = detail.members.find(
+      (member) => member.userId !== currentUserId,
+    );
     return getMemberDisplayName(peer);
   }
 
-  function updateConversationSummaryTitle(conversationId: number, title: string) {
-    const target = conversations.value.find((item) => item.id === conversationId);
+  function updateConversationSummaryTitle(
+    conversationId: number,
+    title: string,
+  ) {
+    const target = conversations.value.find(
+      (item) => item.id === conversationId,
+    );
     if (target) target.title = title;
   }
 
   async function hydrateDirectConversationTitles(items: ConversationSummary[]) {
-    const directItems = items.filter((item) => item.conversationType === "direct");
+    const directItems = items.filter(
+      (item) => item.conversationType === "direct",
+    );
     if (directItems.length === 0) return;
 
     const detailResults = await Promise.allSettled(
@@ -149,7 +158,10 @@ export function useChat() {
         const directName = getDirectPeerDisplayName(currentConversation.value);
         if (directName) {
           currentConversation.value.title = directName;
-          updateConversationSummaryTitle(currentConversation.value.id, directName);
+          updateConversationSummaryTitle(
+            currentConversation.value.id,
+            directName,
+          );
         }
       }
       messages.value = (await API.getMessages(item.id)).data;
@@ -258,7 +270,9 @@ export function useChat() {
 
     // 如果没有消息或lastMessageId为0，重新加载完整消息列表
     if (!lastMessageId || lastMessageId === 0) {
-      messages.value = (await API.getMessages(selectedConversationId.value)).data;
+      messages.value = (
+        await API.getMessages(selectedConversationId.value)
+      ).data;
       return;
     }
 
@@ -269,9 +283,9 @@ export function useChat() {
     if (delta.messages.length > 0) {
       // 严格过滤：只保留比最后消息ID更大的新消息
       const newMessages = delta.messages
-        .filter(m => m.id > lastMessageId)
+        .filter((m) => m.id > lastMessageId)
         .sort((a, b) => a.id - b.id); // 确保按ID升序排列
-      
+
       if (newMessages.length > 0) {
         // 简单追加到末尾，保持顺序
         messages.value = [...messages.value, ...newMessages];
@@ -302,16 +316,18 @@ export function useChat() {
         : undefined;
 
     await API.markRead(selectedConversationId.value, lastId);
-    
+
     // 标记已读后，重新加载当前会话的已读状态
     if (lastId) {
       // 更新所有自己发送的消息的已读状态
-      const myMessages = messages.value.filter(m => m.senderUserId === meUserId.value);
+      const myMessages = messages.value.filter(
+        (m) => m.senderUserId === meUserId.value,
+      );
       for (const msg of myMessages) {
         await loadMessageReadStatus(msg.id);
       }
     }
-    
+
     await loadConversations();
   }
 
@@ -339,13 +355,13 @@ export function useChat() {
       // 触发响应式更新
       messageReadStatus.value = new Map(messageReadStatus.value);
     } catch (error) {
-      console.error('加载消息已读状态失败:', error);
+      console.error("加载消息已读状态失败:", error);
     }
   }
 
   // 批量加载消息已读状态（性能优化）
   async function loadBatchMessageReadStatus(messageIds: number[]) {
-    const promises = messageIds.map(id => loadMessageReadStatus(id));
+    const promises = messageIds.map((id) => loadMessageReadStatus(id));
     await Promise.allSettled(promises);
   }
 

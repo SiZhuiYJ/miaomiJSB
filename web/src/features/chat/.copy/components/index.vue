@@ -1,14 +1,16 @@
-<!-- index.vue -->
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue';
-import { useChatCore } from '../composables/useChatCore';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { API_BASE_URL } from '@/config';
+import { useAuthStore } from '@/stores';
+import router from '@/routers';
 import ChatToolbar from './ChatToolbar.vue';
 import ConversationSidebar from './ConversationSidebar.vue';
 import MessagePanel from './MessagePanel.vue';
+import { useChat } from '../composables/useChat';
+import { useChatPush } from '../composables/useChatPush';
 import type { ConversationSummary } from '../types';
-import router from '@/routers';
 
-const chat = useChatCore();
+const chat = useChat();
 const isMobile = ref(false);
 
 function syncViewport() {
@@ -19,6 +21,24 @@ const showConversationList = computed(() => {
   if (!isMobile.value) return true;
   return !chat.selectedConversationId.value;
 });
+
+const push = useChatPush({
+  fetchConversations: chat.loadConversations,
+  pullLatestMessages: chat.pullLatestMessages,
+  markRead: chat.markRead,
+  hasConversation: () => !!chat.selectedConversationId.value,
+  getConversationId: () => chat.selectedConversationId.value,
+  getToken: () => useAuthStore().accessToken || '',
+  getBaseUrl: () => API_BASE_URL,
+  onMessageRead: chat.handleMessageRead,
+});
+
+watch(
+  () => chat.selectedConversationId.value,
+  (conversationId: number) => {
+    void push.subscribeConversation(conversationId);
+  },
+);
 
 async function handleSelectConversation(item: ConversationSummary) {
   await chat.selectConversation(item);
@@ -32,73 +52,45 @@ function handleBackToList() {
 onMounted(() => {
   syncViewport();
   window.addEventListener('resize', syncViewport);
-  chat.loadConversations();
-  chat.togglePush(true); // 启动推送
+  void chat.loadConversations();
+  void push.startPush();
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', syncViewport);
-  chat.togglePush(false); // 停止推送
-});
-
-// 为 MessagePanel 预计算已读展示信息（可选优化）
-const readInfoMap = computed(() => {
-  const map = new Map();
-  for (const msg of chat.messages.value) {
-    map.set(msg.id, chat.getReadInfo(msg));
-  }
-  return map;
 });
 </script>
 
 <template>
   <div class="chat-page">
-    <el-alert v-if="chat.errorMessage.value" :title="chat.errorMessage.value" type="error" :closable="false" show-icon
+    <el-alert v-if="chat.errorMessage.value || push.syncError.value"
+      :title="chat.errorMessage.value || push.syncError.value" type="error" :closable="false" show-icon
       class="connection-alert" />
 
-    <ChatToolbar :status-text="chat.statusText.value" :polling="chat.polling.value || chat.realtimeConnected.value"
+    <ChatToolbar :status-text="push.statusText.value" :polling="push.polling.value || push.realtimeConnected.value"
       :loading="chat.loading.value" @back="router.push('/home')" @refresh="chat.loadConversations"
-      @toggle-push="chat.togglePush" />
+      @toggle-push="push.togglePush" />
 
     <div class="layout" :class="{ mobile: isMobile }">
       <ConversationSidebar v-show="showConversationList" :errorMessage="chat.errorMessage.value"
         v-model:create-conversation-type="chat.createConversationType.value"
         v-model:create-title="chat.createTitle.value" v-model:create-members-text="chat.createMembersText.value"
         :selected-conversation-id="chat.selectedConversationId.value" :conversations="chat.conversations.value"
-        :is-mobile="isMobile" @create-conversation="chat.handleCreateConversation"
+        :is-mobile="isMobile" @create-conversation="chat.createConversation"
         @select-conversation="handleSelectConversation" />
 
       <MessagePanel v-if="!isMobile || !showConversationList" v-model="chat.composeText.value"
         v-model:conversation-detail="chat.currentConversation.value!" :messages="chat.messages.value"
         :me-user-id="chat.meUserId.value" :loading="chat.loading.value" :show-back-to-list="isMobile"
-        :message-read-status="chat.messageReadStatus.value" :read-info-map="readInfoMap" @load-more="chat.loadMore"
+        :message-read-status="chat.messageReadStatus.value" @load-more="chat.loadMore"
         @send-text-message="chat.sendTextMessage" @mark-read="chat.markRead" @back-to-list="handleBackToList"
-        @update-conversation="() => chat.updateConversation(chat.currentConversation.value!)"
-        @load-message-read-status="chat.loadMessageReadStatus" />
+        @update-conversation="chat.updateConversation" @load-message-read-status="chat.loadMessageReadStatus" />
     </div>
   </div>
 </template>
 
 <style scoped lang="scss">
-// .chat-page {
-//   height: 100vh;
-//   display: flex;
-//   flex-direction: column;
-//   padding: 16px;
-//   box-sizing: border-box;
-// }
-
-// .connection-alert {
-//   margin-bottom: 12px;
-// }
-
-// .layout {
-//   display: flex;
-//   flex: 1;
-//   overflow: hidden;
-//   gap: 16px;
-
-//   &.mobile {
-//     flex-direction: column;
-//   }
-// }</style>
+.connection-alert {
+  margin-bottom: 12px;
+}
+</style>

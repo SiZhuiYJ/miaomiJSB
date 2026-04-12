@@ -11,7 +11,7 @@ const emit = defineEmits<{
 <template>
     <!-- From Uiverse.io by vinodjangid07 -->
     <label class="container">
-        <input type="checkbox" :value="props.isPinned" @click="emit('togglePinned')" />
+        <input type="checkbox" :checked="props.isPinned" @change="emit('togglePinned')" />
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 75 100" class="pin">
             <line stroke-width="12" stroke="black" y2="100" x2="37" y1="64" x1="37"></line>
             <path stroke-width="10" stroke="black"

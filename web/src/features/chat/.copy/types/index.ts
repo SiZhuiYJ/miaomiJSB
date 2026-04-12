@@ -1,6 +1,5 @@
-// types/index.ts
 export type ConversationType = "direct" | "group";
-export type MessageType = "text" | "image" | "video" | "file" | "system";
+export type MessageType = "text" | "image" | "file" | "video" | "system";
 
 export interface MessageSummary {
   id: number;
@@ -8,19 +7,10 @@ export interface MessageSummary {
   senderNickName?: string | null;
   messageType: MessageType;
   content?: string | null;
-  extra?: string | null; // JSON 字符串
+  extra?: string | null;
   replyToMessageId?: number | null;
   isRecalled: boolean;
   createdAt: string;
-}
-
-export interface FileExtra {
-  fileName: string;
-  fileSize: number;
-  fileUrl: string;
-  thumbnailUrl?: string;
-  duration?: number; // 视频时长（秒）
-  mimeType?: string;
 }
 
 export interface ConversationSummary {
@@ -82,7 +72,6 @@ export interface MessageDeltaResponse {
   lastMessageId: number;
   messages: MessageSummary[];
 }
-
 export interface UpdateConversation {
   title?: string | null;
   avatarKey?: string | null;

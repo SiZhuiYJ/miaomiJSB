@@ -1,19 +1,11 @@
-<!-- ConversationSidebar.vue -->
 <script setup lang="ts">
-import { Top, MuteNotification, Message } from '@element-plus/icons-vue';
 import type { ConversationSummary } from '../types';
-import {
-  getConversationAvatarUrl,
-  getConversationAvatarText,
-  getConversationDisplayTitle,
-  getMessagePreview,
-} from '../utils/chat';
-
+import { API_BASE_URL } from '@/config';
 const createConversationType = defineModel<'direct' | 'group'>('createConversationType');
 const createTitle = defineModel<string>('createTitle');
 const createMembersText = defineModel<string>('createMembersText');
 
-defineProps<{
+const props = defineProps<{
   errorMessage: string;
   selectedConversationId: number;
   conversations: ConversationSummary[];
@@ -29,15 +21,41 @@ const createConversationTypeOptions = [
   { value: 'direct', label: '单聊' },
   { value: 'group', label: '群聊' },
 ];
+function getConversationAvatar(item: ConversationSummary) {
+  if (item.conversationType === 'direct') {
+    if (!item.avatarKey || !item.avatarUserId) return '';
+    return `${API_BASE_URL}/mm/Files/users/${item.avatarUserId}/${item.avatarKey}`;
+  }
+  if (!item.avatarKey || !item.avatarUserId) return '';
+  return `${API_BASE_URL}/mm/Files/users/${item.avatarUserId}/${item.avatarKey}`;
+}
+
+function getConversationAvatarText(item: ConversationSummary) {
+  if (item.conversationType === 'direct') return (getConversationDisplayTitle(item)).slice(0, 1);
+  return (item.title || `群#${item.id}`).slice(0, 1);
+}
+
+function getConversationDisplayTitle(item: ConversationSummary) {
+  if (item.conversationType === 'direct') {
+    return item.title || item.userAccount || String(item.avatarUserId || item.id);
+  }
+  return item.title || `会话 #${item.id}`;
+}
+
+function getConversationMessagePreview(item: ConversationSummary) {
+  if (!item.lastMessage) return '暂无消息';
+  if (item.lastMessage.content) return item.lastMessage.content;
+  return `[${item.lastMessage.messageType}]`;
+}
 </script>
 
 <template>
   <aside class="left-panel">
-    <el-scrollbar :view-class="isMobile ? 'mobile' : ''">
+    <el-scrollbar ref="scrollbarRef" wrap-style="" :view-class="[isMobile ? 'mobile' : '']">
       <ul class="conversation-list">
-        <li v-for="item in conversations" :key="item.id" class="conversation-item"
-          :class="{ active: item.id === selectedConversationId }" @click="emit('selectConversation', item)">
-          <el-avatar class="conversation-avatar" :src="getConversationAvatarUrl(item)" :size="60" shape="square">
+        <li v-for="item in props.conversations" :key="item.id" class="conversation-item"
+          :class="{ active: item.id === props.selectedConversationId }" @click="emit('selectConversation', item)">
+          <el-avatar class="conversation-avatar" :src="getConversationAvatar(item)" :size="60" shape="square">
             {{ getConversationAvatarText(item) }}
           </el-avatar>
           <el-badge :value="item.unreadCount" :show-zero="false" :max="99" :offset="[-22, 5]"
@@ -53,7 +71,7 @@ const createConversationTypeOptions = [
             </div>
             <el-text line-clamp="1">
               {{ item.lastMessage?.senderNickName || item.lastMessage?.senderUserId || '系统' }}：
-              {{ getMessagePreview(item) }}
+              {{ getConversationMessagePreview(item) }}
             </el-text>
             <template #content="{ value }">
               <div class="custom-content">
@@ -71,7 +89,7 @@ const createConversationTypeOptions = [
     <div class="create-box">
       <div class="create-box-item">
         <h3>创建会话</h3>
-        <el-button icon="Plus" color="#111827">添加好友</el-button>
+        <el-button icon="plus" color="#111827" @click="() => { }">添加好友</el-button>
       </div>
       <div class="create-box-item">
         <el-select v-model="createConversationType" placeholder="会话类型" class="conversation-type-select">
@@ -79,7 +97,7 @@ const createConversationTypeOptions = [
             :value="item.value" />
         </el-select>
         <el-input v-model="createTitle" clearable placeholder="群聊标题，可选"
-          :disabled="createConversationType === 'direct'" />
+          :disabled="createConversationType == 'direct'" />
       </div>
       <div class="create-box-item">
         <el-input v-model="createMembersText" clearable placeholder="成员 ID，使用逗号分隔" />
@@ -88,3 +106,4 @@ const createConversationTypeOptions = [
     </div>
   </aside>
 </template>
+<style lang="scss" scoped></style>
