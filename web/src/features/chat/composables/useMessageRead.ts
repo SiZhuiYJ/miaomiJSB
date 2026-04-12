@@ -1,5 +1,5 @@
 // composables/useMessageRead.ts
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import API from "../api";
 import type { MessageReadStatus, MessageSummary } from "../types";
 

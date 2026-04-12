@@ -5,6 +5,7 @@ import { Bell, MuteNotification } from '@element-plus/icons-vue';
 import IsPin from './IsPin.vue';
 import type { ConversationDetail } from '../types';
 import {
+  groupRoleMap,
   formatChatTime,
   getConversationAvatarUrl,
   getConversationDisplayTitle,
@@ -44,6 +45,7 @@ function togglePinned() {
     width="min(92vw, 520px)">
     <el-image v-if="conversation.conversationType === 'direct'" class="avatar-preview" :src="avatarUrl" fit="fill"
       :preview-src-list="[avatarUrl]" lazy />
+    <p class="members">会话标题：{{ title }}</p>
     <p class="members">会话类型：{{ conversation.conversationType === 'group' ? '群聊' : '单聊' }}</p>
     <p class="members">会话ID：{{ conversation.id }}</p>
     <p class="members">创建时间：{{ formatChatTime(conversation.createdAt) }}</p>
@@ -52,7 +54,7 @@ function togglePinned() {
       成员：
       {{
         conversation.members
-          .map((member) => `${member.nickName || member.userId}(${member.memberRole})`)
+          .map((member) => `${member.nickName || member.userId}(${groupRoleMap[member.memberRole] || member.memberRole})`)
           .join('，')
       }}
     </p>
@@ -67,25 +69,4 @@ function togglePinned() {
   </el-dialog>
 </template>
 
-<style scoped lang="scss">
-// .avatar-preview {
-//   width: 100%;
-//   max-height: 200px;
-//   margin-bottom: 16px;
-// }
-
-// .members {
-//   margin: 8px 0;
-// }
-
-// .action-icons {
-//   display: flex;
-//   gap: 16px;
-//   margin: 16px 0;
-//   font-size: 24px;
-// }
-
-// .load-more {
-//   width: 100%;
-// }
-</style>
+<style scoped lang="scss"></style>

@@ -19,6 +19,7 @@ interface PushOptions {
     readByUserId: number;
     readAt: string;
   }) => Promise<void>;
+  getAllConversationIds: () => number[];
 }
 
 export function useChatPush(options: PushOptions) {
@@ -107,8 +108,22 @@ export function useChatPush(options: PushOptions) {
       }
     });
 
-    // 监听消息已读回执事件
+    // // 监听消息已读回执事件
+    // connection.on('chat:message-read', async (payload: any) => {
+    //   if (options.onMessageRead) {
+    //     await options.onMessageRead({
+    //       messageId: payload.messageId,
+    //       conversationId: payload.conversationId,
+    //       readByUserId: payload.readByUserId,
+    //       readAt: payload.readAt
+    //     });
+    //   }
+    // });
+
     connection.on('chat:message-read', async (payload: any) => {
+      // 刷新会话列表保证未读数更新
+      await options.fetchConversations();
+
       if (options.onMessageRead) {
         await options.onMessageRead({
           messageId: payload.messageId,
@@ -148,11 +163,22 @@ export function useChatPush(options: PushOptions) {
       }
     });
 
+
     await connection.start();
     realtimeConnected.value = true;
     stopPolling();
 
-    await subscribeConversation(options.getConversationId());
+    // 订阅所有已存在的会话
+    const allIds = options.getAllConversationIds();
+    for (const id of allIds) {
+      await subscribeConversation(id);
+    }
+
+    // 再订阅当前选中的会话（确保肯定订阅）
+    const currentId = options.getConversationId();
+    if (currentId) {
+      await subscribeConversation(currentId);
+    }
   }
 
   async function subscribeConversation(conversationId: number) {

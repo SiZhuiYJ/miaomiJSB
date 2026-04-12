@@ -10,6 +10,14 @@ import type {
   UpdateConversation
 } from '../types';
 
+// 文件信息接口
+export interface ChatFileInfo {
+  fileKey: string;
+  originalFileName: string;
+  fileSize: number;
+  contentType: string;
+}
+
 export async function getConversations() {
   return await http.get<ConversationSummary[]>('/mm/chat/conversations');
 }
@@ -65,6 +73,74 @@ export async function getMessageReadStatus(messageId: number) {
   return await http.get<MessageReadStatus>(`/mm/chat/messages/${messageId}/read-status`);
 }
 
+/**
+ * 上传聊天文件
+ * @param conversationId 会话ID
+ * @param file 文件对象
+ * @returns 文件信息
+ */
+export async function uploadChatFile(conversationId: number, file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  return await http.post<ChatFileInfo>(
+    `/mm/files/chat/${conversationId}/upload`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    }
+  );
+}
+
+/**
+ * 获取聊天文件URL
+ * @param fileKey 文件Key
+ * @returns 文件访问URL
+ */
+export function getChatFileUrl(fileKey: string): string {
+  if (!fileKey) return '';
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  // 确保baseUrl不以/结尾，避免双斜杠
+  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  return `${normalizedBaseUrl}/mm/files/chat/${fileKey}`;
+}
+
+/**
+ * 上传会话头像
+ * @param conversationId 会话ID
+ * @param file 头像文件
+ * @returns 文件Key
+ */
+export async function uploadConversationAvatar(conversationId: number, file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  return await http.post<{ key: string }>(
+    `/mm/files/chat/${conversationId}/avatar`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    }
+  );
+}
+
+/**
+ * 获取会话头像URL
+ * @param conversationId 会话ID
+ * @param fileKey 头像文件Key
+ * @returns 头像访问URL
+ */
+export function getConversationAvatarUrl(conversationId: number, fileKey: string): string {
+  if (!fileKey) return '';
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  return `${normalizedBaseUrl}/mm/files/chat/${conversationId}/avatars/${fileKey}`;
+}
+
 export default {
   getConversations,
   getConversation,
@@ -75,4 +151,8 @@ export default {
   updateConversation,
   markRead,
   getMessageReadStatus,
+  uploadChatFile,
+  getChatFileUrl,
+  uploadConversationAvatar,
+  getConversationAvatarUrl,
 };

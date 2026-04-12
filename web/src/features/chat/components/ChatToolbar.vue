@@ -22,3 +22,7 @@ const emit = defineEmits<{
     </el-button>
   </header>
 </template>
+
+<style scoped lang="scss">
+
+</style>

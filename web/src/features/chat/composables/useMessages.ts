@@ -1,5 +1,5 @@
 // composables/useMessages.ts
-import { ref, watch } from "vue";
+import { ref } from "vue";
 import API from "../api";
 import { useErrorHandler } from "./useErrorHandler";
 import type { MessageSummary, SendMessagePayload } from "../types";
@@ -38,7 +38,7 @@ export function useMessages(conversationId: () => number) {
     try {
       const data = (await API.getMessages(convId, beforeId, limit)).data;
       if (!beforeId) {
-        messages.value = data;
+        messages.value = data.sort((a, b) => a.id - b.id);
       }
       return data;
     } catch (error: any) {
@@ -72,12 +72,12 @@ export function useMessages(conversationId: () => number) {
 
     try {
       const delta = (await API.getMessageDelta(convId, lastId, 50)).data;
-      if (delta.messages.length > 0) {
+      if (delta.messages.length > 0 && lastId) {
         const newMessages = delta.messages
-          .filter((m) => m.id > lastId)
+          .filter(m => m.id > lastId)
           .sort((a, b) => a.id - b.id);
-        if (newMessages.length > 0) {
-          messages.value = [...messages.value, ...newMessages];
+        if (newMessages.length) {
+          messages.value = [...messages.value, ...newMessages].sort((a, b) => a.id - b.id);
         }
       }
     } catch (error: any) {

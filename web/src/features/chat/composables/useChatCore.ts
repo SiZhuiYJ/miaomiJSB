@@ -6,7 +6,6 @@ import { useConversations } from "./useConversations";
 import { useMessages } from "./useMessages";
 import { useMessageRead } from "./useMessageRead";
 import { useChatPush } from "./useChatPush";
-import type { MessageSummary } from "../types";
 
 export function useChatCore() {
   const { user } = storeToRefs(useAuthStore());
@@ -55,6 +54,8 @@ export function useChatCore() {
     onMessageRead: async (data) => {
       await readModule.loadMessageReadStatus(data.messageId);
     },
+    getAllConversationIds: () =>
+      conversationsModule.conversations.value.map((c) => c.id),
   });
 
   // 选择会话时同步重置消息和已读状态
@@ -148,6 +149,7 @@ export function useChatCore() {
     updateConversation: conversationsModule.updateConversation,
     loadMore: messagesModule.loadMore,
     sendTextMessage: handleSendText,
+    sendMessage: messagesModule.sendMessage,
     markRead: () =>
       readModule.markRead(
         messagesModule.messages.value[messagesModule.messages.value.length - 1]

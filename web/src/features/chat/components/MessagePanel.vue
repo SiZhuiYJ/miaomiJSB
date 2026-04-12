@@ -3,14 +3,18 @@
 import { nextTick, watch, useTemplateRef, computed, ref } from 'vue';
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia';
+import { ElMessage } from 'element-plus';
 import MessageItem from './MessageItem.vue';
+import FileUploadButton from './FileUploadButton.vue';
 import ConversationDetailDialog from './ConversationDetailDialog.vue';
-import type { ConversationDetail, MessageSummary, MessageReadStatus } from '../types';
+import type { ConversationDetail, MessageSummary, MessageReadStatus, SendMessagePayload } from '../types';
 import {
-  formatChatTime,
+  formatChatTimeShort,
+  formatDateSeparator,
   getMemberAvatarBySender,
   getConversationDisplayTitle,
 } from '../utils/chat';
+import { uploadFileForMessage } from '../utils/fileHelper';
 
 const model = defineModel<string>({ default: '' });
 const currentConversation = defineModel<ConversationDetail>('conversationDetail');
@@ -27,6 +31,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   loadMore: [];
   sendTextMessage: [];
+  sendMessage: [payload: SendMessagePayload];
   markRead: [];
   backToList: [];
   updateConversation: [];
@@ -37,6 +42,7 @@ const { user } = storeToRefs(useAuthStore());
 const scrollbarRef = useTemplateRef('scrollbarRef');
 const isChatDetail = ref(false);
 const pendingAutoScroll = ref(true);
+const uploadingFiles = ref(false);
 
 // 会话标题
 const conversationHeaderTitle = computed(() =>
@@ -44,6 +50,40 @@ const conversationHeaderTitle = computed(() =>
     ? getConversationDisplayTitle(currentConversation.value, user.value?.userId)
     : ''
 );
+
+// 新增：按日期分组的消息列表
+interface MessageGroup {
+  dateLabel: string;
+  messages: MessageSummary[];
+}
+
+const groupedMessages = computed<MessageGroup[]>(() => {
+  const groups: MessageGroup[] = [];
+  let currentDateLabel = '';
+  let currentGroup: MessageSummary[] = [];
+
+  for (const msg of props.messages) {
+    const msgDate = new Date(msg.createdAt);
+    const dateLabel = formatDateSeparator(msgDate);
+
+    if (dateLabel !== currentDateLabel) {
+      if (currentGroup.length > 0) {
+        groups.push({ dateLabel: currentDateLabel, messages: currentGroup });
+      }
+      currentDateLabel = dateLabel;
+      currentGroup = [msg];
+    } else {
+      currentGroup.push(msg);
+    }
+  }
+
+  if (currentGroup.length > 0) {
+    groups.push({ dateLabel: currentDateLabel, messages: currentGroup });
+  }
+
+  return groups;
+});
+
 
 function getScrollWrap() {
   return (scrollbarRef.value?.wrapRef as HTMLElement | undefined) ?? null;
@@ -104,6 +144,45 @@ function getReadDisplay(messageId: number) {
     readColor: isAllRead ? '#67C23A' : '#909399',
   };
 }
+
+// 处理文件选择
+async function handleFileSelected(files: File[]) {
+  if (!currentConversation.value?.id) {
+    ElMessage.error('请先选择一个会话');
+    return;
+  }
+
+  uploadingFiles.value = true;
+  
+  try {
+    for (const file of files) {
+      try {
+        const { extra, messageType } = await uploadFileForMessage(
+          currentConversation.value.id,
+          file
+        );
+        
+        // 发送消息
+        const payload: SendMessagePayload = {
+          messageType: messageType as any,
+          extra: JSON.stringify(extra)
+        };
+        
+        emit('sendMessage', payload);
+      } catch (error: any) {
+        console.error(`Failed to upload file ${file.name}:`, error);
+        ElMessage.error(`${file.name}: ${error.message || '上传失败'}`);
+      }
+    }
+    
+    ElMessage.success('文件发送成功');
+  } catch (error: any) {
+    console.error('File upload error:', error);
+    ElMessage.error('文件发送失败');
+  } finally {
+    uploadingFiles.value = false;
+  }
+}
 </script>
 
 <template>
@@ -111,10 +190,17 @@ function getReadDisplay(messageId: number) {
     <div v-if="currentConversation" class="conversation-detail">
       <el-scrollbar ref="scrollbarRef" view-class="message-list-container">
         <div class="message-list" v-if="props.meUserId">
-          <MessageItem v-for="msg in props.messages" :key="msg.id" @vue:mounted="onMessageVisible(msg.id)"
-            :message="msg" :src="getMemberAvatarBySender(currentConversation, msg.senderUserId)"
-            :meUserId="props.meUserId" :createdAt="formatChatTime(msg.createdAt)"
-            :is-mine="msg.senderUserId === props.meUserId" v-bind="getReadDisplay(msg.id)" />
+          <!-- 遍历分组 -->
+          <template v-for="group in groupedMessages" :key="group.dateLabel">
+            <!-- 日期分隔线 -->
+
+            <div class="date-separator"> <el-divider border-style="dashed">{{ group.dateLabel }}</el-divider></div>
+            <!-- 分组内的消息 -->
+            <MessageItem v-for="msg in group.messages" :key="msg.id" @vue:mounted="onMessageVisible(msg.id)"
+              :message="msg" :src="getMemberAvatarBySender(currentConversation, msg.senderUserId)"
+              :meUserId="props.meUserId" :createdAt="formatChatTimeShort(msg.createdAt)"
+              :is-mine="msg.senderUserId === props.meUserId" v-bind="getReadDisplay(msg.id)" />
+          </template>
         </div>
       </el-scrollbar>
 
@@ -131,8 +217,13 @@ function getReadDisplay(messageId: number) {
       </div>
 
       <div class="composer">
+        <FileUploadButton 
+          :conversation-id="currentConversation?.id"
+          :disabled="uploadingFiles || props.loading"
+          @file-selected="handleFileSelected"
+        />
         <el-input v-model="model" clearable placeholder="输入消息" @keyup.enter="emit('sendTextMessage')" />
-        <el-button color="#111827" :disabled="props.loading" @click="emit('sendTextMessage')">
+        <el-button color="#111827" :disabled="props.loading || uploadingFiles" @click="emit('sendTextMessage')">
           发送
         </el-button>
         <el-button color="#111827" :disabled="props.loading" @click="emit('markRead')">
@@ -149,50 +240,28 @@ function getReadDisplay(messageId: number) {
 </template>
 
 <style scoped lang="scss">
-/* 样式根据实际需求补充，此处仅保留结构 */
-// .main-panel {
-//   flex: 1;
-//   display: flex;
-//   flex-direction: column;
-//   height: 100%;
-// }
+/* 日期分隔线样式 */
+.date-separator {
+  margin: 0 12px;
+}
 
-// .conversation-detail {
-//   display: flex;
-//   flex-direction: column;
-//   height: 100%;
-// }
+.composer {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 12px;
+  background: #fff;
+  border-top: 1px solid #e8e8e8;
+}
 
-// .message-list {
-//   padding: 16px;
-// }
-
-// .chat-header {
-//   display: flex;
-//   justify-content: space-between;
-//   align-items: center;
-//   padding: 12px 16px;
-//   border-bottom: 1px solid #ebeef5;
-// }
-
-// .chat-header-main {
-//   display: flex;
-//   align-items: center;
-//   gap: 12px;
-// }
-
-// .composer {
-//   display: flex;
-//   gap: 12px;
-//   padding: 16px;
-//   border-top: 1px solid #ebeef5;
-// }
-
-// .empty {
-//   display: flex;
-//   justify-content: center;
-//   align-items: center;
-//   height: 100%;
-//   color: #909399;
-// }
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .date-separator {
+    margin: 0 6px;
+  }
+  
+  .composer {
+    padding: 8px;
+  }
+}
 </style>

@@ -1,10 +1,49 @@
 // utils/chat.ts
 import { API_BASE_URL } from "@/config";
 import type {
+  UserRole,
   ConversationSummary,
   ConversationDetail,
   ConversationMember,
 } from "../types";
+
+/**
+ * 判断两个日期是否为同一天
+ */
+export function isSameDay(date1: string | Date, date2: string | Date): boolean {
+  const d1 = new Date(date1);
+  const d2 = new Date(date2);
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+}
+
+/**
+ * 格式化日期分隔线文本
+ * - 本年：MM/DD
+ * - 非本年：YYYY/MM/DD
+ */
+export function formatDateSeparator(date: string | Date): string {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const currentYear = new Date().getFullYear();
+
+  return year === currentYear ? `${month}/${day}` : `${year}/${month}/${day}`;
+}
+
+/**
+ * 格式化聊天时间（仅显示时:分）
+ */
+export function formatChatTimeShort(value: string): string {
+  return new Date(value).toLocaleString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 /**
  * 格式化聊天时间
@@ -116,3 +155,12 @@ export function getMessagePreview(item: ConversationSummary): string {
   if (item.lastMessage.content) return item.lastMessage.content;
   return `[${item.lastMessage.messageType}]`;
 }
+
+/**
+ * 群成员权限映射
+ */
+export const groupRoleMap: Record<UserRole, string> = {
+  owner: "群主",
+  admin: "管理员",
+  member: "成员",
+};

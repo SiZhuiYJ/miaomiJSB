@@ -25,7 +25,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
 {
     readonly DailyCheckDbContext _db = db;
     readonly IHubContext<ChatHub> _hubContext = hubContext;
-    static readonly HashSet<string> AllowedMessageTypes = new(["text", "image", "file", "system"]);
+    static readonly HashSet<string> AllowedMessageTypes = new(["text", "image", "video", "audio", "file", "system"]);
 
     /// <summary>
     /// 创建一个新的聊天会话
@@ -246,10 +246,15 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
 
         var messageType = (request.MessageType ?? string.Empty).Trim().ToLowerInvariant();
         if (!AllowedMessageTypes.Contains(messageType))
-            return BadRequest(new { message = "messageType 仅支持 text/image/file/system" });
+            return BadRequest(new { message = "messageType 仅支持 text/image/video/audio/file/system" });
 
         if (messageType == "text" && string.IsNullOrWhiteSpace(request.Content))
             return BadRequest(new { message = "文本消息 content 不能为空" });
+
+        // 文件类消息需要extra字段包含文件信息
+        if ((messageType == "image" || messageType == "video" || messageType == "audio" || messageType == "file") 
+            && string.IsNullOrWhiteSpace(request.Extra))
+            return BadRequest(new { message = $"{messageType} 消息 extra 不能为空，需包含文件信息" });
 
         if (request.ReplyToMessageId.HasValue)
         {

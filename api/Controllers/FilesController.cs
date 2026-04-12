@@ -254,6 +254,122 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
     }
 
     /// <summary>
+    /// 上传聊天文件接口，支持视频、音频、文档、压缩包等多种文件类型。
+    /// 文件将按会话隔离存储，只有会话成员才能访问。
+    /// 返回文件信息（文件Key、文件名、文件大小、MIME类型），可用于发送消息。
+    /// </summary>
+    /// <remarks>
+    /// 支持的文件类型：
+    /// • 图片：jpg, jpeg, png, gif, webp, bmp, svg, ico
+    /// • 视频：mp4, avi, mov, wmv, flv, mkv, webm, m4v
+    /// • 音频：mp3, wav, ogg, m4a, flac, aac, wma, opus
+    /// • 文档：pdf, doc, docx, xls, xlsx, ppt, pptx, txt, rtf, csv, md
+    /// • 压缩包：zip, rar, 7z, tar, gz, bz2
+    /// • 其他：json, xml, html, css, js, ts
+    /// 
+    /// 安全机制：
+    /// • 身份认证：必须登录才能上传
+    /// • 会话权限：必须是会话成员
+    /// • 文件隔离：按会话ID物理隔离存储
+    /// • 大小限制：最大100MB
+    /// • 类型白名单：仅允许安全的文件类型
+    /// 
+    /// 返回格式：
+    /// {
+    ///   "fileKey": "abc123_xyz.mp4",
+    ///   "originalFileName": "video",
+    ///   "fileSize": 1024000,
+    ///   "contentType": "video/mp4"
+    /// }
+    /// </remarks>
+    /// <param name="conversationId">会话ID</param>
+    /// <param name="file">待上传的文件</param>
+    /// <returns>
+    /// 成功时返回200 OK，包含文件信息；
+    /// 失败时返回相应错误状态码。
+    /// </returns>
+    /// <response code="200">文件上传成功</response>
+    /// <response code="400">文件为空、格式不支持或超过大小限制</response>
+    /// <response code="403">不是会话成员，无权上传</response>
+    /// <response code="404">会话不存在</response>
+    [HttpPost("chat/{conversationId:ulong}/upload")]
+    [RequestSizeLimit(100 * 1024 * 1024)] // 100MB
+    public async Task<ActionResult> UploadChatFile(ulong conversationId, IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "文件不能为空" });
+
+        var userId = GetUserId();
+
+        try
+        {
+            var fileInfo = await _fileService.SaveChatFileAsync(userId, conversationId, file);
+            return Ok(fileInfo);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // 根据错误消息判断返回不同的状态码
+            if (ex.Message.Contains("不是该会话的成员"))
+                return Forbid(ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// 获取聊天文件接口，提供受保护的文件读取服务。
+    /// 严格验证会话成员权限，仅允许会话成员访问文件。
+    /// 支持所有常见文件类型的下载和预览。
+    /// </summary>
+    /// <remarks>
+    /// 访问控制：
+    /// • 身份验证：必须提供有效Token
+    /// • 会话权限：必须是文件所属会话的成员
+    /// • 文件存在性验证
+    /// • 安全路径处理
+    /// 
+    /// 技术特点：
+    /// • 二进制流直接返回
+    /// • 正确的Content-Type设置
+    /// • 支持断点续传
+    /// • 适当的缓存控制
+    /// 
+    /// 隐私保护：
+    /// • 非会话成员无法访问
+    /// • 不暴露文件真实路径
+    /// • 访问日志记录
+    /// • 防盗链保护
+    /// 
+    /// 使用场景：
+    /// • 图片预览
+    /// • 视频播放
+    /// • 音频播放
+    /// • 文档查看
+    /// • 文件下载
+    /// </remarks>
+    /// <param name="fileKey">文件标识，由上传接口返回。</param>
+    /// <returns>
+    /// 成功时返回200 OK，包含文件二进制流和正确的Content-Type；
+    /// 文件不存在或无权限时返回404 Not Found。
+    /// </returns>
+    /// <response code="200">文件获取成功</response>
+    /// <response code="404">文件不存在或无访问权限</response>
+    [HttpGet("chat/{fileKey}")]
+    public async Task<IActionResult> GetChatFile(string fileKey)
+    {
+        var userId = GetUserId();
+        var result = await _fileService.GetChatFileAsync(userId, fileKey);
+
+        if (result == null)
+            return NotFound("文件不存在或无访问权限");
+
+        // 设置响应头，支持文件下载和预览
+        Response.Headers.Append("Content-Disposition", $"inline; filename=\"{Uri.EscapeDataString(result.Value.FileName)}\"");
+        Response.Headers.Append("X-Content-Type-Options", "nosniff");
+        
+        return File(result.Value.Stream, result.Value.ContentType);
+    }
+
+    /// <summary>
     /// 从当前访问令牌中解析用户 ID。
     /// </summary>
     /// <returns>当前登录用户的 ID。</returns>

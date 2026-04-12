@@ -1,5 +1,5 @@
 export type ConversationType = "direct" | "group";
-export type MessageType = "text" | "image" | "file" | "video" | "system";
+export type MessageType = "text" | "image" | "file" | "video" | "audio" | "system";
 
 export interface MessageSummary {
   id: number;

@@ -29,11 +29,11 @@ function handleBackToList() {
   chat.messages.value = [];
 }
 
-onMounted(() => {
+onMounted(async () => {
   syncViewport();
   window.addEventListener('resize', syncViewport);
-  chat.loadConversations();
-  chat.togglePush(true); // 启动推送
+  await chat.loadConversations();
+  await chat.togglePush(true); // 内部 connectRealtime 会自动订阅所有会话
 });
 
 onBeforeUnmount(() => {
@@ -72,33 +72,13 @@ const readInfoMap = computed(() => {
         v-model:conversation-detail="chat.currentConversation.value!" :messages="chat.messages.value"
         :me-user-id="chat.meUserId.value" :loading="chat.loading.value" :show-back-to-list="isMobile"
         :message-read-status="chat.messageReadStatus.value" :read-info-map="readInfoMap" @load-more="chat.loadMore"
-        @send-text-message="chat.sendTextMessage" @mark-read="chat.markRead" @back-to-list="handleBackToList"
+        @send-text-message="chat.sendTextMessage"
+        @send-message="chat.sendMessage"
+        @mark-read="chat.markRead" @back-to-list="handleBackToList"
         @update-conversation="() => chat.updateConversation(chat.currentConversation.value!)"
         @load-message-read-status="chat.loadMessageReadStatus" />
     </div>
   </div>
 </template>
 
-<style scoped lang="scss">
-// .chat-page {
-//   height: 100vh;
-//   display: flex;
-//   flex-direction: column;
-//   padding: 16px;
-//   box-sizing: border-box;
-// }
-
-// .connection-alert {
-//   margin-bottom: 12px;
-// }
-
-// .layout {
-//   display: flex;
-//   flex: 1;
-//   overflow: hidden;
-//   gap: 16px;
-
-//   &.mobile {
-//     flex-direction: column;
-//   }
-// }</style>
+<style scoped lang="scss"></style>

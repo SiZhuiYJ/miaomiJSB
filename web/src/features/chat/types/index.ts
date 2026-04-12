@@ -1,6 +1,7 @@
 // types/index.ts
 export type ConversationType = "direct" | "group";
-export type MessageType = "text" | "image" | "video" | "file" | "system";
+export type MessageType = "text" | "image" | "video" | "audio" | "file" | "system";
+export type UserRole = "owner" | "admin" | "member";
 
 export interface MessageSummary {
   id: number;
@@ -18,9 +19,12 @@ export interface FileExtra {
   fileName: string;
   fileSize: number;
   fileUrl: string;
+  fileKey?: string; // 文件标识，用于构建URL
   thumbnailUrl?: string;
-  duration?: number; // 视频时长（秒）
+  duration?: number; // 视频/音频时长（秒）
   mimeType?: string;
+  width?: number; // 图片宽度
+  height?: number; // 图片高度
 }
 
 export interface ConversationSummary {
@@ -43,7 +47,7 @@ export interface ConversationMember {
   nickName?: string | null;
   userAccount?: string | null;
   avatarKey?: string | null;
-  memberRole: "owner" | "admin" | "member";
+  memberRole: UserRole;
   joinedAt: string;
   lastReadMessageId?: number | null;
 }

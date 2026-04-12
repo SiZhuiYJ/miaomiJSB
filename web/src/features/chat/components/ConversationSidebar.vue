@@ -88,3 +88,7 @@ const createConversationTypeOptions = [
     </div>
   </aside>
 </template>
+
+<style scoped lang="scss">
+
+</style>

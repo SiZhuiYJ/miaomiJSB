@@ -1,7 +1,7 @@
 // ==============================================
 // 全局重置
 // ==============================================
-.el-button + .el-button {
+.el-button+.el-button {
   margin-left: 0 !important;
 }
 
@@ -70,7 +70,7 @@
   flex: 1;
   min-height: 0;
 
-  > * {
+  >* {
     min-width: 0;
   }
 }
@@ -265,7 +265,7 @@
 .message-list {
   display: grid;
   gap: 12px;
-  padding: 56px 12px;
+  padding: 44px 12px;
 }
 
 .msg-item {
@@ -334,7 +334,7 @@
 }
 
 .read-count {
-  font-size: 10px;
+  font-size: 6px;
   color: var(--chat-muted);
   margin-left: 2px;
 }
@@ -392,6 +392,7 @@
     grid-template-columns: 1fr;
 
     &.mobile {
+
       .left-panel,
       .main-panel {
         border-radius: 4px;
