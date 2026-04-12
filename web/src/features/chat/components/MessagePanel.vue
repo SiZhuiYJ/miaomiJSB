@@ -65,7 +65,7 @@ const { debounced: updateMuted } = useDebounceFn(
 function togglePinned() {
   console.log('切换状态')
   if (currentConversation.value) {
-    currentConversation.value.isPinned = !currentConversation.value.isPinned;
+    // currentConversation.value.isPinned = !currentConversation.value.isPinned;
     updatePinned(currentConversation.value.isPinned)
   }
 }
@@ -186,7 +186,8 @@ function onMessageVisible(messageId: number) {
           <div v-for="msg in props.messages" :key="msg.id"
             :class="['msg-item', { mine: props.meUserId && msg.senderUserId === props.meUserId }]"
             @vue:mounted="onMessageVisible(msg.id)">
-            <el-avatar class="message-avatar" :src="getMemberAvatarBySender(msg.senderUserId)" :size="40">
+            <el-avatar class="message-avatar" :src="getMemberAvatarBySender(msg.senderUserId)" :size="40"
+              shape="square">
               {{ (msg.senderNickName || String(msg.senderUserId)).slice(0, 1) }}
             </el-avatar>
             <div class="content">
@@ -254,7 +255,7 @@ function onMessageVisible(messageId: number) {
           <Bell v-else />
         </el-icon>
 
-        <is-pin :is-pinned="currentConversation.isPinned" @toggle-pinned="togglePinned" />
+        <is-pin v-model:is-pinned="currentConversation.isPinned" @toggle-pinned="togglePinned" />
 
         <el-button color="#111827" class="load-more" @click="emit('loadMore')">加载更早消息</el-button>
       </el-dialog>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { ConversationSummary } from '../types';
 import { API_BASE_URL } from '@/config';
-// import { MuteNotification, Message, Pushpin as ElIconPushpin } from '@element-plus/icons-vue';
 const createConversationType = defineModel<'direct' | 'group'>('createConversationType');
 const createTitle = defineModel<string>('createTitle');
 const createMembersText = defineModel<string>('createMembersText');
@@ -10,6 +9,7 @@ const props = defineProps<{
   errorMessage: string;
   selectedConversationId: number;
   conversations: ConversationSummary[];
+  isMobile: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -51,11 +51,11 @@ function getConversationMessagePreview(item: ConversationSummary) {
 
 <template>
   <aside class="left-panel">
-    <el-scrollbar ref="scrollbarRef" wrap-style="" view-class="">
+    <el-scrollbar ref="scrollbarRef" wrap-style="" :view-class="[isMobile ? 'mobile' : '']">
       <ul class="conversation-list">
         <li v-for="item in props.conversations" :key="item.id" class="conversation-item"
           :class="{ active: item.id === props.selectedConversationId }" @click="emit('selectConversation', item)">
-          <el-avatar class="conversation-avatar" :src="getConversationAvatar(item)">
+          <el-avatar class="conversation-avatar" :src="getConversationAvatar(item)" :size="60" shape="square">
             {{ getConversationAvatarText(item) }}
           </el-avatar>
           <el-badge :value="item.unreadCount" :show-zero="false" :max="99" :offset="[-22, 5]"
@@ -106,6 +106,4 @@ function getConversationMessagePreview(item: ConversationSummary) {
     </div>
   </aside>
 </template>
-<style lang="scss" scoped>
-
-</style>
+<style lang="scss" scoped></style>

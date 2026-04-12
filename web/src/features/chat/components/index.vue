@@ -72,19 +72,19 @@ onBeforeUnmount(() => {
       @toggle-push="push.togglePush" />
 
     <div class="layout" :class="{ mobile: isMobile }">
-      <ConversationSidebar v-if="showConversationList" :errorMessage="chat.errorMessage.value"
+      <ConversationSidebar v-show="showConversationList" :errorMessage="chat.errorMessage.value"
         v-model:create-conversation-type="chat.createConversationType.value"
         v-model:create-title="chat.createTitle.value" v-model:create-members-text="chat.createMembersText.value"
         :selected-conversation-id="chat.selectedConversationId.value" :conversations="chat.conversations.value"
-        @create-conversation="chat.createConversation" @select-conversation="handleSelectConversation" />
+        :is-mobile="isMobile" @create-conversation="chat.createConversation"
+        @select-conversation="handleSelectConversation" />
 
       <MessagePanel v-if="!isMobile || !showConversationList" v-model="chat.composeText.value"
         v-model:conversation-detail="chat.currentConversation.value!" :messages="chat.messages.value"
         :me-user-id="chat.meUserId.value" :loading="chat.loading.value" :show-back-to-list="isMobile"
-        :message-read-status="chat.messageReadStatus.value"
-        @load-more="chat.loadMore" @send-text-message="chat.sendTextMessage" @mark-read="chat.markRead"
-        @back-to-list="handleBackToList" @update-conversation="chat.updateConversation"
-        @load-message-read-status="chat.loadMessageReadStatus" />
+        :message-read-status="chat.messageReadStatus.value" @load-more="chat.loadMore"
+        @send-text-message="chat.sendTextMessage" @mark-read="chat.markRead" @back-to-list="handleBackToList"
+        @update-conversation="chat.updateConversation" @load-message-read-status="chat.loadMessageReadStatus" />
     </div>
   </div>
 </template>
