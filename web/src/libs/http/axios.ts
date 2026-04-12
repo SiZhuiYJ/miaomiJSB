@@ -287,15 +287,36 @@ class MM {
   }
 
   /** GET 请求。 */
-  async get<T>(url: string, data?: object, config: HttpRequestConfig = {}) {
+  async get<T>(url: string, dataOrConfig?: object, config: HttpRequestConfig = {}) {
     const headers = new AxiosHeaders();
-    return this.requestWithControl<T>({
-      ...config,
-      method: "GET",
-      url,
-      params: data,
-      headers,
-    });
+    
+    // 判断第二个参数是data还是config
+    // 如果包含responseType、headers等属性,则认为是config
+    const isConfig = dataOrConfig && (
+      'responseType' in dataOrConfig || 
+      'headers' in dataOrConfig ||
+      'timeout' in dataOrConfig ||
+      'withCredentials' in dataOrConfig
+    );
+    
+    if (isConfig) {
+      // get(url, config) 调用方式
+      return this.requestWithControl<T>({
+        ...(dataOrConfig as HttpRequestConfig),
+        method: "GET",
+        url,
+        headers,
+      });
+    } else {
+      // get(url, data, config) 调用方式
+      return this.requestWithControl<T>({
+        ...config,
+        method: "GET",
+        url,
+        params: dataOrConfig,
+        headers,
+      });
+    }
   }
 
   /** POST 请求。 */

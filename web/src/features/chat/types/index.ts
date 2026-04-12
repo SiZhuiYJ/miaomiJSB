@@ -77,7 +77,7 @@ export interface CreateConversationPayload {
 export interface SendMessagePayload {
   messageType: MessageType;
   content?: string;
-  extra?: string;
+  extra?: FileExtra;
   replyToMessageId?: number;
 }
 

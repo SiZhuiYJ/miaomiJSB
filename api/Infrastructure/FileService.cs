@@ -1,10 +1,11 @@
+using api.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
+using System;
 using System.Linq;
 using System.Security.Cryptography;
-using api.Data;
-using Microsoft.EntityFrameworkCore;
 
 namespace api.Infrastructure;
 
@@ -199,7 +200,7 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
         fileKey = Path.GetFileName(fileKey);
 
         var root = GetRootPath(userId, isPublic);
-        
+
         string filePath;
         string extension;
 
@@ -270,21 +271,21 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
     {
         if (file == null || file.Length == 0)
             throw new InvalidOperationException("文件不能为空");
-        
+
         if (file.Length > MaxChatFileBytes)
             throw new InvalidOperationException($"文件大小超过限制（最大{MaxChatFileBytes / 1024 / 1024}MB）");
 
         // 验证会话成员权限
         var isMember = await _db.ChatConversationMembers
-            .AnyAsync(m => m.ConversationId == conversationId 
-                && m.UserId == userId 
+            .AnyAsync(m => m.ConversationId == conversationId
+                && m.UserId == userId
                 && m.LeftAt == null, cancellationToken);
-        
+
         if (!isMember)
             throw new InvalidOperationException("您不是该会话的成员，无权上传文件");
 
         var originalExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        
+
         // 检查文件类型是否支持
         if (!SupportedFileTypes.ContainsKey(originalExtension))
             throw new InvalidOperationException($"不支持的文件类型：{originalExtension}");
@@ -293,7 +294,7 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
         string fileKey;
         string storedExtension;
         string storedContentType;
-        
+
         using (var hashStream = file.OpenReadStream())
         {
             var hash = await SHA256.HashDataAsync(hashStream, cancellationToken);
@@ -307,7 +308,7 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
 
         // 判断是否为图片，如果是则转换为WebP
         bool isImage = AllowedImageExtensions.Contains(originalExtension);
-        
+
         if (isImage)
         {
             // 图片转换为WebP格式
@@ -351,7 +352,7 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
 
         return new FileInfoResult
         {
-            FileKey = fileKey + storedExtension,
+            FileKey = fileKey, // 返回不带扩展名的fileKey
             OriginalFileName = Path.GetFileNameWithoutExtension(file.FileName),
             FileSize = isImage ? 0 : file.Length, // 图片转换后大小会变化，这里不返回准确值
             ContentType = storedContentType
@@ -367,37 +368,79 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
         // 安全检查：防止目录遍历攻击
         fileKey = Path.GetFileName(fileKey);
 
-        // 从文件Key中提取会话ID（需要从数据库中查找对应的消息）
-        var message = await _db.ChatMessages
-            .Where(m => m.Extra != null && m.Extra.Contains(fileKey))
-            .OrderByDescending(m => m.Id)
-            .FirstOrDefaultAsync(cancellationToken);
+        // 判断文件key是否是当前用户的
+        var message = await _db.ChatMessages.Where(m => m.Content == fileKey).FirstOrDefaultAsync(cancellationToken);
+        var isMember = new ChatConversationMember();
 
         if (message == null)
             return null;
 
-        // 验证会话成员权限
-        var isMember = await _db.ChatConversationMembers
-            .AnyAsync(m => m.ConversationId == message.ConversationId 
-                && m.UserId == userId 
-                && m.LeftAt == null, cancellationToken);
+        var conversation_id = message.ConversationId;
 
-        if (!isMember)
-            return null; // 无权限时返回null，不暴露文件是否存在
+        if (message.SenderUserId != userId)
+        {
+            // 不是当前用户的文件，继续验证会话成员权限
+            isMember = await _db.ChatConversationMembers.Where(m => m.ConversationId == message.ConversationId
+                     && m.UserId == userId
+                     && m.LeftAt == null).FirstOrDefaultAsync(cancellationToken);
+            if (isMember == null)
+                return null;
+            else conversation_id = isMember.ConversationId;
+
+        }
 
         // 构建文件路径
-        var chatFilesRoot = Path.Combine(_env.ContentRootPath, "uploads", "chat", message.ConversationId.ToString());
-        var filePath = Path.Combine(chatFilesRoot, fileKey);
+        var chatFilesRoot = Path.Combine(_env.ContentRootPath, "uploads", "chat", conversation_id.ToString());
+
+        string filePath;
+        string extension;
+
+        if (Path.HasExtension(fileKey))
+        {
+            // Explicit extension
+            filePath = Path.Combine(chatFilesRoot, fileKey);
+            extension = Path.GetExtension(fileKey).ToLowerInvariant();
+        }
+        else
+        {
+            filePath = Path.Combine(chatFilesRoot, fileKey + ".webp");
+            extension = ".webp";
+
+            if (!File.Exists(filePath))
+            {
+                var candidates = AllowedImageExtensions
+                    .Where(ext => !string.Equals(ext, ".webp", StringComparison.OrdinalIgnoreCase))
+                    .Select(ext => new
+                    {
+                        Ext = ext,
+                        Path = Path.Combine(chatFilesRoot, fileKey + ext)
+                    })
+                    .ToList();
+
+                var fallback = candidates.FirstOrDefault(c => File.Exists(c.Path));
+                if (fallback != null)
+                {
+                    filePath = fallback.Path;
+                    extension = fallback.Ext.ToLowerInvariant();
+                }
+            }
+        }
 
         if (!File.Exists(filePath))
             return null;
 
-        var extension = Path.GetExtension(fileKey).ToLowerInvariant();
-        var contentType = SupportedFileTypes.GetValueOrDefault(extension, "application/octet-stream");
-        var fileName = Path.GetFileNameWithoutExtension(fileKey) + extension;
+        var contentType = extension switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            ".bmp" => "image/bmp",
+            _ => "application/octet-stream"
+        };
 
         Stream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return new(stream, contentType, fileName);
+        return new(stream, contentType, fileKey);
     }
 
     /// <inheritdoc />
@@ -479,7 +522,7 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
 
         // 构建文件路径
         var avatarRoot = Path.Combine(_env.ContentRootPath, "uploads", "chat", conversationId.ToString(), "avatars");
-        
+
         string filePath;
         string extension;
 

@@ -153,7 +153,7 @@ async function handleFileSelected(files: File[]) {
   }
 
   uploadingFiles.value = true;
-  
+
   try {
     for (const file of files) {
       try {
@@ -161,20 +161,20 @@ async function handleFileSelected(files: File[]) {
           currentConversation.value.id,
           file
         );
-        
+
         // 发送消息
         const payload: SendMessagePayload = {
-          messageType: messageType as any,
-          extra: JSON.stringify(extra)
+          messageType: messageType,
+          extra: extra
         };
-        
+
         emit('sendMessage', payload);
       } catch (error: any) {
         console.error(`Failed to upload file ${file.name}:`, error);
         ElMessage.error(`${file.name}: ${error.message || '上传失败'}`);
       }
     }
-    
+
     ElMessage.success('文件发送成功');
   } catch (error: any) {
     console.error('File upload error:', error);
@@ -217,11 +217,8 @@ async function handleFileSelected(files: File[]) {
       </div>
 
       <div class="composer">
-        <FileUploadButton 
-          :conversation-id="currentConversation?.id"
-          :disabled="uploadingFiles || props.loading"
-          @file-selected="handleFileSelected"
-        />
+        <FileUploadButton :conversation-id="currentConversation?.id" :disabled="uploadingFiles || props.loading"
+          @file-selected="handleFileSelected" />
         <el-input v-model="model" clearable placeholder="输入消息" @keyup.enter="emit('sendTextMessage')" />
         <el-button color="#111827" :disabled="props.loading || uploadingFiles" @click="emit('sendTextMessage')">
           发送
@@ -259,7 +256,7 @@ async function handleFileSelected(files: File[]) {
   .date-separator {
     margin: 0 6px;
   }
-  
+
   .composer {
     padding: 8px;
   }

@@ -1,5 +1,6 @@
 import { uploadChatFile, getChatFileUrl } from '../api';
-import type { FileExtra } from '../types';
+import type { FileExtra, MessageType } from '../types';
+import http from '@/libs/http';
 
 // 文件大小限制 (100MB)
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
@@ -49,7 +50,7 @@ export function getFileCategory(mimeType: string): 'image' | 'video' | 'audio' |
  */
 export function getFileCategoryByName(fileName: string): 'image' | 'video' | 'audio' | 'document' | 'archive' | 'unknown' {
   const ext = fileName.split('.').pop()?.toLowerCase();
-  
+
   const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico'];
   const videoExts = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm', 'm4v'];
   const audioExts = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'wma', 'opus'];
@@ -62,7 +63,7 @@ export function getFileCategoryByName(fileName: string): 'image' | 'video' | 'au
   if (audioExts.includes(ext)) return 'audio';
   if (docExts.includes(ext)) return 'document';
   if (archiveExts.includes(ext)) return 'archive';
-  
+
   return 'unknown';
 }
 
@@ -84,7 +85,7 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
   if (file.size > MAX_FILE_SIZE) {
     return { valid: false, error: `文件大小超过限制（最大${formatFileSize(MAX_FILE_SIZE)}）` };
   }
-  
+
   if (file.size === 0) {
     return { valid: false, error: '文件不能为空' };
   }
@@ -103,7 +104,7 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
 export async function uploadFileForMessage(
   conversationId: number,
   file: File
-): Promise<{ extra: FileExtra; messageType: string }> {
+): Promise<{ extra: FileExtra; messageType: MessageType }> {
   // 验证文件
   const validation = validateFile(file);
   if (!validation.valid) {
@@ -116,11 +117,11 @@ export async function uploadFileForMessage(
 
   // 构建文件URL
   const fileUrl = getChatFileUrl(fileInfo.fileKey);
-  
+
   // 确定消息类型
   const category = getFileCategory(fileInfo.contentType);
-  let messageType: string;
-  
+  let messageType: MessageType;
+
   switch (category) {
     case 'image':
       messageType = 'image';
@@ -182,18 +183,18 @@ function getImageDimensions(file: File): Promise<{ width: number; height: number
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
-    
+
     img.onload = () => {
       const dimensions = { width: img.width, height: img.height };
       URL.revokeObjectURL(url);
       resolve(dimensions);
     };
-    
+
     img.onerror = () => {
       URL.revokeObjectURL(url);
       resolve(null);
     };
-    
+
     img.src = url;
   });
 }
@@ -205,18 +206,18 @@ function getMediaDuration(file: File): Promise<number | null> {
   return new Promise((resolve) => {
     const video = document.createElement('video');
     const url = URL.createObjectURL(file);
-    
+
     video.onloadedmetadata = () => {
       const duration = video.duration;
       URL.revokeObjectURL(url);
       resolve(duration && isFinite(duration) ? duration : null);
     };
-    
+
     video.onerror = () => {
       URL.revokeObjectURL(url);
       resolve(null);
     };
-    
+
     video.preload = 'metadata';
     video.src = url;
   });
@@ -237,9 +238,6 @@ export function parseMessageExtra(extra?: string | null): FileExtra | null {
 /**
  * 获取文件图标（用于文档和压缩包）
  */
-/**
- * 获取文件图标（用于文档和压缩包）
- */
 export function getFileIcon(category: string): string {
   const icons: Record<string, string> = {
     image: '🖼️',
@@ -251,4 +249,57 @@ export function getFileIcon(category: string): string {
   };
   // Use type assertion to avoid TS error
   return (icons as any)[category] || '📎';
+}
+
+/**
+ * 获取聊天文件的Blob数据（带Token认证）
+ * @param fileKey 文件Key（会自动去除扩展名）
+ * @returns Blob对象
+ */
+export async function fetchChatFile(fileKey: string): Promise<Blob> {
+  if (!fileKey) {
+    throw new Error('文件Key不能为空');
+  }
+
+  // 去除扩展名，统一使用不带扩展名的fileKey
+  const lastDot = fileKey.lastIndexOf('.');
+  const cleanFileKey = lastDot > 0 ? fileKey.substring(0, lastDot) : fileKey;
+
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const url = `${normalizedBaseUrl}/mm/files/chat/${cleanFileKey}`;
+
+  const token = localStorage.getItem('accessToken');
+  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+  try {
+    const response = await http.get(url, {
+      responseType: 'blob',
+      headers
+    });
+
+    return response.data as Blob;
+  } catch (error) {
+    console.error('获取文件失败:', error);
+    throw new Error('文件获取失败');
+  }
+}
+
+/**
+ * 将Blob转换为Object URL
+ * @param blob Blob对象
+ * @returns Object URL
+ */
+export function createBlobUrl(blob: Blob): string {
+  return URL.createObjectURL(blob);
+}
+
+/**
+ * 释放Object URL
+ * @param url Object URL
+ */
+export function revokeBlobUrl(url: string): void {
+  if (url) {
+    URL.revokeObjectURL(url);
+  }
 }

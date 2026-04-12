@@ -144,6 +144,12 @@ function getAuthHeaders(): Record<string, string> {
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
 
+// 获取不带扩展名的fileKey
+function getFileKeyWithoutExt(fileKey: string): string {
+  const lastDot = fileKey.lastIndexOf('.');
+  return lastDot > 0 ? fileKey.substring(0, lastDot) : fileKey;
+}
+
 // 加载图片Blob
 async function loadImageBlob() {
   if (category.value !== 'image' || !fileExtra.value?.fileKey) {
@@ -162,7 +168,7 @@ async function loadImageBlob() {
       headers: getAuthHeaders()
     });
     
-    const blob = new Blob([response.data]);
+    const blob = new Blob([response.data as BlobPart]);
     imageUrl.value = URL.createObjectURL(blob);
   } catch (error) {
     console.error('加载图片失败:', error);
@@ -184,14 +190,15 @@ async function loadMediaBlob() {
     loadingMedia.value = true;
     const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
     const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-    const url = `${normalizedBaseUrl}/mm/files/chat/${fileExtra.value.fileKey}`;
+    const cleanFileKey = getFileKeyWithoutExt(fileExtra.value.fileKey);
+    const url = `${normalizedBaseUrl}/mm/files/chat/${cleanFileKey}`;
     
     const response = await http.get(url, {
       responseType: 'blob',
       headers: getAuthHeaders()
     });
     
-    const blob = new Blob([response.data]);
+    const blob = new Blob([response.data as BlobPart]);
     mediaUrl.value = URL.createObjectURL(blob);
   } catch (error) {
     console.error('加载媒体失败:', error);
@@ -257,32 +264,84 @@ function formatDuration(seconds: number): string {
 }
 
 async function downloadFile() {
-  if (!fileExtra.value) return;
+  if (!fileExtra.value || !fileExtra.value.fileKey) return;
   
   try {
     const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
     const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-    const url = `${normalizedBaseUrl}/mm/files/chat/${fileExtra.value.fileKey}`;
+    const cleanFileKey = getFileKeyWithoutExt(fileExtra.value.fileKey);
+    const url = `${normalizedBaseUrl}/mm/files/chat/${cleanFileKey}`;
     
-    const response = await http.get(url, {
-      responseType: 'blob',
-      headers: getAuthHeaders()
-    });
+    // 方案: 直接使用 window.open 或创建隐藏 iframe 下载
+    // 这样可以避免创建 blob URL,彻底消除混合内容警告
+    const token = localStorage.getItem('accessToken');
     
-    const blob = new Blob([response.data]);
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = fileExtra.value.fileName;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(downloadUrl);
-    document.body.removeChild(a);
+    // 创建一个隐藏的 form 来提交下载请求
+    const form = document.createElement('form');
+    form.method = 'GET';
+    form.action = url;
+    form.style.display = 'none';
+    
+    // 如果有认证token,通过 URL 参数传递(如果后端支持)
+    // 或者使用 fetch + blob 方式
+    if (token) {
+      // 使用 fetch 获取文件并触发下载
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      // 从响应头获取文件名和类型
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let fileName = fileExtra.value.fileName;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename\*?=(?:UTF-8'')?([^;]+)/i);
+        if (filenameMatch && filenameMatch[1]) {
+          fileName = decodeURIComponent(filenameMatch[1].trim());
+        }
+      }
+      
+      const blob = await response.blob();
+      
+      // 检查浏览器是否支持 msSaveOrOpenBlob (IE/Edge)
+      if ((window.navigator as any).msSaveOrOpenBlob) {
+        (window.navigator as any).msSaveOrOpenBlob(blob, fileName);
+        ElMessage.success('下载成功');
+        return;
+      }
+      
+      // 现代浏览器:创建临时 Object URL
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = fileName;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      
+      // 同步触发点击
+      link.click();
+      
+      // 异步清理资源
+      setTimeout(() => {
+        document.body.removeChild(link);
+        // 给浏览器足够时间开始下载后再释放 URL
+        setTimeout(() => {
+          URL.revokeObjectURL(objectUrl);
+        }, 1000);
+      }, 100);
+    } else {
+      // 无认证:直接打开链接
+      window.open(url, '_blank');
+    }
     
     ElMessage.success('下载成功');
   } catch (error) {
     console.error('Download error:', error);
-    ElMessage.error('下载失败');
+    ElMessage.error(`下载失败: ${(error as Error).message}`);
   }
 }
 

@@ -1,17 +1,18 @@
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Security.Claims;
-using System.Threading.Tasks;
 using api.Data;
 using api.Hubs;
 using api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Security.Claims;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace api.Controllers;
 
@@ -157,7 +158,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
 
         return Ok(ordered);
     }
-    
+
     /// <summary>
     /// 更新会话信息
     /// </summary>
@@ -252,8 +253,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             return BadRequest(new { message = "文本消息 content 不能为空" });
 
         // 文件类消息需要extra字段包含文件信息
-        if ((messageType == "image" || messageType == "video" || messageType == "audio" || messageType == "file") 
-            && string.IsNullOrWhiteSpace(request.Extra))
+        if ((messageType == "image" || messageType == "video" || messageType == "audio" || messageType == "file")
+            && request.Extra == null)
             return BadRequest(new { message = $"{messageType} 消息 extra 不能为空，需包含文件信息" });
 
         if (request.ReplyToMessageId.HasValue)
@@ -263,6 +264,9 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 return BadRequest(new { message = "replyToMessageId 不存在或不属于当前会话" });
         }
 
+        if (messageType == "image" || messageType == "video" || messageType == "audio" || messageType == "file")
+            request.Content = request.Extra?.FileKey;
+
         var now = DateTime.UtcNow;
         var message = new ChatMessage
         {
@@ -270,7 +274,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             SenderUserId = userId,
             MessageType = messageType,
             Content = request.Content,
-            Extra = request.Extra,
+            Extra = JsonSerializer.Serialize(request.Extra),
             ReplyToMessageId = request.ReplyToMessageId,
             IsRecalled = false,
             CreatedAt = now,

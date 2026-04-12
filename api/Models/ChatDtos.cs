@@ -249,11 +249,27 @@ public class SendMessageRequest
     /// <summary>
     /// 额外信息，可为空
     /// </summary>
-    public string? Extra { get; set; }
+    public FileExtra? Extra { get; set; }
     /// <summary>
     /// 回复的消息ID，可为空
     /// </summary>
     public ulong? ReplyToMessageId { get; set; }
+}
+
+public class FileExtra
+{
+    // 必需属性
+    public string FileName { get; set; } = string.Empty;
+    public long FileSize { get; set; }          // 文件大小（字节）
+    public string FileUrl { get; set; } = string.Empty;
+
+    // 可选属性
+    public string? FileKey { get; set; }        // 文件标识
+    public string? ThumbnailUrl { get; set; }   // 缩略图URL
+    public double? Duration { get; set; }       // 时长（秒），适用于音视频
+    public string? MimeType { get; set; }       // MIME类型
+    public int? Width { get; set; }             // 图片宽度
+    public int? Height { get; set; }            // 图片高度
 }
 
 
