@@ -1,1 +1,22 @@
-CSharpier was unable to find a way to run 'dotnet' commands. If a .NET SDK is installed make sure it can be found on PATH. Alternatively set dotnet.dotnetPath or omnisharp.dotNetCliPaths. You will need to restart VSCode after making any changes.
+root@localhost:/data/data/com.termux/files/home/miaomiJSB/web# npm i
+npm WARN EBADENGINE Unsupported engine {
+npm WARN EBADENGINE   package: 'rollup-plugin-visualizer@7.0.1',
+npm WARN EBADENGINE   required: { node: '>=22' },
+npm WARN EBADENGINE   current: { node: 'v20.19.2', npm: '9.2.0' }
+npm WARN EBADENGINE }
+npm WARN deprecated urix@0.1.0: Please see https://github.com/lydell/urix#deprecated
+npm WARN deprecated source-map-url@0.4.1: See https://github.com/lydell/source-map-url#deprecated
+npm WARN deprecated stable@0.1.8: Modern JS already guarantees Array#sort() is a stable sort, so this library is deprecated. See the compatibility table on MDN: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort#browser_compatibility
+npm WARN deprecated source-map-resolve@0.5.3: See https://github.com/lydell/source-map-resolve#deprecated
+npm WARN deprecated resolve-url@0.2.1: https://github.com/lydell/resolve-url#deprecated
+npm ERR! code ENOENT
+npm ERR! syscall rename
+npm ERR! path /root/.npm/_cacache/tmp/9e090cf5
+npm ERR! dest /root/.npm/_cacache/content-v2/sha512/36/66/fa4179042ecb81af6e02252922968e941c781b7a42b95226607c4e941c3dc46f6ed80baa03f9b85c4feb49e9c97c766b20750c675a572bcbc92c04804ba7
+npm ERR! errno -2
+npm ERR! enoent ENOENT: no such file or directory, rename '/root/.npm/_cacache/tmp/9e090cf5' -> '/root/.npm/_cacache/content-v2/sha512/36/66/fa4179042ecb81af6e02252922968e941c781b7a42b95226607c4e941c3dc46f6ed80baa03f9b85c4feb49e9c97c766b20750c675a572bcbc92c04804ba7'
+npm ERR! enoent This is related to npm not being able to find a file.
+npm ERR! enoent 
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     /root/.npm/_logs/2026-04-13T08_20_47_940Z-debug-0.log
