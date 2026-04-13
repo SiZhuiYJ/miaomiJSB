@@ -186,8 +186,8 @@ async function loadMediaBlob() {
     loadingMedia.value = true;
     const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
     const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-    const cleanFileKey = getFileKeyWithoutExt(fileExtra.value.fileKey);
-    const url = `${normalizedBaseUrl}/mm/files/chat/${cleanFileKey}`;
+    // const cleanFileKey = getFileKeyWithoutExt(fileExtra.value.fileKey);
+    const url = `${normalizedBaseUrl}/mm/files/chat/${fileExtra.value.fileKey}`;
 
     const response = await http.get(url, {
       responseType: 'blob',

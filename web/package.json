@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "@ffmpeg/core-mt": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@microsoft/signalr": "^8.0.17",
     "axios": "^1.7.9",
     "element-plus": "^2.9.1",
@@ -26,6 +29,7 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@ffmpeg/core": "^0.12.6",
     "@types/node": "^24.10.1",
     "@types/nprogress": "^0.2.3",
     "@vitejs/plugin-vue": "^6.0.1",
