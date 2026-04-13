@@ -28,30 +28,26 @@ const props = defineProps<{
             </div>
             <div class="bubble-wrap">
                 <!-- 根据消息类型渲染不同内容 -->
-                <div class="bubble">
-                    <!-- 文本消息 -->
-                    <template v-if="props.message.messageType === 'text'">
-                        {{ props.message.content || '[空消息]' }}
-                    </template>
 
-                    <!-- 文件类消息（图片、视频、音频、文档等） -->
-                    <template v-else-if="['image', 'video', 'audio', 'file'].includes(props.message.messageType)">
-                        <FileMessage 
-                            :extra="props.message.extra" 
-                            :show-download="true"
-                        />
-                    </template>
+                <!-- 文件类消息（图片、视频、音频、文档等） -->
+                <template v-if="['image', 'video', 'audio', 'file'].includes(props.message.messageType)">
+                    <FileMessage :extra="props.message.extra" :show-download="true" />
+                </template>
 
-                    <!-- 系统消息 -->
-                    <template v-else-if="props.message.messageType === 'system'">
-                        <span class="system-message">{{ props.message.content || '[系统通知]' }}</span>
-                    </template>
-
-                    <!-- 未知类型回退 -->
-                    <template v-else>
-                        {{ props.message.content || props.message.extra || '[未知消息类型]' }}
-                    </template>
+                <!-- 文本消息 -->
+                <div class="bubble" v-else-if="props.message.messageType === 'text'">
+                    {{ props.message.content || '[空消息]' }}
                 </div>
+
+                <!-- 系统消息 -->
+                <template v-else-if="props.message.messageType === 'system'">
+                    <span class="system-message">{{ props.message.content || '[系统通知]' }}</span>
+                </template>
+
+                <!-- 未知类型回退 -->
+                <template v-else>
+                    {{ props.message.content || props.message.extra || '[未知消息类型]' }}
+                </template>
 
                 <!-- 底部元信息（时间、已读状态） -->
                 <div class="meta foot">
@@ -68,6 +64,4 @@ const props = defineProps<{
     </div>
 </template>
 
-<style scoped lang="scss">
-
-</style>
+<style scoped lang="scss"></style>

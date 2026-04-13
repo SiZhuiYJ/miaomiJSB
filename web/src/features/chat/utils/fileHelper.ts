@@ -1,81 +1,118 @@
-import { uploadChatFile, getChatFileUrl } from '../api';
-import type { FileExtra, MessageType } from '../types';
-import http from '@/libs/http';
+import { uploadChatFile, getChatFileUrl } from "../api";
+import type { FileExtra, MessageType } from "../types";
+import http from "@/libs/http";
 
 // 文件大小限制 (100MB)
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
 // 支持的文件类型
 export const SUPPORTED_FILE_TYPES = {
-  image: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/svg+xml'],
-  video: ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo', 'video/x-ms-wmv'],
-  audio: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/flac', 'audio/aac'],
+  image: [
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/bmp",
+    "image/svg+xml",
+  ],
+  video: [
+    "video/mp4",
+    "video/webm",
+    "video/ogg",
+    "video/quicktime",
+    "video/x-msvideo",
+    "video/x-ms-wmv",
+  ],
+  audio: [
+    "audio/mpeg",
+    "audio/wav",
+    "audio/ogg",
+    "audio/mp4",
+    "audio/flac",
+    "audio/aac",
+  ],
   document: [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-powerpoint',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'text/plain',
-    'text/markdown',
-    'application/rtf',
-    'text/csv'
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "text/plain",
+    "text/markdown",
+    "application/rtf",
+    "text/csv",
   ],
   archive: [
-    'application/zip',
-    'application/x-rar-compressed',
-    'application/x-7z-compressed',
-    'application/x-tar',
-    'application/gzip',
-    'application/x-bzip2'
-  ]
+    "application/zip",
+    "application/x-rar-compressed",
+    "application/x-7z-compressed",
+    "application/x-tar",
+    "application/gzip",
+    "application/x-bzip2",
+  ],
 };
 
 /**
  * 获取文件类型分类
  */
-export function getFileCategory(mimeType: string): 'image' | 'video' | 'audio' | 'document' | 'archive' | 'unknown' {
+export function getFileCategory(
+  mimeType: string,
+): "image" | "video" | "audio" | "document" | "archive" | "unknown" {
   for (const [category, types] of Object.entries(SUPPORTED_FILE_TYPES)) {
     if (types.includes(mimeType)) {
       return category as any;
     }
   }
-  return 'unknown';
+  return "unknown";
 }
 
 /**
  * 根据文件名获取文件类型
  */
-export function getFileCategoryByName(fileName: string): 'image' | 'video' | 'audio' | 'document' | 'archive' | 'unknown' {
-  const ext = fileName.split('.').pop()?.toLowerCase();
+export function getFileCategoryByName(
+  fileName: string,
+): "image" | "video" | "audio" | "document" | "archive" | "unknown" {
+  const ext = fileName.split(".").pop()?.toLowerCase();
 
-  const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'ico'];
-  const videoExts = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'mkv', 'webm', 'm4v'];
-  const audioExts = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'wma', 'opus'];
-  const docExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf', 'csv', 'md'];
-  const archiveExts = ['zip', 'rar', '7z', 'tar', 'gz', 'bz2'];
+  const imageExts = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "ico"];
+  const videoExts = ["mp4", "avi", "mov", "wmv", "flv", "mkv", "webm", "m4v"];
+  const audioExts = ["mp3", "wav", "ogg", "m4a", "flac", "aac", "wma", "opus"];
+  const docExts = [
+    "pdf",
+    "doc",
+    "docx",
+    "xls",
+    "xlsx",
+    "ppt",
+    "pptx",
+    "txt",
+    "rtf",
+    "csv",
+    "md",
+  ];
+  const archiveExts = ["zip", "rar", "7z", "tar", "gz", "bz2"];
 
-  if (!ext) return 'unknown';
-  if (imageExts.includes(ext)) return 'image';
-  if (videoExts.includes(ext)) return 'video';
-  if (audioExts.includes(ext)) return 'audio';
-  if (docExts.includes(ext)) return 'document';
-  if (archiveExts.includes(ext)) return 'archive';
+  if (!ext) return "unknown";
+  if (imageExts.includes(ext)) return "image";
+  if (videoExts.includes(ext)) return "video";
+  if (audioExts.includes(ext)) return "audio";
+  if (docExts.includes(ext)) return "document";
+  if (archiveExts.includes(ext)) return "archive";
 
-  return 'unknown';
+  return "unknown";
 }
 
 /**
  * 格式化文件大小
  */
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) return "0 B";
   const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 }
 
 /**
@@ -83,16 +120,19 @@ export function formatFileSize(bytes: number): string {
  */
 export function validateFile(file: File): { valid: boolean; error?: string } {
   if (file.size > MAX_FILE_SIZE) {
-    return { valid: false, error: `文件大小超过限制（最大${formatFileSize(MAX_FILE_SIZE)}）` };
+    return {
+      valid: false,
+      error: `文件大小超过限制（最大${formatFileSize(MAX_FILE_SIZE)}）`,
+    };
   }
 
   if (file.size === 0) {
-    return { valid: false, error: '文件不能为空' };
+    return { valid: false, error: "文件不能为空" };
   }
 
   const category = getFileCategory(file.type);
-  if (category === 'unknown') {
-    return { valid: false, error: '不支持的文件类型' };
+  if (category === "unknown") {
+    return { valid: false, error: "不支持的文件类型" };
   }
 
   return { valid: true };
@@ -103,7 +143,7 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
  */
 export async function uploadFileForMessage(
   conversationId: number,
-  file: File
+  file: File,
 ): Promise<{ extra: FileExtra; messageType: MessageType }> {
   // 验证文件
   const validation = validateFile(file);
@@ -123,17 +163,17 @@ export async function uploadFileForMessage(
   let messageType: MessageType;
 
   switch (category) {
-    case 'image':
-      messageType = 'image';
+    case "image":
+      messageType = "image";
       break;
-    case 'video':
-      messageType = 'video';
+    case "video":
+      messageType = "video";
       break;
-    case 'audio':
-      messageType = 'audio';
+    case "audio":
+      messageType = "audio";
       break;
     default:
-      messageType = 'file';
+      messageType = "file";
   }
 
   // 构建FileExtra对象
@@ -142,11 +182,11 @@ export async function uploadFileForMessage(
     fileSize: fileInfo.fileSize,
     fileUrl: fileUrl,
     fileKey: fileInfo.fileKey,
-    mimeType: fileInfo.contentType
+    mimeType: fileInfo.contentType,
   };
 
   // 对于图片，尝试获取尺寸
-  if (messageType === 'image') {
+  if (messageType === "image") {
     try {
       const dimensions = await getImageDimensions(file);
       if (dimensions) {
@@ -154,32 +194,34 @@ export async function uploadFileForMessage(
         fileExtra.height = dimensions.height;
       }
     } catch (e) {
-      console.warn('Failed to get image dimensions:', e);
+      console.warn("Failed to get image dimensions:", e);
     }
   }
 
   // 对于视频/音频，可以尝试获取时长
-  if (messageType === 'video' || messageType === 'audio') {
+  if (messageType === "video" || messageType === "audio") {
     try {
       const duration = await getMediaDuration(file);
       if (duration) {
         fileExtra.duration = duration;
       }
     } catch (e) {
-      console.warn('Failed to get media duration:', e);
+      console.warn("Failed to get media duration:", e);
     }
   }
 
   return {
     extra: fileExtra,
-    messageType
+    messageType,
   };
 }
 
 /**
  * 获取图片尺寸
  */
-function getImageDimensions(file: File): Promise<{ width: number; height: number } | null> {
+function getImageDimensions(
+  file: File,
+): Promise<{ width: number; height: number } | null> {
   return new Promise((resolve) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
@@ -204,7 +246,7 @@ function getImageDimensions(file: File): Promise<{ width: number; height: number
  */
 function getMediaDuration(file: File): Promise<number | null> {
   return new Promise((resolve) => {
-    const video = document.createElement('video');
+    const video = document.createElement("video");
     const url = URL.createObjectURL(file);
 
     video.onloadedmetadata = () => {
@@ -218,18 +260,56 @@ function getMediaDuration(file: File): Promise<number | null> {
       resolve(null);
     };
 
-    video.preload = 'metadata';
+    video.preload = "metadata";
     video.src = url;
   });
 }
 
 /**
- * 解析消息的extra字段
+ *  * 解析消息的extra字段（兼容大小写不一的字段名）
  */
 export function parseMessageExtra(extra?: string | null): FileExtra | null {
   if (!extra) return null;
   try {
-    return JSON.parse(extra) as FileExtra;
+    const raw = JSON.parse(extra);
+    // 标准化常见的大小写不一致字段
+    if (raw.MimeType && !raw.mimeType) {
+      raw.mimeType = raw.MimeType;
+      delete raw.MimeType;
+    }
+    if (raw.FileName && !raw.fileName) {
+      raw.fileName = raw.FileName;
+      delete raw.FileName;
+    }
+    if (raw.FileSize && !raw.fileSize) {
+      raw.fileSize = raw.FileSize;
+      delete raw.FileSize;
+    }
+    if (raw.FileUrl && !raw.fileUrl) {
+      raw.fileUrl = raw.FileUrl;
+      delete raw.FileUrl;
+    }
+    if (raw.FileKey && !raw.fileKey) {
+      raw.fileKey = raw.FileKey;
+      delete raw.FileKey;
+    }
+    if (raw.ThumbnailUrl && !raw.thumbnailUrl) {
+      raw.thumbnailUrl = raw.ThumbnailUrl;
+      delete raw.ThumbnailUrl;
+    }
+    if (raw.Width && !raw.width) {
+      raw.width = raw.Width;
+      delete raw.Width;
+    }
+    if (raw.Height && !raw.height) {
+      raw.height = raw.Height;
+      delete raw.Height;
+    }
+    if (raw.Duration && !raw.duration) {
+      raw.duration = raw.Duration;
+      delete raw.Duration;
+    }
+    return raw as FileExtra;
   } catch {
     return null;
   }
@@ -240,15 +320,15 @@ export function parseMessageExtra(extra?: string | null): FileExtra | null {
  */
 export function getFileIcon(category: string): string {
   const icons: Record<string, string> = {
-    image: '🖼️',
-    video: '🎬',
-    audio: '🎵',
-    document: '📄',
-    archive: '📦',
-    unknown: '📎'
+    image: "🖼️",
+    video: "🎬",
+    audio: "🎵",
+    document: "📄",
+    archive: "📦",
+    unknown: "📎",
   };
   // Use type assertion to avoid TS error
-  return (icons as any)[category] || '📎';
+  return (icons as any)[category] || "📎";
 }
 
 /**
@@ -258,30 +338,32 @@ export function getFileIcon(category: string): string {
  */
 export async function fetchChatFile(fileKey: string): Promise<Blob> {
   if (!fileKey) {
-    throw new Error('文件Key不能为空');
+    throw new Error("文件Key不能为空");
   }
 
   // 去除扩展名，统一使用不带扩展名的fileKey
-  const lastDot = fileKey.lastIndexOf('.');
+  const lastDot = fileKey.lastIndexOf(".");
   const cleanFileKey = lastDot > 0 ? fileKey.substring(0, lastDot) : fileKey;
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
+  const normalizedBaseUrl = baseUrl.endsWith("/")
+    ? baseUrl.slice(0, -1)
+    : baseUrl;
   const url = `${normalizedBaseUrl}/mm/files/chat/${cleanFileKey}`;
 
-  const token = localStorage.getItem('accessToken');
-  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+  const token = localStorage.getItem("accessToken");
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
   try {
     const response = await http.get(url, {
-      responseType: 'blob',
-      headers
+      responseType: "blob",
+      headers,
     });
 
     return response.data as Blob;
   } catch (error) {
-    console.error('获取文件失败:', error);
-    throw new Error('文件获取失败');
+    console.error("获取文件失败:", error);
+    throw new Error("文件获取失败");
   }
 }
 

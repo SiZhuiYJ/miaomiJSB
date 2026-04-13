@@ -242,23 +242,10 @@ async function handleFileSelected(files: File[]) {
   margin: 0 12px;
 }
 
-.composer {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 12px;
-  background: #fff;
-  border-top: 1px solid #e8e8e8;
-}
-
 /* 移动端适配 */
 @media (max-width: 768px) {
   .date-separator {
     margin: 0 6px;
-  }
-
-  .composer {
-    padding: 8px;
   }
 }
 </style>

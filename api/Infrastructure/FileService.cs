@@ -386,7 +386,6 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
             if (isMember == null)
                 return null;
             else conversation_id = isMember.ConversationId;
-
         }
 
         // 构建文件路径
@@ -397,16 +396,16 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
 
         if (Path.HasExtension(fileKey))
         {
-            // Explicit extension
             filePath = Path.Combine(chatFilesRoot, fileKey);
             extension = Path.GetExtension(fileKey).ToLowerInvariant();
         }
         else
         {
-            filePath = Path.Combine(chatFilesRoot, fileKey + ".webp");
-            extension = ".webp";
+            if (message.MessageType=="image" ){
+                filePath = Path.Combine(chatFilesRoot, fileKey + ".webp");
+                extension = ".webp";
 
-            if (!File.Exists(filePath))
+                if (!File.Exists(filePath))
             {
                 var candidates = AllowedImageExtensions
                     .Where(ext => !string.Equals(ext, ".webp", StringComparison.OrdinalIgnoreCase))
@@ -423,6 +422,8 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
                     filePath = fallback.Path;
                     extension = fallback.Ext.ToLowerInvariant();
                 }
+            }}else if{
+                
             }
         }
 
