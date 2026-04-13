@@ -9,6 +9,7 @@ import {
   notifyError,
   notifyWarning,
 } from "@/utils/notification";
+import { convertToWebP } from "@/utils/convertToWebP";
 
 const props = defineProps<{
   planId?: number;
@@ -49,8 +50,15 @@ function resetForm(): void {
 async function uploadImages(): Promise<string[]> {
   const urls: string[] = [];
   for (const file of images.value) {
+    // 转换为 WebP 格式
+    const webpFile = await convertToWebP(file, {
+      quality: 1,
+      output: 'file',
+      fileName: file.name.replace(/\.[^.]+$/, '.webp')
+    }) as File;
+
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", webpFile);
     const res = await FileApi.UploadImage(formData);
     urls.push(res.data.url);
   }

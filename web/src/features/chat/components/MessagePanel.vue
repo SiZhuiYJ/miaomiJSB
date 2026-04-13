@@ -232,7 +232,8 @@ async function handleFileSelected(files: File[]) {
         @update:conversation="emit('updateConversation')" @load-more="emit('loadMore')" />
     </div>
 
-    <div v-else class="empty">请选择一个会话开始聊天。</div>
+    <div v-else class="empty">请选择一个会话开始聊天。
+    </div>
   </main>
 </template>
 

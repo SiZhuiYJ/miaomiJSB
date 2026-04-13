@@ -174,6 +174,106 @@ export async function convertToWebP(input: File | Blob | string, options: Conver
 }
 
 /**
+ * 从视频中抽取随机帧并转换为 WebP
+ * @param videoFile - 视频文件
+ * @param options - 转换选项
+ * @returns Promise<File> - 转换后的 WebP 封面文件
+ */
+export async function extractVideoFrameToWebP(
+    videoFile: File,
+    options: ConvertOptions = {}
+): Promise<File> {
+    const { quality = 0.8, maxWidth, maxHeight, fileName = 'video-cover.webp' } = options;
+
+    return new Promise<File>((resolve, reject) => {
+        const videoUrl = URL.createObjectURL(videoFile);
+        const video = document.createElement('video');
+
+        video.preload = 'metadata';
+        video.muted = true;
+        video.playsInline = true;
+
+        // 视频元数据加载完成
+        video.addEventListener('loadedmetadata', () => {
+            // 生成随机时间戳（避开开头和结尾）
+            const duration = video.duration;
+            if (!duration || !isFinite(duration)) {
+                URL.revokeObjectURL(videoUrl);
+                reject(new Error('无法获取视频时长'));
+                return;
+            }
+
+            // 随机选择时间点（避开前0.5秒和后0.5秒）
+            const minTime = Math.min(0.5, duration * 0.1);
+            const maxTime = Math.max(duration - 0.5, duration * 0.9);
+            const randomTime = minTime + Math.random() * (maxTime - minTime);
+
+            video.currentTime = randomTime;
+        });
+
+        // 视频跳转到指定时间点
+        video.addEventListener('seeked', () => {
+            try {
+                // 创建 canvas 并绘制当前帧
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                if (!ctx) {
+                    URL.revokeObjectURL(videoUrl);
+                    reject(new Error('Canvas 2D context not available'));
+                    return;
+                }
+
+                // 计算尺寸
+                const srcWidth = video.videoWidth;
+                const srcHeight = video.videoHeight;
+                const { w, h } = calcSize(srcWidth, srcHeight, maxWidth, maxHeight);
+
+                canvas.width = w;
+                canvas.height = h;
+
+                // 绘制视频帧
+                ctx.drawImage(video, 0, 0, w, h);
+
+                // 转换为 WebP
+                canvas.toBlob(
+                    (blob) => {
+                        URL.revokeObjectURL(videoUrl);
+
+                        if (!blob) {
+                            reject(new Error('转换视频帧为 WebP 失败'));
+                            return;
+                        }
+
+                        // 创建 File 对象
+                        const webpFile = new File([blob], fileName, {
+                            type: 'image/webp',
+                            lastModified: Date.now(),
+                        });
+
+                        resolve(webpFile);
+                    },
+                    'image/webp',
+                    Math.max(0, Math.min(1, quality))
+                );
+            } catch (error) {
+                URL.revokeObjectURL(videoUrl);
+                reject(error);
+            }
+        });
+
+        // 错误处理
+        video.addEventListener('error', () => {
+            URL.revokeObjectURL(videoUrl);
+            reject(new Error('加载视频失败'));
+        });
+
+        // 设置视频源
+        video.src = videoUrl;
+    });
+}
+
+/**
  * Usage example:
  *
  * const fileInput = document.querySelector('input[type=file]');

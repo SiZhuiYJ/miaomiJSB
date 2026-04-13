@@ -37,11 +37,11 @@ watch(
 );
 
 // 上传头像
-function uploadImage() {
+async function uploadImage() {
     if (image.value) {
         const imageFile = dataURLToFile(image.value)
         if (imageFile)
-            uploadFile(imageFile, loading)
+            await uploadFile(imageFile, loading)
     }
 }
 </script>

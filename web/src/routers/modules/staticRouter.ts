@@ -135,6 +135,21 @@ export const staticRouter: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/tools/video-converter",
+    name: "videoConverter",
+    component: () => import("@/views/tools/video-converter.vue"),
+    meta: {
+      title: "视频转WebM", // 标题
+      enName: "Video Converter", // 英文名称
+      icon: "VideoCamera", // 图标
+      isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
+      isLink: "", // 是否外链[有值则是外链]
+      isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
+      isFull: "1", // 是否缓存全屏[0是，1否]
+      isAffix: "0", // 是否缓存固定路由[0是，1否]
+    },
+  },
+  {
     path: LOGIN_URL,
     name: "login",
     component: () => import("@/views/auth/index.vue"),

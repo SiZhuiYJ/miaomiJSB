@@ -266,7 +266,6 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
         }
     }
 
-    /// <inheritdoc />
     public async Task<FileInfoResult> SaveChatFileAsync(ulong userId, ulong conversationId, IFormFile file, CancellationToken cancellationToken = default)
     {
         if (file == null || file.Length == 0)
@@ -290,11 +289,8 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
         if (!SupportedFileTypes.ContainsKey(originalExtension))
             throw new InvalidOperationException($"不支持的文件类型：{originalExtension}");
 
-        // 生成文件Key（使用SHA256哈希 + 时间戳避免冲突）
+        // 生成文件标识符（不含扩展名）
         string fileKey;
-        string storedExtension;
-        string storedContentType;
-
         using (var hashStream = file.OpenReadStream())
         {
             var hash = await SHA256.HashDataAsync(hashStream, cancellationToken);
@@ -302,36 +298,50 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
             fileKey = $"{Convert.ToHexString(hash).ToLowerInvariant()}_{timestamp:x}";
         }
 
-        // 存储路径：按会话隔离
+        // 存储根目录：按会话隔离
         var chatFilesRoot = Path.Combine(_env.ContentRootPath, "uploads", "chat", conversationId.ToString());
         Directory.CreateDirectory(chatFilesRoot);
 
-        // 判断是否为图片，如果是则转换为WebP
         bool isImage = AllowedImageExtensions.Contains(originalExtension);
+        bool isWebP = isImage && originalExtension == ".webp";
+
+        string storedExtension;
+        string storedContentType;
 
         if (isImage)
         {
-            // 图片转换为WebP格式
+            // 图片统一存储为 .webp，MIME 类型为 image/webp
             storedExtension = ".webp";
             storedContentType = "image/webp";
-            var webpFilePath = Path.Combine(chatFilesRoot, fileKey + storedExtension);
+            var targetFilePath = Path.Combine(chatFilesRoot, fileKey + storedExtension);
 
             try
             {
-                using var stream = file.OpenReadStream();
-                using var image = await Image.LoadAsync(stream, cancellationToken);
-                await image.SaveAsWebpAsync(webpFilePath, cancellationToken);
+                if (isWebP)
+                {
+                    // 已是 WebP 格式，直接保存原始流
+                    using var stream = file.OpenReadStream();
+                    using var fileStream = new FileStream(targetFilePath, FileMode.CreateNew, FileAccess.Write);
+                    await stream.CopyToAsync(fileStream, cancellationToken);
+                }
+                else
+                {
+                    // 非 WebP 图片，使用 ImageSharp 转换为 WebP
+                    using var stream = file.OpenReadStream();
+                    using var image = await Image.LoadAsync(stream, cancellationToken);
+                    await image.SaveAsWebpAsync(targetFilePath, cancellationToken);
+                }
             }
             catch (Exception)
             {
-                if (File.Exists(webpFilePath))
-                    File.Delete(webpFilePath);
-                throw new InvalidOperationException("图片处理失败");
+                if (File.Exists(targetFilePath))
+                    File.Delete(targetFilePath);
+                throw new InvalidOperationException(isWebP ? "图片保存失败" : "图片处理失败");
             }
         }
         else
         {
-            // 非图片文件直接保存
+            // 非图片文件：保留原始扩展名和 MIME 类型
             storedExtension = originalExtension;
             storedContentType = SupportedFileTypes.GetValueOrDefault(originalExtension, "application/octet-stream");
             var filePath = Path.Combine(chatFilesRoot, fileKey + storedExtension);
@@ -352,9 +362,10 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
 
         return new FileInfoResult
         {
-            FileKey = fileKey, // 返回不带扩展名的fileKey
+            // 图片仅返回标识符（不带扩展名），非图片返回完整文件名
+            FileKey = isImage ? fileKey : fileKey + storedExtension,
             OriginalFileName = Path.GetFileNameWithoutExtension(file.FileName),
-            FileSize = isImage ? 0 : file.Length, // 图片转换后大小会变化，这里不返回准确值
+            FileSize = isImage ? 0 : file.Length, // 转换后大小不精确，置零表示需查询实际文件
             ContentType = storedContentType
         };
     }
@@ -401,29 +412,55 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
         }
         else
         {
-            if (message.MessageType=="image" ){
+            if (message.MessageType == "image")
+            {
                 filePath = Path.Combine(chatFilesRoot, fileKey + ".webp");
                 extension = ".webp";
 
                 if (!File.Exists(filePath))
+                {
+                    var candidates = AllowedImageExtensions
+                        .Where(ext => !string.Equals(ext, ".webp", StringComparison.OrdinalIgnoreCase))
+                        .Select(ext => new
+                        {
+                            Ext = ext,
+                            Path = Path.Combine(chatFilesRoot, fileKey + ext)
+                        })
+                        .ToList();
+
+                    var fallback = candidates.FirstOrDefault(c => File.Exists(c.Path));
+                    if (fallback != null)
+                    {
+                        filePath = fallback.Path;
+                        extension = fallback.Ext.ToLowerInvariant();
+                    }
+                }
+            }
+            else if (message.MessageType == "video")
             {
-                var candidates = AllowedImageExtensions
-                    .Where(ext => !string.Equals(ext, ".webp", StringComparison.OrdinalIgnoreCase))
+                filePath = Path.Combine(chatFilesRoot, fileKey + ".mp4");
+                extension = ".mp4";
+            }
+            else
+            {
+                // 其他文件类型直接尝试原始扩展名
+                var candidates = SupportedFileTypes.Keys
                     .Select(ext => new
                     {
                         Ext = ext,
                         Path = Path.Combine(chatFilesRoot, fileKey + ext)
                     })
                     .ToList();
-
                 var fallback = candidates.FirstOrDefault(c => File.Exists(c.Path));
                 if (fallback != null)
                 {
                     filePath = fallback.Path;
                     extension = fallback.Ext.ToLowerInvariant();
                 }
-            }}else if{
-                
+                else
+                {
+                    return null; // 文件不存在
+                }
             }
         }
 

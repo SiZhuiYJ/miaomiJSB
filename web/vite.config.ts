@@ -33,36 +33,36 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-    // 引入Vue插件
-    vue(),
-    // 自动导入插件，自动导入Vue和Pinia相关函数，并自动注册Element Plus组件
-    AutoImport({
-      imports: ["vue", "pinia"],
-      resolvers: [ElementPlusResolver()],
-      dts: "src/auto-imports.d.ts",
-    }),
-    // 组件自动注册插件，自动注册Element Plus组件
-    Components({
-      resolvers: [ElementPlusResolver()],
-      dts: "src/components.d.ts",
-    }),
-    // SVG图标插件，用于处理SVG雪碧图
-    createSvgIconsPlugin({
-      // 指定存放SVG图标的目录
-      iconDirs: [path.resolve(__dirname, "src/assets/icons")],
-      // 生成 symbol ID 格式
-      symbolId: "icon-[dir]-[name]",
-    }),
+      // 引入Vue插件
+      vue(),
+      // 自动导入插件，自动导入Vue和Pinia相关函数，并自动注册Element Plus组件
+      AutoImport({
+        imports: ["vue", "pinia"],
+        resolvers: [ElementPlusResolver()],
+        dts: "src/auto-imports.d.ts",
+      }),
+      // 组件自动注册插件，自动注册Element Plus组件
+      Components({
+        resolvers: [ElementPlusResolver()],
+        dts: "src/components.d.ts",
+      }),
+      // SVG图标插件，用于处理SVG雪碧图
+      createSvgIconsPlugin({
+        // 指定存放SVG图标的目录
+        iconDirs: [path.resolve(__dirname, "src/assets/icons")],
+        // 生成 symbol ID 格式
+        symbolId: "icon-[dir]-[name]",
+      }),
       ...(isAnalyze
         ? [
-            visualizer({
-              filename: "stats.html", // 分析报告生成的文件名和路径
-              open: true, // 构建完成后自动在浏览器中打开报告
-              gzipSize: true, // 显示 gzip 压缩后的大小
-              brotliSize: true, // 显示 brotli 压缩后的大小
-              emitFile: true, // 如果为 false，则不会生成文件，只在控制台输出
-            }),
-          ]
+          visualizer({
+            filename: "stats.html", // 分析报告生成的文件名和路径
+            open: true, // 构建完成后自动在浏览器中打开报告
+            gzipSize: true, // 显示 gzip 压缩后的大小
+            brotliSize: true, // 显示 brotli 压缩后的大小
+            emitFile: true, // 如果为 false，则不会生成文件，只在控制台输出
+          }),
+        ]
         : []),
     ],
     // 开发服务器配置
@@ -96,66 +96,66 @@ export default defineConfig(({ mode }) => {
      * 构建配置
      */
     build: {
-    cssCodeSplit: true, // 保持CSS分包
-    rollupOptions: {
-      output: {
-        chunkFileNames: "js/[name]-[hash].js", // 引入文件名的名称
-        entryFileNames: "js/[name]-[hash].js", // 包的入口文件名称
-        assetFileNames: "[ext]/[name]-[hash].[ext]", // 资源文件像 字体，图片等
+      cssCodeSplit: true, // 保持CSS分包
+      rollupOptions: {
+        output: {
+          chunkFileNames: "js/[name]-[hash].js", // 引入文件名的名称
+          entryFileNames: "js/[name]-[hash].js", // 包的入口文件名称
+          assetFileNames: "[ext]/[name]-[hash].[ext]", // 资源文件像 字体，图片等
 
-        // 按业务相关性分包，避免“每个依赖一个 chunk”导致的空 chunk 和碎片化请求
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return;
-          const pkgName = getNodeModulePackageName(id);
+          // 按业务相关性分包，避免“每个依赖一个 chunk”导致的空 chunk 和碎片化请求
+          manualChunks(id) {
+            if (!id.includes("node_modules")) return;
+            const pkgName = getNodeModulePackageName(id);
 
-          // UI 组件库（体积最大，单独拆分）
-          if (
-            pkgName === "element-plus" ||
-            pkgName === "@floating-ui/dom" ||
-            pkgName === "@popperjs/core" ||
-            pkgName === "async-validator"
-          ) {
-            return "vendor-element-plus-core";
-          }
+            // UI 组件库（体积最大，单独拆分）
+            if (
+              pkgName === "element-plus" ||
+              pkgName === "@floating-ui/dom" ||
+              pkgName === "@popperjs/core" ||
+              pkgName === "async-validator"
+            ) {
+              return "vendor-element-plus-core";
+            }
 
-          // Element Plus 图标单独拆分，避免与核心组件合并后过大
-          if (pkgName === "@element-plus/icons-vue") {
-            return "vendor-element-plus-icons";
-          }
+            // Element Plus 图标单独拆分，避免与核心组件合并后过大
+            if (pkgName === "@element-plus/icons-vue") {
+              return "vendor-element-plus-icons";
+            }
 
-          // Vue 生态核心
-          if (
-            pkgName === "vue" ||
-            pkgName === "vue-router" ||
-            pkgName === "pinia" ||
-            pkgName === "@vue/shared" ||
-            pkgName === "@vue/runtime-core" ||
-            pkgName === "@vue/runtime-dom" ||
-            pkgName === "@vue/reactivity"
-          ) {
-            return "vendor-vue";
-          }
+            // Vue 生态核心
+            if (
+              pkgName === "vue" ||
+              pkgName === "vue-router" ||
+              pkgName === "pinia" ||
+              pkgName === "@vue/shared" ||
+              pkgName === "@vue/runtime-core" ||
+              pkgName === "@vue/runtime-dom" ||
+              pkgName === "@vue/reactivity"
+            ) {
+              return "vendor-vue";
+            }
 
-          // 常用工具库
-          if (
-            pkgName === "axios" ||
-            pkgName === "dayjs" ||
-            pkgName === "lodash-es" ||
-            pkgName === "@vueuse/core"
-          ) {
-            return "vendor-utils";
-          }
+            // 常用工具库
+            if (
+              pkgName === "axios" ||
+              pkgName === "dayjs" ||
+              pkgName === "lodash-es" ||
+              pkgName === "@vueuse/core"
+            ) {
+              return "vendor-utils";
+            }
 
-          // 动画库按需独立
-          if (pkgName === "gsap") {
-            return "vendor-gsap";
-          }
+            // 动画库按需独立
+            if (pkgName === "gsap") {
+              return "vendor-gsap";
+            }
+          },
         },
       },
-    },
-    // 提升告警阈值，避免对已合理拆分的 vendor 包持续误报
-    chunkSizeWarningLimit: 850,
-    minify: "terser", // 启用 terser 压缩
+      // 提升告警阈值，避免对已合理拆分的 vendor 包持续误报
+      chunkSizeWarningLimit: 850,
+      minify: "terser", // 启用 terser 压缩
       terserOptions: {
         compress: {
           // 生产环境默认移除 console/debugger，必要时可通过 VITE_DROP_CONSOLE=false 关闭
@@ -163,6 +163,7 @@ export default defineConfig(({ mode }) => {
           drop_debugger: dropConsole,
         },
       },
+
     },
     esbuild: {
       // 删除 所有的console 和 debugger
@@ -173,14 +174,14 @@ export default defineConfig(({ mode }) => {
      * 设置模块导入路径别名，提高代码可读性和维护性
      */
     resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
-      "@assets": path.resolve(__dirname, "src/assets"),
-      "@components": path.resolve(__dirname, "src/components"),
-      "@libs": path.resolve(__dirname, "src/libs"),
-      "@utils": path.resolve(__dirname, "src/utils"),
-      "@views": path.resolve(__dirname, "src/views"),
-    },
+      alias: {
+        "@": path.resolve(__dirname, "src"),
+        "@assets": path.resolve(__dirname, "src/assets"),
+        "@components": path.resolve(__dirname, "src/components"),
+        "@libs": path.resolve(__dirname, "src/libs"),
+        "@utils": path.resolve(__dirname, "src/utils"),
+        "@views": path.resolve(__dirname, "src/views"),
+      },
     },
   };
 });

@@ -2,13 +2,21 @@ import { useAuthStore } from "@/stores"; // 根据实际路径调整
 import { notifySuccess, notifyError } from "@/utils/notification"; // 根据实际路径调整
 import { SettingApi } from "@/features/setting/api";
 import type { Ref } from "vue";
+import { convertToWebP } from "@/utils/convertToWebP";
 
 // 假设 loading 是外部传入的响应式变量（ref）
-export function uploadFile(file: File, loading: Ref<boolean>) {
+export async function uploadFile(file: File, loading: Ref<boolean>) {
   loading.value = true;
 
+  // 转换为 WebP 格式
+  const webpFile = await convertToWebP(file, {
+    quality: 1,
+    output: 'file',
+    fileName: file.name.replace(/\.[^.]+$/, '.webp')
+  }) as File;
+
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", webpFile);
 
   const authStore = useAuthStore();
 

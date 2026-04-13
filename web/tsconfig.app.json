@@ -5,6 +5,11 @@
     "types": [
       "vite/client"
     ],
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -27,5 +32,13 @@
     "src/**/*.vue",
     "src/**/*.d.ts",
     "src/auto-imports.d.ts" // 包含生成的类型文件
-, "src/features/chat/.copy/components/MessagePanel.vue", "src/features/chat/.copy/components/MessageItem.vue", "src/features/chat/.copy/components/ConversationSidebar.vue", "src/features/chat/.copy/components/index.vue", "src/features/chat/.copy/composables/useChat.ts", "src/features/chat/.copy/composables/useChatPush.ts", "src/features/chat/.copy/types/index.ts"  ]
+    ,
+    "src/features/chat/.copy/components/MessagePanel.vue",
+    "src/features/chat/.copy/components/MessageItem.vue",
+    "src/features/chat/.copy/components/ConversationSidebar.vue",
+    "src/features/chat/.copy/components/index.vue",
+    "src/features/chat/.copy/composables/useChat.ts",
+    "src/features/chat/.copy/composables/useChatPush.ts",
+    "src/features/chat/.copy/types/index.ts"
+  ]
 }
