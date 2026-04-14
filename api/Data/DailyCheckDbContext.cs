@@ -20,6 +20,8 @@ public partial class DailyCheckDbContext : DbContext
 
     public virtual DbSet<ChatConversationMember> ChatConversationMembers { get; set; }
 
+    public virtual DbSet<ChatFileRecord> ChatFileRecords { get; set; }
+
     public virtual DbSet<ChatMessage> ChatMessages { get; set; }
 
     public virtual DbSet<ChatMessageReceipt> ChatMessageReceipts { get; set; }
@@ -175,6 +177,72 @@ public partial class DailyCheckDbContext : DbContext
                 .HasConstraintName("fk_chat_members_user");
         });
 
+        modelBuilder.Entity<ChatFileRecord>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity
+                .ToTable("chat_file_records", tb => tb.HasComment("聊天文件元数据记录表，用于权限验证与文件追溯"))
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => e.ConversationId, "idx_chat_file_records_conversation");
+
+            entity.HasIndex(e => e.CreatedAt, "idx_chat_file_records_created");
+
+            entity.HasIndex(e => e.IsDeleted, "idx_chat_file_records_deleted");
+
+            entity.HasIndex(e => e.UploaderUserId, "idx_chat_file_records_uploader");
+
+            entity.HasIndex(e => e.FileKey, "ux_chat_file_records_file_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasComment("自增主键")
+                .HasColumnName("id");
+            entity.Property(e => e.ContentType)
+                .HasMaxLength(64)
+                .HasComment("MIME类型")
+                .HasColumnName("content_type");
+            entity.Property(e => e.ConversationId)
+                .HasComment("所属会话ID")
+                .HasColumnName("conversation_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("创建时间")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.FileKey)
+                .HasMaxLength(128)
+                .HasComment("文件唯一标识（SHA256哈希或组合键）")
+                .HasColumnName("file_key");
+            entity.Property(e => e.FileSize)
+                .HasComment("文件实际存储大小（字节）")
+                .HasColumnName("file_size");
+            entity.Property(e => e.IsDeleted)
+                .HasComment("软删除标记：0-未删除，1-已删除")
+                .HasColumnName("is_deleted");
+            entity.Property(e => e.OriginalFilename)
+                .HasMaxLength(255)
+                .HasComment("原始文件名（不含路径）")
+                .HasColumnName("original_filename");
+            entity.Property(e => e.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("更新时间")
+                .HasColumnType("datetime")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.UploaderUserId)
+                .HasComment("上传者用户ID")
+                .HasColumnName("uploader_user_id");
+
+            entity.HasOne(d => d.Conversation).WithMany(p => p.ChatFileRecords)
+                .HasForeignKey(d => d.ConversationId)
+                .HasConstraintName("fk_chat_file_records_conversation");
+
+            entity.HasOne(d => d.UploaderUser).WithMany(p => p.ChatFileRecords)
+                .HasForeignKey(d => d.UploaderUserId)
+                .HasConstraintName("fk_chat_file_records_uploader");
+        });
+
         modelBuilder.Entity<ChatMessage>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
@@ -214,7 +282,7 @@ public partial class DailyCheckDbContext : DbContext
             entity.Property(e => e.MessageType)
                 .HasDefaultValueSql("'text'")
                 .HasComment("消息类型")
-                .HasColumnType("enum('text','image','file','system')")
+                .HasColumnType("enum('text','image','video','audio','file','system')")
                 .HasColumnName("message_type");
             entity.Property(e => e.RecalledAt)
                 .HasComment("撤回时间")

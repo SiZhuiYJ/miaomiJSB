@@ -21,7 +21,7 @@
 
     <!-- 视频消息 -->
     <div v-else-if="category === 'video' && fileExtra" class="video-message">
-      <video v-if="mediaUrl" :src="mediaUrl" controls preload="metadata">
+      <video v-if="mediaUrl" :src="mediaUrl" controls :poster="imageUrl" preload="metadata">
         您的浏览器不支持视频播放
       </video>
       <div v-else class="media-loading">
@@ -105,7 +105,7 @@ import {
   getFileIcon,
   parseMessageExtra
 } from '../utils/fileHelper';
-import http from '@/libs/http'; 
+import http from '@/libs/http';
 
 const props = defineProps<{
   extra?: string | null;
@@ -118,9 +118,7 @@ const fileExtra = computed<FileExtra | null>(() => {
 });
 
 const category = computed(() => {
-  console.log(fileExtra.value)
   if (!fileExtra.value) return 'unknown';
-  console.log(fileExtra.value.mimeType)
   const ext = fileExtra.value.mimeType
     ? fileExtra.value.mimeType.split('/')[0]
     : '';
@@ -179,6 +177,26 @@ async function loadMediaBlob() {
   if (!['video', 'audio'].includes(category.value) || !fileExtra.value?.fileKey) {
     mediaUrl.value = '';
     return;
+  }
+  try {
+    loadingMedia.value = true;
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    const url = `${normalizedBaseUrl}/mm/files/chat/${fileExtra.value.thumbnailUrl}`;
+
+    const response = await http.get(url, {
+      responseType: 'blob',
+      headers: getAuthHeaders()
+    });
+
+    const blob = new Blob([response.data as BlobPart]);
+    imageUrl.value = URL.createObjectURL(blob);
+  } catch (error) {
+    console.error('加载图片失败:', error);
+    imageUrl.value = '';
+    ElMessage.error('图片加载失败');
+  } finally {
+    loadingMedia.value = false;
   }
 
   try {
@@ -396,7 +414,7 @@ function handleClick() {
 }
 
 .video-message {
-  max-width: 400px;
+  max-width: 200px;
   border-radius: 8px;
   overflow: hidden;
   background: #f5f5f5;
@@ -404,7 +422,7 @@ function handleClick() {
   video {
     width: 100%;
     display: block;
-    max-height: 300px;
+    // max-height: 300px;
   }
 
   .media-loading {

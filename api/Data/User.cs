@@ -92,6 +92,8 @@ public partial class User
 
     public virtual ICollection<ChatConversation> ChatConversations { get; set; } = new List<ChatConversation>();
 
+    public virtual ICollection<ChatFileRecord> ChatFileRecords { get; set; } = new List<ChatFileRecord>();
+
     public virtual ICollection<ChatMessageReceipt> ChatMessageReceipts { get; set; } = new List<ChatMessageReceipt>();
 
     public virtual ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();

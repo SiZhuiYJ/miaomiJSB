@@ -4,79 +4,24 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
 using System;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace api.Infrastructure;
 
-/// <summary>
-/// 文件存储与访问服务接口，按用户隔离文件的物理存储路径。
-/// </summary>
 public interface IFileService
 {
-    /// <summary>
-    /// 为指定用户保存图片文件并返回文件标识。
-    /// </summary>
-    /// <param name="userId">当前登录用户的 ID。</param>
-    /// <param name="file">待保存的图片文件。</param>
-    /// <param name="isPublic">是否为公开文件（公开文件存储在公共路径，私有文件存储在加密路径）。</param>
-    /// <param name="cancellationToken">取消操作的标记。</param>
-    /// <returns>用于后续访问该图片的文件标识（不含扩展名，默认访问 .webp）。</returns>
     Task<string> SaveImageAsync(ulong userId, IFormFile file, bool isPublic, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// 为指定用户读取图片文件内容。
-    /// </summary>
-    /// <param name="userId">当前登录用户的 ID。</param>
-    /// <param name="fileKey">图片文件标识。</param>
-    /// <param name="isPublic">是否为公开文件。</param>
-    /// <param name="cancellationToken">取消操作的标记。</param>
-    /// <returns>若存在则返回文件流和内容类型，否则返回 null。</returns>
     Task<(Stream Stream, string ContentType)?> GetImageAsync(ulong userId, string fileKey, bool isPublic, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// 为指定用户保存通用文件（视频、音频、文档、压缩包等）并返回文件信息。
-    /// </summary>
-    /// <param name="userId">当前登录用户的 ID。</param>
-    /// <param name="conversationId">会话ID（用于隐私文件权限控制）。</param>
-    /// <param name="file">待保存的文件。</param>
-    /// <param name="cancellationToken">取消操作的标记。</param>
-    /// <returns>文件信息（文件Key、原始文件名、文件大小、MIME类型）。</returns>
     Task<FileInfoResult> SaveChatFileAsync(ulong userId, ulong conversationId, IFormFile file, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// 读取聊天文件内容（需要验证会话成员权限）。
-    /// </summary>
-    /// <param name="userId">当前登录用户的 ID。</param>
-    /// <param name="fileKey">文件标识。</param>
-    /// <param name="cancellationToken">取消操作的标记。</param>
-    /// <returns>若存在则返回文件流和内容类型，否则返回 null。</returns>
     Task<(Stream Stream, string ContentType, string FileName)?> GetChatFileAsync(ulong userId, string fileKey, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// 为指定会话保存头像文件。
-    /// </summary>
-    /// <param name="userId">当前登录用户的 ID。</param>
-    /// <param name="conversationId">会话ID。</param>
-    /// <param name="file">待保存的头像文件。</param>
-    /// <param name="cancellationToken">取消操作的标记。</param>
-    /// <returns>文件标识。</returns>
     Task<string> SaveConversationAvatarAsync(ulong userId, ulong conversationId, IFormFile file, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// 读取会话头像（需要验证会话成员权限）。
-    /// </summary>
-    /// <param name="userId">当前登录用户的 ID。</param>
-    /// <param name="conversationId">会话ID。</param>
-    /// <param name="fileKey">头像文件标识。</param>
-    /// <param name="cancellationToken">取消操作的标记。</param>
-    /// <returns>若存在则返回文件流和内容类型，否则返回 null。</returns>
     Task<(Stream Stream, string ContentType)?> GetConversationAvatarAsync(ulong userId, ulong conversationId, string fileKey, CancellationToken cancellationToken = default);
 }
 
-/// <summary>
-/// 文件信息结果
-/// </summary>
 public class FileInfoResult
 {
     public string FileKey { get; set; } = string.Empty;
@@ -85,38 +30,33 @@ public class FileInfoResult
     public string ContentType { get; set; } = string.Empty;
 }
 
-/// <summary>
-/// 基于本地文件系统的文件存储实现，按用户和会话隔离存储。
-/// </summary>
-public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) : IFileService
+public class LocalFileService : IFileService
 {
-    readonly IWebHostEnvironment _env = env;
-    readonly DailyCheckDbContext _db = db;
-    const long MaxImageBytes = 10 * 1024 * 1024; // 10MB for images
-    const long MaxChatFileBytes = 100 * 1024 * 1024; // 100MB for chat files
+    private readonly IWebHostEnvironment _env;
+    private readonly DailyCheckDbContext _db;
 
-    static readonly string[] AllowedImageExtensions = [
+    private const long MaxImageBytes = 10 * 1024 * 1024;          // 10 MB
+    private const long MaxChatFileBytes = 100 * 1024 * 1024;      // 100 MB
+
+    private static readonly string[] AllowedImageExtensions =
+    [
         ".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"
     ];
 
-    // 支持的文件扩展名和对应的MIME类型
-    static readonly Dictionary<string, string> SupportedFileTypes = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, string> SupportedFileTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         // 图片
         { ".jpg", "image/jpeg" }, { ".jpeg", "image/jpeg" }, { ".png", "image/png" },
         { ".gif", "image/gif" }, { ".webp", "image/webp" }, { ".bmp", "image/bmp" },
         { ".svg", "image/svg+xml" }, { ".ico", "image/x-icon" },
-        
         // 视频
         { ".mp4", "video/mp4" }, { ".avi", "video/x-msvideo" }, { ".mov", "video/quicktime" },
         { ".wmv", "video/x-ms-wmv" }, { ".flv", "video/x-flv" }, { ".mkv", "video/x-matroska" },
         { ".webm", "video/webm" }, { ".m4v", "video/x-m4v" },
-        
         // 音频
         { ".mp3", "audio/mpeg" }, { ".wav", "audio/wav" }, { ".ogg", "audio/ogg" },
         { ".m4a", "audio/mp4" }, { ".flac", "audio/flac" }, { ".aac", "audio/aac" },
         { ".wma", "audio/x-ms-wma" }, { ".opus", "audio/opus" },
-        
         // 文档
         { ".pdf", "application/pdf" }, { ".doc", "application/msword" },
         { ".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
@@ -126,488 +66,323 @@ public class LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db) :
         { ".pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
         { ".txt", "text/plain" }, { ".rtf", "application/rtf" },
         { ".csv", "text/csv" }, { ".md", "text/markdown" },
-        
         // 压缩包
         { ".zip", "application/zip" }, { ".rar", "application/x-rar-compressed" },
         { ".7z", "application/x-7z-compressed" }, { ".tar", "application/x-tar" },
         { ".gz", "application/gzip" }, { ".bz2", "application/x-bzip2" },
-        
-        // 代码和文本
+        // 代码/文本
         { ".json", "application/json" }, { ".xml", "application/xml" },
         { ".html", "text/html" }, { ".css", "text/css" },
         { ".js", "application/javascript" }, { ".ts", "application/typescript" }
     };
 
-    /// <inheritdoc />
-    public async Task<string> SaveImageAsync(ulong userId, IFormFile file, bool isPublic, CancellationToken cancellationToken = default)
+    public LocalFileService(IWebHostEnvironment env, DailyCheckDbContext db)
     {
-        if (file == null || file.Length == 0)
-            throw new InvalidOperationException("File is required");
-        if (file.Length > MaxImageBytes)
-            throw new InvalidOperationException("Image exceeds maximum size limit");
-
-        var originalExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!AllowedImageExtensions.Contains(originalExtension))
-            throw new InvalidOperationException("Only image files are allowed");
-
-        var root = GetRootPath(userId, isPublic);
-        Directory.CreateDirectory(root);
-
-        string fileId;
-        using (var hashStream = file.OpenReadStream())
-        {
-            var hash = await SHA256.HashDataAsync(hashStream, cancellationToken);
-            fileId = Convert.ToHexString(hash).ToLowerInvariant();
-        }
-
-        var webpFilePath = Path.Combine(root, fileId + ".webp");
-        if (File.Exists(webpFilePath))
-            return fileId;
-
-        try
-        {
-            // 如果已经是 WebP，直接保存；否则转换
-            if (originalExtension == ".webp")
-            {
-                using var stream = file.OpenReadStream();
-                using var fileStream = new FileStream(webpFilePath, FileMode.CreateNew, FileAccess.Write);
-                await stream.CopyToAsync(fileStream, cancellationToken);
-            }
-            else
-            {
-                using var stream = file.OpenReadStream();
-                using var image = await Image.LoadAsync(stream, cancellationToken);
-                await image.SaveAsWebpAsync(webpFilePath, cancellationToken);
-            }
-        }
-        catch (Exception)
-        {
-            if (File.Exists(webpFilePath))
-                File.Delete(webpFilePath);
-            throw new InvalidOperationException("Failed to process image.");
-        }
-
-        return fileId;
+        _env = env;
+        _db = db;
     }
 
-    /// <inheritdoc />
+    #region Image (Public/Private)
+
+    public async Task<string> SaveImageAsync(ulong userId, IFormFile file, bool isPublic, CancellationToken cancellationToken = default)
+    {
+        ValidateImageFile(file);
+
+        var root = GetUserRoot(userId, isPublic);
+        Directory.CreateDirectory(root);
+
+        // 计算 SHA256 并保存为 WebP（只读一次流）
+        var (_, fileKey) = await ComputeHashAndSaveWebpAsync(file, root, cancellationToken);
+        return fileKey;
+    }
+
     public Task<(Stream Stream, string ContentType)?> GetImageAsync(ulong userId, string fileKey, bool isPublic, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(fileKey))
             return Task.FromResult<(Stream, string)?>(null);
 
-        // Security check
-        fileKey = Path.GetFileName(fileKey);
+        fileKey = Path.GetFileName(fileKey); // 防目录遍历
+        var root = GetUserRoot(userId, isPublic);
 
-        var root = GetRootPath(userId, isPublic);
-
-        string filePath;
-        string extension;
-
-        if (Path.HasExtension(fileKey))
-        {
-            // Explicit extension
-            filePath = Path.Combine(root, fileKey);
-            extension = Path.GetExtension(fileKey).ToLowerInvariant();
-        }
-        else
-        {
-            filePath = Path.Combine(root, fileKey + ".webp");
-            extension = ".webp";
-
-            if (!File.Exists(filePath))
-            {
-                var candidates = AllowedImageExtensions
-                    .Where(ext => !string.Equals(ext, ".webp", StringComparison.OrdinalIgnoreCase))
-                    .Select(ext => new
-                    {
-                        Ext = ext,
-                        Path = Path.Combine(root, fileKey + ext)
-                    })
-                    .ToList();
-
-                var fallback = candidates.FirstOrDefault(c => File.Exists(c.Path));
-                if (fallback != null)
-                {
-                    filePath = fallback.Path;
-                    extension = fallback.Ext.ToLowerInvariant();
-                }
-            }
-        }
-
+        var (filePath, extension) = GetFilePathWithFallback(root, fileKey, AllowedImageExtensions, defaultExtension: ".webp");
         if (!File.Exists(filePath))
             return Task.FromResult<(Stream, string)?>(null);
 
-        var contentType = extension switch
-        {
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".png" => "image/png",
-            ".gif" => "image/gif",
-            ".webp" => "image/webp",
-            ".bmp" => "image/bmp",
-            _ => "application/octet-stream"
-        };
-
-        Stream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return Task.FromResult<(Stream, string)?>(new(stream, contentType));
+        var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var contentType = GetMimeType(extension);
+        return Task.FromResult<(Stream, string)?>((stream, contentType));
     }
 
-    private string GetRootPath(ulong userId, bool isPublic)
-    {
-        // 存放加密文件的路径改到用户文件夹的加密文件夹下：uploads/users/{userId}/encrypted
-        // 公开文件夹就在公开路径下：uploads/public/users/{userId}
-        if (isPublic)
-        {
-            return Path.Combine(_env.ContentRootPath, "uploads", "public", "users", userId.ToString());
-        }
-        else
-        {
-            return Path.Combine(_env.ContentRootPath, "uploads", "users", userId.ToString(), "encrypted");
-        }
-    }
+    #endregion
 
+    #region Chat File
+
+    /// <inheritdoc/>
     public async Task<FileInfoResult> SaveChatFileAsync(ulong userId, ulong conversationId, IFormFile file, CancellationToken cancellationToken = default)
     {
-        if (file == null || file.Length == 0)
-            throw new InvalidOperationException("文件不能为空");
-
-        if (file.Length > MaxChatFileBytes)
-            throw new InvalidOperationException($"文件大小超过限制（最大{MaxChatFileBytes / 1024 / 1024}MB）");
-
-        // 验证会话成员权限
-        var isMember = await _db.ChatConversationMembers
-            .AnyAsync(m => m.ConversationId == conversationId
-                && m.UserId == userId
-                && m.LeftAt == null, cancellationToken);
-
-        if (!isMember)
-            throw new InvalidOperationException("您不是该会话的成员，无权上传文件");
+        ValidateChatFile(file);
+        await EnsureUserIsConversationMember(userId, conversationId, cancellationToken);
 
         var originalExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-        // 检查文件类型是否支持
         if (!SupportedFileTypes.ContainsKey(originalExtension))
             throw new InvalidOperationException($"不支持的文件类型：{originalExtension}");
 
-        // 生成文件标识符（不含扩展名）
-        string fileKey;
-        using (var hashStream = file.OpenReadStream())
-        {
-            var hash = await SHA256.HashDataAsync(hashStream, cancellationToken);
-            var timestamp = DateTime.UtcNow.Ticks;
-            fileKey = $"{Convert.ToHexString(hash).ToLowerInvariant()}_{timestamp:x}";
-        }
+        var root = GetChatRoot(conversationId);
+        Directory.CreateDirectory(root);
 
-        // 存储根目录：按会话隔离
-        var chatFilesRoot = Path.Combine(_env.ContentRootPath, "uploads", "chat", conversationId.ToString());
-        Directory.CreateDirectory(chatFilesRoot);
-
-        bool isImage = AllowedImageExtensions.Contains(originalExtension);
-        bool isWebP = isImage && originalExtension == ".webp";
-
-        string storedExtension;
-        string storedContentType;
+        var isImage = AllowedImageExtensions.Contains(originalExtension);
+        string fileKey, storedExtension, contentType;
+        long fileSize;
 
         if (isImage)
         {
-            // 图片统一存储为 .webp，MIME 类型为 image/webp
+            // 图片统一存储为 .webp，fileKey 不带扩展名
+            var (_, keyWithoutExt) = await ComputeHashAndSaveWebpAsync(file, root, cancellationToken);
+            fileKey = keyWithoutExt;
             storedExtension = ".webp";
-            storedContentType = "image/webp";
-            var targetFilePath = Path.Combine(chatFilesRoot, fileKey + storedExtension);
-
-            try
-            {
-                if (isWebP)
-                {
-                    // 已是 WebP 格式，直接保存原始流
-                    using var stream = file.OpenReadStream();
-                    using var fileStream = new FileStream(targetFilePath, FileMode.CreateNew, FileAccess.Write);
-                    await stream.CopyToAsync(fileStream, cancellationToken);
-                }
-                else
-                {
-                    // 非 WebP 图片，使用 ImageSharp 转换为 WebP
-                    using var stream = file.OpenReadStream();
-                    using var image = await Image.LoadAsync(stream, cancellationToken);
-                    await image.SaveAsWebpAsync(targetFilePath, cancellationToken);
-                }
-            }
-            catch (Exception)
-            {
-                if (File.Exists(targetFilePath))
-                    File.Delete(targetFilePath);
-                throw new InvalidOperationException(isWebP ? "图片保存失败" : "图片处理失败");
-            }
+            contentType = "image/webp";
+            fileSize = new FileInfo(Path.Combine(root, fileKey + storedExtension)).Length;
         }
         else
         {
-            // 非图片文件：保留原始扩展名和 MIME 类型
+            // 非图片保留原始扩展名，fileKey 带扩展名
+            var (_, keyWithoutExt) = await ComputeHashAsync(file.OpenReadStream(), cancellationToken);
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+            fileKey = $"{keyWithoutExt}_{timestamp:x}{originalExtension}";
             storedExtension = originalExtension;
-            storedContentType = SupportedFileTypes.GetValueOrDefault(originalExtension, "application/octet-stream");
-            var filePath = Path.Combine(chatFilesRoot, fileKey + storedExtension);
+            contentType = SupportedFileTypes[originalExtension];
 
-            try
-            {
-                using var stream = file.OpenReadStream();
-                using var fileStream = new FileStream(filePath, FileMode.CreateNew, FileAccess.Write);
-                await stream.CopyToAsync(fileStream, cancellationToken);
-            }
-            catch (Exception)
-            {
-                if (File.Exists(filePath))
-                    File.Delete(filePath);
-                throw new InvalidOperationException("文件保存失败");
-            }
+            var filePath = Path.Combine(root, fileKey);
+            await using var stream = file.OpenReadStream();
+            await using var fileStream = new FileStream(filePath, FileMode.CreateNew, FileAccess.Write);
+            await stream.CopyToAsync(fileStream, cancellationToken);
+            fileSize = fileStream.Length;
         }
+
+        // 插入元数据记录
+        var record = new ChatFileRecord
+        {
+            FileKey = fileKey,
+            ConversationId = conversationId,
+            UploaderUserId = userId,
+            FileSize = (ulong)fileSize,
+            ContentType = contentType,
+            IsDeleted = false,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _db.ChatFileRecords.Add(record);
+        await _db.SaveChangesAsync(cancellationToken);
 
         return new FileInfoResult
         {
-            // 图片仅返回标识符（不带扩展名），非图片返回完整文件名
-            FileKey = isImage ? fileKey : fileKey + storedExtension,
+            FileKey = fileKey,
             OriginalFileName = Path.GetFileNameWithoutExtension(file.FileName),
-            FileSize = isImage ? 0 : file.Length, // 转换后大小不精确，置零表示需查询实际文件
-            ContentType = storedContentType
+            FileSize = fileSize,
+            ContentType = contentType
         };
     }
 
-    /// <inheritdoc />
     public async Task<(Stream Stream, string ContentType, string FileName)?> GetChatFileAsync(ulong userId, string fileKey, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(fileKey))
+        // 通过 fileKey 查询记录
+        var record = await _db.ChatFileRecords
+            .AsNoTracking()
+            .FirstOrDefaultAsync(f => f.FileKey == fileKey && !f.IsDeleted, cancellationToken);
+
+        if (record == null)
             return null;
 
-        // 安全检查：防止目录遍历攻击
-        fileKey = Path.GetFileName(fileKey);
+        // 验证用户是否是会话成员
+        var isMember = await _db.ChatConversationMembers
+            .AnyAsync(m => m.ConversationId == record.ConversationId
+                        && m.UserId == userId
+                        && m.LeftAt == null, cancellationToken);
 
-        // 判断文件key是否是当前用户的
-        var message = await _db.ChatMessages.Where(m => m.Content == fileKey).FirstOrDefaultAsync(cancellationToken);
-        var isMember = new ChatConversationMember();
+        if (!isMember)
+            return null; // 无权限
 
-        if (message == null)
-            return null;
-
-        var conversation_id = message.ConversationId;
-
-        if (message.SenderUserId != userId)
-        {
-            // 不是当前用户的文件，继续验证会话成员权限
-            isMember = await _db.ChatConversationMembers.Where(m => m.ConversationId == message.ConversationId
-                     && m.UserId == userId
-                     && m.LeftAt == null).FirstOrDefaultAsync(cancellationToken);
-            if (isMember == null)
-                return null;
-            else conversation_id = isMember.ConversationId;
-        }
-
-        // 构建文件路径
-        var chatFilesRoot = Path.Combine(_env.ContentRootPath, "uploads", "chat", conversation_id.ToString());
-
-        string filePath;
-        string extension;
-
-        if (Path.HasExtension(fileKey))
-        {
-            filePath = Path.Combine(chatFilesRoot, fileKey);
-            extension = Path.GetExtension(fileKey).ToLowerInvariant();
-        }
-        else
-        {
-            if (message.MessageType == "image")
-            {
-                filePath = Path.Combine(chatFilesRoot, fileKey + ".webp");
-                extension = ".webp";
-
-                if (!File.Exists(filePath))
-                {
-                    var candidates = AllowedImageExtensions
-                        .Where(ext => !string.Equals(ext, ".webp", StringComparison.OrdinalIgnoreCase))
-                        .Select(ext => new
-                        {
-                            Ext = ext,
-                            Path = Path.Combine(chatFilesRoot, fileKey + ext)
-                        })
-                        .ToList();
-
-                    var fallback = candidates.FirstOrDefault(c => File.Exists(c.Path));
-                    if (fallback != null)
-                    {
-                        filePath = fallback.Path;
-                        extension = fallback.Ext.ToLowerInvariant();
-                    }
-                }
-            }
-            else if (message.MessageType == "video")
-            {
-                filePath = Path.Combine(chatFilesRoot, fileKey + ".mp4");
-                extension = ".mp4";
-            }
-            else
-            {
-                // 其他文件类型直接尝试原始扩展名
-                var candidates = SupportedFileTypes.Keys
-                    .Select(ext => new
-                    {
-                        Ext = ext,
-                        Path = Path.Combine(chatFilesRoot, fileKey + ext)
-                    })
-                    .ToList();
-                var fallback = candidates.FirstOrDefault(c => File.Exists(c.Path));
-                if (fallback != null)
-                {
-                    filePath = fallback.Path;
-                    extension = fallback.Ext.ToLowerInvariant();
-                }
-                else
-                {
-                    return null; // 文件不存在
-                }
-            }
-        }
-
+        // 构造物理路径并返回文件流
+        var root = GetChatRoot(record.ConversationId);
+        
+        var (filePath, extension) = GetFilePathWithFallback(root, fileKey, AllowedImageExtensions, defaultExtension: ".webp");
         if (!File.Exists(filePath))
             return null;
 
-        var contentType = extension switch
-        {
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".png" => "image/png",
-            ".gif" => "image/gif",
-            ".webp" => "image/webp",
-            ".bmp" => "image/bmp",
-            _ => "application/octet-stream"
-        };
-
-        Stream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return new(stream, contentType, fileKey);
+        var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var contentType = GetMimeType(extension);
+        return (stream, contentType, fileKey);
     }
 
-    /// <inheritdoc />
+    #endregion
+
+    #region Conversation Avatar
+
     public async Task<string> SaveConversationAvatarAsync(ulong userId, ulong conversationId, IFormFile file, CancellationToken cancellationToken = default)
     {
-        if (file == null || file.Length == 0)
-            throw new InvalidOperationException("文件不能为空");
+        ValidateImageFile(file);
+        await EnsureUserIsConversationMember(userId, conversationId, cancellationToken);
 
-        // 验证会话成员权限（只有成员才能更新群头像）
-        var isMember = await _db.ChatConversationMembers
-            .AnyAsync(m => m.ConversationId == conversationId
-                && m.UserId == userId
-                && m.LeftAt == null, cancellationToken);
+        var root = GetConversationAvatarRoot(conversationId);
+        Directory.CreateDirectory(root);
 
-        if (!isMember)
-            throw new InvalidOperationException("您不是该会话的成员，无权上传头像");
-
-        var originalExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!AllowedImageExtensions.Contains(originalExtension))
-            throw new InvalidOperationException("只支持图片文件作为头像");
-
-        // 生成文件Key
-        string fileKey;
-        using (var hashStream = file.OpenReadStream())
-        {
-            var hash = await SHA256.HashDataAsync(hashStream, cancellationToken);
-            var timestamp = DateTime.UtcNow.Ticks;
-            fileKey = $"avatar_{Convert.ToHexString(hash).ToLowerInvariant()}_{timestamp:x}";
-        }
-
-        // 存储路径：按会话ID存储
-        var avatarRoot = Path.Combine(_env.ContentRootPath, "uploads", "chat", conversationId.ToString(), "avatars");
-        Directory.CreateDirectory(avatarRoot);
-
-        var webpFilePath = Path.Combine(avatarRoot, fileKey + ".webp");
-
-        try
-        {
-            if (originalExtension == ".webp")
-            {
-                using var stream = file.OpenReadStream();
-                using var fileStream = new FileStream(webpFilePath, FileMode.CreateNew, FileAccess.Write);
-                await stream.CopyToAsync(fileStream, cancellationToken);
-            }
-            else
-            {
-                using var stream = file.OpenReadStream();
-                using var image = await Image.LoadAsync(stream, cancellationToken);
-                await image.SaveAsWebpAsync(webpFilePath, cancellationToken);
-            }
-        }
-        catch (Exception)
-        {
-            if (File.Exists(webpFilePath))
-                File.Delete(webpFilePath);
-            throw new InvalidOperationException("头像处理失败");
-        }
-
+        var (hash, fileKey) = await ComputeHashAndSaveWebpAsync(file, root, cancellationToken);
         return fileKey;
     }
 
-    /// <inheritdoc />
     public async Task<(Stream Stream, string ContentType)?> GetConversationAvatarAsync(ulong userId, ulong conversationId, string fileKey, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(fileKey))
             return null;
 
-        // 验证会话成员权限
-        var isMember = await _db.ChatConversationMembers
-            .AnyAsync(m => m.ConversationId == conversationId
-                && m.UserId == userId
-                && m.LeftAt == null, cancellationToken);
+        await EnsureUserIsConversationMember(userId, conversationId, cancellationToken);
 
-        if (!isMember)
-            return null; // 无权限时返回null
-
-        // 安全检查
         fileKey = Path.GetFileName(fileKey);
-
-        // 构建文件路径
-        var avatarRoot = Path.Combine(_env.ContentRootPath, "uploads", "chat", conversationId.ToString(), "avatars");
-
-        string filePath;
-        string extension;
-
-        if (Path.HasExtension(fileKey))
-        {
-            filePath = Path.Combine(avatarRoot, fileKey);
-            extension = Path.GetExtension(fileKey).ToLowerInvariant();
-        }
-        else
-        {
-            filePath = Path.Combine(avatarRoot, fileKey + ".webp");
-            extension = ".webp";
-
-            if (!File.Exists(filePath))
-            {
-                var candidates = AllowedImageExtensions
-                    .Where(ext => !string.Equals(ext, ".webp", StringComparison.OrdinalIgnoreCase))
-                    .Select(ext => new
-                    {
-                        Ext = ext,
-                        Path = Path.Combine(avatarRoot, fileKey + ext)
-                    })
-                    .ToList();
-
-                var fallback = candidates.FirstOrDefault(c => File.Exists(c.Path));
-                if (fallback != null)
-                {
-                    filePath = fallback.Path;
-                    extension = fallback.Ext.ToLowerInvariant();
-                }
-            }
-        }
-
+        var root = GetConversationAvatarRoot(conversationId);
+        var (filePath, extension) = GetFilePathWithFallback(root, fileKey, AllowedImageExtensions, defaultExtension: ".webp");
         if (!File.Exists(filePath))
             return null;
 
-        var contentType = extension switch
-        {
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".png" => "image/png",
-            ".gif" => "image/gif",
-            ".webp" => "image/webp",
-            ".bmp" => "image/bmp",
-            _ => "application/octet-stream"
-        };
-
-        Stream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return new(stream, contentType);
+        var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var contentType = GetMimeType(extension);
+        return (stream, contentType);
     }
+
+    #endregion
+
+    #region Private Helpers
+
+    private string GetUserRoot(ulong userId, bool isPublic)
+    {
+        var basePath = Path.Combine(_env.ContentRootPath, "uploads");
+        return isPublic
+            ? Path.Combine(basePath, "public", "users", userId.ToString())
+            : Path.Combine(basePath, "users", userId.ToString(), "encrypted");
+    }
+
+    private string GetChatRoot(ulong conversationId) =>
+        Path.Combine(_env.ContentRootPath, "uploads", "chat", conversationId.ToString());
+
+    private string GetConversationAvatarRoot(ulong conversationId) =>
+        Path.Combine(GetChatRoot(conversationId), "avatars");
+
+    private static void ValidateImageFile(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            throw new InvalidOperationException("文件不能为空");
+        if (file.Length > MaxImageBytes)
+            throw new InvalidOperationException($"图片大小超过限制（最大 {MaxImageBytes / 1024 / 1024} MB）");
+
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!AllowedImageExtensions.Contains(ext))
+            throw new InvalidOperationException("仅支持常见图片格式");
+    }
+
+    private static void ValidateChatFile(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            throw new InvalidOperationException("文件不能为空");
+        if (file.Length > MaxChatFileBytes)
+            throw new InvalidOperationException($"文件大小超过限制（最大 {MaxChatFileBytes / 1024 / 1024} MB）");
+    }
+
+    private async Task EnsureUserIsConversationMember(ulong userId, ulong conversationId, CancellationToken cancellationToken)
+    {
+        var isMember = await _db.ChatConversationMembers
+            .AnyAsync(m => m.ConversationId == conversationId
+                           && m.UserId == userId
+                           && m.LeftAt == null, cancellationToken);
+        if (!isMember)
+            throw new InvalidOperationException("您不是该会话的成员，无权执行此操作");
+    }
+
+    private static async Task<(string Hash, string FileKey)> ComputeHashAsync(Stream stream, CancellationToken cancellationToken)
+    {
+        using var sha256 = SHA256.Create();
+        var hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken);
+        var hash = Convert.ToHexString(hashBytes).ToLowerInvariant();
+        return (hash, hash);
+    }
+
+    private async Task<(string Hash, string FileKey)> ComputeHashAndSaveWebpAsync(
+        IFormFile file, string targetDirectory, CancellationToken cancellationToken)
+    {
+        // 计算哈希（先读流）
+        var (hash, fileKey) = await ComputeHashAsync(file.OpenReadStream(), cancellationToken);
+        var webpPath = Path.Combine(targetDirectory, fileKey + ".webp");
+
+        // 文件已存在则直接返回
+        if (File.Exists(webpPath))
+            return (hash, fileKey);
+
+        // 不存在则转换并保存
+        try
+        {
+            var originalExt = Path.GetExtension(file.FileName).ToLowerInvariant();
+            await using var sourceStream = file.OpenReadStream();
+
+            if (originalExt == ".webp")
+            {
+                await using var fileStream = new FileStream(webpPath, FileMode.CreateNew, FileAccess.Write);
+                await sourceStream.CopyToAsync(fileStream, cancellationToken);
+            }
+            else
+            {
+                using var image = await Image.LoadAsync(sourceStream, cancellationToken);
+                await image.SaveAsWebpAsync(webpPath, cancellationToken);
+            }
+        }
+        catch (IOException) when (File.Exists(webpPath))
+        {
+            // 并发写入时，另一个请求已经创建了文件，忽略异常
+        }
+        catch
+        {
+            try { File.Delete(webpPath); } catch { /* 忽略删除失败 */ }
+            throw new InvalidOperationException("图片处理失败");
+        }
+
+        return (hash, fileKey);
+    }
+
+    private static (string FilePath, string Extension) GetFilePathWithFallback(
+        string directory, string fileKey, string[] allowedExtensions, string defaultExtension)
+    {
+        // 如果 fileKey 已含扩展名
+        if (Path.HasExtension(fileKey))
+        {
+            var path = Path.Combine(directory, fileKey);
+            return (path, Path.GetExtension(fileKey).ToLowerInvariant());
+        }
+
+        // 优先尝试默认扩展名
+        var primaryPath = Path.Combine(directory, fileKey + defaultExtension);
+        if (File.Exists(primaryPath))
+            return (primaryPath, defaultExtension);
+
+        // 回退到其他允许的扩展名
+        foreach (var ext in allowedExtensions)
+        {
+            if (string.Equals(ext, defaultExtension, StringComparison.OrdinalIgnoreCase))
+                continue;
+            var fallbackPath = Path.Combine(directory, fileKey + ext);
+            if (File.Exists(fallbackPath))
+                return (fallbackPath, ext.ToLowerInvariant());
+        }
+
+        return (primaryPath, defaultExtension); // 返回默认路径，由调用方检查存在性
+    }
+
+    private static string GetMimeType(string extension) => extension switch
+    {
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".png" => "image/png",
+        ".gif" => "image/gif",
+        ".webp" => "image/webp",
+        ".bmp" => "image/bmp",
+        _ => SupportedFileTypes.GetValueOrDefault(extension, "application/octet-stream")
+    };
+
+    #endregion
 }

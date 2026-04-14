@@ -50,6 +50,8 @@ public partial class ChatConversation
 
     public virtual ICollection<ChatConversationMember> ChatConversationMembers { get; set; } = new List<ChatConversationMember>();
 
+    public virtual ICollection<ChatFileRecord> ChatFileRecords { get; set; } = new List<ChatFileRecord>();
+
     public virtual ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
 
     public virtual User? OwnerUser { get; set; }

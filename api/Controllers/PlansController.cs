@@ -311,6 +311,7 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
     /// • 时间段有效性验证
     /// • 重叠冲突检测
     /// </remarks>
+    /// <param name="planId"></param>
     /// <param name="request">更新计划请求参数，包含计划ID和需要更新的属性。</param>
     /// <returns>
     /// 成功时返回204 No Content；
@@ -412,7 +413,7 @@ public class PlansController(DailyCheckDbContext db) : ControllerBase
     /// • 统计数据连续性
     /// • 合规性要求满足
     /// </remarks>
-    /// <param name="PlanId">要删除的打卡计划ID。</param>
+    /// <param name="planId">要删除的打卡计划ID。</param>
     /// <returns>
     /// 成功时返回204 No Content；
     /// 失败时返回相应错误状态码。

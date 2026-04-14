@@ -18,7 +18,7 @@ import { ref } from 'vue';
 import { Paperclip } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { validateFile } from '../utils/fileHelper';
-import { convertToWebP, extractVideoFrameToWebP } from '@/utils/convertToWebP';
+import { convertToWebP } from '@/utils/convertToWebP';
 
 const props = defineProps<{
   conversationId?: number;
@@ -60,15 +60,16 @@ async function handleFileSelect(event: Event) {
           }) as File;
           validFiles.push(webpFile);
         }
-        // 判断是否为视频，如果是视频则抽取随机帧作为封面
-        else if (file.type.startsWith('video/')) {
-          const coverFile = await extractVideoFrameToWebP(file, {
-            quality: 1,
-            fileName: `${file.name}.webp`
-          });
-          validFiles.push(file);
-          validFiles.push(coverFile);
-        } else {
+        // // 判断是否为视频，如果是视频则抽取随机帧作为封面
+        // else if (file.type.startsWith('video/')) {
+        //   const coverFile = await extractVideoFrameToWebP(file, {
+        //     quality: 1,
+        //     fileName: `${file.name}.webp`
+        //   });
+        //   validFiles.push(file);
+        //   validFiles.push(coverFile);
+        // } 
+        else {
           validFiles.push(file);
         }
       } catch (error) {

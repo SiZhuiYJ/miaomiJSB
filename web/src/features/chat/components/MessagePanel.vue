@@ -157,6 +157,7 @@ async function handleFileSelected(files: File[]) {
   try {
     for (const file of files) {
       try {
+
         const { extra, messageType } = await uploadFileForMessage(
           currentConversation.value.id,
           file
@@ -174,7 +175,6 @@ async function handleFileSelected(files: File[]) {
         ElMessage.error(`${file.name}: ${error.message || '上传失败'}`);
       }
     }
-
     ElMessage.success('文件发送成功');
   } catch (error: any) {
     console.error('File upload error:', error);

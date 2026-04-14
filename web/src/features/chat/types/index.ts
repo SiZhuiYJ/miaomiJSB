@@ -20,7 +20,7 @@ export interface FileExtra {
   fileSize: number;
   fileUrl: string;
   fileKey?: string; // 文件标识，用于构建URL
-  thumbnailUrl?: string;
+  thumbnailUrl?: string;// 缩略图URL
   duration?: number; // 视频/音频时长（秒）
   mimeType?: string;
   width?: number; // 图片宽度

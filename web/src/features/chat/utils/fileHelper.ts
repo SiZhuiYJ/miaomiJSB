@@ -1,5 +1,6 @@
 import { uploadChatFile, getChatFileUrl } from "../api";
 import type { FileExtra, MessageType } from "../types";
+import { extractVideoFrameToWebP } from '@/utils/convertToWebP';
 import http from "@/libs/http";
 
 // 文件大小限制 (100MB)
@@ -149,6 +150,40 @@ export async function uploadFileForMessage(
   const validation = validateFile(file);
   if (!validation.valid) {
     throw new Error(validation.error);
+  }
+  // 判断是否为视频
+  if (file.type.startsWith('video/')) {
+    // 1. 生成封面文件
+    const coverFile = await extractVideoFrameToWebP(file, { quality: 1 });
+
+    console.log('file', file);
+    console.log('coverFile', coverFile);
+
+    // 2. 并行上传视频和封面
+    const [videoInfo, coverInfo] = await Promise.all([
+      uploadChatFile(conversationId, file),
+      uploadChatFile(conversationId, coverFile),
+    ]);
+
+    console.log('videoInfo', videoInfo);
+    console.log('coverInfo', coverInfo);
+
+    // 3. 获取视频时长
+    const duration = await getMediaDuration(file);
+
+    // 4. 构造 extra
+    const extra: FileExtra = {
+      fileName: file.name,
+      fileSize: file.size,
+      fileKey: videoInfo.data.fileKey,          // 视频 key（带 .mp4 等扩展名）
+      fileUrl: getChatFileUrl(videoInfo.data.fileKey),
+      mimeType: file.type,
+      // thumbnailKey: coverInfo.data.fileKey,      // 封面 key（.webp）
+      thumbnailUrl: coverInfo.data.fileKey,
+      duration: duration ?? undefined,
+    };
+    console.log('extra', extra);
+    return { extra, messageType: 'video' };
   }
 
   // 上传文件

@@ -1430,6 +1430,7 @@
             • 时间段有效性验证
             • 重叠冲突检测
             </remarks>
+            <param name="planId"></param>
             <param name="request">更新计划请求参数，包含计划ID和需要更新的属性。</param>
             <returns>
             成功时返回204 No Content；
@@ -1469,7 +1470,7 @@
             • 统计数据连续性
             • 合规性要求满足
             </remarks>
-            <param name="PlanId">要删除的打卡计划ID。</param>
+            <param name="planId">要删除的打卡计划ID。</param>
             <returns>
             成功时返回204 No Content；
             失败时返回相应错误状态码。
@@ -1599,6 +1600,61 @@
             </summary>
         </member>
         <member name="P:api.Data.ChatConversationMember.UpdatedAt">
+            <summary>
+            更新时间
+            </summary>
+        </member>
+        <member name="T:api.Data.ChatFileRecord">
+            <summary>
+            聊天文件元数据记录表，用于权限验证与文件追溯
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatFileRecord.Id">
+            <summary>
+            自增主键
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatFileRecord.FileKey">
+            <summary>
+            文件唯一标识（SHA256哈希或组合键）
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatFileRecord.ConversationId">
+            <summary>
+            所属会话ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatFileRecord.UploaderUserId">
+            <summary>
+            上传者用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatFileRecord.OriginalFilename">
+            <summary>
+            原始文件名（不含路径）
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatFileRecord.FileSize">
+            <summary>
+            文件实际存储大小（字节）
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatFileRecord.ContentType">
+            <summary>
+            MIME类型
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatFileRecord.IsDeleted">
+            <summary>
+            软删除标记：0-未删除，1-已删除
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatFileRecord.CreatedAt">
+            <summary>
+            创建时间
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatFileRecord.UpdatedAt">
             <summary>
             更新时间
             </summary>
@@ -2197,102 +2253,8 @@
             <param name="code">要发送的验证码内容。</param>
             <param name="cancellationToken">取消操作标记。</param>
         </member>
-        <member name="T:api.Infrastructure.IFileService">
-            <summary>
-            文件存储与访问服务接口，按用户隔离文件的物理存储路径。
-            </summary>
-        </member>
-        <member name="M:api.Infrastructure.IFileService.SaveImageAsync(System.UInt64,Microsoft.AspNetCore.Http.IFormFile,System.Boolean,System.Threading.CancellationToken)">
-            <summary>
-            为指定用户保存图片文件并返回文件标识。
-            </summary>
-            <param name="userId">当前登录用户的 ID。</param>
-            <param name="file">待保存的图片文件。</param>
-            <param name="isPublic">是否为公开文件（公开文件存储在公共路径，私有文件存储在加密路径）。</param>
-            <param name="cancellationToken">取消操作的标记。</param>
-            <returns>用于后续访问该图片的文件标识（不含扩展名，默认访问 .webp）。</returns>
-        </member>
-        <member name="M:api.Infrastructure.IFileService.GetImageAsync(System.UInt64,System.String,System.Boolean,System.Threading.CancellationToken)">
-            <summary>
-            为指定用户读取图片文件内容。
-            </summary>
-            <param name="userId">当前登录用户的 ID。</param>
-            <param name="fileKey">图片文件标识。</param>
-            <param name="isPublic">是否为公开文件。</param>
-            <param name="cancellationToken">取消操作的标记。</param>
-            <returns>若存在则返回文件流和内容类型，否则返回 null。</returns>
-        </member>
-        <member name="M:api.Infrastructure.IFileService.SaveChatFileAsync(System.UInt64,System.UInt64,Microsoft.AspNetCore.Http.IFormFile,System.Threading.CancellationToken)">
-            <summary>
-            为指定用户保存通用文件（视频、音频、文档、压缩包等）并返回文件信息。
-            </summary>
-            <param name="userId">当前登录用户的 ID。</param>
-            <param name="conversationId">会话ID（用于隐私文件权限控制）。</param>
-            <param name="file">待保存的文件。</param>
-            <param name="cancellationToken">取消操作的标记。</param>
-            <returns>文件信息（文件Key、原始文件名、文件大小、MIME类型）。</returns>
-        </member>
-        <member name="M:api.Infrastructure.IFileService.GetChatFileAsync(System.UInt64,System.String,System.Threading.CancellationToken)">
-            <summary>
-            读取聊天文件内容（需要验证会话成员权限）。
-            </summary>
-            <param name="userId">当前登录用户的 ID。</param>
-            <param name="fileKey">文件标识。</param>
-            <param name="cancellationToken">取消操作的标记。</param>
-            <returns>若存在则返回文件流和内容类型，否则返回 null。</returns>
-        </member>
-        <member name="M:api.Infrastructure.IFileService.SaveConversationAvatarAsync(System.UInt64,System.UInt64,Microsoft.AspNetCore.Http.IFormFile,System.Threading.CancellationToken)">
-            <summary>
-            为指定会话保存头像文件。
-            </summary>
-            <param name="userId">当前登录用户的 ID。</param>
-            <param name="conversationId">会话ID。</param>
-            <param name="file">待保存的头像文件。</param>
-            <param name="cancellationToken">取消操作的标记。</param>
-            <returns>文件标识。</returns>
-        </member>
-        <member name="M:api.Infrastructure.IFileService.GetConversationAvatarAsync(System.UInt64,System.UInt64,System.String,System.Threading.CancellationToken)">
-            <summary>
-            读取会话头像（需要验证会话成员权限）。
-            </summary>
-            <param name="userId">当前登录用户的 ID。</param>
-            <param name="conversationId">会话ID。</param>
-            <param name="fileKey">头像文件标识。</param>
-            <param name="cancellationToken">取消操作的标记。</param>
-            <returns>若存在则返回文件流和内容类型，否则返回 null。</returns>
-        </member>
-        <member name="T:api.Infrastructure.FileInfoResult">
-            <summary>
-            文件信息结果
-            </summary>
-        </member>
-        <member name="T:api.Infrastructure.LocalFileService">
-            <summary>
-            基于本地文件系统的文件存储实现，按用户和会话隔离存储。
-            </summary>
-        </member>
-        <member name="M:api.Infrastructure.LocalFileService.#ctor(Microsoft.AspNetCore.Hosting.IWebHostEnvironment,api.Data.DailyCheckDbContext)">
-            <summary>
-            基于本地文件系统的文件存储实现，按用户和会话隔离存储。
-            </summary>
-        </member>
-        <member name="M:api.Infrastructure.LocalFileService.SaveImageAsync(System.UInt64,Microsoft.AspNetCore.Http.IFormFile,System.Boolean,System.Threading.CancellationToken)">
-            <inheritdoc />
-        </member>
-        <member name="M:api.Infrastructure.LocalFileService.GetImageAsync(System.UInt64,System.String,System.Boolean,System.Threading.CancellationToken)">
-            <inheritdoc />
-        </member>
         <member name="M:api.Infrastructure.LocalFileService.SaveChatFileAsync(System.UInt64,System.UInt64,Microsoft.AspNetCore.Http.IFormFile,System.Threading.CancellationToken)">
-            <inheritdoc />
-        </member>
-        <member name="M:api.Infrastructure.LocalFileService.GetChatFileAsync(System.UInt64,System.String,System.Threading.CancellationToken)">
-            <inheritdoc />
-        </member>
-        <member name="M:api.Infrastructure.LocalFileService.SaveConversationAvatarAsync(System.UInt64,System.UInt64,Microsoft.AspNetCore.Http.IFormFile,System.Threading.CancellationToken)">
-            <inheritdoc />
-        </member>
-        <member name="M:api.Infrastructure.LocalFileService.GetConversationAvatarAsync(System.UInt64,System.UInt64,System.String,System.Threading.CancellationToken)">
-            <inheritdoc />
+            <inheritdoc/>
         </member>
         <member name="T:api.Infrastructure.GlobalExceptionMiddleware">
             <summary>

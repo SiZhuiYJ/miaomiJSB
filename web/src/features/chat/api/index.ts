@@ -82,14 +82,15 @@ export async function getMessageReadStatus(messageId: number) {
 export async function uploadChatFile(conversationId: number, file: File) {
   const formData = new FormData();
   formData.append('file', file);
-  
+
   return await http.post<ChatFileInfo>(
     `/mm/files/chat/${conversationId}/upload`,
     formData,
     {
       headers: {
         'Content-Type': 'multipart/form-data'
-      }
+      },
+      allowDuplicate: true,
     }
   );
 }
@@ -116,7 +117,7 @@ export function getChatFileUrl(fileKey: string): string {
 export async function uploadConversationAvatar(conversationId: number, file: File) {
   const formData = new FormData();
   formData.append('file', file);
-  
+
   return await http.post<{ key: string }>(
     `/mm/files/chat/${conversationId}/avatar`,
     formData,
