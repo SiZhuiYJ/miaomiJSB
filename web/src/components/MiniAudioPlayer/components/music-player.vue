@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useMusicPlayer } from "../composables/useMusicPlayer";
 import SvgIcon from "@/components/SvgIcon/index.vue";
 
@@ -37,7 +37,18 @@ const {
     seek,
     changeVolume,
     toggleMute,
+    loadTrack,
 } = player;
+
+// 监听 URL 变化，切换音频源
+watch(() => props.url, (newUrl) => {
+    if (newUrl) {
+        // 停止当前播放
+        isPlaying.value = false;
+        // 加载新的音频
+        loadTrack({ url: newUrl }, false);
+    }
+}, { immediate: false });
 
 const timelineStyle = computed(() => ({
     "--slider-progress": `${progress.value}%`,

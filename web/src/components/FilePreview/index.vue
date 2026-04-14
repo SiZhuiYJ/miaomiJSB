@@ -79,13 +79,13 @@
         <div class="preview-content" :style="contentStyle">
           <!-- 图片预览 -->
           <div v-if="currentFileType === 'image'" class="image-preview">
-            <img ref="imageRef" :src="currentFile?.url || currentFile?.path" :alt="currentFile?.name"
+            <img ref="imageRef" :key="currentFile?.url" :src="currentFile?.url || currentFile?.path" :alt="currentFile?.name"
               :style="imageStyle" @load="handleImageLoad" />
           </div>
 
           <!-- 视频预览 -->
           <div v-else-if="currentFileType === 'video'" class="video-preview">
-            <video ref="videoRef" :src="currentFile?.url || currentFile?.path" controls autoplay preload="metadata"
+            <video ref="videoRef" :key="currentFile?.url" :src="currentFile?.url || currentFile?.path" controls autoplay preload="metadata"
               @loadeddata="handleVideoLoaded">
               您的浏览器不支持视频播放
             </video>
@@ -93,7 +93,7 @@
 
           <!-- 音频预览 -->
           <div v-else-if="currentFileType === 'audio'" class="audio-preview">
-            <MiniAudioPlayer v-if="currentFile?.url" :url="currentFile.url" :title="currentFile?.name"
+            <MiniAudioPlayer v-if="currentFile?.url" :key="currentFile.url" :url="currentFile.url" :title="currentFile?.name"
               :cover-url="coverUrl" @loaded="handleAudioLoaded" />
           </div>
 
@@ -374,6 +374,22 @@ const handleKeyDown = (e: KeyboardEvent) => {
 // 监听文件变化
 watch(() => props.currentIndex, () => {
   resetPreview()
+})
+
+// 监听当前文件变化，确保 loading 状态正确
+watch(currentFile, (newFile) => {
+  if (newFile) {
+    // 对于音频和视频，需要等待加载完成事件
+    const type = getFileType(newFile)
+    if (type === 'audio' || type === 'video') {
+      loading.value = true
+    } else if (type === 'image') {
+      loading.value = true
+    } else {
+      // 其他类型（PDF、文档等）立即隐藏 loading
+      loading.value = false
+    }
+  }
 })
 
 // 生命周期
