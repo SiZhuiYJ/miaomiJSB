@@ -199,7 +199,7 @@ public partial class DailyCheckDbContext : DbContext
                 .HasComment("自增主键")
                 .HasColumnName("id");
             entity.Property(e => e.ContentType)
-                .HasMaxLength(64)
+                .HasMaxLength(255)
                 .HasComment("MIME类型")
                 .HasColumnName("content_type");
             entity.Property(e => e.ConversationId)

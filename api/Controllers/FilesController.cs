@@ -363,7 +363,7 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
             return NotFound("文件不存在或无访问权限");
 
         // 设置响应头，支持文件下载和预览
-        Response.Headers.Append("Content-Disposition", $"inline; filename=\"{Uri.EscapeDataString(result.Value.FileName)}\"");
+        // Response.Headers.Append("Content-Disposition", $"inline; filename=\"{Uri.EscapeDataString(result.Value.FileName)}\"");
         Response.Headers.Append("X-Content-Type-Options", "nosniff");
         
         return File(result.Value.Stream, result.Value.ContentType);

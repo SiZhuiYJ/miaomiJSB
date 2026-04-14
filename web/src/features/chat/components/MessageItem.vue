@@ -31,7 +31,7 @@ const props = defineProps<{
 
                 <!-- 文件类消息（图片、视频、音频、文档等） -->
                 <template v-if="['image', 'video', 'audio', 'file'].includes(props.message.messageType)">
-                    <FileMessage :extra="props.message.extra" :show-download="true" />
+                    <FileMessage :message="props.message" :show-download="true" :src />
                 </template>
 
                 <!-- 文本消息 -->

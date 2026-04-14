@@ -103,12 +103,11 @@ export default defineConfig(({ mode }) => {
           entryFileNames: "js/[name]-[hash].js", // 包的入口文件名称
           assetFileNames: "[ext]/[name]-[hash].[ext]", // 资源文件像 字体，图片等
 
-          // 按业务相关性分包，避免“每个依赖一个 chunk”导致的空 chunk 和碎片化请求
           manualChunks(id) {
             if (!id.includes("node_modules")) return;
             const pkgName = getNodeModulePackageName(id);
 
-            // UI 组件库（体积最大，单独拆分）
+            // 1. UI 组件库核心（Element Plus 主包及内部依赖）
             if (
               pkgName === "element-plus" ||
               pkgName === "@floating-ui/dom" ||
@@ -118,12 +117,12 @@ export default defineConfig(({ mode }) => {
               return "vendor-element-plus-core";
             }
 
-            // Element Plus 图标单独拆分，避免与核心组件合并后过大
+            // 2. Element Plus 图标（独立，按需加载时体积更小）
             if (pkgName === "@element-plus/icons-vue") {
               return "vendor-element-plus-icons";
             }
 
-            // Vue 生态核心
+            // 3. Vue 生态 + 常用工具库（合并避免循环依赖）
             if (
               pkgName === "vue" ||
               pkgName === "vue-router" ||
@@ -131,26 +130,32 @@ export default defineConfig(({ mode }) => {
               pkgName === "@vue/shared" ||
               pkgName === "@vue/runtime-core" ||
               pkgName === "@vue/runtime-dom" ||
-              pkgName === "@vue/reactivity"
-            ) {
-              return "vendor-vue";
-            }
-
-            // 常用工具库
-            if (
+              pkgName === "@vue/reactivity" ||
               pkgName === "axios" ||
               pkgName === "dayjs" ||
               pkgName === "lodash-es" ||
               pkgName === "@vueuse/core"
             ) {
-              return "vendor-utils";
+              return "vendor-vue-utils";
             }
 
-            // 动画库按需独立
+            // 4. GSAP 动画库独立
             if (pkgName === "gsap") {
               return "vendor-gsap";
             }
-          },
+
+            // 5. 其他大型依赖可单独拆分（如 pdf/office 相关）
+            if (pkgName === "@vue-office/pdf" || pkgName === "@vue-office/docx" || pkgName === "@vue-office/excel") {
+              return "vendor-office";
+            }
+
+            if (pkgName === "@ffmpeg/ffmpeg" || pkgName === "@ffmpeg/util") {
+              return "vendor-ffmpeg";
+            }
+
+            // 6. 其余 node_modules 内容归入 vendor
+            return "vendor";
+          }
         },
       },
       // 提升告警阈值，避免对已合理拆分的 vendor 包持续误报

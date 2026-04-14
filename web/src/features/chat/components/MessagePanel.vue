@@ -3,7 +3,6 @@
 import { nextTick, watch, useTemplateRef, computed, ref } from 'vue';
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia';
-import { ElMessage } from 'element-plus';
 import MessageItem from './MessageItem.vue';
 import FileUploadButton from './FileUploadButton.vue';
 import ConversationDetailDialog from './ConversationDetailDialog.vue';

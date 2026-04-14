@@ -77,35 +77,69 @@
 
         <!-- 主预览区域 -->
         <div class="preview-content" :style="contentStyle">
-          <!-- 图片预览 -->
+
+          <!-- 图片预览区域 -->
           <div v-if="currentFileType === 'image'" class="image-preview">
-            <img ref="imageRef" :key="currentFile?.url" :src="currentFile?.url || currentFile?.path" :alt="currentFile?.name"
-              :style="imageStyle" @load="handleImageLoad" />
+            <el-image ref="imageRef" v-if="currentFile?.url" :key="currentFile?.url"
+              :src="currentFile?.url || currentFile?.path" :alt="currentFile?.name" :style="imageStyle" fit="contain"
+              :preview-src-list="[currentFile.url]" :hide-on-click-modal="true" @load="handleImageLoad"
+              @error="handleImageError" />
           </div>
 
           <!-- 视频预览 -->
           <div v-else-if="currentFileType === 'video'" class="video-preview">
-            <video ref="videoRef" :key="currentFile?.url" :src="currentFile?.url || currentFile?.path" controls autoplay preload="metadata"
-              @loadeddata="handleVideoLoaded">
+            <video ref="videoRef" :key="currentFile?.url" :src="currentFile?.url" :poster="currentFile?.path" controls
+              autoplay preload="metadata" @loadeddata="handleVideoLoaded">
               您的浏览器不支持视频播放
             </video>
           </div>
 
           <!-- 音频预览 -->
-          <div v-else-if="currentFileType === 'audio'" class="audio-preview">
-            <MiniAudioPlayer v-if="currentFile?.url" :key="currentFile.url" :url="currentFile.url" :title="currentFile?.name"
-              :cover-url="coverUrl" @loaded="handleAudioLoaded" />
+          <div v-else-if="currentFileType === 'audio'" class="audio-preview" :title="currentFile?.url">
+            <MiniAudioPlayer v-if="currentFile?.url" :key="currentFile.url" :url="currentFile.url"
+              :title="currentFile?.name" :cover-url="coverUrl" @loaded="handleAudioLoaded" />
           </div>
 
-          <!-- PDF预览 -->
-          <div v-else-if="currentFileType === 'pdf'" class="pdf-preview">
-            <iframe :src="currentFile?.url || currentFile?.path" frameborder="0" class="pdf-frame"></iframe>
+          <!-- Office文档预览 -->
+          <!-- 新版 docx -->
+          <div v-else-if="currentFileType === 'document' && currentFile?.url" class="document-preview">
+            <vue-office-docx :src="currentFile.url" class="docx-class" @rendered="() => { console.log('渲染完成') }"
+              @error="handleOfficeError" />
           </div>
 
-          <!-- Office文档预览 (使用Microsoft Online Viewer或Google Docs Viewer) -->
-          <div v-else-if="currentFileType === 'document'" class="document-preview">
-            <iframe :src="getDocumentViewerUrl(currentFile?.url || currentFile?.path || '')" frameborder="0"
-              class="document-frame"></iframe>
+          <!-- 新版 xlsx -->
+          <div v-else-if="currentFileType === 'excel' && currentFile?.url" class="document-preview">
+            <vue-office-excel :src="currentFile.url" class="xlsx-class" @rendered="() => { console.log('渲染完成') }"
+              @error="handleOfficeError" />
+          </div>
+
+          <!-- 新版 pptx -->
+          <div v-else-if="currentFileType === 'presentation' && currentFile?.url" class="document-preview">
+            <vue-office-pptx :src="currentFile.url" class="pptx-class" @rendered="() => { console.log('渲染完成') }"
+              @error="handleOfficeError" style="height: 100%;" />
+          </div>
+
+          <!-- PDF 预览 -->
+          <div v-else-if="currentFileType === 'pdf' && currentFile?.url" class="pdf-preview">
+            <vue-office-pdf :src="currentFile.url" class="pdf-class"
+              @rendered="() => { console.log('PDF 渲染完成', currentFile?.url) }" @error="handleOfficeError" />
+          </div>
+
+          <!-- 文本文件预览 -->
+          <div v-else-if="currentFileType === 'text'" class="txt-preview">
+            <pre v-if="content">{{ content }}</pre>
+          </div>
+
+          <!-- 旧版 Office 格式 文件 -->
+          <div v-else-if="['doc', 'xls', 'ppt'].includes(currentFileType)" class="unsupported-preview">
+            <div class="unsupported-icon">
+              <svg viewBox="0 0 24 24" width="80" height="80">
+                <path fill="currentColor"
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2z" />
+              </svg>
+            </div>
+            <p>{{ legacyFileMessage }}</p>
+            <button class="download-btn" @click="handleDownload">下载文件</button>
           </div>
 
           <!-- 不支持的文件类型 -->
@@ -148,6 +182,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { MiniAudioPlayer } from '../MiniAudioPlayer/index'
+import VueOfficeDocx from '@vue-office/docx';
+import VueOfficePptx from '@vue-office/pptx';
+import VueOfficeExcel from '@vue-office/excel';
+import VueOfficePdf from '@vue-office/pdf';
+
+import '@vue-office/docx/lib/index.css';
+import '@vue-office/excel/lib/index.css';
 
 interface FileItem {
   name: string
@@ -225,12 +266,6 @@ const currentFileType = computed(() => {
 // 判断是否为图片
 const isImage = (file: FileItem) => getFileType(file) === 'image'
 
-// 获取文档查看器URL
-const getDocumentViewerUrl = (url: string) => {
-  // 使用Microsoft Office Online Viewer
-  return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`
-}
-
 // 图片样式
 const imageStyle = computed(() => ({
   transform: `scale(${scale.value}) rotate(${rotate.value}deg)`,
@@ -242,6 +277,23 @@ const contentStyle = computed(() => ({
   cursor: scale.value > 1 ? 'grab' : 'default'
 }))
 
+
+const legacyFileMessage = computed(() => {
+  const type = currentFileType.value
+  if (type === 'doc') return '此文件为旧版 .doc 格式，暂不支持在线预览，请下载后查看。'
+  if (type === 'xls') return '此文件为旧版 .xls 格式，暂不支持在线预览。'
+  if (type === 'ppt') return '此文件为旧版 .ppt 格式，暂不支持在线预览。'
+  return '该文件类型暂不支持在线预览'
+})
+
+const handleOfficeError = (err: Error) => {
+  console.error('Office 预览失败:', err)
+  error.value = '文档加载失败，可能文件已损坏或格式不兼容'
+}
+const handleImageError = () => {
+  loading.value = false
+  error.value = '图片加载失败'
+}
 // 处理图片加载
 const handleImageLoad = () => {
   loading.value = false
@@ -296,12 +348,41 @@ const handleSwitchFile = (index: number) => {
   resetPreview()
 }
 
+const content = ref<string | null>(null);
+
+async function convertBlobUrl() {
+  loading.value = true;
+  content.value = null;
+  if (currentFile.value?.url) {
+    try {
+      const text = await blobUrlToString(currentFile.value?.url);
+      content.value = text;
+    } catch (err: any) {
+      console.error(err.message || '转换失败');
+    } finally {
+      loading.value = false;
+    }
+  }
+}
+
+/**
+ * 将 blob URL 对应的内容读取为字符串
+ * @param blobUrl blob:// 协议的 URL
+ * @returns 解析后的字符串
+ * @throws 当 fetch 失败或响应无效时抛出错误
+ */
+async function blobUrlToString(blobUrl: string): Promise<string> {
+  const response = await fetch(blobUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch blob: ${response.status} ${response.statusText}`);
+  }
+  return await response.text();
+}
+
 // 重置预览状态
 const resetPreview = () => {
-  scale.value = 1
-  rotate.value = 0
-  loading.value = true
-  error.value = ''
+  scale.value = 1;
+  rotate.value = 0;
 }
 
 // 关闭预览
@@ -385,6 +466,9 @@ watch(currentFile, (newFile) => {
       loading.value = true
     } else if (type === 'image') {
       loading.value = true
+    } else if (type === 'text') {
+      // 调用文本加载函数
+      convertBlobUrl();
     } else {
       // 其他类型（PDF、文档等）立即隐藏 loading
       loading.value = false
@@ -394,6 +478,7 @@ watch(currentFile, (newFile) => {
 
 // 生命周期
 onMounted(() => {
+  console.log(props)
   document.addEventListener('keydown', handleKeyDown)
 })
 
@@ -558,7 +643,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  // overflow: auto;
+  overflow: hidden; // 防止内容溢出被裁剪
   position: relative;
 
   // 隐藏滚动条但保留滚动功能
@@ -572,6 +657,7 @@ onUnmounted(() => {
 
 // 图片预览
 .image-preview {
+  overflow: visible; // 允许 transform 后内容不被裁剪
   width: 100%;
   height: 100%;
   display: flex;
@@ -595,8 +681,11 @@ onUnmounted(() => {
   justify-content: center;
 
   video {
-    width: 100%;
-    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain; // 保证等比完整显示
     outline: none;
   }
 }
@@ -614,6 +703,8 @@ onUnmounted(() => {
 .pdf-preview {
   width: 100%;
   height: 100%;
+  // 垂直滚动条
+  overflow-x: auto;
 
   .pdf-frame {
     width: 100%;
@@ -622,16 +713,75 @@ onUnmounted(() => {
   }
 }
 
+/* ---------- 文本预览样式（核心） ---------- */
+.txt-preview {
+  width: 100%;
+  height: 100%;
+  background: #1e1e1e;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.txt-preview pre {
+  margin: 0;
+  font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #d4d4d4;
+  /* 浅灰文字 */
+  white-space: pre-wrap;
+  /* 自动换行 */
+  word-wrap: break-word;
+  tab-size: 4;
+  -moz-tab-size: 4;
+}
+
+/* 自定义滚动条（与整体风格一致） */
+.xlsx-class::-webkit-scrollbar-thumb:active,
+.pptx-class::-webkit-scrollbar-thumb:active,
+.docx-class::-webkit-scrollbar-thumb:active,
+.docx-class::-webkit-scrollbar-thumb:active,
+.pdf-preview::-webkit-scrollbar,
+.txt-preview::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.xlsx-class::-webkit-scrollbar-thumb:active,
+.pptx-class::-webkit-scrollbar-thumb:active,
+.docx-class::-webkit-scrollbar-thumb:active,
+.docx-class::-webkit-scrollbar-thumb:active,
+.txt-preview::-webkit-scrollbar-corner,
+.txt-preview::-webkit-scrollbar-track {
+  background: #2d2d2d;
+  border-radius: 4px;
+}
+
+.xlsx-class::-webkit-scrollbar-thumb:active,
+.pptx-class::-webkit-scrollbar-thumb:active,
+.docx-class::-webkit-scrollbar-thumb:active,
+.docx-class::-webkit-scrollbar-thumb:active,
+.txt-preview::-webkit-scrollbar-thumb,
+.txt-preview::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+.xlsx-class::-webkit-scrollbar-thumb:active,
+.pptx-class::-webkit-scrollbar-thumb:active,
+.docx-class::-webkit-scrollbar-thumb:active,
+.txt-preview::-webkit-scrollbar-thumb:active,
+.txt-preview::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
 // 文档预览
 .document-preview {
   width: 100%;
   height: 100%;
-
-  .document-frame {
-    width: 100%;
-    height: 100%;
-    border: none;
-  }
 }
 
 // 不支持的文件类型
@@ -750,5 +900,9 @@ onUnmounted(() => {
 .preview-fade-enter-from,
 .preview-fade-leave-to {
   opacity: 0;
+}
+
+:deep(.pptx-preview-wrapper) {
+  height: 100% !important;
 }
 </style>

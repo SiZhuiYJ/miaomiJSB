@@ -16,7 +16,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Paperclip } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
 import { validateFile } from '../utils/fileHelper';
 import { convertToWebP } from '@/utils/convertToWebP';
 
