@@ -308,7 +308,7 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <Transition name="preview-fade">
-      <div v-if="visible" class="file-preview-overlay" @click.self="handleClose">
+      <div v-show="visible" class="file-preview-overlay" @click.self="handleClose">
         <!-- 顶部工具栏 -->
         <div class="preview-toolbar">
           <div class="toolbar-left">
@@ -366,10 +366,7 @@ onUnmounted(() => {
                 color="#ffffff" />
             </div>
             <div v-else class="thumbnail-icon">
-              <svg viewBox="0 0 24 24" width="24" height="24">
-                <path fill="currentColor"
-                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" />
-              </svg>
+              <svg-icon v-if="getFileType(file)" :icon-class="'document-' + getFileType(file)" size="48px" />
             </div>
           </button>
         </div>

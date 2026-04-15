@@ -15,6 +15,8 @@ const videoObserver: Directive = {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
+            // 静音播放
+            el.muted = true;
             // 进入视口时尝试播放
             el.play().catch((e) => console.log("自动播放被阻止:", e));
           } else {

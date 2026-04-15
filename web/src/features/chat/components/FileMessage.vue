@@ -1,15 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Download, Headset, WarningFilled, Loading } from '@element-plus/icons-vue';
-// import FilePreview from '@/components/FilePreview/index.vue';
 import type { FileExtra, MessageType, MessageSummary } from '../types';
 import {
   formatFileSize,
-  getFileIcon,
   parseMessageExtra,
 } from '../utils/fileHelper';
 import { useFileDownloader } from '../composables/useFileDownloader';
 import SvgIcon from '@/components/SvgIcon/index.vue'
+import { notifyError } from '@/utils/notification';
 
 const props = defineProps<{
   message?: MessageSummary | null;
@@ -150,6 +148,12 @@ const previewFiles = computed(() => {
 // 新增方法：手动触发下载
 async function triggerDownload() {
   if (!fileExtra.value?.fileKey) return;
+
+  // 文件大于15mb 则提示不支持在线预览请下载
+  if (fileExtra.value.fileSize > 15 * 1024 * 1024) {
+    notifyError('文件过大，请下载后查看');
+    return;
+  }
 
   // 如果已下载过（imageUrl/mediaUrl/docUrl 有值）则直接预览，否则加入下载队列
   if (category.value === 'image' && imageUrl.value) {
@@ -303,28 +307,9 @@ function handleClick() {
     <!-- 音频消息 -->
     <div v-else-if="category === 'audio' && fileExtra" class="audio-message">
       <div class="audio-icon">
-        <!-- <el-icon :size="32">
-          <Headset />
-        </el-icon> -->
-        <svg-icon name-class="document-voice" size="32px" />
+        <svg-icon icon-class="document-voice" size="48px" />
       </div>
       <div class="audio-content">
-        <audio v-if="mediaUrl && !hasError" :src="mediaUrl" controls preload="metadata">
-          您的浏览器不支持音频播放
-        </audio>
-        <div v-else-if="loading" class="audio-loading">
-          <el-icon class="is-loading">
-            <Loading />
-          </el-icon>
-          <span>加载中...</span>
-        </div>
-        <!-- 💡 Added explicit error state -->
-        <div v-else class="audio-error-placeholder">
-          <el-icon>
-            <WarningFilled />
-          </el-icon>
-          <span>音频加载失败</span>
-        </div>
         <div class="file-name">{{ fileExtra.fileName }}</div>
         <div class="file-meta">
           <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
@@ -336,7 +321,8 @@ function handleClick() {
     <!-- 文档和压缩包消息 -->
     <div v-else-if="fileExtra" class="document-message">
       <div class="document-icon" :class="category">
-        <span class="icon">{{ getFileIcon(category) }}</span>
+        <!-- <span class="icon">{{ getFileIcon(category) }}</span> -->
+        <svg-icon v-if="fileExtra.mimeType" :icon-class="'document-' + docType(fileExtra.mimeType)" size="48px" />
       </div>
       <div class="document-info">
         <div class="file-name" :title="fileExtra.fileName">
@@ -348,7 +334,7 @@ function handleClick() {
         </div>
       </div>
       <!-- 下载按钮仅作为备选，也可触发下载 -->
-      <el-button v-if="showDownload" @click.stop="triggerDownload">
+      <el-button v-if="showDownload" size="small" circle class="download-btn" @click.stop="triggerDownload">
         <el-icon>
           <Download />
         </el-icon>
@@ -481,7 +467,12 @@ function handleClick() {
   min-width: 280px;
 
   .audio-icon {
-    color: #409eff;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
   }
 
