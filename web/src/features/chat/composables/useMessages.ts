@@ -27,7 +27,7 @@ export function useMessages(conversationId: () => number) {
       seen.add(msg.id);
       deduped.push(msg);
     }
-    return deduped;
+    return deduped.sort((a, b) => a.id - b.id);
   }
 
   async function loadMessages(beforeId?: number, limit = 50) {
@@ -77,7 +77,7 @@ export function useMessages(conversationId: () => number) {
           .filter(m => m.id > lastId)
           .sort((a, b) => a.id - b.id);
         if (newMessages.length) {
-          messages.value = [...messages.value, ...newMessages].sort((a, b) => a.id - b.id);
+          messages.value = mergeMessages(messages.value, newMessages);
         }
       }
     } catch (error: any) {
@@ -93,7 +93,7 @@ export function useMessages(conversationId: () => number) {
     try {
       const result = await API.sendMessage(convId, payload);
       if (result.data) {
-        messages.value = [...messages.value, result.data];
+        messages.value = mergeMessages(messages.value, [result.data]);
       }
       return result.data;
     } catch (error: any) {

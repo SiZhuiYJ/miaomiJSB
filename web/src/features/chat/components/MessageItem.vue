@@ -10,7 +10,6 @@ const props = defineProps<{
     isMine: boolean
     readText: string
     readColor: string
-    createdAt: string
 }>()
 </script>
 

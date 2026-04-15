@@ -42,8 +42,8 @@ onBeforeUnmount(() => {
 });
 
 // 为 MessagePanel 预计算已读展示信息（可选优化）
-const readInfoMap = computed(() => {
-  const map = new Map();
+const readInfoMap = computed<Map<number, { readText: string; readColor: string }>>(() => {
+  const map = new Map<number, { readText: string; readColor: string }>();
   for (const msg of chat.messages.value) {
     map.set(msg.id, chat.getReadInfo(msg));
   }

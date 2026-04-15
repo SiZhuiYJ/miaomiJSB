@@ -21,7 +21,6 @@ const observerMap = new WeakMap<
 // 创建或获取共享的 observer（若配置相同可复用，这里为简单起见每个元素独立 observer）
 function createObserver(
     el: Element,
-    handler: ViewportCallback,
     options: IntersectionObserverInit = { threshold: 0 }
 ): IntersectionObserver {
     const observer = new IntersectionObserver((entries) => {
@@ -57,7 +56,7 @@ const viewportDirective: ObjectDirective<HTMLElement, ViewportBindingValue | Vie
             return
         }
 
-        const observer = createObserver(el, handler, options)
+        const observer = createObserver(el, options)
         observerMap.set(el, { observer, handler })
     },
 
@@ -88,7 +87,7 @@ const viewportDirective: ObjectDirective<HTMLElement, ViewportBindingValue | Vie
             // 停止旧的观察
             oldData.observer.disconnect()
             // 创建新的 observer
-            const newObserver = createObserver(el, newHandler, newOptions)
+            const newObserver = createObserver(el, newOptions)
             observerMap.set(el, { observer: newObserver, handler: newHandler })
         }
     },

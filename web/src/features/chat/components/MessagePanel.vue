@@ -1,6 +1,6 @@
 <!-- MessagePanel.vue -->
 <script setup lang="ts">
-import { nextTick, watch, useTemplateRef, computed, ref } from 'vue';
+import { nextTick, watch, useTemplateRef, computed, provide, ref } from 'vue';
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import MessageItem from './MessageItem.vue';
@@ -8,7 +8,6 @@ import FileUploadButton from './FileUploadButton.vue';
 import ConversationDetailDialog from './ConversationDetailDialog.vue';
 import type { ConversationDetail, MessageSummary, MessageReadStatus, SendMessagePayload } from '../types';
 import {
-  formatChatTimeShort,
   formatDateSeparator,
   getMemberAvatarBySender,
   getConversationDisplayTitle,
@@ -18,22 +17,22 @@ import { uploadFileForMessage } from '../utils/fileHelper';
 const model = defineModel<string>({ default: '' });
 const currentConversation = defineModel<ConversationDetail>('conversationDetail');
 
-// MessagePanel.vue 主要添加
-import { provide, reactive } from 'vue';
 import FilePreview from '@/components/FilePreview/index.vue';
 
-// 全局画廊状态
-const galleryVisible = ref(false);
-const galleryFileList = ref<Array<{
+interface GalleryFile {
   name: string;
   url: string;
   type: string;
-  path?: string;   // 用于缩略图
-}>>([]);
+  path?: string;
+}
+
+// 全局画廊状态
+const galleryVisible = ref(false);
+const galleryFileList = ref<GalleryFile[]>([]);
 const galleryIndex = ref(0);
 
 // 注册文件到画廊
-function registerFileToGallery(file: { name: string; url: string; type: string; path?: string }) {
+function registerFileToGallery(file: GalleryFile) {
   const existingIndex = galleryFileList.value.findIndex(f => f.url === file.url);
   if (existingIndex === -1) {
     galleryFileList.value.push(file);
@@ -160,7 +159,9 @@ watch(
 );
 
 // 消息进入视图时加载已读状态
-function onMessageVisible(messageId: number) {
+function onMessageVisible(entry: IntersectionObserverEntry) {
+  const messageId = Number((entry.target as HTMLElement).dataset.messageId);
+  if (!Number.isFinite(messageId)) return;
   if (!props.messageReadStatus?.has(messageId)) {
     emit('loadMessageReadStatus', messageId);
   }
@@ -189,11 +190,12 @@ async function handleFileSelected(files: File[]) {
   }
 
   uploadingFiles.value = true;
+  let successCount = 0;
+  let failedCount = 0;
 
   try {
     for (const file of files) {
       try {
-
         const { extra, messageType } = await uploadFileForMessage(
           currentConversation.value.id,
           file
@@ -206,13 +208,20 @@ async function handleFileSelected(files: File[]) {
         };
 
         emit('sendMessage', payload);
-      } catch (error: any) {
+        successCount++;
+      } catch (error: unknown) {
+        failedCount++;
         console.error(`Failed to upload file ${file.name}:`, error);
-        ElMessage.error(`${file.name}: ${error.message || '上传失败'}`);
+        const message = error instanceof Error ? error.message : '上传失败';
+        ElMessage.error(`${file.name}: ${message}`);
       }
     }
-    ElMessage.success('文件发送成功');
-  } catch (error: any) {
+    if (successCount > 0 && failedCount === 0) {
+      ElMessage.success(files.length === 1 ? '文件发送成功' : `${successCount} 个文件发送成功`);
+    } else if (successCount > 0) {
+      ElMessage.warning(`${successCount} 个文件发送成功，${failedCount} 个失败`);
+    }
+  } catch (error: unknown) {
     console.error('File upload error:', error);
     ElMessage.error('文件发送失败');
   } finally {
@@ -232,10 +241,11 @@ async function handleFileSelected(files: File[]) {
 
             <div class="date-separator"> <el-divider border-style="dashed">{{ group.dateLabel }}</el-divider></div>
             <!-- 分组内的消息 -->
-            <MessageItem v-for="msg in group.messages" :key="msg.id" @vue:mounted="onMessageVisible(msg.id)"
+            <MessageItem v-for="msg in group.messages" :key="msg.id" v-viewport="onMessageVisible"
+              :data-message-id="msg.id"
               :message="msg" :src="getMemberAvatarBySender(currentConversation, msg.senderUserId)"
-              :meUserId="props.meUserId" :createdAt="formatChatTimeShort(msg.createdAt)"
-              :is-mine="msg.senderUserId === props.meUserId" v-bind="getReadDisplay(msg.id)" />
+              :meUserId="props.meUserId" :is-mine="msg.senderUserId === props.meUserId"
+              v-bind="getReadDisplay(msg.id)" />
           </template>
         </div>
       </el-scrollbar>

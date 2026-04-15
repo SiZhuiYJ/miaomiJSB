@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
-import type { FileExtra, MessageType, MessageSummary } from '../types';
+import { computed, inject, ref, watch } from 'vue';
+import { Download, Loading, WarningFilled } from '@element-plus/icons-vue';
+import type { FileExtra, MessageSummary } from '../types';
 import {
   formatFileSize,
+  getDocumentIconType,
+  getFilePreviewType,
+  getFileTypeLabel,
+  isPreviewableFileType,
   parseMessageExtra,
 } from '../utils/fileHelper';
 import { useFileDownloader } from '../composables/useFileDownloader';
@@ -20,186 +25,169 @@ const fileExtra = computed<FileExtra | null>(() => {
   return parseMessageExtra(props.message?.extra);
 });
 
-// FileMessage.vue 补充
-import { inject } from 'vue';
+interface GalleryFile {
+  name: string;
+  url: string;
+  type: string;
+  path?: string;
+}
 
 const gallery = inject<{
-  register: (file: any) => void;
+  register: (file: GalleryFile) => void;
   open: (url?: string) => void;
 }>('gallery');
 
-function registerToGlobalGallery(blobUrl: string) {
+const PREVIEW_SIZE_LIMIT = 15 * 1024 * 1024;
+
+const previewUrl = ref('');
+const thumbnailUrl = ref('');
+const previewLoading = ref(false);
+const thumbnailLoading = ref(false);
+const hasError = ref(false);
+
+const { requestBlobUrl, requestDownload, downloadAndSaveFile } = useFileDownloader();
+
+const category = computed(() => getFilePreviewType(fileExtra.value));
+const documentIconName = computed(() => `document-${getDocumentIconType(category.value, fileExtra.value)}`);
+const displayType = computed(() => getFileTypeLabel(category.value));
+const isPreviewable = computed(() => isPreviewableFileType(category.value));
+const isLargeForPreview = computed(() => (fileExtra.value?.fileSize ?? 0) > PREVIEW_SIZE_LIMIT);
+
+watch(
+  () => ({
+    fileKey: fileExtra.value?.fileKey,
+    thumbnailKey: fileExtra.value?.thumbnailUrl,
+    category: category.value,
+  }),
+  () => {
+    previewUrl.value = '';
+    thumbnailUrl.value = '';
+    previewLoading.value = false;
+    thumbnailLoading.value = false;
+    hasError.value = false;
+    loadInlineMedia();
+  },
+  { immediate: true },
+);
+
+function registerToGlobalGallery(url: string) {
   if (!gallery || !fileExtra.value) return;
   gallery.register({
     name: fileExtra.value.fileName,
-    url: blobUrl,
+    url,
     type: category.value,
-    path: category.value === 'video' ? imageUrl.value : category.value === 'audio' ? props.src : undefined,
+    path: thumbnailUrl.value || undefined,
   });
 }
 
-function openGlobalPreview() {
-  const url = category.value === 'image' ? imageUrl.value :
-    ['video', 'audio'].includes(category.value) ? mediaUrl.value :
-      category.value === 'text' ? textUrl.value : docUrl.value;
-  console.log(url)
+function openGlobalPreview(url = previewUrl.value) {
+  if (!url) return;
   gallery?.open(url);
 }
 
-const showFile = ref(false);
-const hasError = ref(false);
-
-const docType = (mimeType: string) => {
-  if (mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') return 'excel';
-  else if (mimeType === 'application/vnd.ms-excel') return 'xls'
-  else if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'word';
-  else if (mimeType === 'application/msword') return 'doc'
-  else if (mimeType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') return 'pptx';
-  else if (mimeType === 'application/vnd.ms-powerpoint') return 'ppt'
-  else if (mimeType === 'application/pdf') return 'pdf'
-  else if (mimeType === 'text/markdown') return 'markdown'
-  else if (mimeType === 'text/plain') return 'text';
-  else if (mimeType === 'text/html') return 'html';
-  else if (mimeType === 'application/json') return 'json';
-  else if (mimeType === 'application/xml') return 'xml';
-  else if (mimeType === 'application/css') return 'css';
-  else if (mimeType === 'application/javascript') return 'javascript';
-  else return 'unknown';
+function openCachedPreview() {
+  if (!previewUrl.value) return false;
+  registerToGlobalGallery(previewUrl.value);
+  openGlobalPreview(previewUrl.value);
+  return true;
 }
 
-const category = computed(() => {
-  if (!fileExtra.value) return 'unknown';
-  const ext = fileExtra.value.mimeType ? fileExtra.value.mimeType.split('/')[0] : '';
-  if (fileExtra.value.mimeType) {
-    if (ext === 'application') {
-      const dt = docType(fileExtra.value.mimeType);
-      if (dt !== 'unknown') return dt;
-      if (fileExtra.value.mimeType === 'application/zip' || fileExtra.value.mimeType === 'application/x-rar-compressed') {
-        return 'archive';
-      }
-    } else if (ext === 'text') {
-      return 'text';
-    }
+function setPreviewUrl(blobUrl: string) {
+  previewUrl.value = blobUrl;
+  registerToGlobalGallery(blobUrl);
+  openGlobalPreview(blobUrl);
+}
+
+function loadInlineMedia() {
+  const currentFile = fileExtra.value;
+  if (!currentFile?.fileKey) return;
+
+  if (category.value === 'image') {
+    const fileKey = currentFile.fileKey;
+    previewLoading.value = true;
+    requestBlobUrl(fileKey, {
+      isNew: props.isNewMessage ?? false,
+      onComplete: (blobUrl: string) => {
+        if (fileExtra.value?.fileKey !== fileKey) return;
+        previewUrl.value = blobUrl;
+        previewLoading.value = false;
+        registerToGlobalGallery(blobUrl);
+      },
+      onError: (error: Error) => {
+        if (fileExtra.value?.fileKey !== fileKey) return;
+        handlePreviewError(error);
+      },
+    });
+    return;
   }
-  return ext as MessageType;
-});
 
-const imageUrl = ref<string>('');
-const mediaUrl = ref<string>('');
-const docUrl = ref<string>('');
-const textUrl = ref<string>('');
-const loading = ref(false);
+  if (category.value === 'video' && currentFile.thumbnailUrl) {
+    const thumbnailKey = currentFile.thumbnailUrl;
+    thumbnailLoading.value = true;
+    requestBlobUrl(thumbnailKey, {
+      isNew: props.isNewMessage ?? false,
+      onComplete: (blobUrl: string) => {
+        if (fileExtra.value?.thumbnailUrl !== thumbnailKey) return;
+        thumbnailUrl.value = blobUrl;
+        thumbnailLoading.value = false;
+      },
+      onError: (error: Error) => {
+        if (fileExtra.value?.thumbnailUrl !== thumbnailKey) return;
+        console.error('FileMessage thumbnail failed:', error);
+        thumbnailLoading.value = false;
+      },
+    });
+  }
+}
 
-const { requestDownload, downloadAndSaveFile } = useFileDownloader();
+function handlePreviewError(error: Error) {
+  console.error('FileMessage preview failed:', error);
+  previewLoading.value = false;
+  hasError.value = true;
+  notifyError('文件加载失败，请稍后重试');
+}
 
-const previewFiles = computed(() => {
-  if (!fileExtra.value) return [];
-  const url = category.value === 'image' ? imageUrl.value :
-    ['video', 'audio'].includes(category.value) ? mediaUrl.value :
-      category.value === 'text' ? textUrl.value :
-        docUrl.value;
-  return [{
-    name: fileExtra.value.fileName,
-    url: url,
-    path: imageUrl.value,
-    type: category.value
-  }];
-});
+async function triggerPreview() {
+  if (!fileExtra.value?.fileKey || previewLoading.value) return;
 
-// 移除 watch 中的自动下载逻辑
-// watch(() => fileExtra.value?.fileKey, (fileKey) => {
-//   if (!fileKey || !fileExtra.value) {
-//     return;
-//   }
+  if (!isPreviewable.value) {
+    await handleDownload();
+    return;
+  }
 
-//   loading.value = true;
-//   hasError.value = false;
-//   imageUrl.value = '';
-//   mediaUrl.value = '';
-//   docUrl.value = '';
-//   textUrl.value = '';
-
-//   const item = {
-//     fileKey,
-//     category: category.value,
-//     thumbnailUrl: fileExtra.value.thumbnailUrl,
-//     src: props.src,
-//     onComplete: (blobUrl: string) => {
-//       if (category.value === 'image') imageUrl.value = blobUrl;
-//       else if (['video', 'audio'].includes(category.value)) mediaUrl.value = blobUrl;
-//       else if (['excel', 'word', 'pptx', 'pdf'].includes(category.value)) docUrl.value = blobUrl;
-//       else if (category.value === 'text') textUrl.value = blobUrl;
-//       loading.value = false;
-//     },
-//     onThumbnailComplete: (blobUrl: string) => {
-//       imageUrl.value = blobUrl;
-//     },
-//     onError: (error: Error) => {
-//       loading.value = false;
-//       hasError.value = true;
-//       console.error(`FileMessage: Failed to load ${fileKey}`, error);
-//     }
-//   };
-
-//   requestDownload(item, props.isNewMessage ?? false);
-
-// }, { immediate: true });
-
-// 新增方法：手动触发下载
-async function triggerDownload() {
-  if (!fileExtra.value?.fileKey) return;
-
-  // 文件大于15mb 则提示不支持在线预览请下载
-  if (fileExtra.value.fileSize > 15 * 1024 * 1024) {
+  if (isLargeForPreview.value) {
     notifyError('文件过大，请下载后查看');
     return;
   }
 
-  // 如果已下载过（imageUrl/mediaUrl/docUrl 有值）则直接预览，否则加入下载队列
-  if (category.value === 'image' && imageUrl.value) {
-    openGlobalPreview();
-    return;
-  }
+  if (openCachedPreview()) return;
 
-  if (['video', 'audio'].includes(category.value) && imageUrl.value && mediaUrl.value) {
-    openGlobalPreview();
-    console.log("直接加载文档")
-    return;
-  }
-  if (['excel', 'word', 'pptx', 'pdf'].includes(category.value) && docUrl.value) {
-    openGlobalPreview();
-    console.log("直接加载文档")
-    return;
-  }
-
-  loading.value = true;
+  previewLoading.value = true;
   hasError.value = false;
 
-  const item = {
+  requestDownload({
     fileKey: fileExtra.value.fileKey,
     category: category.value,
-    thumbnailUrl: fileExtra.value.thumbnailUrl,
-    src: props.src,
+    thumbnailUrl: category.value === 'video' ? fileExtra.value.thumbnailUrl : undefined,
     onComplete: (blobUrl: string) => {
-      if (category.value === 'image') imageUrl.value = blobUrl;
-      else if (['video', 'audio'].includes(category.value)) mediaUrl.value = blobUrl;
-      else if (['excel', 'word', 'pptx', 'pdf'].includes(category.value)) docUrl.value = blobUrl;
-      else if (category.value === 'text') textUrl.value = blobUrl;
-      loading.value = false;
-      // ✅ 下载完成后注册到全局画廊并打开预览
-      registerToGlobalGallery(blobUrl);
-      openGlobalPreview();
+      previewLoading.value = false;
+      setPreviewUrl(blobUrl);
     },
     onThumbnailComplete: (blobUrl: string) => {
-      imageUrl.value = blobUrl;
+      thumbnailUrl.value = blobUrl;
     },
-    onError: (error: Error) => {
-      console.log(error)
-      loading.value = false;
-      hasError.value = true;
-    }
-  };
-  requestDownload(item, true); // 用户主动点击视为高优先级
+    onError: handlePreviewError,
+  }, props.isNewMessage ?? true);
+}
+
+async function handleDownload() {
+  if (!fileExtra.value?.fileKey) return;
+  await downloadAndSaveFile(fileExtra.value.fileKey, fileExtra.value.fileName);
+}
+
+function handleClick() {
+  if (!fileExtra.value) return;
+  void triggerPreview();
 }
 
 const imageStyle = computed(() => {
@@ -224,51 +212,32 @@ function formatDuration(seconds: number): string {
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
-
-// 💡 This function now uses the central downloader.
-async function handleDownload() {
-  if (!fileExtra.value || !fileExtra.value.fileKey) return;
-  downloadAndSaveFile(fileExtra.value.fileKey, fileExtra.value.fileName);
-}
-
-// function handleClick() {
-//   // Only show preview for successfully loaded media/docs
-//   if (loading.value || hasError.value) return;
-//   // if (category.value === 'image' || category.value === 'video' || category.value === 'word' || category.value === 'pdf' || category.value === 'text') {
-//   //   showFile.value = true;
-//   // }
-//   if (category.value != 'unknown')
-//     showFile.value = true;
-// }
-
-// 修改 handleClick：不再依赖 loading/hasError，而是触发下载+预览
-function handleClick() {
-  if (!fileExtra.value) return;
-  triggerDownload();
-}
 </script>
 
 <template>
-  <!-- v-viewport="handleClick" -->
   <div class="file-message" @click="handleClick">
     <!-- 图片消息 -->
     <div v-if="category === 'image' && fileExtra" class="image-message">
-      <img v-if="imageUrl && !hasError" :src="imageUrl" :alt="fileExtra.fileName" :style="imageStyle"
+      <img v-if="previewUrl && !hasError" :src="previewUrl" :alt="fileExtra.fileName" :style="imageStyle"
         @error="handleImageError" loading="lazy" />
-      <div v-else-if="loading" class="image-loading">
+      <div v-else-if="previewLoading" class="image-loading">
         <el-icon class="is-loading">
           <Loading />
         </el-icon>
         <span>加载中...</span>
       </div>
-      <!-- 💡 Added explicit error state -->
-      <div v-else class="image-error-placeholder">
+      <div v-else-if="hasError" class="image-error-placeholder">
         <el-icon>
           <WarningFilled />
         </el-icon>
         <span>图片加载失败</span>
       </div>
-      <div v-if="showDownload && imageUrl && !hasError" class="image-overlay">
+      <div v-else class="image-placeholder">
+        <svg-icon icon-class="document-png" size="48px" />
+        <span>{{ fileExtra.fileName }}</span>
+        <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
+      </div>
+      <div v-if="showDownload && previewUrl && !hasError" class="image-overlay">
         <el-button size="small" circle @click.stop="handleDownload">
           <el-icon>
             <Download />
@@ -279,21 +248,30 @@ function handleClick() {
 
     <!-- 视频消息 -->
     <div v-else-if="category === 'video' && fileExtra" class="video-message">
-      <video v-if="mediaUrl && !hasError" :src="mediaUrl" controls :poster="imageUrl" preload="metadata" v-videoPlay>
-        您的浏览器不支持视频播放
-      </video>
-      <div v-else-if="loading" class="media-loading">
+      <div v-if="thumbnailUrl" class="video-cover">
+        <img :src="thumbnailUrl" :alt="fileExtra.fileName" loading="lazy" />
+        <div class="video-cover-overlay">
+          <el-icon v-if="previewLoading" class="is-loading" :size="28">
+            <Loading />
+          </el-icon>
+          <svg-icon v-else icon-class="general-play" size="32px" />
+        </div>
+      </div>
+      <div v-else-if="thumbnailLoading" class="media-loading">
         <el-icon class="is-loading">
           <Loading />
         </el-icon>
-        <span>加载视频中...</span>
+        <span>加载封面中...</span>
       </div>
-      <!-- 💡 Added explicit error state -->
-      <div v-else class="media-error-placeholder">
+      <div v-else-if="hasError" class="media-error-placeholder">
         <el-icon>
           <WarningFilled />
         </el-icon>
         <span>视频加载失败</span>
+      </div>
+      <div v-else class="media-placeholder">
+        <svg-icon icon-class="document-video" size="48px" />
+        <span>{{ previewLoading ? '加载视频中...' : '点击加载视频' }}</span>
       </div>
       <div class="file-info">
         <div class="file-name">{{ fileExtra.fileName }}</div>
@@ -307,7 +285,13 @@ function handleClick() {
     <!-- 音频消息 -->
     <div v-else-if="category === 'audio' && fileExtra" class="audio-message">
       <div class="audio-icon">
-        <svg-icon icon-class="document-voice" size="48px" />
+        <el-icon v-if="previewLoading" class="is-loading" :size="24">
+          <Loading />
+        </el-icon>
+        <el-icon v-else-if="hasError" :size="24">
+          <WarningFilled />
+        </el-icon>
+        <svg-icon v-else icon-class="document-voice" size="48px" />
       </div>
       <div class="audio-content">
         <div class="file-name">{{ fileExtra.fileName }}</div>
@@ -321,8 +305,7 @@ function handleClick() {
     <!-- 文档和压缩包消息 -->
     <div v-else-if="fileExtra" class="document-message">
       <div class="document-icon" :class="category">
-        <!-- <span class="icon">{{ getFileIcon(category) }}</span> -->
-        <svg-icon v-if="fileExtra.mimeType" :icon-class="'document-' + docType(fileExtra.mimeType)" size="48px" />
+        <svg-icon :icon-class="documentIconName" size="48px" />
       </div>
       <div class="document-info">
         <div class="file-name" :title="fileExtra.fileName">
@@ -330,11 +313,10 @@ function handleClick() {
         </div>
         <div class="file-meta">
           <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
-          <span v-if="fileExtra.mimeType" class="file-type">{{ docType(fileExtra.mimeType) || 'FILE' }}</span>
+          <span class="file-type">{{ displayType }}</span>
         </div>
       </div>
-      <!-- 下载按钮仅作为备选，也可触发下载 -->
-      <el-button v-if="showDownload" size="small" circle class="download-btn" @click.stop="triggerDownload">
+      <el-button v-if="showDownload" size="small" circle class="download-btn" @click.stop="handleDownload">
         <el-icon>
           <Download />
         </el-icon>
@@ -385,6 +367,30 @@ function handleClick() {
   font-size: 13px;
 }
 
+.image-placeholder,
+.media-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 180px;
+  min-height: 120px;
+  padding: 20px;
+  color: #777;
+  font-size: 13px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  box-sizing: border-box;
+
+  span {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 .image-overlay {
   position: absolute;
   top: 0;
@@ -419,10 +425,33 @@ function handleClick() {
   overflow: hidden;
   background: #f5f5f5;
 
+  .video-cover,
   video {
     width: 100%;
     display: block;
-    // max-height: 300px;
+  }
+
+  .video-cover {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: #e5e7eb;
+
+    img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+  }
+
+  .video-cover-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.22);
   }
 
   .media-loading {

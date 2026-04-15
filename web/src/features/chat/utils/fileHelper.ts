@@ -55,15 +55,106 @@ export const SUPPORTED_FILE_TYPES = {
   ],
 };
 
+export type FileCategory = keyof typeof SUPPORTED_FILE_TYPES | "unknown";
+export type FilePreviewType =
+  | "image"
+  | "video"
+  | "audio"
+  | "word"
+  | "excel"
+  | "pptx"
+  | "pdf"
+  | "text"
+  | "doc"
+  | "xls"
+  | "ppt"
+  | "archive"
+  | "unknown";
+
+export type DocumentIconType =
+  | "word"
+  | "excel"
+  | "pptx"
+  | "pdf"
+  | "text"
+  | "zip"
+  | "rar"
+  | "css"
+  | "htm"
+  | "java"
+  | "note"
+  | "unknown";
+
+const MIME_PREVIEW_TYPE_MAP: Record<string, FilePreviewType> = {
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "excel",
+  "application/vnd.ms-excel": "xls",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "word",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+  "application/vnd.ms-powerpoint": "ppt",
+  "application/pdf": "pdf",
+  "text/markdown": "text",
+  "text/plain": "text",
+  "text/csv": "text",
+  "text/html": "text",
+  "application/json": "text",
+  "application/xml": "text",
+  "text/xml": "text",
+  "text/css": "text",
+  "application/css": "text",
+  "application/javascript": "text",
+  "text/javascript": "text",
+};
+
+const EXT_PREVIEW_TYPE_MAP: Record<string, FilePreviewType> = {
+  docx: "word",
+  doc: "doc",
+  xlsx: "excel",
+  xls: "xls",
+  pptx: "pptx",
+  ppt: "ppt",
+  pdf: "pdf",
+  txt: "text",
+  md: "text",
+  csv: "text",
+  html: "text",
+  htm: "text",
+  json: "text",
+  xml: "text",
+  css: "text",
+  js: "text",
+  zip: "archive",
+  rar: "archive",
+  "7z": "archive",
+  tar: "archive",
+  gz: "archive",
+  bz2: "archive",
+};
+
+const PREVIEWABLE_FILE_TYPES = new Set<FilePreviewType>([
+  "image",
+  "video",
+  "audio",
+  "word",
+  "excel",
+  "pptx",
+  "pdf",
+  "text",
+  "doc",
+  "xls",
+  "ppt",
+]);
+
 /**
  * 获取文件类型分类
  */
 export function getFileCategory(
-  mimeType: string,
-): "image" | "video" | "audio" | "document" | "archive" | "unknown" {
+  mimeType?: string | null,
+): FileCategory {
+  if (!mimeType) return "unknown";
   for (const [category, types] of Object.entries(SUPPORTED_FILE_TYPES)) {
     if (types.includes(mimeType)) {
-      return category as any;
+      return category as FileCategory;
     }
   }
   return "unknown";
@@ -74,7 +165,7 @@ export function getFileCategory(
  */
 export function getFileCategoryByName(
   fileName: string,
-): "image" | "video" | "audio" | "document" | "archive" | "unknown" {
+): FileCategory {
   const ext = fileName.split(".").pop()?.toLowerCase();
 
   const imageExts = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "ico"];
@@ -105,14 +196,78 @@ export function getFileCategoryByName(
   return "unknown";
 }
 
+export function getFilePreviewType(
+  file?: Pick<FileExtra, "mimeType" | "fileName"> | null,
+): FilePreviewType {
+  if (!file) return "unknown";
+
+  const mimeType = file.mimeType?.toLowerCase() || "";
+  if (mimeType.startsWith("image/")) return "image";
+  if (mimeType.startsWith("video/")) return "video";
+  if (mimeType.startsWith("audio/")) return "audio";
+
+  const mappedByMime = MIME_PREVIEW_TYPE_MAP[mimeType];
+  if (mappedByMime) return mappedByMime;
+
+  const category = getFileCategory(mimeType);
+  if (category === "archive") return "archive";
+
+  const ext = file.fileName.split(".").pop()?.toLowerCase() || "";
+  return EXT_PREVIEW_TYPE_MAP[ext] || "unknown";
+}
+
+export function getDocumentIconType(
+  previewType: FilePreviewType,
+  file?: Pick<FileExtra, "mimeType" | "fileName"> | null,
+): DocumentIconType {
+  if (previewType === "word" || previewType === "doc") return "word";
+  if (previewType === "excel" || previewType === "xls") return "excel";
+  if (previewType === "pptx" || previewType === "ppt") return "pptx";
+  if (previewType === "pdf") return "pdf";
+
+  const ext = file?.fileName.split(".").pop()?.toLowerCase() || "";
+  if (previewType === "archive") return ext === "rar" ? "rar" : "zip";
+  if (ext === "css") return "css";
+  if (ext === "html" || ext === "htm") return "htm";
+  if (ext === "js") return "java";
+  if (ext === "md") return "note";
+  if (previewType === "text") return "text";
+
+  return "unknown";
+}
+
+export function getFileTypeLabel(previewType: FilePreviewType): string {
+  const labels: Record<FilePreviewType, string> = {
+    image: "image",
+    video: "video",
+    audio: "audio",
+    word: "word",
+    excel: "excel",
+    pptx: "pptx",
+    pdf: "pdf",
+    text: "text",
+    doc: "doc",
+    xls: "xls",
+    ppt: "ppt",
+    archive: "archive",
+    unknown: "file",
+  };
+  return labels[previewType];
+}
+
+export function isPreviewableFileType(previewType: FilePreviewType): boolean {
+  return PREVIEWABLE_FILE_TYPES.has(previewType);
+}
+
 /**
  * 格式化文件大小
  */
 export function formatFileSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return "0 B";
   if (bytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 }
 
@@ -132,7 +287,8 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
   }
 
   const category = getFileCategory(file.type);
-  if (category === "unknown") {
+  const categoryByName = category === "unknown" ? getFileCategoryByName(file.name) : category;
+  if (categoryByName === "unknown") {
     return { valid: false, error: "不支持的文件类型" };
   }
 
@@ -156,17 +312,11 @@ export async function uploadFileForMessage(
     // 1. 生成封面文件
     const coverFile = await extractVideoFrameToWebP(file, { quality: 1 });
 
-    console.log('file', file);
-    console.log('coverFile', coverFile);
-
     // 2. 并行上传视频和封面
     const [videoInfo, coverInfo] = await Promise.all([
       uploadChatFile(conversationId, file),
       uploadChatFile(conversationId, coverFile),
     ]);
-
-    console.log('videoInfo', videoInfo);
-    console.log('coverInfo', coverInfo);
 
     // 3. 获取视频时长
     const duration = await getMediaDuration(file);
@@ -182,7 +332,6 @@ export async function uploadFileForMessage(
       thumbnailUrl: coverInfo.data.fileKey,
       duration: duration ?? undefined,
     };
-    console.log('extra', extra);
     return { extra, messageType: 'video' };
   }
 
@@ -362,8 +511,7 @@ export function getFileIcon(category: string): string {
     archive: "📦",
     unknown: "📎",
   };
-  // Use type assertion to avoid TS error
-  return (icons as any)[category] || "📎";
+  return icons[category] || "📎";
 }
 
 /**

@@ -51,7 +51,7 @@ export function useMessageRead(
   }
 
   function clearReadStatus() {
-    messageReadStatus.value.clear();
+    messageReadStatus.value = new Map();
   }
 
   return {

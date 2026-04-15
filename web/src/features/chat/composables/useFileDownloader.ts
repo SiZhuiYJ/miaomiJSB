@@ -1,4 +1,4 @@
-import { ref, reactive } from "vue";
+import { reactive } from "vue";
 import http from "@/libs/http/file";
 import { useAuthStore } from "@/features/auth/stores";
 
@@ -6,7 +6,6 @@ interface QueueItem {
     fileKey: string;
     category: string;
     thumbnailUrl?: string;
-    src?: string;
     onComplete: (blobUrl: string) => void;
     onThumbnailComplete?: (blobUrl: string) => void;
     onError: (error: Error) => void;
@@ -17,21 +16,26 @@ interface DownloadTask {
     priority: "high" | "low";
 }
 
+interface BlobUrlRequest {
+    onComplete: (blobUrl: string) => void;
+    onError: (error: Error) => void;
+    isNew?: boolean;
+}
+
 const downloadedBlobs = reactive<Record<string, string>>({});
 const queue = reactive<DownloadTask[]>([]);
-// const maxConcurrentDownloads = 2;
-let activeDownloads = ref(0);
+let activeDownloads = 0;
 
-// useFileDownloader.ts 关键改动
-const maxConcurrentDownloads = 2; // 低带宽降低并发
-const maxRetries = 2;             // 增加重试次数
+const maxConcurrentDownloads = 2;
+const maxRetries = 2;
+const retryDelayMs = 800;
 
 async function downloadWithRetry(url: string, retries = maxRetries): Promise<Blob> {
     try {
         return await downloadFile(url);
     } catch (error) {
         if (retries > 0) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise(resolve => setTimeout(resolve, retryDelayMs));
             return downloadWithRetry(url, retries - 1);
         }
         throw error;
@@ -57,17 +61,17 @@ async function downloadFile(url: string): Promise<Blob> {
 }
 
 async function processQueue() {
-    if (activeDownloads.value >= maxConcurrentDownloads || queue.length === 0) {
+    if (activeDownloads >= maxConcurrentDownloads || queue.length === 0) {
         return;
     }
 
-    activeDownloads.value++;
+    activeDownloads++;
 
     const taskIndex = queue.findIndex((t) => t.priority === "high");
     const task = taskIndex !== -1 ? queue.splice(taskIndex, 1)[0] : queue.shift();
 
     if (!task) {
-        activeDownloads.value--;
+        activeDownloads--;
         return;
     }
 
@@ -76,7 +80,6 @@ async function processQueue() {
         fileKey,
         category,
         thumbnailUrl,
-        src,
         onComplete,
         onThumbnailComplete,
         onError,
@@ -96,16 +99,13 @@ async function processQueue() {
             if (category === "video" && thumbnailUrl) {
                 thumbKey = thumbnailUrl;
                 thumbUrl = `${normalizedBaseUrl}/mm/files/chat/${thumbnailUrl}`;
-            } else if (category === "audio" && src) {
-                thumbKey = src;
-                thumbUrl = src;
             }
 
             if (thumbKey && thumbUrl) {
                 if (downloadedBlobs[thumbKey]) {
                     onThumbnailComplete(downloadedBlobs[thumbKey]!);
                 } else {
-                    const thumbBlob = await downloadFile(thumbUrl);
+                    const thumbBlob = await downloadWithRetry(thumbUrl);
                     const thumbBlobUrl = URL.createObjectURL(thumbBlob);
                     downloadedBlobs[thumbKey] = thumbBlobUrl;
                     onThumbnailComplete(thumbBlobUrl);
@@ -118,7 +118,7 @@ async function processQueue() {
             onComplete(downloadedBlobs[fileKey]);
         } else {
             const fileUrl = `${normalizedBaseUrl}/mm/files/chat/${fileKey}`;
-            const blob = await downloadFile(fileUrl);
+            const blob = await downloadWithRetry(fileUrl);
             const blobUrl = URL.createObjectURL(blob);
             downloadedBlobs[fileKey] = blobUrl;
             onComplete(blobUrl);
@@ -127,26 +127,24 @@ async function processQueue() {
         console.error(`Failed to download file ${fileKey}:`, error);
         onError(error as Error);
     } finally {
-        activeDownloads.value--;
+        activeDownloads--;
         processQueue();
     }
 }
 
 function requestDownload(item: QueueItem, isNew: boolean) {
-    const { fileKey, thumbnailUrl, category, src } = item;
+    const { fileKey, thumbnailUrl, category } = item;
 
     const mainAssetReady = downloadedBlobs[fileKey];
     let thumbAssetReady = true;
     if (category === "video" && thumbnailUrl) {
         thumbAssetReady = !!downloadedBlobs[thumbnailUrl];
-    } else if (category === "audio" && src) {
-        thumbAssetReady = !!downloadedBlobs[src];
     }
 
     if (mainAssetReady && thumbAssetReady && downloadedBlobs[fileKey]) {
         item.onComplete(downloadedBlobs[fileKey]);
         if (item.onThumbnailComplete) {
-            const thumbKey = category === "video" ? thumbnailUrl : src;
+            const thumbKey = category === "video" ? thumbnailUrl : undefined;
             if (thumbKey && downloadedBlobs[thumbKey]) {
                 item.onThumbnailComplete(downloadedBlobs[thumbKey]);
             }
@@ -167,9 +165,18 @@ function requestDownload(item: QueueItem, isNew: boolean) {
         queue.push(task);
     }
 
-    if (activeDownloads.value < maxConcurrentDownloads) {
+    if (activeDownloads < maxConcurrentDownloads) {
         processQueue();
     }
+}
+
+function requestBlobUrl(fileKey: string, options: BlobUrlRequest) {
+    requestDownload({
+        fileKey,
+        category: "asset",
+        onComplete: options.onComplete,
+        onError: options.onError,
+    }, options.isNew ?? false);
 }
 
 async function downloadAndSaveFile(fileKey: string, fileName: string) {
@@ -187,11 +194,15 @@ async function downloadAndSaveFile(fileKey: string, fileName: string) {
             blob = await response.blob();
         } else {
             ElMessage.info("开始下载...");
-            blob = await downloadFile(url);
+            blob = await downloadWithRetry(url);
         }
 
-        if ((window.navigator as any).msSaveOrOpenBlob) {
-            (window.navigator as any).msSaveOrOpenBlob(blob, fileName);
+        const navigatorWithSave = window.navigator as Navigator & {
+            msSaveOrOpenBlob?: (blob: Blob, fileName: string) => void;
+        };
+
+        if (navigatorWithSave.msSaveOrOpenBlob) {
+            navigatorWithSave.msSaveOrOpenBlob(blob, fileName);
         } else {
             const objectUrl = URL.createObjectURL(blob);
             const link = document.createElement("a");
@@ -211,6 +222,7 @@ async function downloadAndSaveFile(fileKey: string, fileName: string) {
 
 export function useFileDownloader() {
     return {
+        requestBlobUrl,
         requestDownload,
         downloadAndSaveFile,
     };
