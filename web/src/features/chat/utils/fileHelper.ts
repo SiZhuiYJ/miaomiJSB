@@ -1,6 +1,6 @@
 import { uploadChatFile, getChatFileUrl } from "../api";
 import type { FileExtra, MessageType } from "../types";
-import { extractVideoFrameToWebP } from '@/utils/convertToWebP';
+import { convertToWebP, extractVideoFrameToWebP } from '@/utils/convertToWebP';
 import http from "@/libs/http";
 import { API_BASE_URL } from "@/config";
 
@@ -294,6 +294,62 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
   }
 
   return { valid: true };
+}
+
+export interface PreparedMessageUploadFiles {
+  files: File[];
+  invalidFiles: { name: string; error: string }[];
+  failedFiles: { name: string; error: string }[];
+}
+
+function getWebPFileName(fileName: string): string {
+  const normalizedName = fileName.trim() || "image";
+  return /\.[^.]+$/.test(normalizedName)
+    ? normalizedName.replace(/\.[^.]+$/, ".webp")
+    : `${normalizedName}.webp`;
+}
+
+/**
+ * 校验聊天文件，并将图片转换为 WebP 后再上传。
+ */
+export async function prepareFilesForMessageUpload(
+  files: File[],
+): Promise<PreparedMessageUploadFiles> {
+  const preparedFiles: File[] = [];
+  const invalidFiles: { name: string; error: string }[] = [];
+  const failedFiles: { name: string; error: string }[] = [];
+
+  for (const file of files) {
+    const validation = validateFile(file);
+    if (!validation.valid) {
+      invalidFiles.push({
+        name: file.name,
+        error: validation.error || "文件不可上传",
+      });
+      continue;
+    }
+
+    try {
+      if (file.type.startsWith("image/")) {
+        const webpFile = await convertToWebP(file, {
+          quality: 1,
+          output: "file",
+          fileName: getWebPFileName(file.name),
+        }) as File;
+        preparedFiles.push(webpFile);
+      } else {
+        preparedFiles.push(file);
+      }
+    } catch (error) {
+      console.error(`处理文件 ${file.name} 失败:`, error);
+      failedFiles.push({
+        name: file.name,
+        error: error instanceof Error ? error.message : "处理失败",
+      });
+    }
+  }
+
+  return { files: preparedFiles, invalidFiles, failedFiles };
 }
 
 /**

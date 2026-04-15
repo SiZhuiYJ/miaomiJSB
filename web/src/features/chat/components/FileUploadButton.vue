@@ -16,8 +16,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Paperclip } from '@element-plus/icons-vue';
-import { validateFile } from '../utils/fileHelper';
-import { convertToWebP } from '@/utils/convertToWebP';
+import { prepareFilesForMessageUpload } from '../utils/fileHelper';
 
 const props = defineProps<{
   conversationId?: number;
@@ -40,60 +39,30 @@ async function handleFileSelect(event: Event) {
   const input = event.target as HTMLInputElement;
   const files = Array.from(input.files || []);
 
-  if (files.length === 0) return;
-
-  // 验证所有文件
-  const invalidFiles: { name: string; error: string }[] = [];
-  const validFiles: File[] = [];
-
-  for (const file of files) {
-    const validation = validateFile(file);
-    if (validation.valid) {
-      try {
-        // 判断是否为图片，如果是图片则转换为 WebP 格式
-        if (file.type.startsWith('image/')) {
-          const webpFile = await convertToWebP(file, {
-            quality: 1,
-            output: 'file',
-            fileName: file.name.replace(/\.[^.]+$/, '.webp')
-          }) as File;
-          validFiles.push(webpFile);
-        }
-        // // 判断是否为视频，如果是视频则抽取随机帧作为封面
-        // else if (file.type.startsWith('video/')) {
-        //   const coverFile = await extractVideoFrameToWebP(file, {
-        //     quality: 1,
-        //     fileName: `${file.name}.webp`
-        //   });
-        //   validFiles.push(file);
-        //   validFiles.push(coverFile);
-        // } 
-        else {
-          validFiles.push(file);
-        }
-      } catch (error) {
-        console.error(`处理文件 ${file.name} 失败:`, error);
-        ElMessage.error(`${file.name}: 处理失败`);
-      }
-    } else {
-      invalidFiles.push({ name: file.name, error: validation.error || '' });
-    }
+  if (files.length === 0) {
+    input.value = '';
+    return;
   }
 
-  // 显示错误信息
-  if (invalidFiles.length > 0) {
+  uploading.value = true;
+  try {
+    const { files: validFiles, invalidFiles, failedFiles } = await prepareFilesForMessageUpload(files);
+
     invalidFiles.forEach(({ name, error }) => {
       ElMessage.warning(`${name}: ${error}`);
     });
-  }
+    failedFiles.forEach(({ name }) => {
+      ElMessage.error(`${name}: 处理失败`);
+    });
 
-  // 如果有有效文件，触发事件
-  if (validFiles.length > 0) {
-    emit('fileSelected', validFiles);
+    if (validFiles.length > 0) {
+      emit('fileSelected', validFiles);
+    }
+  } finally {
+    // 清空input，允许重复选择同一文件
+    input.value = '';
+    uploading.value = false;
   }
-
-  // 清空input，允许重复选择同一文件
-  input.value = '';
 }
 </script>
 

@@ -1,6 +1,5 @@
 <!-- ConversationSidebar.vue -->
 <script setup lang="ts">
-import { Top, MuteNotification, Message } from '@element-plus/icons-vue';
 import type { ConversationSummary } from '../types';
 import {
   getConversationAvatarUrl,

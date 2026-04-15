@@ -133,6 +133,11 @@ public class LocalFileService : IFileService
         var isImage = AllowedImageExtensions.Contains(originalExtension);
         string fileKey, storedExtension, contentType;
         long fileSize;
+        // 判断是否已存在fileKey 
+        if (await _db.ChatFileRecords.AnyAsync(x => x.ConversationId == conversationId && x.FileKey == file.FileName, cancellationToken))
+        {
+            throw new InvalidOperationException("文件已存在");
+        }
 
         if (isImage)
         {
@@ -205,7 +210,7 @@ public class LocalFileService : IFileService
 
         // 构造物理路径并返回文件流
         var root = GetChatRoot(record.ConversationId);
-        
+
         var (filePath, extension) = GetFilePathWithFallback(root, fileKey, AllowedImageExtensions, defaultExtension: ".webp");
         if (!File.Exists(filePath))
             return null;

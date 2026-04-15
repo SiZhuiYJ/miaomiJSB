@@ -1,7 +1,6 @@
 <!-- ConversationDetailDialog.vue -->
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Bell, MuteNotification } from '@element-plus/icons-vue';
 import IsPin from './IsPin.vue';
 import type { ConversationDetail } from '../types';
 import {

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, inject, ref, watch } from 'vue';
-import { Download, Loading, WarningFilled } from '@element-plus/icons-vue';
 import type { FileExtra, MessageSummary } from '../types';
 import {
   formatFileSize,
