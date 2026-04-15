@@ -18,6 +18,43 @@ import { uploadFileForMessage } from '../utils/fileHelper';
 const model = defineModel<string>({ default: '' });
 const currentConversation = defineModel<ConversationDetail>('conversationDetail');
 
+// MessagePanel.vue 主要添加
+import { provide, reactive } from 'vue';
+import FilePreview from '@/components/FilePreview/index.vue';
+
+// 全局画廊状态
+const galleryVisible = ref(false);
+const galleryFileList = ref<Array<{
+  name: string;
+  url: string;
+  type: string;
+  path?: string;   // 用于缩略图
+}>>([]);
+const galleryIndex = ref(0);
+
+// 注册文件到画廊
+function registerFileToGallery(file: { name: string; url: string; type: string; path?: string }) {
+  const existingIndex = galleryFileList.value.findIndex(f => f.url === file.url);
+  if (existingIndex === -1) {
+    galleryFileList.value.push(file);
+  }
+}
+
+// 打开画廊并定位到指定文件
+function openGallery(fileUrl?: string) {
+  if (fileUrl) {
+    const index = galleryFileList.value.findIndex(f => f.url === fileUrl);
+    galleryIndex.value = index >= 0 ? index : 0;
+  }
+  galleryVisible.value = true;
+}
+
+// 通过 provide 让子组件（FileMessage）能够调用注册和打开方法
+provide('gallery', {
+  register: registerFileToGallery,
+  open: openGallery,
+});
+
 const props = defineProps<{
   messages: MessageSummary[];
   meUserId?: number;
@@ -229,11 +266,13 @@ async function handleFileSelected(files: File[]) {
 
       <ConversationDetailDialog v-model="isChatDetail" :conversation="currentConversation"
         @update:conversation="emit('updateConversation')" @load-more="emit('loadMore')" />
+      <FilePreview v-model="galleryVisible" :file-list="galleryFileList" v-model:current-index="galleryIndex" />
     </div>
 
     <div v-else class="empty">请选择一个会话开始聊天。
     </div>
   </main>
+  <!-- 全局唯一 FilePreview 组件 -->
 </template>
 
 <style scoped lang="scss">

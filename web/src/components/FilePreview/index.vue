@@ -1,7 +1,8 @@
 <script setup lang="ts">
-// components/FilePreview/index.vue
+// web/src/components/FilePreview/index.vue
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { MiniAudioPlayer } from '../MiniAudioPlayer/index'
+import SvgIcon from '@/components/SvgIcon/index.vue';
 import VueOfficeDocx from '@vue-office/docx';
 import VueOfficePptx from '@vue-office/pptx';
 import VueOfficeExcel from '@vue-office/excel';
@@ -16,12 +17,13 @@ interface FileItem {
   path?: string
   type?: string
 }
+const visible = defineModel<boolean>({ required: true })
+const currentIndex = defineModel<number>('currentIndex', { required: true })
 
 interface Props {
   modelValue: boolean
   fileList: FileItem[]
   currentIndex?: number
-  coverUrl?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -29,21 +31,21 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean]
-  'update:currentIndex': [index: number]
+  // 'update:modelValue': [value: boolean]
+  // 'update:currentIndex': [index: number]
   close: []
 }>()
 
 // 状态管理
-const visible = computed({
-  get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
-})
+// const visible = computed({
+//   get: () => props.modelValue,
+//   set: (value) => emit('update:modelValue', value)
+// })
 
-const currentIndex = computed({
-  get: () => props.currentIndex,
-  set: (index) => emit('update:currentIndex', index)
-})
+// const currentIndex = computed({
+//   get: () => props.currentIndex,
+//   set: (index) => emit('update:currentIndex', index)
+// })
 
 const currentFile = computed(() => props.fileList[currentIndex.value])
 const loading = ref(false)
@@ -82,9 +84,6 @@ const currentFileType = computed(() => {
   if (!currentFile.value) return 'unknown'
   return getFileType(currentFile.value)
 })
-
-// 判断是否为图片
-const isImage = (file: FileItem) => getFileType(file) === 'image'
 
 // 图片样式
 const imageStyle = computed(() => ({
@@ -298,7 +297,6 @@ watch(currentFile, (newFile) => {
 
 // 生命周期
 onMounted(() => {
-  console.log(props)
   document.addEventListener('keydown', handleKeyDown)
 })
 
@@ -314,7 +312,7 @@ onUnmounted(() => {
         <!-- 顶部工具栏 -->
         <div class="preview-toolbar">
           <div class="toolbar-left">
-            <span class="file-name">{{ currentFile?.name }}</span>
+            <el-text class="file-name" :line-clamp="1">{{ currentFile?.name }}</el-text>
           </div>
           <div class="toolbar-right">
             <button class="toolbar-btn" @click="handleZoomIn" title="放大">
@@ -331,13 +329,13 @@ onUnmounted(() => {
                 <path fill="currentColor" d="M7 9h5v1H7z" />
               </svg>
             </button>
-            <button class="toolbar-btn" @click="handleResetZoom" title="重置缩放">
-              <svg viewBox="0 0 24 24" width="20" height="20">
+            <button class="toolbar-btn" @click="handleRotate" title="旋转">
+              <svg viewBox="0 0 24 24" width="20" height="20" style="transform: rotateY(180deg);">
                 <path fill="currentColor"
                   d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
               </svg>
             </button>
-            <button class="toolbar-btn" @click="handleRotate" title="旋转">
+            <button class="toolbar-btn" @click="handleResetZoom" title="重置缩放">
               <svg viewBox="0 0 24 24" width="20" height="20">
                 <path fill="currentColor"
                   d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
@@ -361,7 +359,12 @@ onUnmounted(() => {
         <div v-if="fileList.length > 1" class="thumbnail-list">
           <button v-for="(file, index) in fileList" :key="index" class="thumbnail-item"
             :class="{ active: currentIndex === index }" @click="handleSwitchFile(index)">
-            <img v-if="isImage(file)" :src="file.url || file.path" :alt="file.name" />
+            <img v-if="getFileType(file) === 'image'" :src="file.path || file.url" :alt="file.name" />
+            <div v-else-if="getFileType(file) === 'video' || getFileType(file) === 'audio'" class="thumbnail-media"
+              :style="`background-image: url(${file.path}); `">
+              <svg-icon :icon-class="getFileType(file) === 'video' ? 'general-play' : 'general-music'" size="24px"
+                color="#ffffff" />
+            </div>
             <div v-else class="thumbnail-icon">
               <svg viewBox="0 0 24 24" width="24" height="24">
                 <path fill="currentColor"
@@ -406,12 +409,12 @@ onUnmounted(() => {
           <!-- 音频预览 -->
           <div v-else-if="currentFileType === 'audio'" class="audio-preview" :title="currentFile?.url">
             <MiniAudioPlayer v-if="currentFile?.url" :key="currentFile.url" :url="currentFile.url"
-              :title="currentFile?.name" :cover-url="coverUrl" @loaded="handleAudioLoaded" />
+              :title="currentFile?.name" :cover-url="currentFile.path" @loaded="handleAudioLoaded" />
           </div>
 
           <!-- Office文档预览 -->
           <!-- 新版 docx -->
-          <div v-else-if="currentFileType === 'document' && currentFile?.url" class="document-preview">
+          <div v-else-if="currentFileType === 'word' && currentFile?.url" class="document-preview">
             <vue-office-docx :src="currentFile.url" class="docx-class" @rendered="() => { console.log('渲染完成') }"
               @error="handleOfficeError" />
           </div>
@@ -423,7 +426,7 @@ onUnmounted(() => {
           </div>
 
           <!-- 新版 pptx -->
-          <div v-else-if="currentFileType === 'presentation' && currentFile?.url" class="document-preview">
+          <div v-else-if="currentFileType === 'pptx' && currentFile?.url" class="document-preview">
             <vue-office-pptx :src="currentFile.url" class="pptx-class" @rendered="() => { console.log('渲染完成') }"
               @error="handleOfficeError" style="height: 100%;" />
           </div>
@@ -513,12 +516,14 @@ onUnmounted(() => {
   z-index: 10;
 
   .toolbar-left {
+    display: flex;
+
     .file-name {
       font-size: 14px;
       max-width: 400px;
       overflow: hidden;
       text-overflow: ellipsis;
-      white-space: nowrap;
+      // white-space: nowrap;
     }
   }
 
@@ -593,6 +598,16 @@ onUnmounted(() => {
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+
+    .thumbnail-media {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-size: cover;
+      background-position: center center;
     }
 
     .thumbnail-icon {

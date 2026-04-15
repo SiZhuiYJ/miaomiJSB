@@ -78,7 +78,8 @@ const onVolumeInput = (event: Event) => {
             <div class="glow"></div>
             <div class="hero-main">
                 <div class="vinyl-wrap">
-                    <div class="vinyl" :class="{ spinning: isPlaying }" :style="`--cover-url: url(${props.coverUrl})`">
+                    <div class="vinyl" :class="{ spinning: isPlaying }" :style="`--cover-url: url(${props.coverUrl})`"
+                        @click="togglePlay">
                     </div>
                 </div>
                 <div class="hero-text">
@@ -178,8 +179,6 @@ const onVolumeInput = (event: Event) => {
     transition: --hero-start 0.4s ease-in-out, --hero-end 0.4s ease-in-out;
 
     @media (max-width: 768px) {
-        width: calc(100vw - clamp(1rem, 4vw, 1.5rem) * 2);
-        height: auto;
         border-radius: 0;
         padding: clamp(1rem, 4vw, 1.5rem);
     }
@@ -198,7 +197,7 @@ const onVolumeInput = (event: Event) => {
 
 .hero-main {
     display: grid;
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 260px 1fr;
     grid-template-rows: auto auto auto;
     gap: clamp(1.25rem, 2vw, 2.5rem);
     align-items: center;
@@ -207,9 +206,9 @@ const onVolumeInput = (event: Event) => {
     height: 100%;
 
     grid-template-areas:
-        ".        info"
         "vinyl    info"
         "controls controls";
+
 
     .vinyl-wrap {
         grid-area: vinyl;
@@ -227,6 +226,13 @@ const onVolumeInput = (event: Event) => {
         flex-direction: column;
         justify-content: flex-end;
         height: 100%;
+    }
+
+
+    @media (max-height:600px) {
+        grid-template-areas:
+            "vinyl info"
+            "vinyl controls";
     }
 
     @media (max-width: 768px) {
@@ -505,11 +511,12 @@ const onVolumeInput = (event: Event) => {
 
     .volume {
         grid-area: volume;
-        display: flex;
+        display: grid;
         align-items: center;
         gap: 0.4rem;
         min-width: 180px;
-        justify-content: flex-end;
+        // justify-content: flex-end;
+        grid-template-columns: 48px 1fr 48px
     }
 
     @media (max-width: 768px) {
@@ -567,6 +574,7 @@ button svg {
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
+    white-space: nowrap;
 }
 
 .ghost:hover {

@@ -6,3 +6,17 @@ declare module "virtual:svg-icons-register" {
   const register: string;
   export default register;
 }
+import type { ViewportBindingValue } from './directives/viewport'
+
+declare module 'vue' {
+  interface ComponentCustomProperties {
+    vViewport: typeof import('./directives/viewport')['viewportDirective']
+  }
+}
+
+// 扩展全局指令类型
+declare module '@vue/runtime-core' {
+  interface GlobalDirectives {
+    viewport: (value: ViewportBindingValue) => void
+  }
+}

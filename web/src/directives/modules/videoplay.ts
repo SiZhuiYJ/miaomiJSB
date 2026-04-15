@@ -25,7 +25,7 @@ const videoObserver: Directive = {
         });
       },
       {
-        threshold: 0.5, // 至少50%可见时触发
+        threshold: 0.7, // 至少50%可见时触发
         rootMargin: "0px 0px -100px 0px", // 底部提前100px触发
       }
     );

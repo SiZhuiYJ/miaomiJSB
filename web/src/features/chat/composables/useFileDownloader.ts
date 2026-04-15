@@ -1,7 +1,6 @@
 import { ref, reactive } from "vue";
-import http from "@/libs/http";
+import http from "@/libs/http/file";
 import { useAuthStore } from "@/features/auth/stores";
-import { ElMessage } from "element-plus";
 
 interface QueueItem {
     fileKey: string;
@@ -20,8 +19,24 @@ interface DownloadTask {
 
 const downloadedBlobs = reactive<Record<string, string>>({});
 const queue = reactive<DownloadTask[]>([]);
-const maxConcurrentDownloads = 2;
+// const maxConcurrentDownloads = 2;
 let activeDownloads = ref(0);
+
+// useFileDownloader.ts 关键改动
+const maxConcurrentDownloads = 2; // 低带宽降低并发
+const maxRetries = 2;             // 增加重试次数
+
+async function downloadWithRetry(url: string, retries = maxRetries): Promise<Blob> {
+    try {
+        return await downloadFile(url);
+    } catch (error) {
+        if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            return downloadWithRetry(url, retries - 1);
+        }
+        throw error;
+    }
+}
 
 export function getAuthHeaders(): Record<string, string> {
     const token = useAuthStore().accessToken;

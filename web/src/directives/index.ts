@@ -10,7 +10,8 @@ import throttleInput from "./modules/throttleInput";
 import adaptive from "./modules/adaptive";
 import adaptiveTree from "./modules/adaptiveTree";
 import copy from "./modules/copy";
-import videoObserver from "./modules/videoObserver";
+import videoPlay from "./modules/videoplay";
+import viewport from './modules/viewport'
 import slideIn from "./modules/slideIn";
 import progressive from "./modules/progressive";
 
@@ -25,7 +26,8 @@ const directivesList: { [key: string]: Directive } = {
   adaptive,
   adaptiveTree,
   copy,
-  videoObserver,
+  videoPlay,
+  viewport,
   slideIn,
   progressive,
 };
