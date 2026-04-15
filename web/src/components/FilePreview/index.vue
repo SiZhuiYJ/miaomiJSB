@@ -17,8 +17,6 @@ interface FileItem {
   path?: string
   type?: string
 }
-const visible = defineModel<boolean>({ required: true })
-const currentIndex = defineModel<number>('currentIndex', { required: true })
 
 interface Props {
   modelValue: boolean
@@ -26,26 +24,19 @@ interface Props {
   currentIndex?: number
 }
 
+// 状态管理
+const visible = defineModel<boolean>({ required: true })
+const currentIndex = defineModel<number>('currentIndex', { required: true })
+
 const props = withDefaults(defineProps<Props>(), {
   currentIndex: 0,
 })
 
 const emit = defineEmits<{
-  // 'update:modelValue': [value: boolean]
-  // 'update:currentIndex': [index: number]
   close: []
 }>()
 
-// 状态管理
-// const visible = computed({
-//   get: () => props.modelValue,
-//   set: (value) => emit('update:modelValue', value)
-// })
 
-// const currentIndex = computed({
-//   get: () => props.currentIndex,
-//   set: (index) => emit('update:currentIndex', index)
-// })
 
 const currentFile = computed(() => props.fileList[currentIndex.value])
 const loading = ref(false)
@@ -365,7 +356,7 @@ onUnmounted(() => {
               <svg-icon :icon-class="getFileType(file) === 'video' ? 'general-play' : 'general-music'" size="24px"
                 color="#ffffff" />
             </div>
-            <div v-else class="thumbnail-icon">
+            <div v-else class="thumbnail-icon" style="background-color: rgb(255 255 255)">
               <svg-icon v-if="getFileType(file)" :icon-class="'document-' + getFileType(file)" size="48px" />
             </div>
           </button>
