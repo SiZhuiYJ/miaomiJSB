@@ -306,7 +306,7 @@ function handleClick() {
         <!-- <el-icon :size="32">
           <Headset />
         </el-icon> -->
-        <svg-icon name-class="document-voice" :size="32" />
+        <svg-icon name-class="document-voice" size="32px" />
       </div>
       <div class="audio-content">
         <audio v-if="mediaUrl && !hasError" :src="mediaUrl" controls preload="metadata">
