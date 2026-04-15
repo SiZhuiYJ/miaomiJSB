@@ -32,7 +32,7 @@ class MM {
 
   /** 请求排队队列（超过并发上限时入队）。 */
   private requestQueue: Array<{
-    config: InternalAxiosRequestConfig;
+    config: HttpRequestConfig;
     resolve: (value: AxiosResponse | PromiseLike<AxiosResponse>) => void;
     reject: (reason?: unknown) => void;
   }> = [];
@@ -44,7 +44,7 @@ class MM {
   private throttleMap = new Map<string, Promise<AxiosResponse>>();
 
   /** 节流 key 生成器。 */
-  private throttleKeyGenerator: (config: InternalAxiosRequestConfig) => string;
+  private throttleKeyGenerator: (config: AxiosRequestConfig) => string;
 
   /**
    * token 刷新中的 Promise 锁：
@@ -82,44 +82,83 @@ class MM {
    */
   private async handleRequest(config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> {
     const auth = useAuthStore();
+    config.headers = this.normalizeHeaders(config.headers);
     if (auth.accessToken) {
-      config.headers = config.headers ?? {};
-      config.headers.Authorization = `Bearer ${auth.accessToken}`;
+      config.headers.set("Authorization", `Bearer ${auth.accessToken}`);
     }
     return Promise.resolve(config);
   }
 
-  private async handleRequestError(error: AxiosError): Promise<AxiosError> {
+  private async handleRequestError(error: AxiosError): Promise<never> {
     return Promise.reject(error);
   }
 
   /**
-   * 响应拦截：默认将后端包裹结构 ApiResponse<T> 解包为 T。
+   * 响应拦截：兼容 plain JSON 与后端包裹结构 ApiResponse<T>。
    * 如需拿原始 AxiosResponse，请传 originalResponse: true。
    */
-  private async handleResponse<T>(response: AxiosResponse<ApiResponse<T>>): Promise<AxiosResponse<ApiResponse<T>>> {
+  private async handleResponse<T>(response: AxiosResponse<T | ApiResponse<T>>): Promise<AxiosResponse<T>> {
     const config = response.config as HttpRequestConfig;
 
     if (config.originalResponse) {
-      return Promise.resolve(response);
+      return Promise.resolve(response as AxiosResponse<T>);
     }
 
     const payload = response.data;
-    if (!payload || typeof payload !== "object") {
-      return Promise.reject(new Error("响应格式错误"));
+    if (response.status === 204 || payload === null || payload === undefined || payload === "") {
+      return Promise.resolve(response as AxiosResponse<T>);
     }
 
-    // 兼容后端 code 约定：0 / 200 视为成功。
-    // if (payload.code !== 0 && payload.code !== 200) {
-    //   if (config.showError !== false) {
-    //     notifyWarning(payload.message || "请求失败");
-    //   }
-    //   return Promise.reject(new Error(payload.message || "请求失败"));
-    // }
+    if (this.isApiResponse<T>(payload)) {
+      const isSuccess = payload.success === true || payload.code === 0 || payload.code === 200;
+      if (!isSuccess) {
+        const message = payload.message || "请求失败";
+        if (config.showError !== false) {
+          notifyWarning(message);
+        }
+        return Promise.reject(new Error(message));
+      }
 
-    // 保持对现有业务调用兼容：仍返回 AxiosResponse，但将 data 替换为业务 data。
-    // response.data = payload.data as ApiResponse<T>;
-    return Promise.resolve(response);
+      response.data = payload.data as T;
+    }
+
+    return Promise.resolve(response as AxiosResponse<T>);
+  }
+
+  private isApiResponse<T>(payload: unknown): payload is ApiResponse<T> {
+    if (!payload || typeof payload !== "object") {
+      return false;
+    }
+
+    const candidate = payload as Partial<ApiResponse<T>>;
+    return typeof candidate.code === "number" && "data" in candidate && "message" in candidate;
+  }
+
+  private getResponseErrorMessage(error: AxiosError) {
+    const data = error.response?.data;
+    if (typeof data === "string" && data.trim()) {
+      return data;
+    }
+
+    if (data && typeof data === "object") {
+      const payload = data as {
+        message?: string;
+        title?: string;
+        error?: string;
+        errors?: Record<string, string[]>;
+      };
+
+      if (payload.message) return payload.message;
+      if (payload.title) return payload.title;
+      if (payload.error) return payload.error;
+
+      const firstValidationError = payload.errors
+        ? Object.values(payload.errors).flat().find(Boolean)
+        : undefined;
+      if (firstValidationError) return firstValidationError;
+    }
+
+    return error.message || "请求失败";
   }
 
   /**
@@ -148,8 +187,8 @@ class MM {
       config._retry = true;
       try {
         await this.refreshTokenWithLock();
-        config.headers = config.headers ?? {};
-        config.headers.Authorization = `Bearer ${auth.accessToken}`;
+        config.headers = this.normalizeHeaders(config.headers);
+        config.headers.set("Authorization", `Bearer ${auth.accessToken}`);
         return this.instance(config);
       } catch (refreshError) {
         this.clearAuthAndRedirect();
@@ -166,6 +205,10 @@ class MM {
       return this.instance(config);
     }
 
+    if (config.showError !== false) {
+      notifyWarning(this.getResponseErrorMessage(error));
+    }
+
     return Promise.reject(error);
   }
 
@@ -179,7 +222,6 @@ class MM {
         refreshToken: auth.refreshToken,
       })
         .then((refreshResponse) => {
-          auth.clear();
           auth.setSession(refreshResponse.data);
         })
         .finally(() => {
@@ -207,7 +249,7 @@ class MM {
    * - 若开启节流，短时间内相同请求直接复用 Promise；
    * - 实际发送前经过并发队列控制。
    */
-  private async requestWithControl<T>(config: InternalAxiosRequestConfig): Promise<AxiosResponse<T>> {
+  private async requestWithControl<T>(config: HttpRequestConfig): Promise<AxiosResponse<T>> {
     let throttleKey: string | undefined;
 
     const allowDuplicate = (config as HttpRequestConfig).allowDuplicate === true;
@@ -236,7 +278,7 @@ class MM {
   }
 
   /** 执行请求（并发槽位不足则入队等待）。 */
-  private executeRequest<T>(config: InternalAxiosRequestConfig): Promise<AxiosResponse<T>> {
+  private executeRequest<T>(config: HttpRequestConfig): Promise<AxiosResponse<T>> {
     return new Promise((resolve, reject) => {
       const runRequest = () => {
         this.currentConcurrent += 1;
@@ -286,110 +328,101 @@ class MM {
       });
   }
 
-  /** GET 请求。 */
-  async get<T>(url: string, dataOrConfig?: object, config: HttpRequestConfig = {}) {
-    const headers = new AxiosHeaders();
-    
-    // 判断第二个参数是data还是config
-    // 如果包含responseType、headers等属性,则认为是config
-    const isConfig = dataOrConfig && (
-      'responseType' in dataOrConfig || 
-      'headers' in dataOrConfig ||
-      'timeout' in dataOrConfig ||
-      'withCredentials' in dataOrConfig
+  private normalizeHeaders(headers?: HttpRequestConfig["headers"] | InternalAxiosRequestConfig["headers"]) {
+    return AxiosHeaders.from(
+      (headers ?? {}) as Parameters<typeof AxiosHeaders.from>[0],
     );
-    
-    if (isConfig) {
-      // get(url, config) 调用方式
-      return this.requestWithControl<T>({
-        ...(dataOrConfig as HttpRequestConfig),
-        method: "GET",
-        url,
-        headers,
-      });
-    } else {
-      // get(url, data, config) 调用方式
-      return this.requestWithControl<T>({
-        ...config,
-        method: "GET",
-        url,
-        params: dataOrConfig,
-        headers,
-      });
+  }
+
+  private withRequestDefaults(config: HttpRequestConfig, method: string, url: string): HttpRequestConfig {
+    return {
+      ...config,
+      method,
+      url,
+      headers: this.normalizeHeaders(config.headers),
+    };
+  }
+
+  private isRequestConfig(value: unknown): value is HttpRequestConfig {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return false;
     }
+
+    const configKeys = new Set([
+      "url",
+      "method",
+      "baseURL",
+      "headers",
+      "params",
+      "data",
+      "timeout",
+      "withCredentials",
+      "responseType",
+      "signal",
+      "paramsSerializer",
+      "onUploadProgress",
+      "onDownloadProgress",
+      "validateStatus",
+      "showError",
+      "originalResponse",
+      "retryCount",
+      "allowDuplicate",
+    ]);
+
+    return Object.keys(value).some((key) => configKeys.has(key));
+  }
+
+  /** GET 请求。 */
+  async get<T>(url: string, paramsOrConfig?: object, config: HttpRequestConfig = {}) {
+    const finalConfig = this.isRequestConfig(paramsOrConfig)
+      ? paramsOrConfig
+      : { ...config, params: paramsOrConfig };
+
+    return this.requestWithControl<T>(
+      this.withRequestDefaults(finalConfig, "GET", url),
+    );
   }
 
   /** POST 请求。 */
-  async post<T>(url: string, data?: object, config: HttpRequestConfig = {}) {
-    const headers = new AxiosHeaders();
-    return this.requestWithControl<T>({
-      ...config,
-      method: "POST",
-      url,
-      data,
-      headers,
-    });
+  async post<T>(url: string, data?: unknown, config: HttpRequestConfig = {}) {
+    return this.requestWithControl<T>(
+      this.withRequestDefaults({ ...config, data }, "POST", url),
+    );
   }
 
   /** PUT 请求。 */
-  async put<T>(url: string, data?: object, config: HttpRequestConfig = {}) {
-    const headers = new AxiosHeaders();
-    return this.requestWithControl<T>({
-      ...config,
-      method: "PUT",
-      url,
-      data,
-      headers,
-    });
+  async put<T>(url: string, data?: unknown, config: HttpRequestConfig = {}) {
+    return this.requestWithControl<T>(
+      this.withRequestDefaults({ ...config, data }, "PUT", url),
+    );
   }
 
   /** DELETE 请求。 */
   async delete<T>(url: string, config: HttpRequestConfig = {}) {
-    const headers = new AxiosHeaders();
-    return this.requestWithControl<T>({
-      ...config,
-      method: "DELETE",
-      url,
-      headers,
-    });
+    return this.requestWithControl<T>(
+      this.withRequestDefaults(config, "DELETE", url),
+    );
   }
 
   /** 文件下载请求（blob）。 */
-  async download<T>(url: string, data?: object, config: HttpRequestConfig = {}) {
-    const headers = new AxiosHeaders();
-    return this.requestWithControl<T>({
-      ...config,
-      method: "POST",
-      url,
-      data,
-      responseType: "blob",
-      headers,
-    });
+  async download<T>(url: string, data?: unknown, config: HttpRequestConfig = {}) {
+    return this.requestWithControl<T>(
+      this.withRequestDefaults({ ...config, data, responseType: "blob" }, "POST", url),
+    );
   }
 
   /** 获取图片二进制（arraybuffer）。 */
   async getImage<T>(url: string, config: HttpRequestConfig = {}) {
-    const headers = new AxiosHeaders();
-    return this.requestWithControl<T>({
-      ...config,
-      method: "GET",
-      url,
-      responseType: "arraybuffer",
-      headers,
-    });
+    return this.requestWithControl<T>(
+      this.withRequestDefaults({ ...config, responseType: "arraybuffer" }, "GET", url),
+    );
   }
 
   /** 文件上传请求（multipart/form-data）。 */
-  async upload<T>(url: string, formData?: object, config: HttpRequestConfig = {}) {
-    const headers = new AxiosHeaders();
-    headers.set("Content-Type", "multipart/form-data");
-    return this.requestWithControl<T>({
-      ...config,
-      method: "POST",
-      url,
-      data: formData,
-      headers,
-    });
+  async upload<T>(url: string, formData?: BodyInit | object, config: HttpRequestConfig = {}) {
+    return this.requestWithControl<T>(
+      this.withRequestDefaults({ ...config, data: formData }, "POST", url),
+    );
   }
 }
 

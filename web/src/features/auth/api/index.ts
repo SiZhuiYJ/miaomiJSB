@@ -62,7 +62,9 @@ export const authApi = {
    * @returns Promise<void>
    */
   async validateUserAccount(userAccount: string) {
-    return http.post("/mm/Auth/validate-account?userAccount=" + userAccount);
+    return http.post("/mm/Auth/validate-account", undefined, {
+      params: { UserAccount: userAccount },
+    });
   },
   /**
    * 获取用户信息

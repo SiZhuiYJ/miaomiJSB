@@ -2,6 +2,7 @@ import { uploadChatFile, getChatFileUrl } from "../api";
 import type { FileExtra, MessageType } from "../types";
 import { extractVideoFrameToWebP } from '@/utils/convertToWebP';
 import http from "@/libs/http";
+import { API_BASE_URL } from "@/config";
 
 // 文件大小限制 (100MB)
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
@@ -528,11 +529,7 @@ export async function fetchChatFile(fileKey: string): Promise<Blob> {
   const lastDot = fileKey.lastIndexOf(".");
   const cleanFileKey = lastDot > 0 ? fileKey.substring(0, lastDot) : fileKey;
 
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || "";
-  const normalizedBaseUrl = baseUrl.endsWith("/")
-    ? baseUrl.slice(0, -1)
-    : baseUrl;
-  const url = `${normalizedBaseUrl}/mm/files/chat/${cleanFileKey}`;
+  const url = `${API_BASE_URL}/mm/files/chat/${cleanFileKey}`;
 
   const token = localStorage.getItem("accessToken");
   const headers = token ? { Authorization: `Bearer ${token}` } : {};

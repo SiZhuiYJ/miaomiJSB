@@ -1,4 +1,5 @@
 import http from '@/libs/http';
+import { API_BASE_URL } from '@/config';
 import type {
   ConversationDetail,
   ConversationSummary,
@@ -38,9 +39,10 @@ export async function getMessages(
   beforeMessageId?: number,
   pageSize = 20,
 ) {
-  return await http.get<MessageSummary[]>(`/mm/chat/conversations/${id}/messages`, {
-    params: { beforeMessageId, pageSize },
-  });
+  return await http.get<MessageSummary[]>(
+    `/mm/chat/conversations/${id}/messages`,
+    { beforeMessageId, pageSize },
+  );
 }
 
 export async function getMessageDelta(
@@ -50,9 +52,7 @@ export async function getMessageDelta(
 ) {
   return await http.get<MessageDeltaResponse>(
     `/mm/chat/conversations/${id}/messages/delta`,
-    {
-      params: { afterMessageId, pageSize },
-    },
+    { afterMessageId, pageSize },
   );
 }
 
@@ -83,15 +83,10 @@ export async function uploadChatFile(conversationId: number, file: File) {
   const formData = new FormData();
   formData.append('file', file);
 
-  return await http.post<ChatFileInfo>(
+  return await http.upload<ChatFileInfo>(
     `/mm/files/chat/${conversationId}/upload`,
     formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
-      allowDuplicate: true,
-    }
+    { allowDuplicate: true },
   );
 }
 
@@ -102,10 +97,7 @@ export async function uploadChatFile(conversationId: number, file: File) {
  */
 export function getChatFileUrl(fileKey: string): string {
   if (!fileKey) return '';
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-  // 确保baseUrl不以/结尾，避免双斜杠
-  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-  return `${normalizedBaseUrl}/mm/files/chat/${fileKey}`;
+  return `${API_BASE_URL}/mm/files/chat/${fileKey}`;
 }
 
 /**
@@ -118,14 +110,9 @@ export async function uploadConversationAvatar(conversationId: number, file: Fil
   const formData = new FormData();
   formData.append('file', file);
 
-  return await http.post<{ key: string }>(
+  return await http.upload<{ key: string }>(
     `/mm/files/chat/${conversationId}/avatar`,
     formData,
-    {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    }
   );
 }
 
@@ -137,9 +124,7 @@ export async function uploadConversationAvatar(conversationId: number, file: Fil
  */
 export function getConversationAvatarUrl(conversationId: number, fileKey: string): string {
   if (!fileKey) return '';
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-  return `${normalizedBaseUrl}/mm/files/chat/${conversationId}/avatars/${fileKey}`;
+  return `${API_BASE_URL}/mm/files/chat/${conversationId}/avatars/${fileKey}`;
 }
 
 export default {

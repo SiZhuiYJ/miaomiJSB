@@ -120,6 +120,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         var userId = GetUserId();
 
         var memberships = await _db.ChatConversationMembers
+            .AsNoTracking()
             .Where(m => m.UserId == userId && m.LeftAt == null && m.Conversation.IsActive == true)
             .Select(m => new
             {
@@ -141,14 +142,27 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             .Select(BuildConversationSummaryProjection(userId))
             .ToListAsync();
 
+        var unreadCounts = await (
+            from message in _db.ChatMessages.AsNoTracking()
+            join member in _db.ChatConversationMembers.AsNoTracking()
+                on message.ConversationId equals member.ConversationId
+            where member.UserId == userId
+                && member.LeftAt == null
+                && conversationIds.Contains(message.ConversationId)
+                && message.SenderUserId != userId
+                && message.Id > (member.LastReadMessageId ?? 0UL)
+            group message by message.ConversationId into grouped
+            select new
+            {
+                ConversationId = grouped.Key,
+                Count = grouped.Count()
+            })
+            .ToDictionaryAsync(x => x.ConversationId, x => x.Count);
+
         var membershipMap = memberships.ToDictionary(x => x.ConversationId);
         foreach (var item in conversationDtos)
         {
-            var membership = membershipMap[item.Id];
-            var lastReadMessageId = membership.LastReadMessageId ?? 0;
-            item.UnreadCount = await _db.ChatMessages
-                .Where(m => m.ConversationId == item.Id && m.Id > lastReadMessageId && m.SenderUserId != userId)
-                .CountAsync();
+            item.UnreadCount = unreadCounts.GetValueOrDefault(item.Id);
         }
 
         var ordered = conversationDtos
@@ -199,11 +213,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         if (request.IsPinned != null)
             chatConversationMember.IsPinned = request.IsPinned ?? chatConversationMember.IsPinned;
 
-        var length = await _db.SaveChangesAsync();
-        if (length <= 0)
-        {
-            return NotFound(new { message = "更新失败" });
-        }
+        await _db.SaveChangesAsync();
         var detail = await BuildConversationDetail(conversationId, userId);
         return detail == null ? NotFound(new { message = "会话不存在" }) : Ok(detail);
     }
@@ -218,6 +228,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     {
         var userId = GetUserId();
         var isMember = await _db.ChatConversationMembers
+            .AsNoTracking()
             .AnyAsync(m => m.ConversationId == conversationId && m.UserId == userId && m.LeftAt == null);
 
         if (!isMember)
@@ -282,10 +293,11 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         };
 
         _db.ChatMessages.Add(message);
-        membership.LastReadMessageId = message.Id;
         membership.UpdatedAt = now;
         membership.Conversation.UpdatedAt = now;
 
+        await _db.SaveChangesAsync();
+        membership.LastReadMessageId = message.Id;
         await _db.SaveChangesAsync();
 
         await _hubContext.Clients.Group(ChatHub.GroupName(conversationId)).SendAsync("chat:message-updated", new
@@ -327,6 +339,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     {
         var userId = GetUserId();
         var isMember = await _db.ChatConversationMembers
+            .AsNoTracking()
             .AnyAsync(m => m.ConversationId == conversationId && m.UserId == userId && m.LeftAt == null);
         if (!isMember)
             return NotFound(new { message = "会话不存在或无权限访问" });
@@ -334,6 +347,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         var normalizedPageSize = Math.Clamp(pageSize, 1, 100);
 
         var query = _db.ChatMessages
+            .AsNoTracking()
             .Where(m => m.ConversationId == conversationId);
 
         if (beforeMessageId.HasValue)
@@ -371,6 +385,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     {
         var userId = GetUserId();
         var isMember = await _db.ChatConversationMembers
+            .AsNoTracking()
             .AnyAsync(m => m.ConversationId == conversationId && m.UserId == userId && m.LeftAt == null);
         if (!isMember)
             return NotFound(new { message = "会话不存在或无权限访问" });
@@ -378,12 +393,14 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         var normalizedPageSize = Math.Clamp(pageSize, 1, 100);
         var threshold = afterMessageId ?? 0;
         var lastMessageId = await _db.ChatMessages
+            .AsNoTracking()
             .Where(m => m.ConversationId == conversationId)
             .OrderByDescending(m => m.Id)
             .Select(m => (ulong?)m.Id)
             .FirstOrDefaultAsync() ?? 0;
 
         var records = await _db.ChatMessages
+            .AsNoTracking()
             .Where(m => m.ConversationId == conversationId && m.Id > threshold)
             .OrderBy(m => m.Id)
             .Take(normalizedPageSize + 1)
@@ -606,6 +623,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     async Task<ConversationDetailDto?> BuildConversationDetail(ulong conversationId, ulong userId)
     {
         return await _db.ChatConversations
+            .AsNoTracking()
             .Where(c => c.Id == conversationId)
             .Select(c => new ConversationDetailDto
             {

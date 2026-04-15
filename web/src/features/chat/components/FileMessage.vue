@@ -76,7 +76,7 @@ function registerToGlobalGallery(url: string) {
     name: fileExtra.value.fileName,
     url,
     type: category.value,
-    path: thumbnailUrl.value || undefined,
+    path: category.value == "image" ? url : thumbnailUrl.value || props.src,
   });
 }
 

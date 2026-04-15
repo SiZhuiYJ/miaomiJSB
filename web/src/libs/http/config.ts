@@ -1,9 +1,9 @@
 // config.ts
-import type { InternalAxiosRequestConfig } from "axios"; // 添加这行
+import type { AxiosRequestConfig } from "axios";
 export interface HttpConfig {
     maxConcurrentRequests: number;          // 最大并发请求数
     throttleEnabled: boolean;                // 是否启用请求节流
-    throttleKeyGenerator?: (config: InternalAxiosRequestConfig) => string; // 自定义节流 key 生成函数
+    throttleKeyGenerator?: (config: AxiosRequestConfig) => string; // 自定义节流 key 生成函数
 }
 
 // 默认配置
