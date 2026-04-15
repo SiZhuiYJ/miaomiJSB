@@ -151,9 +151,11 @@ async function handleDownload() {
 function handleClick() {
   // Only show preview for successfully loaded media/docs
   if (loading.value || hasError.value) return;
-  if (category.value === 'image' || category.value === 'video' || category.value === 'document' || category.value === 'pdf' || category.value === 'text') {
+  // if (category.value === 'image' || category.value === 'video' || category.value === 'document' || category.value === 'pdf' || category.value === 'text') {
+  //   showFile.value = true;
+  // }
+  if (category.value != 'unknown')
     showFile.value = true;
-  }
 }
 </script>
 

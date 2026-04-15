@@ -1,185 +1,5 @@
-<template>
-  <Teleport to="body">
-    <Transition name="preview-fade">
-      <div v-if="visible" class="file-preview-overlay" @click.self="handleClose">
-        <!-- 顶部工具栏 -->
-        <div class="preview-toolbar">
-          <div class="toolbar-left">
-            <span class="file-name">{{ currentFile?.name }}</span>
-          </div>
-          <div class="toolbar-right">
-            <button class="toolbar-btn" @click="handleZoomIn" title="放大">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path fill="currentColor"
-                  d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-                <path fill="currentColor" d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z" />
-              </svg>
-            </button>
-            <button class="toolbar-btn" @click="handleZoomOut" title="缩小">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path fill="currentColor"
-                  d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-                <path fill="currentColor" d="M7 9h5v1H7z" />
-              </svg>
-            </button>
-            <button class="toolbar-btn" @click="handleResetZoom" title="重置缩放">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path fill="currentColor"
-                  d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
-              </svg>
-            </button>
-            <button class="toolbar-btn" @click="handleRotate" title="旋转">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path fill="currentColor"
-                  d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
-              </svg>
-            </button>
-            <button class="toolbar-btn" @click="handleDownload" title="下载">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-              </svg>
-            </button>
-            <button class="toolbar-btn close-btn" @click="handleClose" title="关闭">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path fill="currentColor"
-                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- 文件列表缩略图 -->
-        <div v-if="fileList.length > 1" class="thumbnail-list">
-          <button v-for="(file, index) in fileList" :key="index" class="thumbnail-item"
-            :class="{ active: currentIndex === index }" @click="handleSwitchFile(index)">
-            <img v-if="isImage(file)" :src="file.url || file.path" :alt="file.name" />
-            <div v-else class="thumbnail-icon">
-              <svg viewBox="0 0 24 24" width="24" height="24">
-                <path fill="currentColor"
-                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" />
-              </svg>
-            </div>
-          </button>
-        </div>
-
-        <!-- 上一张/下一张按钮 -->
-        <button v-if="fileList.length > 1 && currentIndex > 0" class="nav-btn prev-btn" @click="handlePrev">
-          <svg viewBox="0 0 24 24" width="32" height="32">
-            <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
-          </svg>
-        </button>
-        <button v-if="fileList.length > 1 && currentIndex < fileList.length - 1" class="nav-btn next-btn"
-          @click="handleNext">
-          <svg viewBox="0 0 24 24" width="32" height="32">
-            <path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
-          </svg>
-        </button>
-
-        <!-- 主预览区域 -->
-        <div class="preview-content" :style="contentStyle">
-
-          <!-- 图片预览区域 -->
-          <div v-if="currentFileType === 'image'" class="image-preview">
-            <el-image ref="imageRef" v-if="currentFile?.url" :key="currentFile?.url"
-              :src="currentFile?.url || currentFile?.path" :alt="currentFile?.name" :style="imageStyle" fit="contain"
-              :preview-src-list="[currentFile.url]" :hide-on-click-modal="true" @load="handleImageLoad"
-              @error="handleImageError" />
-          </div>
-
-          <!-- 视频预览 -->
-          <div v-else-if="currentFileType === 'video'" class="video-preview">
-            <video ref="videoRef" :key="currentFile?.url" :src="currentFile?.url" :poster="currentFile?.path" controls
-              autoplay preload="metadata" @loadeddata="handleVideoLoaded">
-              您的浏览器不支持视频播放
-            </video>
-          </div>
-
-          <!-- 音频预览 -->
-          <div v-else-if="currentFileType === 'audio'" class="audio-preview" :title="currentFile?.url">
-            <MiniAudioPlayer v-if="currentFile?.url" :key="currentFile.url" :url="currentFile.url"
-              :title="currentFile?.name" :cover-url="coverUrl" @loaded="handleAudioLoaded" />
-          </div>
-
-          <!-- Office文档预览 -->
-          <!-- 新版 docx -->
-          <div v-else-if="currentFileType === 'document' && currentFile?.url" class="document-preview">
-            <vue-office-docx :src="currentFile.url" class="docx-class" @rendered="() => { console.log('渲染完成') }"
-              @error="handleOfficeError" />
-          </div>
-
-          <!-- 新版 xlsx -->
-          <div v-else-if="currentFileType === 'excel' && currentFile?.url" class="document-preview">
-            <vue-office-excel :src="currentFile.url" class="xlsx-class" @rendered="() => { console.log('渲染完成') }"
-              @error="handleOfficeError" />
-          </div>
-
-          <!-- 新版 pptx -->
-          <div v-else-if="currentFileType === 'presentation' && currentFile?.url" class="document-preview">
-            <vue-office-pptx :src="currentFile.url" class="pptx-class" @rendered="() => { console.log('渲染完成') }"
-              @error="handleOfficeError" style="height: 100%;" />
-          </div>
-
-          <!-- PDF 预览 -->
-          <div v-else-if="currentFileType === 'pdf' && currentFile?.url" class="pdf-preview">
-            <vue-office-pdf :src="currentFile.url" class="pdf-class"
-              @rendered="() => { console.log('PDF 渲染完成', currentFile?.url) }" @error="handleOfficeError" />
-          </div>
-
-          <!-- 文本文件预览 -->
-          <div v-else-if="currentFileType === 'text'" class="txt-preview">
-            <pre v-if="content">{{ content }}</pre>
-          </div>
-
-          <!-- 旧版 Office 格式 文件 -->
-          <div v-else-if="['doc', 'xls', 'ppt'].includes(currentFileType)" class="unsupported-preview">
-            <div class="unsupported-icon">
-              <svg viewBox="0 0 24 24" width="80" height="80">
-                <path fill="currentColor"
-                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2z" />
-              </svg>
-            </div>
-            <p>{{ legacyFileMessage }}</p>
-            <button class="download-btn" @click="handleDownload">下载文件</button>
-          </div>
-
-          <!-- 不支持的文件类型 -->
-          <div v-else class="unsupported-preview">
-            <div class="unsupported-icon">
-              <svg viewBox="0 0 24 24" width="120" height="120">
-                <path fill="currentColor"
-                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2z" />
-              </svg>
-            </div>
-            <p>该文件类型暂不支持在线预览</p>
-            <button class="download-btn" @click="handleDownload">
-              下载文件
-            </button>
-          </div>
-        </div>
-
-        <!-- 加载状态 -->
-        <div v-if="loading" class="loading-overlay">
-          <div class="loading-spinner"></div>
-          <p>加载中...</p>
-        </div>
-
-        <!-- 错误提示 -->
-        <div v-if="error" class="error-overlay">
-          <div class="error-icon">
-            <svg viewBox="0 0 24 24" width="64" height="64">
-              <path fill="currentColor"
-                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-            </svg>
-          </div>
-          <p>{{ error }}</p>
-          <button class="retry-btn" @click="handleRetry">重试</button>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
-</template>
-
 <script setup lang="ts">
+// components/FilePreview/index.vue
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { MiniAudioPlayer } from '../MiniAudioPlayer/index'
 import VueOfficeDocx from '@vue-office/docx';
@@ -486,6 +306,187 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleKeyDown)
 })
 </script>
+
+<template>
+  <Teleport to="body">
+    <Transition name="preview-fade">
+      <div v-if="visible" class="file-preview-overlay" @click.self="handleClose">
+        <!-- 顶部工具栏 -->
+        <div class="preview-toolbar">
+          <div class="toolbar-left">
+            <span class="file-name">{{ currentFile?.name }}</span>
+          </div>
+          <div class="toolbar-right">
+            <button class="toolbar-btn" @click="handleZoomIn" title="放大">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor"
+                  d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                <path fill="currentColor" d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z" />
+              </svg>
+            </button>
+            <button class="toolbar-btn" @click="handleZoomOut" title="缩小">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor"
+                  d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                <path fill="currentColor" d="M7 9h5v1H7z" />
+              </svg>
+            </button>
+            <button class="toolbar-btn" @click="handleResetZoom" title="重置缩放">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor"
+                  d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+              </svg>
+            </button>
+            <button class="toolbar-btn" @click="handleRotate" title="旋转">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor"
+                  d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+              </svg>
+            </button>
+            <button class="toolbar-btn" @click="handleDownload" title="下载">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+              </svg>
+            </button>
+            <button class="toolbar-btn close-btn" @click="handleClose" title="关闭">
+              <svg viewBox="0 0 24 24" width="20" height="20">
+                <path fill="currentColor"
+                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 文件列表缩略图 -->
+        <div v-if="fileList.length > 1" class="thumbnail-list">
+          <button v-for="(file, index) in fileList" :key="index" class="thumbnail-item"
+            :class="{ active: currentIndex === index }" @click="handleSwitchFile(index)">
+            <img v-if="isImage(file)" :src="file.url || file.path" :alt="file.name" />
+            <div v-else class="thumbnail-icon">
+              <svg viewBox="0 0 24 24" width="24" height="24">
+                <path fill="currentColor"
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" />
+              </svg>
+            </div>
+          </button>
+        </div>
+
+        <!-- 上一张/下一张按钮 -->
+        <button v-if="fileList.length > 1 && currentIndex > 0" class="nav-btn prev-btn" @click="handlePrev">
+          <svg viewBox="0 0 24 24" width="32" height="32">
+            <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+          </svg>
+        </button>
+        <button v-if="fileList.length > 1 && currentIndex < fileList.length - 1" class="nav-btn next-btn"
+          @click="handleNext">
+          <svg viewBox="0 0 24 24" width="32" height="32">
+            <path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
+          </svg>
+        </button>
+
+        <!-- 主预览区域 -->
+        <div class="preview-content" :style="contentStyle">
+
+          <!-- 图片预览区域 -->
+          <div v-if="currentFileType === 'image'" class="image-preview">
+            <el-image ref="imageRef" v-if="currentFile?.url" :key="currentFile?.url"
+              :src="currentFile?.url || currentFile?.path" :alt="currentFile?.name" :style="imageStyle" fit="contain"
+              :preview-src-list="[currentFile.url]" :hide-on-click-modal="true" @load="handleImageLoad"
+              @error="handleImageError" />
+          </div>
+
+          <!-- 视频预览 -->
+          <div v-else-if="currentFileType === 'video'" class="video-preview">
+            <video ref="videoRef" :key="currentFile?.url" :src="currentFile?.url" :poster="currentFile?.path" controls
+              autoplay preload="metadata" @loadeddata="handleVideoLoaded">
+              您的浏览器不支持视频播放
+            </video>
+          </div>
+
+          <!-- 音频预览 -->
+          <div v-else-if="currentFileType === 'audio'" class="audio-preview" :title="currentFile?.url">
+            <MiniAudioPlayer v-if="currentFile?.url" :key="currentFile.url" :url="currentFile.url"
+              :title="currentFile?.name" :cover-url="coverUrl" @loaded="handleAudioLoaded" />
+          </div>
+
+          <!-- Office文档预览 -->
+          <!-- 新版 docx -->
+          <div v-else-if="currentFileType === 'document' && currentFile?.url" class="document-preview">
+            <vue-office-docx :src="currentFile.url" class="docx-class" @rendered="() => { console.log('渲染完成') }"
+              @error="handleOfficeError" />
+          </div>
+
+          <!-- 新版 xlsx -->
+          <div v-else-if="currentFileType === 'excel' && currentFile?.url" class="document-preview">
+            <vue-office-excel :src="currentFile.url" class="xlsx-class" @rendered="() => { console.log('渲染完成') }"
+              @error="handleOfficeError" />
+          </div>
+
+          <!-- 新版 pptx -->
+          <div v-else-if="currentFileType === 'presentation' && currentFile?.url" class="document-preview">
+            <vue-office-pptx :src="currentFile.url" class="pptx-class" @rendered="() => { console.log('渲染完成') }"
+              @error="handleOfficeError" style="height: 100%;" />
+          </div>
+
+          <!-- PDF 预览 -->
+          <div v-else-if="currentFileType === 'pdf' && currentFile?.url" class="pdf-preview">
+            <vue-office-pdf :src="currentFile.url" class="pdf-class"
+              @rendered="() => { console.log('PDF 渲染完成', currentFile?.url) }" @error="handleOfficeError" />
+          </div>
+
+          <!-- 文本文件预览 -->
+          <div v-else-if="currentFileType === 'text'" class="txt-preview">
+            <pre v-if="content">{{ content }}</pre>
+          </div>
+
+          <!-- 旧版 Office 格式 文件 -->
+          <div v-else-if="['doc', 'xls', 'ppt'].includes(currentFileType)" class="unsupported-preview">
+            <div class="unsupported-icon">
+              <svg viewBox="0 0 24 24" width="80" height="80">
+                <path fill="currentColor"
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2z" />
+              </svg>
+            </div>
+            <p>{{ legacyFileMessage }}</p>
+            <button class="download-btn" @click="handleDownload">下载文件</button>
+          </div>
+
+          <!-- 不支持的文件类型 -->
+          <div v-else class="unsupported-preview">
+            <div class="unsupported-icon">
+              <svg viewBox="0 0 24 24" width="120" height="120">
+                <path fill="currentColor"
+                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2z" />
+              </svg>
+            </div>
+            <p>该文件类型暂不支持在线预览</p>
+            <button class="download-btn" @click="handleDownload">
+              下载文件
+            </button>
+          </div>
+        </div>
+
+        <!-- 加载状态 -->
+        <div v-if="loading" class="loading-overlay">
+          <div class="loading-spinner"></div>
+          <p>加载中...</p>
+        </div>
+
+        <!-- 错误提示 -->
+        <div v-if="error" class="error-overlay">
+          <div class="error-icon">
+            <svg viewBox="0 0 24 24" width="64" height="64">
+              <path fill="currentColor"
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+            </svg>
+          </div>
+          <p>{{ error }}</p>
+          <button class="retry-btn" @click="handleRetry">重试</button>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+</template>
 
 <style scoped lang="scss">
 .file-preview-overlay {
