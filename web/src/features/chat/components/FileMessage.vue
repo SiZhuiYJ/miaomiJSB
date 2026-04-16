@@ -106,6 +106,7 @@ function loadInlineMedia() {
     previewLoading.value = true;
     requestBlobUrl(fileKey, {
       isNew: props.isNewMessage ?? false,
+      priorityId: props.message?.id,
       onComplete: (blobUrl: string) => {
         if (fileExtra.value?.fileKey !== fileKey) return;
         previewUrl.value = blobUrl;
@@ -125,6 +126,7 @@ function loadInlineMedia() {
     thumbnailLoading.value = true;
     requestBlobUrl(thumbnailKey, {
       isNew: props.isNewMessage ?? false,
+      priorityId: props.message?.id,
       onComplete: (blobUrl: string) => {
         if (fileExtra.value?.thumbnailUrl !== thumbnailKey) return;
         thumbnailUrl.value = blobUrl;
@@ -167,6 +169,7 @@ async function triggerPreview() {
   requestDownload({
     fileKey: fileExtra.value.fileKey,
     category: category.value,
+    priorityId: props.message?.id,
     thumbnailUrl: category.value === 'video' ? fileExtra.value.thumbnailUrl : undefined,
     onComplete: (blobUrl: string) => {
       previewLoading.value = false;

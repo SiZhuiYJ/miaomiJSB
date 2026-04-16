@@ -6,6 +6,7 @@ interface QueueItem {
     fileKey: string;
     category: string;
     thumbnailUrl?: string;
+    priorityId?: number;
     onComplete: (blobUrl: string) => void;
     onThumbnailComplete?: (blobUrl: string) => void;
     onError: (error: Error) => void;
@@ -13,20 +14,24 @@ interface QueueItem {
 
 interface DownloadTask {
     item: QueueItem;
-    priority: "high" | "low";
+    priorityScore: number;
+    sequence: number;
 }
 
 interface BlobUrlRequest {
     onComplete: (blobUrl: string) => void;
     onError: (error: Error) => void;
     isNew?: boolean;
+    priorityId?: number;
 }
 
 const downloadedBlobs = reactive<Record<string, string>>({});
 const queue = reactive<DownloadTask[]>([]);
 let activeDownloads = 0;
+let queueSequence = 0;
 
-const maxConcurrentDownloads = 2;
+// 带宽受限（1MB/s）时，串行下载可降低抢占与抖动
+const maxConcurrentDownloads = 1;
 const maxRetries = 2;
 const retryDelayMs = 800;
 
@@ -67,8 +72,19 @@ async function processQueue() {
 
     activeDownloads++;
 
-    const taskIndex = queue.findIndex((t) => t.priority === "high");
-    const task = taskIndex !== -1 ? queue.splice(taskIndex, 1)[0] : queue.shift();
+    let selectedIndex = 0;
+    for (let i = 1; i < queue.length; i++) {
+        const current = queue[i]!;
+        const selected = queue[selectedIndex]!;
+        if (
+            current.priorityScore > selected.priorityScore ||
+            (current.priorityScore === selected.priorityScore &&
+                current.sequence < selected.sequence)
+        ) {
+            selectedIndex = i;
+        }
+    }
+    const task = queue.splice(selectedIndex, 1)[0];
 
     if (!task) {
         activeDownloads--;
@@ -133,7 +149,7 @@ async function processQueue() {
 }
 
 function requestDownload(item: QueueItem, isNew: boolean) {
-    const { fileKey, thumbnailUrl, category } = item;
+    const { fileKey, thumbnailUrl, category, priorityId } = item;
 
     const mainAssetReady = downloadedBlobs[fileKey];
     let thumbAssetReady = true;
@@ -156,14 +172,13 @@ function requestDownload(item: QueueItem, isNew: boolean) {
         return;
     }
 
-    const priority = isNew ? "high" : "low";
-    const task: DownloadTask = { item, priority };
-
-    if (priority === "high") {
-        queue.unshift(task);
-    } else {
-        queue.push(task);
-    }
+    const priorityScore = priorityId ?? (isNew ? Number.MAX_SAFE_INTEGER : 0);
+    const task: DownloadTask = {
+        item,
+        priorityScore,
+        sequence: queueSequence++,
+    };
+    queue.push(task);
 
     if (activeDownloads < maxConcurrentDownloads) {
         processQueue();
@@ -174,6 +189,7 @@ function requestBlobUrl(fileKey: string, options: BlobUrlRequest) {
     requestDownload({
         fileKey,
         category: "asset",
+        priorityId: options.priorityId,
         onComplete: options.onComplete,
         onError: options.onError,
     }, options.isNew ?? false);
