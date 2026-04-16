@@ -410,8 +410,9 @@ onUnmounted(() => {
         </button>
 
         <!-- 主预览区域 -->
-        <el-carousel ref="carouselRef" class="preview-carousel" :autoplay="false" arrow="never" indicator-position="none"
-          height="100%" :initial-index="currentIndex" :loop="true" trigger="click" @change="handleCarouselChange">
+        <el-carousel ref="carouselRef" class="preview-carousel" :autoplay="false" arrow="never"
+          indicator-position="none" height="100%" :initial-index="currentIndex" :loop="true" trigger="click"
+          @change="handleCarouselChange">
           <el-carousel-item v-for="(file, index) in fileList" :key="`${file.url || file.path}-${index}`">
             <div class="preview-content" :style="contentStyle">
               <div v-if="getFileType(file) === 'image'" class="image-preview">
@@ -423,7 +424,7 @@ onUnmounted(() => {
 
               <div v-else-if="getFileType(file) === 'video'" class="video-preview">
                 <video ref="videoRef" :key="file?.url || file?.path" :src="file?.url" :poster="file?.path" controls
-                  autoplay preload="metadata" @loadeddata="handleVideoLoaded(file)">
+                  autoplay preload="metadata" @loadeddata="handleVideoLoaded(file)" v-videoplay>
                   您的浏览器不支持视频播放
                 </video>
               </div>
@@ -449,8 +450,8 @@ onUnmounted(() => {
               </div>
 
               <div v-else-if="getFileType(file) === 'pdf' && file?.url" class="pdf-preview">
-                <vue-office-pdf :src="file.url" class="pdf-class" @rendered="() => { console.log('PDF 渲染完成', file?.url) }"
-                  @error="handleOfficeError" />
+                <vue-office-pdf :src="file.url" class="pdf-class"
+                  @rendered="() => { console.log('PDF 渲染完成', file?.url) }" @error="handleOfficeError" />
               </div>
 
               <div v-else-if="getFileType(file) === 'text'" class="txt-preview">
