@@ -74,10 +74,20 @@ const getFileType = (file: FileItem): string => {
   return 'unknown'
 }
 
-const currentFileType = computed(() => {
-  if (!currentFile.value) return 'unknown'
-  return getFileType(currentFile.value)
-})
+const getFileCacheKey = (file?: FileItem) =>
+  file?.url || file?.path || (file ? `${file.name}-${file.type || 'unknown'}` : '')
+
+const isFileLoaded = (file?: FileItem) => {
+  const key = getFileCacheKey(file)
+  return key ? loadedFileKeys.value.has(key) : false
+}
+
+const markFileLoaded = (file?: FileItem) => {
+  const key = getFileCacheKey(file)
+  if (key) {
+    loadedFileKeys.value.add(key)
+  }
+}
 
 const getFileCacheKey = (file?: FileItem) =>
   file?.url || file?.path || (file ? `${file.name}-${file.type || 'unknown'}` : '')
@@ -106,13 +116,12 @@ const contentStyle = computed(() => ({
 }))
 
 
-const legacyFileMessage = computed(() => {
-  const type = currentFileType.value
+const getLegacyFileMessage = (type: string) => {
   if (type === 'doc') return '此文件为旧版 .doc 格式，暂不支持在线预览，请下载后查看。'
   if (type === 'xls') return '此文件为旧版 .xls 格式，暂不支持在线预览。'
   if (type === 'ppt') return '此文件为旧版 .ppt 格式，暂不支持在线预览。'
   return '该文件类型暂不支持在线预览'
-})
+}
 
 const handleOfficeError = (err: Error) => {
   console.error('Office 预览失败:', err)
@@ -123,20 +132,20 @@ const handleImageError = () => {
   error.value = '图片加载失败'
 }
 // 处理图片加载
-const handleImageLoad = () => {
-  markFileLoaded(currentFile.value)
+const handleImageLoad = (file?: FileItem) => {
+  markFileLoaded(file)
   loading.value = false
 }
 
 // 处理音频加载完成
-const handleAudioLoaded = () => {
-  markFileLoaded(currentFile.value)
+const handleAudioLoaded = (file?: FileItem) => {
+  markFileLoaded(file)
   loading.value = false
 }
 
 // 处理视频加载完成
-const handleVideoLoaded = () => {
-  markFileLoaded(currentFile.value)
+const handleVideoLoaded = (file?: FileItem) => {
+  markFileLoaded(file)
   loading.value = false
 }
 
@@ -246,6 +255,16 @@ const handleDownload = () => {
   const link = document.createElement('a')
   link.href = url
   link.download = currentFile.value.name
+  link.click()
+}
+
+const handleDownloadFor = (file: FileItem) => {
+  const url = file.url || file.path
+  if (!url) return
+
+  const link = document.createElement('a')
+  link.href = url
+  link.download = file.name
   link.click()
 }
 
@@ -412,75 +431,72 @@ onUnmounted(() => {
           height="100%" :initial-index="currentIndex" :loop="true" trigger="click" @change="handleCarouselChange">
           <el-carousel-item v-for="(file, index) in fileList" :key="`${file.url || file.path}-${index}`">
             <div class="preview-content" :style="contentStyle">
-              <template v-if="isSlideActive(index)">
-                <div v-if="currentFileType === 'image'" class="image-preview">
-                  <el-image ref="imageRef" v-if="currentFile?.url" :key="currentFile?.url"
-                    :src="currentFile?.url || currentFile?.path" :alt="currentFile?.name" :style="imageStyle"
-                    fit="contain" :preview-src-list="[currentFile.url]" :hide-on-click-modal="true" @load="handleImageLoad"
-                    @error="handleImageError" />
-                </div>
+              <div v-if="getFileType(file) === 'image'" class="image-preview">
+                <el-image ref="imageRef" v-if="file?.url || file?.path" :key="file?.url || file?.path"
+                  :src="file?.url || file?.path" :alt="file?.name" :style="imageStyle" fit="contain"
+                  :preview-src-list="file.url ? [file.url] : []" :hide-on-click-modal="true"
+                  @load="handleImageLoad(file)" @error="handleImageError" />
+              </div>
 
-                <div v-else-if="currentFileType === 'video'" class="video-preview">
-                  <video ref="videoRef" :key="currentFile?.url" :src="currentFile?.url" :poster="currentFile?.path"
-                    controls autoplay preload="metadata" @loadeddata="handleVideoLoaded">
-                    您的浏览器不支持视频播放
-                  </video>
-                </div>
+              <div v-else-if="getFileType(file) === 'video'" class="video-preview">
+                <video ref="videoRef" :key="file?.url || file?.path" :src="file?.url" :poster="file?.path" controls
+                  autoplay preload="metadata" @loadeddata="handleVideoLoaded(file)">
+                  您的浏览器不支持视频播放
+                </video>
+              </div>
 
-                <div v-else-if="currentFileType === 'audio'" class="audio-preview" :title="currentFile?.url">
-                  <MiniAudioPlayer v-if="currentFile?.url" :key="currentFile.url" :url="currentFile.url"
-                    :title="currentFile?.name" :cover-url="currentFile.path" @loaded="handleAudioLoaded" />
-                </div>
+              <div v-else-if="getFileType(file) === 'audio'" class="audio-preview" :title="file?.url">
+                <MiniAudioPlayer v-if="file?.url" :key="file.url" :url="file.url" :title="file?.name"
+                  :cover-url="file.path" @loaded="handleAudioLoaded(file)" />
+              </div>
 
-                <div v-else-if="currentFileType === 'word' && currentFile?.url" class="document-preview">
-                  <vue-office-docx :src="currentFile.url" class="docx-class" @rendered="() => { console.log('渲染完成') }"
-                    @error="handleOfficeError" />
-                </div>
+              <div v-else-if="getFileType(file) === 'word' && file?.url" class="document-preview">
+                <vue-office-docx :src="file.url" class="docx-class" @rendered="() => { console.log('渲染完成') }"
+                  @error="handleOfficeError" />
+              </div>
 
-                <div v-else-if="currentFileType === 'excel' && currentFile?.url" class="document-preview">
-                  <vue-office-excel :src="currentFile.url" class="xlsx-class" @rendered="() => { console.log('渲染完成') }"
-                    @error="handleOfficeError" />
-                </div>
+              <div v-else-if="getFileType(file) === 'excel' && file?.url" class="document-preview">
+                <vue-office-excel :src="file.url" class="xlsx-class" @rendered="() => { console.log('渲染完成') }"
+                  @error="handleOfficeError" />
+              </div>
 
-                <div v-else-if="currentFileType === 'pptx' && currentFile?.url" class="document-preview">
-                  <vue-office-pptx :src="currentFile.url" class="pptx-class" @rendered="() => { console.log('渲染完成') }"
-                    @error="handleOfficeError" style="height: 100%;" />
-                </div>
+              <div v-else-if="getFileType(file) === 'pptx' && file?.url" class="document-preview">
+                <vue-office-pptx :src="file.url" class="pptx-class" @rendered="() => { console.log('渲染完成') }"
+                  @error="handleOfficeError" style="height: 100%;" />
+              </div>
 
-                <div v-else-if="currentFileType === 'pdf' && currentFile?.url" class="pdf-preview">
-                  <vue-office-pdf :src="currentFile.url" class="pdf-class"
-                    @rendered="() => { console.log('PDF 渲染完成', currentFile?.url) }" @error="handleOfficeError" />
-                </div>
+              <div v-else-if="getFileType(file) === 'pdf' && file?.url" class="pdf-preview">
+                <vue-office-pdf :src="file.url" class="pdf-class" @rendered="() => { console.log('PDF 渲染完成', file?.url) }"
+                  @error="handleOfficeError" />
+              </div>
 
-                <div v-else-if="currentFileType === 'text'" class="txt-preview">
-                  <pre v-if="content">{{ content }}</pre>
-                </div>
+              <div v-else-if="getFileType(file) === 'text'" class="txt-preview">
+                <pre v-if="index === currentIndex && content">{{ content }}</pre>
+              </div>
 
-                <div v-else-if="['doc', 'xls', 'ppt'].includes(currentFileType)" class="unsupported-preview">
-                  <div class="unsupported-icon">
-                    <svg viewBox="0 0 24 24" width="80" height="80">
-                      <path fill="currentColor"
-                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2z" />
-                    </svg>
-                  </div>
-                  <p>{{ legacyFileMessage }}</p>
-                  <button class="download-btn" @click="handleDownload">下载文件</button>
+              <div v-else-if="['doc', 'xls', 'ppt'].includes(getFileType(file))" class="unsupported-preview">
+                <div class="unsupported-icon">
+                  <svg viewBox="0 0 24 24" width="80" height="80">
+                    <path fill="currentColor"
+                      d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2z" />
+                  </svg>
                 </div>
+                <p>{{ getLegacyFileMessage(getFileType(file)) }}</p>
+                <button class="download-btn" @click="handleDownloadFor(file)">下载文件</button>
+              </div>
 
-                <div v-else class="unsupported-preview">
-                  <div class="unsupported-icon">
-                    <svg viewBox="0 0 24 24" width="120" height="120">
-                      <path fill="currentColor"
-                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2z" />
-                    </svg>
-                  </div>
-                  <p>该文件类型暂不支持在线预览</p>
-                  <button class="download-btn" @click="handleDownload">
-                    下载文件
-                  </button>
+              <div v-else class="unsupported-preview">
+                <div class="unsupported-icon">
+                  <svg viewBox="0 0 24 24" width="120" height="120">
+                    <path fill="currentColor"
+                      d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2z" />
+                  </svg>
                 </div>
-              </template>
-              <div v-else class="carousel-slide-placeholder"></div>
+                <p>该文件类型暂不支持在线预览</p>
+                <button class="download-btn" @click="handleDownloadFor(file)">
+                  下载文件
+                </button>
+              </div>
             </div>
           </el-carousel-item>
         </el-carousel>
