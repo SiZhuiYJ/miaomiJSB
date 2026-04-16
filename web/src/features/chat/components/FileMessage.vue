@@ -689,6 +689,21 @@ function formatDuration(seconds: number): string {
         border-radius: 3px;
         font-size: 11px;
       }
+
+      .status-text {
+        margin-top: 4px;
+        display: inline-block;
+        font-size: 12px;
+        color: #909399;
+
+        &.ready {
+          color: #67c23a;
+        }
+
+        &.error {
+          color: #f56c6c;
+        }
+      }
     }
   }
 
