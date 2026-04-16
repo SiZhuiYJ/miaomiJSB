@@ -25,6 +25,9 @@ interface Props {
   currentIndex?: number
 }
 
+// 折叠面板状态
+const activeNames = ref(['1'])
+
 // 状态管理
 const visible = defineModel<boolean>({ required: true })
 const currentIndex = defineModel<number>('currentIndex', { required: true })
@@ -36,8 +39,6 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   close: []
 }>()
-
-
 
 const currentFile = computed(() => props.fileList[currentIndex.value])
 const loading = ref(false)
@@ -337,64 +338,83 @@ onUnmounted(() => {
       <div v-show="visible" class="file-preview-overlay" @click.self="handleClose">
         <!-- 顶部工具栏 -->
         <div class="preview-toolbar">
-          <div class="toolbar-left">
-            <el-text class="file-name" :line-clamp="1">{{ currentFile?.name }}</el-text>
-          </div>
-          <div class="toolbar-right">
-            <button class="toolbar-btn" @click="handleZoomIn" title="放大">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path fill="currentColor"
-                  d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-                <path fill="currentColor" d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z" />
-              </svg>
-            </button>
-            <button class="toolbar-btn" @click="handleZoomOut" title="缩小">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path fill="currentColor"
-                  d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
-                <path fill="currentColor" d="M7 9h5v1H7z" />
-              </svg>
-            </button>
-            <button class="toolbar-btn" @click="handleRotate" title="旋转">
-              <svg viewBox="0 0 24 24" width="20" height="20" style="transform: rotateY(180deg);">
-                <path fill="currentColor"
-                  d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
-              </svg>
-            </button>
-            <button class="toolbar-btn" @click="handleResetZoom" title="重置缩放">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path fill="currentColor"
-                  d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
-              </svg>
-            </button>
-            <button class="toolbar-btn" @click="handleDownload" title="下载">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-              </svg>
-            </button>
-            <button class="toolbar-btn close-btn" @click="handleClose" title="关闭">
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path fill="currentColor"
-                  d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-              </svg>
-            </button>
-          </div>
-        </div>
+          <el-collapse v-model="activeNames" style="width: 100%;">
+            <el-collapse-item :title="currentFile?.name" name="1">
+              <template #title>
+                <div class="toolbar-left">
+                  <el-text class="file-name" :line-clamp="1">{{ currentFile?.name }}</el-text>
+                </div>
+              </template>
 
-        <!-- 文件列表缩略图 -->
-        <div v-if="fileList.length > 1" class="thumbnail-list">
-          <button v-for="(file, index) in fileList" :key="index" class="thumbnail-item"
-            :class="{ active: currentIndex === index }" @click="handleSwitchFile(index)">
-            <img v-if="getFileType(file) === 'image'" :src="file.path || file.url" :alt="file.name" />
-            <div v-else-if="getFileType(file) === 'video' || getFileType(file) === 'audio'" class="thumbnail-media"
-              :style="`background-image: url(${file.path}); `">
-              <svg-icon :icon-class="getFileType(file) === 'video' ? 'general-play' : 'general-music'" size="24px"
-                color="#ffffff" />
-            </div>
-            <div v-else class="thumbnail-icon" style="background-color: rgb(255 255 255)">
-              <svg-icon v-if="getFileType(file)" :icon-class="'document-' + getFileType(file)" size="48px" />
-            </div>
-          </button>
+              <template #icon="{ isActive }">
+                <div class="toolbar-right">
+                  <button class="toolbar-btn" :title="isActive ? '折叠' : '展开'">
+                    <el-icon :size="20">
+                      <ArrowUp v-if="isActive" />
+                      <ArrowDown v-else />
+                    </el-icon>
+
+                  </button>
+                  <button class="toolbar-btn" @click.stop="handleZoomIn" title="放大">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                      <path fill="currentColor"
+                        d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                      <path fill="currentColor" d="M12 10h-2v2H9v-2H7V9h2V7h1v2h2v1z" />
+                    </svg>
+                  </button>
+                  <button class="toolbar-btn" @click.stop="handleZoomOut" title="缩小">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                      <path fill="currentColor"
+                        d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                      <path fill="currentColor" d="M7 9h5v1H7z" />
+                    </svg>
+                  </button>
+                  <button class="toolbar-btn" @click.stop="handleRotate" title="旋转">
+                    <svg viewBox="0 0 24 24" width="20" height="20" style="transform: rotateY(180deg);">
+                      <path fill="currentColor"
+                        d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+                    </svg>
+                  </button>
+                  <button class="toolbar-btn" @click.stop="handleResetZoom" title="重置缩放">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                      <path fill="currentColor"
+                        d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
+                    </svg>
+                  </button>
+                  <button class="toolbar-btn" @click.stop="handleDownload" title="下载">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                      <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
+                    </svg>
+                  </button>
+                  <button class="toolbar-btn close-btn" @click.stop="handleClose" title="关闭">
+                    <svg viewBox="0 0 24 24" width="20" height="20">
+                      <path fill="currentColor"
+                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </svg>
+                  </button>
+                </div>
+              </template>
+
+              <template #default>
+                <el-scrollbar>
+                  <div v-if="fileList.length > 1" class="thumbnail-list">
+                    <button v-for="(file, index) in fileList" :key="index" class="thumbnail-item"
+                      :class="{ active: currentIndex === index }" @click="handleSwitchFile(index)">
+                      <img v-if="getFileType(file) === 'image'" :src="file.path || file.url" :alt="file.name" />
+                      <div v-else-if="getFileType(file) === 'video' || getFileType(file) === 'audio'"
+                        class="thumbnail-media" :style="`background-image: url(${file.path}); `">
+                        <svg-icon :icon-class="getFileType(file) === 'video' ? 'general-play' : 'general-music'"
+                          size="24px" color="#ffffff" />
+                      </div>
+                      <div v-else class="thumbnail-icon" style="background-color: rgb(255 255 255)">
+                        <svg-icon v-if="getFileType(file)" :icon-class="'document-' + getFileType(file)" size="48px" />
+                      </div>
+                    </button>
+                  </div>
+                </el-scrollbar>
+              </template>
+            </el-collapse-item>
+          </el-collapse>
         </div>
 
         <!-- 上一张/下一张按钮 -->
@@ -424,7 +444,7 @@ onUnmounted(() => {
 
               <div v-else-if="getFileType(file) === 'video'" class="video-preview">
                 <video ref="videoRef" :key="file?.url || file?.path" :src="file?.url" :poster="file?.path" controls
-                  autoplay preload="metadata" @loadeddata="handleVideoLoaded(file)" v-videoplay>
+                  autoplay preload="metadata" @loadeddata="handleVideoLoaded(file)" v-videoPlay>
                   您的浏览器不支持视频播放
                 </video>
               </div>
@@ -515,7 +535,7 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   z-index: 9999;
-  background-color: rgba(0, 0, 0, 0.9);
+  background-color: rgba(255, 255, 255, 0.8);
   display: flex;
   flex-direction: column;
 }
@@ -525,50 +545,52 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
-  background-color: rgba(0, 0, 0, 0.7);
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
   color: #fff;
   z-index: 10;
 
-  .toolbar-left {
-    display: flex;
 
-    .file-name {
-      font-size: 14px;
-      max-width: 400px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      // white-space: nowrap;
-    }
+}
+
+.toolbar-left {
+  padding-left: 8px;
+  display: flex;
+
+  .file-name {
+    font-size: 14px;
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.toolbar-right {
+  display: flex;
+  gap: 8px;
+}
+
+.toolbar-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.2);
+    transform: scale(1.05);
   }
 
-  .toolbar-right {
-    display: flex;
-    gap: 8px;
-  }
-
-  .toolbar-btn {
-    width: 36px;
-    height: 36px;
-    border: none;
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.2);
-      transform: scale(1.05);
-    }
-
-    &.close-btn:hover {
-      background-color: rgba(255, 0, 0, 0.3);
-    }
+  &.close-btn:hover {
+    background-color: rgba(255, 0, 0, 0.3);
   }
 }
 
@@ -576,19 +598,7 @@ onUnmounted(() => {
 .thumbnail-list {
   display: flex;
   gap: 8px;
-  padding: 10px 20px;
-  background-color: rgba(0, 0, 0, 0.5);
-  overflow-x: auto;
-  z-index: 10;
-
-  &::-webkit-scrollbar {
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
-  }
+  padding: 10px;
 
   .thumbnail-item {
     flex-shrink: 0;
@@ -645,7 +655,7 @@ onUnmounted(() => {
   width: 50px;
   height: 50px;
   border: none;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.1);
   color: #fff;
   border-radius: 50%;
   cursor: pointer;
@@ -767,7 +777,7 @@ onUnmounted(() => {
 .txt-preview {
   width: 100%;
   height: 100%;
-  background: #1e1e1e;
+  background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
   overflow: auto;
@@ -780,7 +790,7 @@ onUnmounted(() => {
   font-family: 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 15px;
   line-height: 1.6;
-  color: #d4d4d4;
+  color: #1e1e1e;
   /* 浅灰文字 */
   white-space: pre-wrap;
   /* 自动换行 */
@@ -790,39 +800,46 @@ onUnmounted(() => {
 }
 
 /* 自定义滚动条（与整体风格一致） */
-.xlsx-class::-webkit-scrollbar-thumb:active,
-.pptx-class::-webkit-scrollbar-thumb:active,
-.docx-class::-webkit-scrollbar-thumb:active,
-.docx-class::-webkit-scrollbar-thumb:active,
+.xlsx-class::-webkit-scrollbar,
+.pptx-class::-webkit-scrollbar,
+.docx-class::-webkit-scrollbar,
 .pdf-preview::-webkit-scrollbar,
 .txt-preview::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.xlsx-class::-webkit-scrollbar-thumb:active,
-.pptx-class::-webkit-scrollbar-thumb:active,
-.docx-class::-webkit-scrollbar-thumb:active,
-.docx-class::-webkit-scrollbar-thumb:active,
+.xlsx-class::-webkit-scrollbar-corner,
+.xlsx-class::-webkit-scrollbar-track,
+.pdf-preview::-webkit-scrollbar-corner,
+.pdf-preview::-webkit-scrollbar-track,
+.pptx-class::-webkit-scrollbar-corner,
+.pptx-class::-webkit-scrollbar-track,
+.docx-class::-webkit-scrollbar-corner,
+.docx-class::-webkit-scrollbar-track,
 .txt-preview::-webkit-scrollbar-corner,
 .txt-preview::-webkit-scrollbar-track {
-  background: #2d2d2d;
+  background: #d2d2d2;
   border-radius: 4px;
 }
 
-.xlsx-class::-webkit-scrollbar-thumb:active,
-.pptx-class::-webkit-scrollbar-thumb:active,
-.docx-class::-webkit-scrollbar-thumb:active,
-.docx-class::-webkit-scrollbar-thumb:active,
-.txt-preview::-webkit-scrollbar-thumb,
+.xlsx-class::-webkit-scrollbar-thumb,
+.pptx-class::-webkit-scrollbar-thumb,
+.docx-class::-webkit-scrollbar-thumb,
+.pdf-preview::-webkit-scrollbar-thumb,
 .txt-preview::-webkit-scrollbar-thumb {
   background: #555;
   border-radius: 4px;
 }
 
 .xlsx-class::-webkit-scrollbar-thumb:active,
+.xlsx-class::-webkit-scrollbar-thumb:hover,
 .pptx-class::-webkit-scrollbar-thumb:active,
+.pptx-class::-webkit-scrollbar-thumb:hover,
 .docx-class::-webkit-scrollbar-thumb:active,
+.docx-class::-webkit-scrollbar-thumb:hover,
+.pdf-preview::-webkit-scrollbar-thumb:active,
+.pdf-preview::-webkit-scrollbar-thumb:hover,
 .txt-preview::-webkit-scrollbar-thumb:active,
 .txt-preview::-webkit-scrollbar-thumb:hover {
   background: #777;
@@ -954,5 +971,9 @@ onUnmounted(() => {
 
 :deep(.pptx-preview-wrapper) {
   height: 100% !important;
+}
+
+:deep(.el-collapse-item__content) {
+  padding-bottom: 0px !important;
 }
 </style>

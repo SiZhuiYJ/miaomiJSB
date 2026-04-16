@@ -388,12 +388,12 @@ function formatDuration(seconds: number): string {
         <div v-if="loadStatus !== 'idle'" class="file-load-status" @click.stop>
           <el-progress v-if="loadStatus === 'loading'" :percentage="loadProgress" :stroke-width="6"
             :show-text="false" />
-          <span class="status-text" :class="{
+          <!-- <span class="status-text" :class="{
             ready: loadStatus === 'ready',
             error: loadStatus === 'error',
           }">
             {{ loadStatus === 'ready' ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
-          </span>
+          </span> -->
         </div>
       </div>
     </template>
@@ -410,6 +410,7 @@ function formatDuration(seconds: number): string {
 
 <style scoped lang="scss">
 .file-message {
+  max-width: 300px;
   cursor: pointer;
   user-select: none;
 }
@@ -574,7 +575,6 @@ function formatDuration(seconds: number): string {
   padding: 12px;
   background: #f5f5f5;
   border-radius: 8px;
-  min-width: 280px;
 
   .audio-icon {
     width: 48px;
@@ -623,6 +623,11 @@ function formatDuration(seconds: number): string {
   }
 }
 
+.audio-message,
+.document-message {
+  width: 300px;
+}
+
 .document-message {
   display: flex;
   align-items: center;
@@ -630,7 +635,6 @@ function formatDuration(seconds: number): string {
   padding: 12px;
   background: #f5f5f5;
   border-radius: 8px;
-  width: 280px;
   transition: background-color 0.2s;
 
   &:hover {
@@ -689,26 +693,27 @@ function formatDuration(seconds: number): string {
         border-radius: 3px;
         font-size: 11px;
       }
-
-      .status-text {
-        margin-top: 4px;
-        display: inline-block;
-        font-size: 12px;
-        color: #909399;
-
-        &.ready {
-          color: #67c23a;
-        }
-
-        &.error {
-          color: #f56c6c;
-        }
-      }
     }
   }
 
   .download-btn {
     flex-shrink: 0;
+  }
+}
+
+.file-meta {
+  .status-text {
+    display: inline-block;
+    font-size: 12px;
+    color: #909399;
+
+    &.ready {
+      color: #67c23a;
+    }
+
+    &.error {
+      color: #f56c6c;
+    }
   }
 }
 
@@ -725,20 +730,5 @@ function formatDuration(seconds: number): string {
 .file-load-status {
   margin-top: 8px;
   width: 100%;
-
-  .status-text {
-    margin-top: 4px;
-    display: inline-block;
-    font-size: 12px;
-    color: #909399;
-
-    &.ready {
-      color: #67c23a;
-    }
-
-    &.error {
-      color: #f56c6c;
-    }
-  }
 }
 </style>

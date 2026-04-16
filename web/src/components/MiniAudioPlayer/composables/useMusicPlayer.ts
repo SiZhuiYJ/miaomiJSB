@@ -33,6 +33,13 @@ export const useMusicPlayer = (
     const volume = ref(0.7);
     const muted = ref(false);
 
+    // 颜色
+    const dominantColor = ref<{
+        primary: string;
+        secondary: string;
+        text: string;
+    } | null>(null);
+
     // 计算属性
     const progress = computed({
         get: () => (duration.value ? (currentTime.value / duration.value) * 100 : 0),
@@ -145,6 +152,10 @@ export const useMusicPlayer = (
                 console.error("自动播放被阻止", error);
                 // 如果自动播放失败，可以显示一个提示让用户手动点击播放
                 isPlaying.value = false;
+            } finally {
+                // 移除事件监听器，防止重复监听
+                // detachAudioEvents();
+                // attachAudioEvents();
             }
         }
     };
@@ -152,11 +163,6 @@ export const useMusicPlayer = (
     const togglePlay = async () => {
         const audio = audioRef.value;
         if (!audio) return;
-
-        // if (!isReady.value) {
-        //     await loadTrack(undefined, true);
-        //     return;
-        // }
 
         if (isPlaying.value) {
             audio.pause();
@@ -202,6 +208,93 @@ export const useMusicPlayer = (
         isPlaying.value = true;
     };
 
+
+    const rgbToHex = (r: number, g: number, b: number) => {
+        const toHex = (n: number) =>
+            Math.max(0, Math.min(255, Math.round(n)))
+                .toString(16)
+                .padStart(2, "0");
+        return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    };
+
+    const mixChannel = (value: number, target: number, weight: number) =>
+        value * weight + target * (1 - weight);
+
+    const extractPalette = async (url: string) => {
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const image = new Image();
+            image.crossOrigin = "anonymous";
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.src = url;
+        });
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) return null;
+        const sampleSize = 64;
+        const width = (canvas.width = Math.min(
+            sampleSize,
+            img.naturalWidth || img.width
+        ));
+        const height = (canvas.height = Math.min(
+            sampleSize,
+            img.naturalHeight || img.height
+        ));
+        ctx.drawImage(img, 0, 0, width, height);
+        const data = ctx.getImageData(0, 0, width, height).data;
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        let count = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            const alpha = data[i + 3];
+            if (alpha! < 10) continue;
+            r += data[i]!;
+            g += data[i + 1]!;
+            b += data[i + 2]!;
+            count++;
+        }
+        if (!count) return null;
+        const base = [r / count, g / count, b / count];
+
+        const darkBaseRgb = [18, 36, 62];
+        const mixWeight = 0.6;
+
+        const primaryRgb = base.map((channel, i) =>
+            mixChannel(
+                mixChannel(channel, darkBaseRgb[i]!, mixWeight),
+                0,
+                0.9
+            )
+        );
+
+        const secondaryRgb = base.map(channel =>
+            mixChannel(channel, 255, 0.4)
+        );
+
+        const textHex = "#f8fafc";
+
+
+        dominantColor.value = {
+            primary: rgbToHex(primaryRgb[0]!, primaryRgb[1]!, primaryRgb[2]!),
+            secondary: rgbToHex(
+                secondaryRgb[0]!,
+                secondaryRgb[1]!,
+                secondaryRgb[2]!
+            ),
+            text: textHex
+        }
+        // return {
+        //     primary: rgbToHex(primaryRgb[0]!, primaryRgb[1]!, primaryRgb[2]!),
+        //     secondary: rgbToHex(
+        //         secondaryRgb[0]!,
+        //         secondaryRgb[1]!,
+        //         secondaryRgb[2]!
+        //     ),
+        //     text: textHex
+        // };
+    };
+
     onMounted(() => {
         const audio = audioRef.value;
         if (!audio) return;
@@ -218,6 +311,7 @@ export const useMusicPlayer = (
 
     return {
         // 当前音频信息
+        dominantColor,
         track,
 
         // 播放状态
@@ -241,5 +335,8 @@ export const useMusicPlayer = (
         toggleMute,
         restart,
         formatTime,
+
+        // 颜色转换
+        extractPalette,
     };
 };
