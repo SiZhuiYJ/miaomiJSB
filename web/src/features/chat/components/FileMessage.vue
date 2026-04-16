@@ -252,118 +252,140 @@ function formatDuration(seconds: number): string {
 
 <template>
   <div class="file-message" @click="handleClick">
-    <!-- 图片消息 -->
-    <div v-if="category === 'image' && fileExtra" class="image-message">
-      <img v-if="previewUrl && !hasError" :src="previewUrl" :alt="fileExtra.fileName" :style="imageStyle"
-        @error="handleImageError" loading="lazy" />
-      <div v-else-if="previewLoading" class="image-loading">
-        <el-icon class="is-loading">
-          <Loading />
-        </el-icon>
-        <span>加载中...</span>
-      </div>
-      <div v-else-if="hasError" class="image-error-placeholder">
-        <el-icon>
-          <WarningFilled />
-        </el-icon>
-        <span>图片加载失败</span>
-      </div>
-      <div v-else class="image-placeholder">
-        <svg-icon icon-class="document-png" size="48px" />
-        <span>{{ fileExtra.fileName }}</span>
-        <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
-      </div>
-      <div v-if="showDownload && previewUrl && !hasError" class="image-overlay">
-        <el-button size="small" circle @click.stop="handleDownload">
-          <el-icon>
-            <Download />
-          </el-icon>
-        </el-button>
-      </div>
-    </div>
+    <template v-if="fileExtra">
+      <div class="file-item-wrap">
+        <!-- 图片消息 -->
+        <div v-if="category === 'image'" class="image-message">
+          <img v-if="previewUrl && !hasError" :src="previewUrl" :alt="fileExtra.fileName" :style="imageStyle"
+            @error="handleImageError" loading="lazy" />
+          <div v-else-if="previewLoading" class="image-loading">
+            <el-icon class="is-loading">
+              <Loading />
+            </el-icon>
+            <span>加载中...</span>
+          </div>
+          <div v-else-if="hasError" class="image-error-placeholder">
+            <el-icon>
+              <WarningFilled />
+            </el-icon>
+            <span>图片加载失败</span>
+          </div>
+          <div v-else class="image-placeholder">
+            <svg-icon icon-class="document-png" size="48px" />
+            <span>{{ fileExtra.fileName }}</span>
+            <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
+          </div>
+          <div v-if="showDownload && previewUrl && !hasError" class="image-overlay">
+            <el-button size="small" circle @click.stop="handleDownload">
+              <el-icon>
+                <Download />
+              </el-icon>
+            </el-button>
+          </div>
+        </div>
 
-    <!-- 视频消息 -->
-    <div v-else-if="category === 'video' && fileExtra" class="video-message">
-      <div v-if="thumbnailUrl" class="video-cover">
-        <img :src="thumbnailUrl" :alt="fileExtra.fileName" loading="lazy" />
-        <div class="video-cover-overlay">
-          <el-icon v-if="previewLoading" class="is-loading" :size="28">
-            <Loading />
-          </el-icon>
-          <svg-icon v-else icon-class="general-play" size="32px" />
+        <!-- 视频消息 -->
+        <div v-else-if="category === 'video' && fileExtra" class="video-message">
+          <div v-if="thumbnailUrl" class="video-cover">
+            <img :src="thumbnailUrl" :alt="fileExtra.fileName" loading="lazy" />
+            <div class="video-cover-overlay">
+              <el-icon v-if="previewLoading" class="is-loading" :size="28">
+                <Loading />
+              </el-icon>
+              <svg-icon v-else icon-class="general-play" size="32px" />
+            </div>
+          </div>
+          <div v-else-if="thumbnailLoading" class="media-loading">
+            <el-icon class="is-loading">
+              <Loading />
+            </el-icon>
+            <span>加载封面中...</span>
+          </div>
+          <div v-else-if="hasError" class="media-error-placeholder">
+            <el-icon>
+              <WarningFilled />
+            </el-icon>
+            <span>视频加载失败</span>
+          </div>
+          <div v-else class="media-placeholder">
+            <svg-icon icon-class="document-video" size="48px" />
+            <span>{{ previewLoading ? '加载视频中...' : '点击加载视频' }}</span>
+          </div>
+          <div class="file-info">
+            <div class="file-name">{{ fileExtra.fileName }}</div>
+            <div class="file-meta">
+              <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
+              <span v-if="fileExtra.duration">{{ formatDuration(fileExtra.duration) }}</span>
+            </div>
+          </div>
         </div>
-      </div>
-      <div v-else-if="thumbnailLoading" class="media-loading">
-        <el-icon class="is-loading">
-          <Loading />
-        </el-icon>
-        <span>加载封面中...</span>
-      </div>
-      <div v-else-if="hasError" class="media-error-placeholder">
-        <el-icon>
-          <WarningFilled />
-        </el-icon>
-        <span>视频加载失败</span>
-      </div>
-      <div v-else class="media-placeholder">
-        <svg-icon icon-class="document-video" size="48px" />
-        <span>{{ previewLoading ? '加载视频中...' : '点击加载视频' }}</span>
-      </div>
-      <div class="file-info">
-        <div class="file-name">{{ fileExtra.fileName }}</div>
-        <div class="file-meta">
-          <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
-          <span v-if="fileExtra.duration">{{ formatDuration(fileExtra.duration) }}</span>
-        </div>
-      </div>
-    </div>
 
-    <!-- 音频消息 -->
-    <div v-else-if="category === 'audio' && fileExtra" class="audio-message">
-      <div class="audio-icon">
-        <el-icon v-if="previewLoading" class="is-loading" :size="24">
-          <Loading />
-        </el-icon>
-        <el-icon v-else-if="hasError" :size="24">
-          <WarningFilled />
-        </el-icon>
-        <svg-icon v-else icon-class="document-voice" size="48px" />
-      </div>
-      <div class="audio-content">
-        <div class="file-name">{{ fileExtra.fileName }}</div>
-        <div class="file-meta">
-          <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
-          <span v-if="fileExtra.duration">{{ formatDuration(fileExtra.duration) }}</span>
-        </div>
-      </div>
+        <!-- 音频消息 -->
+        <div v-else-if="category === 'audio' && fileExtra" class="audio-message">
+          <div class="audio-icon">
+            <el-icon v-if="previewLoading" class="is-loading" :size="24">
+              <Loading />
+            </el-icon>
+            <el-icon v-else-if="hasError" :size="24">
+              <WarningFilled />
+            </el-icon>
+            <svg-icon v-else icon-class="document-voice" size="48px" />
+          </div>
+          <div class="audio-content">
+            <div class="file-name">{{ fileExtra.fileName }}</div>
+            <div class="file-meta">
+              <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
+              <span v-if="fileExtra.duration">{{ formatDuration(fileExtra.duration) }}</span>
+            </div>
+          </div>
 
-      <el-button v-if="showDownload" size="small" circle class="download-btn" @click.stop="handleDownload">
-        <el-icon>
-          <Download />
-        </el-icon>
-      </el-button>
-    </div>
+          <el-button v-if="showDownload" size="small" circle class="download-btn" @click.stop="handleDownload">
+            <el-icon>
+              <Download />
+            </el-icon>
+          </el-button>
+        </div>
 
-    <!-- 文档和压缩包消息 -->
-    <div v-else-if="fileExtra" class="document-message">
-      <div class="document-icon" :class="category">
-        <svg-icon :icon-class="documentIconName" size="48px" />
-      </div>
-      <div class="document-info">
-        <div class="file-name" :title="fileExtra.fileName">
-          {{ fileExtra.fileName }}
+        <!-- 文档和压缩包消息 -->
+        <div v-else-if="fileExtra" class="document-message">
+          <div class="document-icon" :class="category">
+            <svg-icon :icon-class="documentIconName" size="48px" />
+          </div>
+          <div class="document-info">
+            <div class="file-name" :title="fileExtra.fileName">
+              {{ fileExtra.fileName }}
+            </div>
+            <div class="file-meta">
+              <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
+              <span class="file-type">{{ displayType }}</span>
+            </div>
+          </div>
+          <el-button v-if="showDownload" size="small" circle class="download-btn" @click.stop="handleDownload">
+            <el-icon>
+              <Download />
+            </el-icon>
+          </el-button>
         </div>
-        <div class="file-meta">
-          <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
-          <span class="file-type">{{ displayType }}</span>
+
+        <div v-if="loadStatus !== 'idle'" class="file-load-status" @click.stop>
+          <el-progress
+            v-if="loadStatus === 'loading'"
+            :percentage="loadProgress"
+            :stroke-width="6"
+            :show-text="false"
+          />
+          <span
+            class="status-text"
+            :class="{
+              ready: loadStatus === 'ready',
+              error: loadStatus === 'error',
+            }"
+          >
+            {{ loadStatus === 'ready' ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
+          </span>
         </div>
       </div>
-      <el-button v-if="showDownload" size="small" circle class="download-btn" @click.stop="handleDownload">
-        <el-icon>
-          <Download />
-        </el-icon>
-      </el-button>
-    </div>
+    </template>
 
     <div v-if="loadStatus !== 'idle'" class="file-load-status" @click.stop>
       <el-progress
@@ -397,6 +419,12 @@ function formatDuration(seconds: number): string {
 .file-message {
   cursor: pointer;
   user-select: none;
+}
+
+.file-item-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .image-message {
@@ -689,7 +717,6 @@ function formatDuration(seconds: number): string {
 .file-load-status {
   margin-top: 8px;
   width: 100%;
-  max-width: 280px;
 
   .status-text {
     margin-top: 4px;
