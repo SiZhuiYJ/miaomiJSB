@@ -89,6 +89,21 @@ const markFileLoaded = (file?: FileItem) => {
   }
 }
 
+const getFileCacheKey = (file?: FileItem) =>
+  file?.url || file?.path || (file ? `${file.name}-${file.type || 'unknown'}` : '')
+
+const isFileLoaded = (file?: FileItem) => {
+  const key = getFileCacheKey(file)
+  return key ? loadedFileKeys.value.has(key) : false
+}
+
+const markFileLoaded = (file?: FileItem) => {
+  const key = getFileCacheKey(file)
+  if (key) {
+    loadedFileKeys.value.add(key)
+  }
+}
+
 // 图片样式
 const imageStyle = computed(() => ({
   transform: `scale(${scale.value}) rotate(${rotate.value}deg)`,
@@ -182,6 +197,8 @@ const handleCarouselChange = (index: number) => {
   currentIndex.value = index
   resetPreview()
 }
+
+const isSlideActive = (index: number) => index === currentIndex.value
 
 const content = ref<string | null>(null);
 
