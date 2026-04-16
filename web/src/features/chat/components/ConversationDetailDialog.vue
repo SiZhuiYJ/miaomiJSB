@@ -8,6 +8,7 @@ import {
   formatChatTime,
   getConversationAvatarUrl,
   getConversationDisplayTitle,
+  getMemberAvatarUrl,
 } from '../utils/chat';
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia';
@@ -50,12 +51,14 @@ function togglePinned() {
     <p class="members">创建时间：{{ formatChatTime(conversation.createdAt) }}</p>
     <p class="members">更新时间：{{ formatChatTime(conversation.updatedAt) }}</p>
     <p class="members">
-      成员：
-      {{
-        conversation.members
-          .map((member) => `${member.nickName || member.userId}(${groupRoleMap[member.memberRole] || member.memberRole})`)
-          .join('，')
-      }}
+      <span v-for="item in conversation.members" class="members-item" :key="item.userId"
+        :title="item.nickName || item.userAccount || ''">
+        <el-avatar class="conversation-avatar" :src="getMemberAvatarUrl(item)" :size="48" shape="square">
+          {{ item.nickName ? item.nickName.slice(0, 1) : '无' }}
+        </el-avatar>
+        <el-text :line-clamp="1"> {{ item.nickName || item.userId }}</el-text>
+        <span>({{ groupRoleMap[item.memberRole] || item.memberRole }})</span>
+      </span>
     </p>
     <div class="action-icons">
       <el-icon @click="toggleMuted">

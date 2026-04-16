@@ -440,10 +440,9 @@ async function handleFileSelected(files: File[]) {
             <div class="date-separator"> <el-divider border-style="dashed">{{ group.dateLabel }}</el-divider></div>
             <!-- 分组内的消息 -->
             <MessageItem v-for="msg in group.messages" :key="msg.id" v-viewport="onMessageVisible"
-              :data-message-id="msg.id"
-              :message="msg" :src="getMemberAvatarBySender(currentConversation, msg.senderUserId)"
-              :meUserId="props.meUserId" :is-mine="msg.senderUserId === props.meUserId"
-              v-bind="getReadDisplay(msg.id)" />
+              :data-message-id="msg.id" :message="msg"
+              :src="getMemberAvatarBySender(currentConversation, msg.senderUserId)" :meUserId="props.meUserId"
+              :is-mine="msg.senderUserId === props.meUserId" v-bind="getReadDisplay(msg.id)" />
           </template>
         </div>
       </el-scrollbar>
@@ -483,11 +482,12 @@ async function handleFileSelected(files: File[]) {
 
       <ConversationDetailDialog v-model="isChatDetail" :conversation="currentConversation"
         @update:conversation="emit('updateConversation')" @load-more="emit('loadMore')" />
+      
+        <!-- 全局唯一 FilePreview 组件 -->
       <FilePreview v-model="galleryVisible" :file-list="galleryFileList" v-model:current-index="galleryIndex" />
 
-      <el-dialog v-model="dropUploadDialogVisible" title="确认上传文件" width="560px"
-        :close-on-click-modal="!dropUploadBusy" :close-on-press-escape="!dropUploadBusy" :show-close="!dropUploadBusy"
-        @closed="clearDroppedFiles">
+      <el-dialog v-model="dropUploadDialogVisible" title="确认上传文件" width="560px" :close-on-click-modal="!dropUploadBusy"
+        :close-on-press-escape="!dropUploadBusy" :show-close="!dropUploadBusy" @closed="clearDroppedFiles">
         <div class="drop-file-dialog">
           <div class="drop-file-question">是否上传这些文件到当前会话？</div>
           <div class="drop-file-summary">
@@ -532,7 +532,6 @@ async function handleFileSelected(files: File[]) {
     <div v-else class="empty">请选择一个会话开始聊天。
     </div>
   </main>
-  <!-- 全局唯一 FilePreview 组件 -->
 </template>
 
 <style scoped lang="scss">

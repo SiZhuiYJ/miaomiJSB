@@ -299,6 +299,12 @@ function formatDuration(seconds: number): string {
           <span v-if="fileExtra.duration">{{ formatDuration(fileExtra.duration) }}</span>
         </div>
       </div>
+
+      <el-button v-if="showDownload" size="small" circle class="download-btn" @click.stop="handleDownload">
+        <el-icon>
+          <Download />
+        </el-icon>
+      </el-button>
     </div>
 
     <!-- 文档和压缩包消息 -->
