@@ -1,12 +1,14 @@
 import { reactive } from "vue";
 import http from "@/libs/http/file";
 import { useAuthStore } from "@/features/auth/stores";
+import type { AxiosProgressEvent } from "axios";
 
 interface QueueItem {
     fileKey: string;
     category: string;
     thumbnailUrl?: string;
     priorityId?: number;
+    onProgress?: (progress: number) => void;
     onComplete: (blobUrl: string) => void;
     onThumbnailComplete?: (blobUrl: string) => void;
     onError: (error: Error) => void;
@@ -35,13 +37,17 @@ const maxConcurrentDownloads = 1;
 const maxRetries = 2;
 const retryDelayMs = 800;
 
-async function downloadWithRetry(url: string, retries = maxRetries): Promise<Blob> {
+async function downloadWithRetry(
+    url: string,
+    onProgress?: (progress: number) => void,
+    retries = maxRetries,
+): Promise<Blob> {
     try {
-        return await downloadFile(url);
+        return await downloadFile(url, onProgress);
     } catch (error) {
         if (retries > 0) {
             await new Promise(resolve => setTimeout(resolve, retryDelayMs));
-            return downloadWithRetry(url, retries - 1);
+            return downloadWithRetry(url, onProgress, retries - 1);
         }
         throw error;
     }
@@ -52,10 +58,21 @@ export function getAuthHeaders(): Record<string, string> {
     return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function downloadFile(url: string): Promise<Blob> {
+async function downloadFile(
+    url: string,
+    onProgress?: (progress: number) => void,
+): Promise<Blob> {
     const response = await http.get(url, {
         responseType: "blob",
         headers: getAuthHeaders(),
+        onDownloadProgress: (event: AxiosProgressEvent) => {
+            if (!onProgress || !event.total) return;
+            const percentage = Math.min(
+                100,
+                Math.round((event.loaded / event.total) * 100),
+            );
+            onProgress(percentage);
+        },
     });
     if (response.status !== 200) {
         throw new Error(
@@ -96,6 +113,7 @@ async function processQueue() {
         fileKey,
         category,
         thumbnailUrl,
+        onProgress,
         onComplete,
         onThumbnailComplete,
         onError,
@@ -131,12 +149,15 @@ async function processQueue() {
 
         // --- Main File Handling ---
         if (downloadedBlobs[fileKey]) {
+            onProgress?.(100);
             onComplete(downloadedBlobs[fileKey]);
         } else {
             const fileUrl = `${normalizedBaseUrl}/mm/files/chat/${fileKey}`;
-            const blob = await downloadWithRetry(fileUrl);
+            onProgress?.(0);
+            const blob = await downloadWithRetry(fileUrl, onProgress);
             const blobUrl = URL.createObjectURL(blob);
             downloadedBlobs[fileKey] = blobUrl;
+            onProgress?.(100);
             onComplete(blobUrl);
         }
     } catch (error) {
