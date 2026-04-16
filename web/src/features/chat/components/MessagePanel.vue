@@ -31,6 +31,7 @@ interface GalleryFile {
   url: string;
   type: string;
   path?: string;
+  messageId?: number;
 }
 
 // 全局画廊状态
@@ -41,9 +42,23 @@ const galleryIndex = ref(0);
 // 注册文件到画廊
 function registerFileToGallery(file: GalleryFile) {
   const existingIndex = galleryFileList.value.findIndex(f => f.url === file.url);
-  if (existingIndex === -1) {
-    galleryFileList.value.push(file);
+  if (existingIndex >= 0) {
+    const merged = { ...galleryFileList.value[existingIndex], ...file };
+    galleryFileList.value.splice(existingIndex, 1);
+    insertGalleryFile(merged);
+    return;
   }
+  insertGalleryFile(file);
+}
+
+function insertGalleryFile(file: GalleryFile) {
+  const targetMessageId = file.messageId ?? -1;
+  const insertAt = galleryFileList.value.findIndex((item) => (item.messageId ?? -1) < targetMessageId);
+  if (insertAt === -1) {
+    galleryFileList.value.push(file);
+    return;
+  }
+  galleryFileList.value.splice(insertAt, 0, file);
 }
 
 // 打开画廊并定位到指定文件
