@@ -29,6 +29,7 @@ interface GalleryFile {
   url: string;
   type: string;
   path?: string;
+  messageId?: number;
 }
 
 const gallery = inject<{
@@ -76,6 +77,7 @@ function registerToGlobalGallery(url: string) {
     url,
     type: category.value,
     path: category.value == "image" ? url : thumbnailUrl.value || props.src,
+    messageId: props.message?.id,
   });
 }
 

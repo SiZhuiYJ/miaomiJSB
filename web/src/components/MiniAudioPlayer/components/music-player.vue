@@ -14,6 +14,7 @@ const emit = defineEmits<{
 }>();
 
 const audioRef = ref<HTMLAudioElement | null>(null);
+const themeVars = ref<Record<string, string>>({});
 
 const toNumber = (value: string | number) => {
     const num = Number(value);
@@ -70,10 +71,116 @@ const onVolumeInput = (event: Event) => {
     const next = toNumber((event.target as HTMLInputElement).value);
     changeVolume(next);
 };
+
+const rgbToHex = (r: number, g: number, b: number) =>
+    `#${[r, g, b].map((channel) => channel.toString(16).padStart(2, "0")).join("")}`;
+
+const hexToRgba = (hex: string, alpha: number) => {
+    const normalized = hex.replace("#", "");
+    const value = normalized.length === 3
+        ? normalized.split("").map((char) => `${char}${char}`).join("")
+        : normalized.padEnd(6, "0").slice(0, 6);
+    const num = Number.parseInt(value, 16);
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const getContrastText = (r: number, g: number, b: number) => {
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.62 ? "#111827" : "#e8ecf1";
+};
+
+async function extractCoverTheme(coverUrl?: string) {
+    if (!coverUrl) {
+        themeVars.value = {};
+        return;
+    }
+
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.decoding = "async";
+
+    image.onload = () => {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        if (!context) return;
+
+        const size = 32;
+        canvas.width = size;
+        canvas.height = size;
+        context.drawImage(image, 0, 0, size, size);
+
+        const { data } = context.getImageData(0, 0, size, size);
+        let totalR = 0;
+        let totalG = 0;
+        let totalB = 0;
+        let weightedR = 0;
+        let weightedG = 0;
+        let weightedB = 0;
+        let count = 0;
+        let weightedCount = 0;
+
+        for (let i = 0; i < data.length; i += 4) {
+            const alpha = data[i + 3] ?? 0;
+            if (alpha < 32) continue;
+            const r = data[i] ?? 0;
+            const g = data[i + 1] ?? 0;
+            const b = data[i + 2] ?? 0;
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const saturation = max === 0 ? 0 : (max - min) / max;
+            const weight = 1 + saturation * 2;
+            totalR += r;
+            totalG += g;
+            totalB += b;
+            weightedR += r * weight;
+            weightedG += g * weight;
+            weightedB += b * weight;
+            count += 1;
+            weightedCount += weight;
+        }
+
+        if (!count || !weightedCount) {
+            themeVars.value = {};
+            return;
+        }
+
+        const avgR = Math.round(totalR / count);
+        const avgG = Math.round(totalG / count);
+        const avgB = Math.round(totalB / count);
+        const vividR = Math.round(weightedR / weightedCount);
+        const vividG = Math.round(weightedG / weightedCount);
+        const vividB = Math.round(weightedB / weightedCount);
+        const textColor = getContrastText(avgR, avgG, avgB);
+
+        const startHex = rgbToHex(avgR, avgG, avgB);
+        const endHex = rgbToHex(vividR, vividG, vividB);
+
+        themeVars.value = {
+            "--hero-start": hexToRgba(startHex, 0.45),
+            "--hero-end": hexToRgba(endHex, 0.55),
+            "--accent-a": startHex,
+            "--accent-b": endHex,
+            "--hero-text": textColor,
+        };
+    };
+
+    image.onerror = () => {
+        themeVars.value = {};
+    };
+
+    image.src = coverUrl;
+}
+
+watch(() => props.coverUrl, (coverUrl) => {
+    void extractCoverTheme(coverUrl);
+}, { immediate: true });
 </script>
 
 <template>
-    <div class="player-page">
+    <div class="player-page" :style="themeVars">
         <section class="player-hero">
             <div class="glow"></div>
             <div class="hero-main">
