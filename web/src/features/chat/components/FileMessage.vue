@@ -44,6 +44,8 @@ const thumbnailUrl = ref('');
 const previewLoading = ref(false);
 const thumbnailLoading = ref(false);
 const hasError = ref(false);
+const loadProgress = ref(0);
+const loadStatus = ref<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
 const { requestBlobUrl, requestDownload, downloadAndSaveFile } = useFileDownloader();
 
@@ -65,6 +67,8 @@ watch(
     previewLoading.value = false;
     thumbnailLoading.value = false;
     hasError.value = false;
+    loadProgress.value = 0;
+    loadStatus.value = 'idle';
     loadInlineMedia();
   },
   { immediate: true },
@@ -88,12 +92,16 @@ function openGlobalPreview(url = previewUrl.value) {
 
 function openCachedPreview() {
   if (!previewUrl.value) return false;
+  loadProgress.value = 100;
+  loadStatus.value = 'ready';
   registerToGlobalGallery(previewUrl.value);
   openGlobalPreview(previewUrl.value);
   return true;
 }
 
 function setPreviewUrl(blobUrl: string) {
+  loadProgress.value = 100;
+  loadStatus.value = 'ready';
   previewUrl.value = blobUrl;
   registerToGlobalGallery(blobUrl);
   openGlobalPreview(blobUrl);
@@ -147,6 +155,7 @@ function handlePreviewError(error: Error) {
   console.error('FileMessage preview failed:', error);
   previewLoading.value = false;
   hasError.value = true;
+  loadStatus.value = 'error';
   notifyError('文件加载失败，请稍后重试');
 }
 
@@ -154,7 +163,25 @@ async function triggerPreview() {
   if (!fileExtra.value?.fileKey || previewLoading.value) return;
 
   if (!isPreviewable.value) {
-    await handleDownload();
+    previewLoading.value = true;
+    hasError.value = false;
+    loadProgress.value = 0;
+    loadStatus.value = 'loading';
+    requestDownload({
+      fileKey: fileExtra.value.fileKey,
+      category: category.value,
+      priorityId: props.message?.id,
+      onProgress: (progress: number) => {
+        loadProgress.value = progress;
+      },
+      onComplete: () => {
+        previewLoading.value = false;
+        loadProgress.value = 100;
+        loadStatus.value = 'ready';
+        void handleDownload();
+      },
+      onError: handlePreviewError,
+    }, props.isNewMessage ?? true);
     return;
   }
 
@@ -167,6 +194,8 @@ async function triggerPreview() {
 
   previewLoading.value = true;
   hasError.value = false;
+  loadProgress.value = 0;
+  loadStatus.value = 'loading';
 
   requestDownload({
     fileKey: fileExtra.value.fileKey,
@@ -179,6 +208,9 @@ async function triggerPreview() {
     },
     onThumbnailComplete: (blobUrl: string) => {
       thumbnailUrl.value = blobUrl;
+    },
+    onProgress: (progress: number) => {
+      loadProgress.value = progress;
     },
     onError: handlePreviewError,
   }, props.isNewMessage ?? true);
@@ -331,6 +363,24 @@ function formatDuration(seconds: number): string {
           <Download />
         </el-icon>
       </el-button>
+    </div>
+
+    <div v-if="loadStatus !== 'idle'" class="file-load-status" @click.stop>
+      <el-progress
+        v-if="loadStatus === 'loading'"
+        :percentage="loadProgress"
+        :stroke-width="6"
+        :show-text="false"
+      />
+      <span
+        class="status-text"
+        :class="{
+          ready: loadStatus === 'ready',
+          error: loadStatus === 'error',
+        }"
+      >
+        {{ loadStatus === 'ready' ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
+      </span>
     </div>
 
     <!-- 无效文件信息 -->
@@ -634,5 +684,26 @@ function formatDuration(seconds: number): string {
   color: #f56c6c;
   background: #fef0f0;
   border-radius: 8px;
+}
+
+.file-load-status {
+  margin-top: 8px;
+  width: 100%;
+  max-width: 280px;
+
+  .status-text {
+    margin-top: 4px;
+    display: inline-block;
+    font-size: 12px;
+    color: #909399;
+
+    &.ready {
+      color: #67c23a;
+    }
+
+    &.error {
+      color: #f56c6c;
+    }
+  }
 }
 </style>
