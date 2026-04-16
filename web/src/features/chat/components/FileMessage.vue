@@ -387,6 +387,24 @@ function formatDuration(seconds: number): string {
       </div>
     </template>
 
+    <div v-if="loadStatus !== 'idle'" class="file-load-status" @click.stop>
+      <el-progress
+        v-if="loadStatus === 'loading'"
+        :percentage="loadProgress"
+        :stroke-width="6"
+        :show-text="false"
+      />
+      <span
+        class="status-text"
+        :class="{
+          ready: loadStatus === 'ready',
+          error: loadStatus === 'error',
+        }"
+      >
+        {{ loadStatus === 'ready' ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
+      </span>
+    </div>
+
     <!-- 无效文件信息 -->
     <div v-else class="file-error">
       <el-icon :size="24">
