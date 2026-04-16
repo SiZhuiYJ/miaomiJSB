@@ -682,6 +682,13 @@
             <param name="request">发送消息的请求参数</param>
             <returns>发送的消息详情</returns>
         </member>
+        <member name="M:api.Controllers.ChatController.RecallMessage(System.UInt64)">
+            <summary>
+            撤回消息
+            </summary>
+            <param name="messageId">消息ID</param>
+            <returns>撤回后的消息摘要</returns>
+        </member>
         <member name="M:api.Controllers.ChatController.GetMessages(System.UInt64,System.Nullable{System.UInt64},System.Int32)">
             <summary>
             获取会话中的消息列表

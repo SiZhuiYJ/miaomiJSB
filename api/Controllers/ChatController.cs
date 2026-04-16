@@ -300,40 +300,70 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         membership.LastReadMessageId = message.Id;
         await _db.SaveChangesAsync();
 
+        var result = await BuildMessageSummary(message.Id);
+
         await _hubContext.Clients.Group(ChatHub.GroupName(conversationId)).SendAsync("chat:message-updated", new
         {
             conversationId,
             messageId = message.Id,
             messageType = messageType,
-            createdAt = now
+            createdAt = now,
+            action = "create",
+            message = result
         });
 
-        var result = await _db.ChatMessages
-            .Where(m => m.Id == message.Id)
-            .Select(m => new MessageSummaryDto
-            {
-                Id = m.Id,
-                SenderUserId = m.SenderUserId,
-                SenderNickName = m.SenderUser.NickName,
-                MessageType = m.MessageType,
-                Content = m.Content,
-                Extra = m.Extra,
-                ReplyToMessageId = m.ReplyToMessageId,
-                ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
-                {
-                    Id = m.ReplyToMessage.Id,
-                    SenderUserId = m.ReplyToMessage.SenderUserId,
-                    SenderNickName = m.ReplyToMessage.SenderUser.NickName,
-                    MessageType = m.ReplyToMessage.MessageType,
-                    Content = m.ReplyToMessage.Content,
-                    Extra = m.ReplyToMessage.Extra,
-                    IsRecalled = m.ReplyToMessage.IsRecalled,
-                    CreatedAt = m.ReplyToMessage.CreatedAt
-                },
-                IsRecalled = m.IsRecalled,
-                CreatedAt = m.CreatedAt
-            })
-            .SingleAsync();
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// 撤回消息
+    /// </summary>
+    /// <param name="messageId">消息ID</param>
+    /// <returns>撤回后的消息摘要</returns>
+    [HttpPost("messages/{messageId:ulong}/recall")]
+    public async Task<ActionResult<MessageSummaryDto>> RecallMessage(ulong messageId)
+    {
+        var userId = GetUserId();
+
+        var message = await _db.ChatMessages
+            .Include(m => m.Conversation)
+            .FirstOrDefaultAsync(m => m.Id == messageId);
+
+        if (message == null)
+            return NotFound(new { message = "消息不存在" });
+
+        var isMember = await _db.ChatConversationMembers
+            .AsNoTracking()
+            .AnyAsync(m => m.ConversationId == message.ConversationId && m.UserId == userId && m.LeftAt == null);
+
+        if (!isMember || message.Conversation.IsActive != true)
+            return NotFound(new { message = "会话不存在或无权限访问" });
+
+        if (message.SenderUserId != userId)
+            return BadRequest(new { message = "只能撤回自己发送的消息" });
+
+        if (message.IsRecalled)
+            return Ok(await BuildMessageSummary(message.Id));
+
+        var now = DateTime.UtcNow;
+        message.IsRecalled = true;
+        message.RecalledAt = now;
+        message.Content = null;
+        message.Extra = null;
+        message.UpdatedAt = now;
+
+        await _db.SaveChangesAsync();
+
+        var result = await BuildMessageSummary(message.Id);
+
+        await _hubContext.Clients.Group(ChatHub.GroupName(message.ConversationId)).SendAsync("chat:message-updated", new
+        {
+            conversationId = message.ConversationId,
+            messageId = message.Id,
+            action = "recall",
+            updatedAt = now,
+            message = result
+        });
 
         return Ok(result);
     }
@@ -373,8 +403,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 SenderUserId = m.SenderUserId,
                 SenderNickName = m.SenderUser.NickName,
                 MessageType = m.MessageType,
-                Content = m.Content,
-                Extra = m.Extra,
+                Content = m.IsRecalled ? null : m.Content,
+                Extra = m.IsRecalled ? null : m.Extra,
                 ReplyToMessageId = m.ReplyToMessageId,
                 ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
                 {
@@ -382,8 +412,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                     SenderUserId = m.ReplyToMessage.SenderUserId,
                     SenderNickName = m.ReplyToMessage.SenderUser.NickName,
                     MessageType = m.ReplyToMessage.MessageType,
-                    Content = m.ReplyToMessage.Content,
-                    Extra = m.ReplyToMessage.Extra,
+                    Content = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Content,
+                    Extra = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Extra,
                     IsRecalled = m.ReplyToMessage.IsRecalled,
                     CreatedAt = m.ReplyToMessage.CreatedAt
                 },
@@ -432,8 +462,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 SenderUserId = m.SenderUserId,
                 SenderNickName = m.SenderUser.NickName,
                 MessageType = m.MessageType,
-                Content = m.Content,
-                Extra = m.Extra,
+                Content = m.IsRecalled ? null : m.Content,
+                Extra = m.IsRecalled ? null : m.Extra,
                 ReplyToMessageId = m.ReplyToMessageId,
                 ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
                 {
@@ -441,8 +471,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                     SenderUserId = m.ReplyToMessage.SenderUserId,
                     SenderNickName = m.ReplyToMessage.SenderUser.NickName,
                     MessageType = m.ReplyToMessage.MessageType,
-                    Content = m.ReplyToMessage.Content,
-                    Extra = m.ReplyToMessage.Extra,
+                    Content = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Content,
+                    Extra = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Extra,
                     IsRecalled = m.ReplyToMessage.IsRecalled,
                     CreatedAt = m.ReplyToMessage.CreatedAt
                 },
@@ -638,8 +668,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                     SenderUserId = m.SenderUserId,
                     SenderNickName = m.SenderUser.NickName,
                     MessageType = m.MessageType,
-                    Content = m.Content,
-                    Extra = m.Extra,
+                    Content = m.IsRecalled ? null : m.Content,
+                    Extra = m.IsRecalled ? null : m.Extra,
                     ReplyToMessageId = m.ReplyToMessageId,
                     ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
                     {
@@ -647,8 +677,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                         SenderUserId = m.ReplyToMessage.SenderUserId,
                         SenderNickName = m.ReplyToMessage.SenderUser.NickName,
                         MessageType = m.ReplyToMessage.MessageType,
-                        Content = m.ReplyToMessage.Content,
-                        Extra = m.ReplyToMessage.Extra,
+                        Content = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Content,
+                        Extra = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Extra,
                         IsRecalled = m.ReplyToMessage.IsRecalled,
                         CreatedAt = m.ReplyToMessage.CreatedAt
                     },
@@ -657,6 +687,37 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 })
                 .FirstOrDefault()
         };
+    }
+
+    async Task<MessageSummaryDto> BuildMessageSummary(ulong messageId)
+    {
+        return await _db.ChatMessages
+            .AsNoTracking()
+            .Where(m => m.Id == messageId)
+            .Select(m => new MessageSummaryDto
+            {
+                Id = m.Id,
+                SenderUserId = m.SenderUserId,
+                SenderNickName = m.SenderUser.NickName,
+                MessageType = m.MessageType,
+                Content = m.IsRecalled ? null : m.Content,
+                Extra = m.IsRecalled ? null : m.Extra,
+                ReplyToMessageId = m.ReplyToMessageId,
+                ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
+                {
+                    Id = m.ReplyToMessage.Id,
+                    SenderUserId = m.ReplyToMessage.SenderUserId,
+                    SenderNickName = m.ReplyToMessage.SenderUser.NickName,
+                    MessageType = m.ReplyToMessage.MessageType,
+                    Content = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Content,
+                    Extra = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Extra,
+                    IsRecalled = m.ReplyToMessage.IsRecalled,
+                    CreatedAt = m.ReplyToMessage.CreatedAt
+                },
+                IsRecalled = m.IsRecalled,
+                CreatedAt = m.CreatedAt
+            })
+            .SingleAsync();
     }
 
     /// <summary>

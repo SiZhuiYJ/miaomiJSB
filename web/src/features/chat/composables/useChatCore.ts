@@ -52,7 +52,7 @@ export function useChatCore() {
   // 推送模块（依赖以上模块的方法）
   const pushModule = useChatPush({
     fetchConversations: conversationsModule.loadConversations,
-    pullLatestMessages: messagesModule.pullLatestMessages,
+    syncCurrentMessages: messagesModule.refreshLoadedMessages,
     markRead: async () => {
       const lastMsg =
         messagesModule.messages.value[messagesModule.messages.value.length - 1];
@@ -62,6 +62,9 @@ export function useChatCore() {
     getConversationId: () => conversationsModule.selectedConversationId.value,
     getToken: () => useAuthStore().accessToken || "",
     getBaseUrl: () => import.meta.env.VITE_API_BASE_URL || "",
+    upsertMessage: async (message) => {
+      messagesModule.upsertMessage(message);
+    },
     onMessageRead: async (data) => {
       await readModule.loadMessageReadStatus(data.messageId);
     },
@@ -127,6 +130,21 @@ export function useChatCore() {
     },
   );
 
+  watch(
+    () => messagesModule.messages.value,
+    (messages) => {
+      if (!replyingMessage.value) return;
+      const latestReplyTarget = messages.find(
+        (message) => message.id === replyingMessage.value?.id,
+      );
+      if (!latestReplyTarget || latestReplyTarget.isRecalled) {
+        clearReplyingMessage();
+        return;
+      }
+      replyingMessage.value = latestReplyTarget;
+    },
+  );
+
   async function handleCreateConversation() {
     const memberUserIds = createMembersText.value
       .split(",")
@@ -157,6 +175,18 @@ export function useChatCore() {
       composeText.value = "";
     }
   }
+
+  async function handleRecallMessage(message: MessageSummary) {
+    const recalledMessage = await messagesModule.recallMessage(message.id);
+    if (recalledMessage) {
+      if (replyingMessage.value?.id === recalledMessage.id) {
+        clearReplyingMessage();
+      }
+      await conversationsModule.loadConversations();
+    }
+    return recalledMessage;
+  }
+
   // 在 useChatCore 中添加
   const togglePush = (force?: boolean) => {
     if (force === true) pushModule.startPush();
@@ -186,6 +216,7 @@ export function useChatCore() {
     loadMore: messagesModule.loadMore,
     sendTextMessage: handleSendText,
     sendMessage: messagesModule.sendMessage,
+    recallMessage: handleRecallMessage,
     markRead: () =>
       readModule.markRead(
         messagesModule.messages.value[messagesModule.messages.value.length - 1]

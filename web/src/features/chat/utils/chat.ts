@@ -30,6 +30,12 @@ export function getMessageSenderName(
   return message.senderNickName?.trim() || String(message.senderUserId);
 }
 
+export function getRecalledMessageText(
+  message?: Pick<MessageReference, "senderNickName" | "senderUserId"> | null,
+): string {
+  return `${getMessageSenderName(message)} 撤回了一条消息`;
+}
+
 function resolvePreviewMessage(
   source?: ConversationSummary | MessageSummary | MessageReference | null,
 ): MessageSummary | MessageReference | null {
@@ -172,7 +178,7 @@ export function getMessagePreview(
 ): string {
   const message = resolvePreviewMessage(source);
   if (!message) return "暂无消息";
-  if (message.isRecalled) return "[已撤回消息]";
+  if (message.isRecalled) return getRecalledMessageText(message);
 
   if (message.messageType === "text") {
     return message.content?.trim() || "[空消息]";

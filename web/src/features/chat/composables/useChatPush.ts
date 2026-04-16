@@ -4,15 +4,17 @@ import {
   LogLevel,
   HttpTransportType,
 } from '@microsoft/signalr';
+import type { MessageSummary } from '../types';
 
 interface PushOptions {
   fetchConversations: () => Promise<void>;
-  pullLatestMessages: () => Promise<void>;
+  syncCurrentMessages: () => Promise<void>;
   markRead: () => Promise<void>;
   hasConversation: () => boolean;
   getConversationId: () => number;
   getToken: () => string;
   getBaseUrl: () => string;
+  upsertMessage?: (message: MessageSummary) => Promise<void> | void;
   onMessageRead?: (data: {
     messageId: number;
     conversationId: number;
@@ -43,7 +45,7 @@ export function useChatPush(options: PushOptions) {
     try {
       await options.fetchConversations();
       if (options.hasConversation()) {
-        await options.pullLatestMessages();
+        await options.syncCurrentMessages();
         await options.markRead();
       }
       lastSyncAt.value = new Date().toISOString();
@@ -103,7 +105,11 @@ export function useChatPush(options: PushOptions) {
     connection.on('chat:message-updated', async (payload: any) => {
       await options.fetchConversations();
       if (payload?.conversationId === options.getConversationId()) {
-        await options.pullLatestMessages();
+        if (payload?.message && options.upsertMessage) {
+          await options.upsertMessage(payload.message as MessageSummary);
+        } else {
+          await options.syncCurrentMessages();
+        }
         await options.markRead();
       }
     });
@@ -154,7 +160,7 @@ export function useChatPush(options: PushOptions) {
         await options.fetchConversations();
         await subscribeConversation(options.getConversationId());
         if (options.hasConversation()) {
-          await options.pullLatestMessages();
+          await options.syncCurrentMessages();
           await options.markRead();
         }
       } catch (error: any) {

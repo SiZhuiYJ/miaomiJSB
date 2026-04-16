@@ -20,14 +20,15 @@ export function useMessages(conversationId: () => number) {
       mode === "prepend"
         ? [...incoming, ...current]
         : [...current, ...incoming];
-    const seen = new Set<number>();
-    const deduped: MessageSummary[] = [];
+    const deduped = new Map<number, MessageSummary>();
     for (const msg of merged) {
-      if (seen.has(msg.id)) continue;
-      seen.add(msg.id);
-      deduped.push(msg);
+      deduped.set(msg.id, msg);
     }
-    return deduped.sort((a, b) => a.id - b.id);
+    return Array.from(deduped.values()).sort((a, b) => a.id - b.id);
+  }
+
+  function upsertMessage(message: MessageSummary) {
+    messages.value = mergeMessages(messages.value, [message]);
   }
 
   async function loadMessages(beforeId?: number, limit = 50) {
@@ -85,6 +86,38 @@ export function useMessages(conversationId: () => number) {
     }
   }
 
+  async function refreshLoadedMessages() {
+    const convId = conversationId();
+    if (!convId) return;
+
+    try {
+      let remaining = Math.max(messages.value.length, 50);
+      let beforeMessageId: number | undefined;
+      let refreshedMessages: MessageSummary[] = [];
+
+      while (remaining > 0) {
+        const pageSize = Math.min(remaining, 100);
+        const data = (await API.getMessages(convId, beforeMessageId, pageSize)).data;
+
+        if (data.length === 0) {
+          break;
+        }
+
+        refreshedMessages = [...data, ...refreshedMessages];
+        beforeMessageId = data[0]?.id;
+        remaining -= data.length;
+
+        if (data.length < pageSize) {
+          break;
+        }
+      }
+
+      messages.value = refreshedMessages.sort((a, b) => a.id - b.id);
+    } catch (error: any) {
+      setError(error, "刷新消息失败");
+    }
+  }
+
   async function sendMessage(payload: SendMessagePayload) {
     const convId = conversationId();
     if (!convId) return null;
@@ -104,6 +137,23 @@ export function useMessages(conversationId: () => number) {
     }
   }
 
+  async function recallMessage(messageId: number) {
+    loading.value = true;
+    clearError();
+    try {
+      const result = await API.recallMessage(messageId);
+      if (result.data) {
+        upsertMessage(result.data);
+      }
+      return result.data;
+    } catch (error: any) {
+      setError(error, "撤回消息失败");
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  }
+
   // 清空消息（切换会话时调用）
   function resetMessages() {
     messages.value = [];
@@ -116,7 +166,10 @@ export function useMessages(conversationId: () => number) {
     loadMessages,
     loadMore,
     pullLatestMessages,
+    refreshLoadedMessages,
     sendMessage,
+    recallMessage,
+    upsertMessage,
     resetMessages,
   };
 }

@@ -60,6 +60,10 @@ export async function sendMessage(id: number, payload: SendMessagePayload) {
   return await http.post<MessageSummary>(`/mm/chat/conversations/${id}/messages`, payload);
 }
 
+export async function recallMessage(messageId: number) {
+  return await http.post<MessageSummary>(`/mm/chat/messages/${messageId}/recall`);
+}
+
 export async function markRead(id: number, lastReadMessageId?: number) {
   return await http.post<{ lastReadMessageId?: number }>(
     `/mm/chat/conversations/${id}/read`,
@@ -136,6 +140,7 @@ export default {
   createConversation,
   updateConversation,
   markRead,
+  recallMessage,
   getMessageReadStatus,
   uploadChatFile,
   getChatFileUrl,

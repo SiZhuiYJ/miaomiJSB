@@ -1,6 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { MessageReference, MessageSummary } from '../types'
-import { formatChatTimeShort, getMessagePreview, getMessageSenderName } from '../utils/chat'
+import {
+  formatChatTimeShort,
+  getMessagePreview,
+  getMessageSenderName,
+  getRecalledMessageText,
+} from '../utils/chat'
 import FileMessage from './FileMessage.vue'
 
 const props = defineProps<{
@@ -17,8 +23,13 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   reply: [message: MessageSummary]
+  recall: [message: MessageSummary]
   jumpToMessage: [messageId: number]
 }>()
+
+const canReply = computed(() => !props.message.isRecalled)
+const canRecall = computed(() => props.isMine && !props.message.isRecalled)
+const recalledText = computed(() => getRecalledMessageText(props.message))
 
 function handleJumpToReply() {
   if (!props.replyTargetId) return
@@ -37,8 +48,11 @@ function handleJumpToReply() {
                     #{{ props.message.id }} · {{ props.message.senderNickName || props.message.senderUserId }} ·
                     {{ props.message.messageType }}
                 </span>
-                <el-button text color="#111827" class="reply-action" @click="emit('reply', props.message)">
+                <el-button v-if="canReply" text color="#111827" class="reply-action" @click="emit('reply', props.message)">
                     引用
+                </el-button>
+                <el-button v-if="canRecall" text color="#dc2626" class="reply-action" @click="emit('recall', props.message)">
+                    撤回
                 </el-button>
             </div>
             <div class="bubble-wrap">
@@ -53,7 +67,10 @@ function handleJumpToReply() {
                 <!-- 根据消息类型渲染不同内容 -->
 
                 <!-- 文件类消息（图片、视频、音频、文档等） -->
-                <template v-if="['image', 'video', 'audio', 'file'].includes(props.message.messageType)">
+                <div v-if="props.message.isRecalled" class="recalled-message">
+                    {{ recalledText }}
+                </div>
+                <template v-else-if="['image', 'video', 'audio', 'file'].includes(props.message.messageType)">
                     <FileMessage :message="props.message" :show-download="true" :src />
                 </template>
 
@@ -100,6 +117,10 @@ function handleJumpToReply() {
     padding: 0;
 }
 
+.reply-action + .reply-action {
+    margin-left: 8px;
+}
+
 .bubble-wrap {
     min-width: 0;
 }
@@ -136,19 +157,34 @@ function handleJumpToReply() {
     white-space: nowrap;
 }
 
+.recalled-message {
+    padding: 12px 14px;
+    border-radius: 10px;
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 20px;
+    background: #f3f4f6;
+}
+
 .msg-item.mine .reply-card {
     border-left-color: #111827;
     background: rgba(230, 240, 255, 0.9);
 }
 
+.msg-item.mine .recalled-message {
+    background: #e7f0ff;
+}
+
 .msg-item.highlighted :deep(.file-message),
 .msg-item.highlighted .bubble,
-.msg-item.highlighted .reply-card {
+.msg-item.highlighted .reply-card,
+.msg-item.highlighted .recalled-message {
     box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.12);
 }
 
 .msg-item.highlighted .bubble,
-.msg-item.highlighted .reply-card {
+.msg-item.highlighted .reply-card,
+.msg-item.highlighted .recalled-message {
     background-color: #fff8d9;
 }
 </style>

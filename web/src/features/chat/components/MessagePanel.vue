@@ -103,6 +103,7 @@ const emit = defineEmits<{
   updateConversation: [];
   loadMessageReadStatus: [messageId: number];
   replyMessage: [message: MessageSummary];
+  recallMessage: [message: MessageSummary];
   clearReplyMessage: [];
 }>();
 
@@ -193,15 +194,11 @@ const highlightedMessageId = ref<number | null>(null);
 let highlightTimer: ReturnType<typeof window.setTimeout> | null = null;
 
 function getReplyTarget(message: MessageSummary): MessageSummary | MessageReference | null {
-  if (message.replyToMessage) {
-    return message.replyToMessage;
-  }
-
   if (!message.replyToMessageId) {
-    return null;
+    return message.replyToMessage ?? null;
   }
 
-  return messageMap.value.get(message.replyToMessageId) ?? null;
+  return messageMap.value.get(message.replyToMessageId) ?? message.replyToMessage ?? null;
 }
 
 const showDropOverlay = computed(() =>
@@ -540,6 +537,7 @@ async function handleFileSelected(files: File[]) {
               :is-mine="msg.senderUserId === props.meUserId" :reply-target="getReplyTarget(msg)"
               :reply-target-id="msg.replyToMessageId ?? null" :highlighted="highlightedMessageId === msg.id"
               v-bind="getReadDisplay(msg.id)" @reply="emit('replyMessage', $event)"
+              @recall="emit('recallMessage', $event)"
               @jump-to-message="jumpToMessage" />
           </template>
         </div>
