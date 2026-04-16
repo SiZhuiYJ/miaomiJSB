@@ -51,6 +51,7 @@ const rotate = ref(0)
 const imageRef = ref<HTMLImageElement>()
 const videoRef = ref<HTMLVideoElement>()
 const carouselRef = ref<CarouselInstance>()
+const loadedFileKeys = ref<Set<string>>(new Set())
 
 // 获取文件类型
 const getFileType = (file: FileItem): string => {
@@ -77,6 +78,21 @@ const currentFileType = computed(() => {
   if (!currentFile.value) return 'unknown'
   return getFileType(currentFile.value)
 })
+
+const getFileCacheKey = (file?: FileItem) =>
+  file?.url || file?.path || (file ? `${file.name}-${file.type || 'unknown'}` : '')
+
+const isFileLoaded = (file?: FileItem) => {
+  const key = getFileCacheKey(file)
+  return key ? loadedFileKeys.value.has(key) : false
+}
+
+const markFileLoaded = (file?: FileItem) => {
+  const key = getFileCacheKey(file)
+  if (key) {
+    loadedFileKeys.value.add(key)
+  }
+}
 
 // 图片样式
 const imageStyle = computed(() => ({
@@ -108,16 +124,19 @@ const handleImageError = () => {
 }
 // 处理图片加载
 const handleImageLoad = () => {
+  markFileLoaded(currentFile.value)
   loading.value = false
 }
 
 // 处理音频加载完成
 const handleAudioLoaded = () => {
+  markFileLoaded(currentFile.value)
   loading.value = false
 }
 
 // 处理视频加载完成
 const handleVideoLoaded = () => {
+  markFileLoaded(currentFile.value)
   loading.value = false
 }
 
@@ -285,12 +304,11 @@ watch(currentIndex, (newIndex) => {
 // 监听当前文件变化，确保 loading 状态正确
 watch(currentFile, (newFile) => {
   if (newFile) {
-    // 对于音频和视频，需要等待加载完成事件
     const type = getFileType(newFile)
     if (type === 'audio' || type === 'video') {
-      loading.value = true
+      loading.value = !isFileLoaded(newFile)
     } else if (type === 'image') {
-      loading.value = true
+      loading.value = !isFileLoaded(newFile)
     } else if (type === 'text') {
       // 调用文本加载函数
       convertBlobUrl();
