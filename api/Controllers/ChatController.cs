@@ -285,7 +285,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             SenderUserId = userId,
             MessageType = messageType,
             Content = request.Content,
-            Extra = JsonSerializer.Serialize(request.Extra),
+            Extra = request.Extra == null ? null : JsonSerializer.Serialize(request.Extra),
             ReplyToMessageId = request.ReplyToMessageId,
             IsRecalled = false,
             CreatedAt = now,
@@ -319,6 +319,17 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 Content = m.Content,
                 Extra = m.Extra,
                 ReplyToMessageId = m.ReplyToMessageId,
+                ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
+                {
+                    Id = m.ReplyToMessage.Id,
+                    SenderUserId = m.ReplyToMessage.SenderUserId,
+                    SenderNickName = m.ReplyToMessage.SenderUser.NickName,
+                    MessageType = m.ReplyToMessage.MessageType,
+                    Content = m.ReplyToMessage.Content,
+                    Extra = m.ReplyToMessage.Extra,
+                    IsRecalled = m.ReplyToMessage.IsRecalled,
+                    CreatedAt = m.ReplyToMessage.CreatedAt
+                },
                 IsRecalled = m.IsRecalled,
                 CreatedAt = m.CreatedAt
             })
@@ -365,6 +376,17 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 Content = m.Content,
                 Extra = m.Extra,
                 ReplyToMessageId = m.ReplyToMessageId,
+                ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
+                {
+                    Id = m.ReplyToMessage.Id,
+                    SenderUserId = m.ReplyToMessage.SenderUserId,
+                    SenderNickName = m.ReplyToMessage.SenderUser.NickName,
+                    MessageType = m.ReplyToMessage.MessageType,
+                    Content = m.ReplyToMessage.Content,
+                    Extra = m.ReplyToMessage.Extra,
+                    IsRecalled = m.ReplyToMessage.IsRecalled,
+                    CreatedAt = m.ReplyToMessage.CreatedAt
+                },
                 IsRecalled = m.IsRecalled,
                 CreatedAt = m.CreatedAt
             })
@@ -413,6 +435,17 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 Content = m.Content,
                 Extra = m.Extra,
                 ReplyToMessageId = m.ReplyToMessageId,
+                ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
+                {
+                    Id = m.ReplyToMessage.Id,
+                    SenderUserId = m.ReplyToMessage.SenderUserId,
+                    SenderNickName = m.ReplyToMessage.SenderUser.NickName,
+                    MessageType = m.ReplyToMessage.MessageType,
+                    Content = m.ReplyToMessage.Content,
+                    Extra = m.ReplyToMessage.Extra,
+                    IsRecalled = m.ReplyToMessage.IsRecalled,
+                    CreatedAt = m.ReplyToMessage.CreatedAt
+                },
                 IsRecalled = m.IsRecalled,
                 CreatedAt = m.CreatedAt
             })
@@ -608,6 +641,18 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                     Content = m.Content,
                     Extra = m.Extra,
                     ReplyToMessageId = m.ReplyToMessageId,
+                    ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
+                    {
+                        Id = m.ReplyToMessage.Id,
+                        SenderUserId = m.ReplyToMessage.SenderUserId,
+                        SenderNickName = m.ReplyToMessage.SenderUser.NickName,
+                        MessageType = m.ReplyToMessage.MessageType,
+                        Content = m.ReplyToMessage.Content,
+                        Extra = m.ReplyToMessage.Extra,
+                        IsRecalled = m.ReplyToMessage.IsRecalled,
+                        CreatedAt = m.ReplyToMessage.CreatedAt
+                    },
+                    IsRecalled = m.IsRecalled,
                     CreatedAt = m.CreatedAt
                 })
                 .FirstOrDefault()

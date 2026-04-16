@@ -1,10 +1,13 @@
 // utils/chat.ts
 import { API_BASE_URL } from "@/config";
+import { parseMessageExtra } from "./fileHelper";
 import type {
   UserRole,
   ConversationSummary,
   ConversationDetail,
   ConversationMember,
+  MessageReference,
+  MessageSummary,
 } from "../types";
 
 /**
@@ -18,6 +21,20 @@ export function isSameDay(date1: string | Date, date2: string | Date): boolean {
     d1.getMonth() === d2.getMonth() &&
     d1.getDate() === d2.getDate()
   );
+}
+
+export function getMessageSenderName(
+  message?: Pick<MessageReference, "senderNickName" | "senderUserId"> | null,
+): string {
+  if (!message) return "系统";
+  return message.senderNickName?.trim() || String(message.senderUserId);
+}
+
+function resolvePreviewMessage(
+  source?: ConversationSummary | MessageSummary | MessageReference | null,
+): MessageSummary | MessageReference | null {
+  if (!source) return null;
+  return "conversationType" in source ? source.lastMessage ?? null : source;
 }
 
 /**
@@ -150,10 +167,35 @@ export function getMemberAvatarBySender(
 /**
  * 获取消息预览文本
  */
-export function getMessagePreview(item: ConversationSummary): string {
-  if (!item.lastMessage) return "暂无消息";
-  if (item.lastMessage.content) return item.lastMessage.content;
-  return `[${item.lastMessage.messageType}]`;
+export function getMessagePreview(
+  source?: ConversationSummary | MessageSummary | MessageReference | null,
+): string {
+  const message = resolvePreviewMessage(source);
+  if (!message) return "暂无消息";
+  if (message.isRecalled) return "[已撤回消息]";
+
+  if (message.messageType === "text") {
+    return message.content?.trim() || "[空消息]";
+  }
+
+  if (message.messageType === "system") {
+    return message.content?.trim() || "[系统通知]";
+  }
+
+  const fileExtra = parseMessageExtra(message.extra);
+  const fileLabelMap: Record<"image" | "video" | "audio" | "file", string> = {
+    image: "[图片]",
+    video: "[视频]",
+    audio: "[音频]",
+    file: "[文件]",
+  };
+
+  const fileLabel = fileLabelMap[message.messageType as keyof typeof fileLabelMap];
+  if (fileLabel) {
+    return fileExtra?.fileName ? `${fileLabel} ${fileExtra.fileName}` : fileLabel;
+  }
+
+  return message.content?.trim() || `[${message.messageType}]`;
 }
 
 /**

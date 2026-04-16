@@ -2929,9 +2929,54 @@
             最后阅读消息ID，可为空
             </summary>
         </member>
-        <member name="T:api.Models.MessageSummaryDto">
+        <member name="T:api.Models.MessageReferenceDto">
             <summary>
             消息摘要数据传输对象
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageReferenceDto.Id">
+            <summary>
+            消息ID
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageReferenceDto.SenderUserId">
+            <summary>
+            发送者用户ID
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageReferenceDto.SenderNickName">
+            <summary>
+            发送者昵称，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageReferenceDto.MessageType">
+            <summary>
+            消息类型
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageReferenceDto.Content">
+            <summary>
+            消息内容，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageReferenceDto.Extra">
+            <summary>
+            额外信息，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageReferenceDto.IsRecalled">
+            <summary>
+            是否撤回
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageReferenceDto.CreatedAt">
+            <summary>
+            创建时间
+            </summary>
+        </member>
+        <member name="T:api.Models.MessageSummaryDto">
+            <summary>
+            娑堟伅鎽樿鏁版嵁浼犺緭瀵硅薄
             </summary>
         </member>
         <member name="P:api.Models.MessageSummaryDto.Id">
@@ -2967,6 +3012,11 @@
         <member name="P:api.Models.MessageSummaryDto.ReplyToMessageId">
             <summary>
             回复的消息ID，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.MessageSummaryDto.ReplyToMessage">
+            <summary>
+            被引用消息摘要，可为空
             </summary>
         </member>
         <member name="P:api.Models.MessageSummaryDto.IsRecalled">

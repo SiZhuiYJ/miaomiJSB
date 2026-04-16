@@ -50,7 +50,7 @@ const createConversationTypeOptions = [
                 <MuteNotification />
               </el-icon>
             </div>
-            <el-text line-clamp="1">
+            <el-text :line-clamp="1">
               {{ item.lastMessage?.senderNickName || item.lastMessage?.senderUserId || '系统' }}：
               {{ getMessagePreview(item) }}
             </el-text>

@@ -1,17 +1,25 @@
 <!-- MessagePanel.vue -->
 <script setup lang="ts">
-import { nextTick, watch, useTemplateRef, computed, provide, ref } from 'vue';
+import { nextTick, watch, useTemplateRef, computed, provide, ref, onBeforeUnmount } from 'vue';
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia';
 import { Document, UploadFilled } from '@element-plus/icons-vue';
 import MessageItem from './MessageItem.vue';
 import FileUploadButton from './FileUploadButton.vue';
 import ConversationDetailDialog from './ConversationDetailDialog.vue';
-import type { ConversationDetail, MessageSummary, MessageReadStatus, SendMessagePayload } from '../types';
+import type {
+  ConversationDetail,
+  MessageReference,
+  MessageSummary,
+  MessageReadStatus,
+  SendMessagePayload,
+} from '../types';
 import {
   formatDateSeparator,
   getMemberAvatarBySender,
   getConversationDisplayTitle,
+  getMessagePreview,
+  getMessageSenderName,
 } from '../utils/chat';
 import {
   formatFileSize,
@@ -81,18 +89,21 @@ const props = defineProps<{
   meUserId?: number;
   loading: boolean;
   showBackToList?: boolean;
+  replyingMessage?: MessageSummary | null;
   messageReadStatus?: Map<number, MessageReadStatus>;
   readInfoMap?: Map<number, { readText: string; readColor: string }>; // 由 useChatCore 提供
 }>();
 
 const emit = defineEmits<{
   loadMore: [];
-  sendTextMessage: [];
+  sendTextMessage: [replyToMessageId?: number | null];
   sendMessage: [payload: SendMessagePayload];
   markRead: [];
   backToList: [];
   updateConversation: [];
   loadMessageReadStatus: [messageId: number];
+  replyMessage: [message: MessageSummary];
+  clearReplyMessage: [];
 }>();
 
 const { user } = storeToRefs(useAuthStore());
@@ -170,6 +181,29 @@ const groupedMessages = computed<MessageGroup[]>(() => {
   return groups;
 });
 
+const messageMap = computed(() => {
+  const map = new Map<number, MessageSummary>();
+  for (const message of props.messages) {
+    map.set(message.id, message);
+  }
+  return map;
+});
+
+const highlightedMessageId = ref<number | null>(null);
+let highlightTimer: ReturnType<typeof window.setTimeout> | null = null;
+
+function getReplyTarget(message: MessageSummary): MessageSummary | MessageReference | null {
+  if (message.replyToMessage) {
+    return message.replyToMessage;
+  }
+
+  if (!message.replyToMessageId) {
+    return null;
+  }
+
+  return messageMap.value.get(message.replyToMessageId) ?? null;
+}
+
 const showDropOverlay = computed(() =>
   Boolean(currentConversation.value) &&
   isFileDragActive.value &&
@@ -232,6 +266,45 @@ function scrollToBottom(behavior: ScrollBehavior = 'auto') {
   wrap.scrollTo({ top: wrap.scrollHeight, behavior });
 }
 
+function clearHighlightedMessage() {
+  if (highlightTimer) {
+    window.clearTimeout(highlightTimer);
+    highlightTimer = null;
+  }
+  highlightedMessageId.value = null;
+}
+
+async function jumpToMessage(messageId?: number | null) {
+  if (!messageId) return;
+
+  await nextTick();
+  const wrap = getScrollWrap();
+  const target = wrap?.querySelector<HTMLElement>(`[data-message-id="${messageId}"]`) ?? null;
+
+  if (!target) {
+    ElMessage.info('原消息不在当前已加载范围内');
+    return;
+  }
+
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  highlightedMessageId.value = messageId;
+
+  if (highlightTimer) {
+    window.clearTimeout(highlightTimer);
+  }
+
+  highlightTimer = window.setTimeout(() => {
+    if (highlightedMessageId.value === messageId) {
+      highlightedMessageId.value = null;
+    }
+    highlightTimer = null;
+  }, 2000);
+}
+
+function handleSendTextMessage() {
+  emit('sendTextMessage', props.replyingMessage?.id ?? null);
+}
+
 // 监听消息变化，自动滚动
 watch(
   () => props.messages.length,
@@ -252,12 +325,17 @@ watch(
     dropUploadDialogVisible.value = false;
     droppedFiles.value = [];
     resetFileDragState();
+    clearHighlightedMessage();
     await nextTick();
     scrollToBottom();
   }
 );
 
 // 消息进入视图时加载已读状态
+onBeforeUnmount(() => {
+  clearHighlightedMessage();
+});
+
 function onMessageVisible(entry: IntersectionObserverEntry) {
   const messageId = Number((entry.target as HTMLElement).dataset.messageId);
   if (!Number.isFinite(messageId)) return;
@@ -401,6 +479,7 @@ async function handleFileSelected(files: File[]) {
     return;
   }
 
+  const replyToMessageId = props.replyingMessage?.id ?? null;
   uploadingFiles.value = true;
   let successCount = 0;
   let failedCount = 0;
@@ -416,7 +495,8 @@ async function handleFileSelected(files: File[]) {
         // 发送消息
         const payload: SendMessagePayload = {
           messageType: messageType,
-          extra: extra
+          extra: extra,
+          replyToMessageId,
         };
 
         emit('sendMessage', payload);
@@ -457,7 +537,10 @@ async function handleFileSelected(files: File[]) {
             <MessageItem v-for="msg in group.messages" :key="msg.id" v-viewport="onMessageVisible"
               :data-message-id="msg.id" :message="msg"
               :src="getMemberAvatarBySender(currentConversation, msg.senderUserId)" :meUserId="props.meUserId"
-              :is-mine="msg.senderUserId === props.meUserId" v-bind="getReadDisplay(msg.id)" />
+              :is-mine="msg.senderUserId === props.meUserId" :reply-target="getReplyTarget(msg)"
+              :reply-target-id="msg.replyToMessageId ?? null" :highlighted="highlightedMessageId === msg.id"
+              v-bind="getReadDisplay(msg.id)" @reply="emit('replyMessage', $event)"
+              @jump-to-message="jumpToMessage" />
           </template>
         </div>
       </el-scrollbar>
@@ -484,15 +567,28 @@ async function handleFileSelected(files: File[]) {
       </div>
 
       <div class="composer">
+        <div v-if="props.replyingMessage" class="replying-banner">
+          <button class="replying-banner-main" type="button" @click="jumpToMessage(props.replyingMessage.id)">
+            <div class="replying-label">引用消息</div>
+            <div class="replying-sender">{{ getMessageSenderName(props.replyingMessage) }}</div>
+            <div class="replying-preview">{{ getMessagePreview(props.replyingMessage) }}</div>
+          </button>
+          <el-button text color="#111827" class="replying-cancel" @click="emit('clearReplyMessage')">
+            取消引用
+          </el-button>
+        </div>
+
+        <div class="composer-main">
         <FileUploadButton :conversation-id="currentConversation?.id" :disabled="uploadingFiles || props.loading"
           @file-selected="handleFileSelected" />
-        <el-input v-model="model" clearable placeholder="输入消息" @keyup.enter="emit('sendTextMessage')" />
-        <el-button color="#111827" :disabled="props.loading || uploadingFiles" @click="emit('sendTextMessage')">
+        <el-input v-model="model" clearable placeholder="输入消息" @keyup.enter="handleSendTextMessage" />
+        <el-button color="#111827" :disabled="props.loading || uploadingFiles" @click="handleSendTextMessage">
           发送
         </el-button>
         <el-button color="#111827" :disabled="props.loading" @click="emit('markRead')">
           标为已读
         </el-button>
+      </div>
       </div>
 
       <ConversationDetailDialog v-model="isChatDetail" :conversation="currentConversation"
@@ -697,6 +793,73 @@ async function handleFileSelected(files: File[]) {
 }
 
 /* 移动端适配 */
+.message-list {
+  padding-bottom: 132px;
+}
+
+.composer {
+  display: grid;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.composer-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  .el-input {
+    min-width: 0;
+  }
+}
+
+.replying-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid #111827;
+  border-radius: 8px;
+  background: rgba(243, 244, 246, 0.94);
+}
+
+.replying-banner-main {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: transparent;
+}
+
+.replying-label {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.replying-sender {
+  color: #111827;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.replying-preview {
+  overflow: hidden;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.replying-cancel {
+  flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
   .date-separator {
     margin: 0 6px;
@@ -705,6 +868,23 @@ async function handleFileSelected(files: File[]) {
   .drop-upload-indicator {
     min-width: 150px;
     padding: 22px 24px;
+  }
+
+  .message-list {
+    padding-bottom: 148px;
+  }
+
+  .composer-main {
+    flex-wrap: wrap;
+  }
+
+  .replying-banner {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .replying-cancel {
+    justify-self: flex-end;
   }
 
   .drop-file-row {

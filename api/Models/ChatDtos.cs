@@ -87,6 +87,45 @@ public class ConversationMemberDto
 /// <summary>
 /// 消息摘要数据传输对象
 /// </summary>
+public class MessageReferenceDto
+{
+    /// <summary>
+    /// 消息ID
+    /// </summary>
+    public ulong Id { get; set; }
+    /// <summary>
+    /// 发送者用户ID
+    /// </summary>
+    public ulong SenderUserId { get; set; }
+    /// <summary>
+    /// 发送者昵称，可为空
+    /// </summary>
+    public string? SenderNickName { get; set; }
+    /// <summary>
+    /// 消息类型
+    /// </summary>
+    public string MessageType { get; set; } = "text";
+    /// <summary>
+    /// 消息内容，可为空
+    /// </summary>
+    public string? Content { get; set; }
+    /// <summary>
+    /// 额外信息，可为空
+    /// </summary>
+    public string? Extra { get; set; }
+    /// <summary>
+    /// 是否撤回
+    /// </summary>
+    public bool IsRecalled { get; set; }
+    /// <summary>
+    /// 创建时间
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>
+/// 娑堟伅鎽樿鏁版嵁浼犺緭瀵硅薄
+/// </summary>
 public class MessageSummaryDto
 {
     /// <summary>
@@ -117,6 +156,10 @@ public class MessageSummaryDto
     /// 回复的消息ID，可为空
     /// </summary>
     public ulong? ReplyToMessageId { get; set; }
+    /// <summary>
+    /// 被引用消息摘要，可为空
+    /// </summary>
+    public MessageReferenceDto? ReplyToMessage { get; set; }
     /// <summary>
     /// 是否撤回
     /// </summary>

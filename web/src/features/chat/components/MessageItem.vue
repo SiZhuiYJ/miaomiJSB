@@ -1,20 +1,33 @@
 <script setup lang="ts">
-import type { MessageSummary } from '../types'
-import { formatChatTimeShort } from '../utils/chat'
+import type { MessageReference, MessageSummary } from '../types'
+import { formatChatTimeShort, getMessagePreview, getMessageSenderName } from '../utils/chat'
 import FileMessage from './FileMessage.vue'
 
 const props = defineProps<{
-    message: MessageSummary
-    meUserId: number
-    src: string
-    isMine: boolean
-    readText: string
-    readColor: string
+  message: MessageSummary
+  meUserId: number
+  src: string
+  isMine: boolean
+  readText: string
+  readColor: string
+  replyTarget?: MessageSummary | MessageReference | null
+  replyTargetId?: number | null
+  highlighted?: boolean
 }>()
+
+const emit = defineEmits<{
+  reply: [message: MessageSummary]
+  jumpToMessage: [messageId: number]
+}>()
+
+function handleJumpToReply() {
+  if (!props.replyTargetId) return
+  emit('jumpToMessage', props.replyTargetId)
+}
 </script>
 
 <template>
-    <div :class="['msg-item', { mine: props.isMine }]">
+    <div :class="['msg-item', { mine: props.isMine, highlighted: props.highlighted }]">
         <el-avatar class="message-avatar" :src="props.src || undefined" :size="40" shape="square">
             {{ (props.message.senderNickName || String(props.message.senderUserId)).slice(0, 1) }}
         </el-avatar>
@@ -24,8 +37,19 @@ const props = defineProps<{
                     #{{ props.message.id }} · {{ props.message.senderNickName || props.message.senderUserId }} ·
                     {{ props.message.messageType }}
                 </span>
+                <el-button text color="#111827" class="reply-action" @click="emit('reply', props.message)">
+                    引用
+                </el-button>
             </div>
             <div class="bubble-wrap">
+                <button v-if="props.replyTarget || props.replyTargetId" class="reply-card" type="button" @click="handleJumpToReply">
+                    <div class="reply-card-sender">
+                        {{ props.replyTarget ? getMessageSenderName(props.replyTarget) : `消息 #${props.replyTargetId}` }}
+                    </div>
+                    <div class="reply-card-preview">
+                        {{ props.replyTarget ? getMessagePreview(props.replyTarget) : '原消息不可用' }}
+                    </div>
+                </button>
                 <!-- 根据消息类型渲染不同内容 -->
 
                 <!-- 文件类消息（图片、视频、音频、文档等） -->
@@ -63,4 +87,68 @@ const props = defineProps<{
     </div>
 </template>
 
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+.content {
+    min-width: 0;
+}
+
+.header {
+    justify-content: space-between;
+}
+
+.reply-action {
+    padding: 0;
+}
+
+.bubble-wrap {
+    min-width: 0;
+}
+
+.reply-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 100%;
+    margin-bottom: 6px;
+    padding: 8px 10px;
+    border: 0;
+    border-left: 3px solid #9ca3af;
+    border-radius: 8px;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    background: rgba(229, 231, 235, 0.7);
+}
+
+.reply-card-sender {
+    color: #111827;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 18px;
+}
+
+.reply-card-preview {
+    overflow: hidden;
+    color: #4b5563;
+    font-size: 12px;
+    line-height: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.msg-item.mine .reply-card {
+    border-left-color: #111827;
+    background: rgba(230, 240, 255, 0.9);
+}
+
+.msg-item.highlighted :deep(.file-message),
+.msg-item.highlighted .bubble,
+.msg-item.highlighted .reply-card {
+    box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.12);
+}
+
+.msg-item.highlighted .bubble,
+.msg-item.highlighted .reply-card {
+    background-color: #fff8d9;
+}
+</style>

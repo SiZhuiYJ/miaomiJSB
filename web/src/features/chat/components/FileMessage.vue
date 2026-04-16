@@ -385,16 +385,9 @@ function formatDuration(seconds: number): string {
           </el-button>
         </div>
 
-        <div v-if="loadStatus !== 'idle'" class="file-load-status" @click.stop>
-          <el-progress v-if="loadStatus === 'loading'" :percentage="loadProgress" :stroke-width="6"
-            :show-text="false" />
-          <!-- <span class="status-text" :class="{
-            ready: loadStatus === 'ready',
-            error: loadStatus === 'error',
-          }">
-            {{ loadStatus === 'ready' ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
-          </span> -->
-        </div>
+        <!-- 文件加载进度-->
+        <el-progress v-if="loadStatus !== 'idle' && loadStatus === 'loading'" class="file-load-status"
+          :percentage="loadProgress" :stroke-width="6" :show-text="false" />
       </div>
     </template>
 
@@ -419,6 +412,22 @@ function formatDuration(seconds: number): string {
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
+  position: relative;
+}
+
+.file-load-status {
+  position: absolute;
+  /* 子元素绝对定位 */
+  top: 0px;
+  /* 向上偏移 10px（覆盖父元素顶部） */
+  left: 50%;
+  transform: translateX(-50%);
+  /* 水平居中 */
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  border-radius: 8px;
 }
 
 .image-message {
@@ -725,10 +734,5 @@ function formatDuration(seconds: number): string {
   color: #f56c6c;
   background: #fef0f0;
   border-radius: 8px;
-}
-
-.file-load-status {
-  margin-top: 8px;
-  width: 100%;
 }
 </style>

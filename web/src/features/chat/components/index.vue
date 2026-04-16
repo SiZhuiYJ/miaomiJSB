@@ -25,6 +25,7 @@ async function handleSelectConversation(item: ConversationSummary) {
 }
 
 function handleBackToList() {
+  chat.clearReplyingMessage();
   chat.currentConversation.value = null;
   chat.messages.value = [];
 }
@@ -71,10 +72,11 @@ const readInfoMap = computed<Map<number, { readText: string; readColor: string }
       <MessagePanel v-if="!isMobile || !showConversationList" v-model="chat.composeText.value"
         v-model:conversation-detail="chat.currentConversation.value!" :messages="chat.messages.value"
         :me-user-id="chat.meUserId.value" :loading="chat.loading.value" :show-back-to-list="isMobile"
-        :message-read-status="chat.messageReadStatus.value" :read-info-map="readInfoMap" @load-more="chat.loadMore"
-        @send-text-message="chat.sendTextMessage"
+        :replying-message="chat.replyingMessage.value" :message-read-status="chat.messageReadStatus.value"
+        :read-info-map="readInfoMap" @load-more="chat.loadMore" @send-text-message="chat.sendTextMessage"
         @send-message="chat.sendMessage"
         @mark-read="chat.markRead" @back-to-list="handleBackToList"
+        @reply-message="chat.setReplyingMessage" @clear-reply-message="chat.clearReplyingMessage"
         @update-conversation="() => chat.updateConversation(chat.currentConversation.value!)"
         @load-message-read-status="chat.loadMessageReadStatus" />
     </div>

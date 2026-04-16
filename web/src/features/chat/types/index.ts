@@ -3,16 +3,20 @@ export type ConversationType = "direct" | "group";
 export type MessageType = "text" | "image" | "video" | "audio" | "file" | "system";
 export type UserRole = "owner" | "admin" | "member";
 
-export interface MessageSummary {
+export interface MessageReference {
   id: number;
   senderUserId: number;
   senderNickName?: string | null;
   messageType: MessageType;
   content?: string | null;
   extra?: string | null; // JSON 字符串
-  replyToMessageId?: number | null;
   isRecalled: boolean;
   createdAt: string;
+}
+
+export interface MessageSummary extends MessageReference {
+  replyToMessageId?: number | null;
+  replyToMessage?: MessageReference | null;
 }
 
 export interface FileExtra {
@@ -78,7 +82,7 @@ export interface SendMessagePayload {
   messageType: MessageType;
   content?: string;
   extra?: FileExtra;
-  replyToMessageId?: number;
+  replyToMessageId?: number | null;
 }
 
 export interface MessageDeltaResponse {

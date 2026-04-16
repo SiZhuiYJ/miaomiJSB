@@ -6,6 +6,7 @@ import { useConversations } from "./useConversations";
 import { useMessages } from "./useMessages";
 import { useMessageRead } from "./useMessageRead";
 import { useChatPush } from "./useChatPush";
+import type { MessageSummary, SendMessagePayload } from "../types";
 
 export function useChatCore() {
   const { user } = storeToRefs(useAuthStore());
@@ -17,6 +18,16 @@ export function useChatCore() {
       meUserId.value = val;
     },
   );
+
+  const replyingMessage = ref<MessageSummary | null>(null);
+
+  function setReplyingMessage(message: MessageSummary) {
+    replyingMessage.value = message;
+  }
+
+  function clearReplyingMessage() {
+    replyingMessage.value = null;
+  }
 
   // 子模块
   const conversationsModule = useConversations();
@@ -61,6 +72,7 @@ export function useChatCore() {
   // 选择会话时同步重置消息和已读状态
   const originalSelectConversation = conversationsModule.selectConversation;
   conversationsModule.selectConversation = async (item) => {
+    clearReplyingMessage();
     messagesModule.resetMessages();
     readModule.clearReadStatus();
     const detail = await originalSelectConversation(item);
@@ -84,10 +96,18 @@ export function useChatCore() {
   // 发送消息后自动刷新会话列表和已读状态
   const originalSendMessage = messagesModule.sendMessage;
   messagesModule.sendMessage = async (payload) => {
-    const newMsg = await originalSendMessage(payload);
+    const effectivePayload: SendMessagePayload = {
+      ...payload,
+      replyToMessageId: payload.replyToMessageId ?? replyingMessage.value?.id ?? null,
+    };
+
+    const newMsg = await originalSendMessage(effectivePayload);
     if (newMsg) {
       await conversationsModule.loadConversations();
       await readModule.loadMessageReadStatus(newMsg.id);
+      if (effectivePayload.replyToMessageId) {
+        clearReplyingMessage();
+      }
     }
     return newMsg;
   };
@@ -97,6 +117,15 @@ export function useChatCore() {
   const createTitle = ref("");
   const createMembersText = ref("");
   const composeText = ref("");
+
+  watch(
+    () => conversationsModule.selectedConversationId.value,
+    (conversationId, previousConversationId) => {
+      if (conversationId !== previousConversationId) {
+        clearReplyingMessage();
+      }
+    },
+  );
 
   async function handleCreateConversation() {
     const memberUserIds = createMembersText.value
@@ -114,13 +143,19 @@ export function useChatCore() {
     }
   }
 
-  async function handleSendText() {
-    if (!composeText.value.trim()) return;
-    await messagesModule.sendMessage({
+  async function handleSendText(replyToMessageId?: number | null) {
+    const content = composeText.value.trim();
+    if (!content) return;
+
+    const sentMessage = await messagesModule.sendMessage({
       messageType: "text",
-      content: composeText.value.trim(),
+      content,
+      replyToMessageId: replyToMessageId ?? replyingMessage.value?.id ?? null,
     });
-    composeText.value = "";
+
+    if (sentMessage) {
+      composeText.value = "";
+    }
   }
   // 在 useChatCore 中添加
   const togglePush = (force?: boolean) => {
@@ -142,6 +177,7 @@ export function useChatCore() {
     selectedConversationId: conversationsModule.selectedConversationId,
     messages: messagesModule.messages,
     messageReadStatus: readModule.messageReadStatus,
+    replyingMessage,
 
     // 方法
     loadConversations: conversationsModule.loadConversations,
@@ -156,6 +192,8 @@ export function useChatCore() {
           ?.id,
       ),
     pullLatestMessages: messagesModule.pullLatestMessages,
+    setReplyingMessage,
+    clearReplyingMessage,
 
     // 推送相关
     polling: pushModule.polling,
