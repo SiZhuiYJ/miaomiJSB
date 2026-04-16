@@ -165,6 +165,7 @@ async function extractCoverTheme(coverUrl?: string) {
             "--accent-b": endHex,
             "--hero-text": textColor,
         };
+        console.log(themeVars.value)
     };
 
     image.onerror = () => {
