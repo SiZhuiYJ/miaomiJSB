@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // web/src/components/FilePreview/index.vue
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import type { CarouselInstance } from 'element-plus'
 import { MiniAudioPlayer } from '../MiniAudioPlayer/index'
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import VueOfficeDocx from '@vue-office/docx';
@@ -49,6 +50,8 @@ const rotate = ref(0)
 // 元素引用
 const imageRef = ref<HTMLImageElement>()
 const videoRef = ref<HTMLVideoElement>()
+const carouselRef = ref<CarouselInstance>()
+const loadedFileKeys = ref<Set<string>>(new Set())
 
 // 获取文件类型
 const getFileType = (file: FileItem): string => {
@@ -75,6 +78,21 @@ const currentFileType = computed(() => {
   if (!currentFile.value) return 'unknown'
   return getFileType(currentFile.value)
 })
+
+const getFileCacheKey = (file?: FileItem) =>
+  file?.url || file?.path || (file ? `${file.name}-${file.type || 'unknown'}` : '')
+
+const isFileLoaded = (file?: FileItem) => {
+  const key = getFileCacheKey(file)
+  return key ? loadedFileKeys.value.has(key) : false
+}
+
+const markFileLoaded = (file?: FileItem) => {
+  const key = getFileCacheKey(file)
+  if (key) {
+    loadedFileKeys.value.add(key)
+  }
+}
 
 // 图片样式
 const imageStyle = computed(() => ({
@@ -106,16 +124,19 @@ const handleImageError = () => {
 }
 // 处理图片加载
 const handleImageLoad = () => {
+  markFileLoaded(currentFile.value)
   loading.value = false
 }
 
 // 处理音频加载完成
 const handleAudioLoaded = () => {
+  markFileLoaded(currentFile.value)
   loading.value = false
 }
 
 // 处理视频加载完成
 const handleVideoLoaded = () => {
+  markFileLoaded(currentFile.value)
   loading.value = false
 }
 
@@ -140,23 +161,35 @@ const handleRotate = () => {
 
 // 导航控制
 const handlePrev = () => {
-  if (currentIndex.value > 0) {
-    currentIndex.value--
-    resetPreview()
-  }
+  if (!props.fileList.length) return
+  const nextIndex = currentIndex.value <= 0 ? props.fileList.length - 1 : currentIndex.value - 1
+  currentIndex.value = nextIndex
+  carouselRef.value?.setActiveItem(nextIndex)
+  resetPreview()
 }
 
 const handleNext = () => {
-  if (currentIndex.value < props.fileList.length - 1) {
-    currentIndex.value++
-    resetPreview()
-  }
+  if (!props.fileList.length) return
+  const nextIndex = currentIndex.value >= props.fileList.length - 1 ? 0 : currentIndex.value + 1
+  currentIndex.value = nextIndex
+  carouselRef.value?.setActiveItem(nextIndex)
+  resetPreview()
 }
 
 const handleSwitchFile = (index: number) => {
+  if (index === currentIndex.value) return
+  currentIndex.value = index
+  carouselRef.value?.setActiveItem(index)
+  resetPreview()
+}
+
+const handleCarouselChange = (index: number) => {
+  if (index === currentIndex.value) return
   currentIndex.value = index
   resetPreview()
 }
+
+const isSlideActive = (index: number) => index === currentIndex.value
 
 const content = ref<string | null>(null);
 
@@ -263,19 +296,19 @@ const handleKeyDown = (e: KeyboardEvent) => {
 }
 
 // 监听文件变化
-watch(() => props.currentIndex, () => {
+watch(currentIndex, (newIndex) => {
+  carouselRef.value?.setActiveItem(newIndex)
   resetPreview()
 })
 
 // 监听当前文件变化，确保 loading 状态正确
 watch(currentFile, (newFile) => {
   if (newFile) {
-    // 对于音频和视频，需要等待加载完成事件
     const type = getFileType(newFile)
     if (type === 'audio' || type === 'video') {
-      loading.value = true
+      loading.value = !isFileLoaded(newFile)
     } else if (type === 'image') {
-      loading.value = true
+      loading.value = !isFileLoaded(newFile)
     } else if (type === 'text') {
       // 调用文本加载函数
       convertBlobUrl();
@@ -363,99 +396,94 @@ onUnmounted(() => {
         </div>
 
         <!-- 上一张/下一张按钮 -->
-        <button v-if="fileList.length > 1 && currentIndex > 0" class="nav-btn prev-btn" @click="handlePrev">
+        <button v-if="fileList.length > 1" class="nav-btn prev-btn" @click="handlePrev">
           <svg viewBox="0 0 24 24" width="32" height="32">
             <path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
           </svg>
         </button>
-        <button v-if="fileList.length > 1 && currentIndex < fileList.length - 1" class="nav-btn next-btn"
-          @click="handleNext">
+        <button v-if="fileList.length > 1" class="nav-btn next-btn" @click="handleNext">
           <svg viewBox="0 0 24 24" width="32" height="32">
             <path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z" />
           </svg>
         </button>
 
         <!-- 主预览区域 -->
-        <div class="preview-content" :style="contentStyle">
+        <el-carousel ref="carouselRef" class="preview-carousel" :autoplay="false" arrow="never" indicator-position="none"
+          height="100%" :initial-index="currentIndex" :loop="true" trigger="click" @change="handleCarouselChange">
+          <el-carousel-item v-for="(file, index) in fileList" :key="`${file.url || file.path}-${index}`">
+            <div class="preview-content" :style="contentStyle">
+              <template v-if="isSlideActive(index)">
+                <div v-if="currentFileType === 'image'" class="image-preview">
+                  <el-image ref="imageRef" v-if="currentFile?.url" :key="currentFile?.url"
+                    :src="currentFile?.url || currentFile?.path" :alt="currentFile?.name" :style="imageStyle"
+                    fit="contain" :preview-src-list="[currentFile.url]" :hide-on-click-modal="true" @load="handleImageLoad"
+                    @error="handleImageError" />
+                </div>
 
-          <!-- 图片预览区域 -->
-          <div v-if="currentFileType === 'image'" class="image-preview">
-            <el-image ref="imageRef" v-if="currentFile?.url" :key="currentFile?.url"
-              :src="currentFile?.url || currentFile?.path" :alt="currentFile?.name" :style="imageStyle" fit="contain"
-              :preview-src-list="[currentFile.url]" :hide-on-click-modal="true" @load="handleImageLoad"
-              @error="handleImageError" />
-          </div>
+                <div v-else-if="currentFileType === 'video'" class="video-preview">
+                  <video ref="videoRef" :key="currentFile?.url" :src="currentFile?.url" :poster="currentFile?.path"
+                    controls autoplay preload="metadata" @loadeddata="handleVideoLoaded">
+                    您的浏览器不支持视频播放
+                  </video>
+                </div>
 
-          <!-- 视频预览 -->
-          <div v-else-if="currentFileType === 'video'" class="video-preview">
-            <video ref="videoRef" :key="currentFile?.url" :src="currentFile?.url" :poster="currentFile?.path" controls
-              autoplay preload="metadata" @loadeddata="handleVideoLoaded">
-              您的浏览器不支持视频播放
-            </video>
-          </div>
+                <div v-else-if="currentFileType === 'audio'" class="audio-preview" :title="currentFile?.url">
+                  <MiniAudioPlayer v-if="currentFile?.url" :key="currentFile.url" :url="currentFile.url"
+                    :title="currentFile?.name" :cover-url="currentFile.path" @loaded="handleAudioLoaded" />
+                </div>
 
-          <!-- 音频预览 -->
-          <div v-else-if="currentFileType === 'audio'" class="audio-preview" :title="currentFile?.url">
-            <MiniAudioPlayer v-if="currentFile?.url" :key="currentFile.url" :url="currentFile.url"
-              :title="currentFile?.name" :cover-url="currentFile.path" @loaded="handleAudioLoaded" />
-          </div>
+                <div v-else-if="currentFileType === 'word' && currentFile?.url" class="document-preview">
+                  <vue-office-docx :src="currentFile.url" class="docx-class" @rendered="() => { console.log('渲染完成') }"
+                    @error="handleOfficeError" />
+                </div>
 
-          <!-- Office文档预览 -->
-          <!-- 新版 docx -->
-          <div v-else-if="currentFileType === 'word' && currentFile?.url" class="document-preview">
-            <vue-office-docx :src="currentFile.url" class="docx-class" @rendered="() => { console.log('渲染完成') }"
-              @error="handleOfficeError" />
-          </div>
+                <div v-else-if="currentFileType === 'excel' && currentFile?.url" class="document-preview">
+                  <vue-office-excel :src="currentFile.url" class="xlsx-class" @rendered="() => { console.log('渲染完成') }"
+                    @error="handleOfficeError" />
+                </div>
 
-          <!-- 新版 xlsx -->
-          <div v-else-if="currentFileType === 'excel' && currentFile?.url" class="document-preview">
-            <vue-office-excel :src="currentFile.url" class="xlsx-class" @rendered="() => { console.log('渲染完成') }"
-              @error="handleOfficeError" />
-          </div>
+                <div v-else-if="currentFileType === 'pptx' && currentFile?.url" class="document-preview">
+                  <vue-office-pptx :src="currentFile.url" class="pptx-class" @rendered="() => { console.log('渲染完成') }"
+                    @error="handleOfficeError" style="height: 100%;" />
+                </div>
 
-          <!-- 新版 pptx -->
-          <div v-else-if="currentFileType === 'pptx' && currentFile?.url" class="document-preview">
-            <vue-office-pptx :src="currentFile.url" class="pptx-class" @rendered="() => { console.log('渲染完成') }"
-              @error="handleOfficeError" style="height: 100%;" />
-          </div>
+                <div v-else-if="currentFileType === 'pdf' && currentFile?.url" class="pdf-preview">
+                  <vue-office-pdf :src="currentFile.url" class="pdf-class"
+                    @rendered="() => { console.log('PDF 渲染完成', currentFile?.url) }" @error="handleOfficeError" />
+                </div>
 
-          <!-- PDF 预览 -->
-          <div v-else-if="currentFileType === 'pdf' && currentFile?.url" class="pdf-preview">
-            <vue-office-pdf :src="currentFile.url" class="pdf-class"
-              @rendered="() => { console.log('PDF 渲染完成', currentFile?.url) }" @error="handleOfficeError" />
-          </div>
+                <div v-else-if="currentFileType === 'text'" class="txt-preview">
+                  <pre v-if="content">{{ content }}</pre>
+                </div>
 
-          <!-- 文本文件预览 -->
-          <div v-else-if="currentFileType === 'text'" class="txt-preview">
-            <pre v-if="content">{{ content }}</pre>
-          </div>
+                <div v-else-if="['doc', 'xls', 'ppt'].includes(currentFileType)" class="unsupported-preview">
+                  <div class="unsupported-icon">
+                    <svg viewBox="0 0 24 24" width="80" height="80">
+                      <path fill="currentColor"
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2z" />
+                    </svg>
+                  </div>
+                  <p>{{ legacyFileMessage }}</p>
+                  <button class="download-btn" @click="handleDownload">下载文件</button>
+                </div>
 
-          <!-- 旧版 Office 格式 文件 -->
-          <div v-else-if="['doc', 'xls', 'ppt'].includes(currentFileType)" class="unsupported-preview">
-            <div class="unsupported-icon">
-              <svg viewBox="0 0 24 24" width="80" height="80">
-                <path fill="currentColor"
-                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2z" />
-              </svg>
+                <div v-else class="unsupported-preview">
+                  <div class="unsupported-icon">
+                    <svg viewBox="0 0 24 24" width="120" height="120">
+                      <path fill="currentColor"
+                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2z" />
+                    </svg>
+                  </div>
+                  <p>该文件类型暂不支持在线预览</p>
+                  <button class="download-btn" @click="handleDownload">
+                    下载文件
+                  </button>
+                </div>
+              </template>
+              <div v-else class="carousel-slide-placeholder"></div>
             </div>
-            <p>{{ legacyFileMessage }}</p>
-            <button class="download-btn" @click="handleDownload">下载文件</button>
-          </div>
-
-          <!-- 不支持的文件类型 -->
-          <div v-else class="unsupported-preview">
-            <div class="unsupported-icon">
-              <svg viewBox="0 0 24 24" width="120" height="120">
-                <path fill="currentColor"
-                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8v-2zm0-4h8v2H8v-2z" />
-              </svg>
-            </div>
-            <p>该文件类型暂不支持在线预览</p>
-            <button class="download-btn" @click="handleDownload">
-              下载文件
-            </button>
-          </div>
-        </div>
+          </el-carousel-item>
+        </el-carousel>
 
         <!-- 加载状态 -->
         <div v-if="loading" class="loading-overlay">
@@ -657,6 +685,24 @@ onUnmounted(() => {
   &::-webkit-scrollbar {
     display: none; // Chrome/Safari
   }
+}
+
+.preview-carousel {
+  flex: 1;
+  min-height: 0;
+}
+
+:deep(.preview-carousel .el-carousel__container) {
+  height: 100%;
+}
+
+:deep(.preview-carousel .el-carousel__item) {
+  display: flex;
+}
+
+.carousel-slide-placeholder {
+  width: 100%;
+  height: 100%;
 }
 
 // 图片预览
