@@ -8,6 +8,7 @@ import router from "@/routers";
 import { CACHE_PREFIX } from "@/config";
 import { authApi } from "../api";
 import http from "@/libs/http";
+import { notifyWarning } from "@/utils/notification";
 
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<AuthUser | null>();
@@ -70,11 +71,15 @@ export const useAuthStore = defineStore("auth", () => {
               {
                 refreshToken: refreshToken.value,
               },
+              {
+                skipAuth: true,
+                skipAuthRefresh: true,
+              },
             );
             setSession(refreshResponse.data);
           } catch (error) {
             console.error("自动刷新token失败:", error);
-            clear();
+            notifyWarning("自动续期失败，请检查网络后重试");
           }
         }, refreshTime);
       }
@@ -116,11 +121,21 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     try {
-      localStorage.clear();
-      sessionStorage.clear();
+      localStorage.removeItem(CACHE_PREFIX + "auth");
       router.push("/login");
     } catch { }
   }
+
+  watch([accessTokenExpiresAt, refreshToken], () => {
+    if (accessToken.value && refreshToken.value) {
+      setupAutoRefresh();
+      return;
+    }
+    if (refreshTimer) {
+      clearTimeout(refreshTimer);
+      refreshTimer = null;
+    }
+  }, { immediate: true });
 
   return {
     user,

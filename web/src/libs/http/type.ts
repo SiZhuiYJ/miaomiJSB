@@ -45,6 +45,16 @@ export interface HttpRequestConfig extends AxiosRequestConfig {
    * 内部标记：是否已经做过 401 重试。
    */
   _retry?: boolean;
+
+  /**
+   * 跳过 accessToken 自动注入（如登录/刷新等接口）。
+   */
+  skipAuth?: boolean;
+
+  /**
+   * 跳过 401 自动刷新逻辑。
+   */
+  skipAuthRefresh?: boolean;
 }
 
 declare module "axios" {
@@ -55,5 +65,7 @@ declare module "axios" {
     allowDuplicate?: boolean;
     _retryCount?: number;
     _retry?: boolean;
+    skipAuth?: boolean;
+    skipAuthRefresh?: boolean;
   }
 }
