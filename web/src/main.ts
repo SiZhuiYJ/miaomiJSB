@@ -22,6 +22,7 @@ import router from "./routers";
 // 状态管理 - Pinia
 import pinia from "./stores";
 import 'pinia-plugin-persistedstate'
+import { notifyError, notifyWarning } from "./utils/notification";
 
 // 自定义指令集合
 import directives from "./directives";
@@ -34,6 +35,20 @@ app.use(pinia);
 
 // 注册全局自定义指令
 app.use(directives);
+
+app.config.errorHandler = (error, instance, info) => {
+  console.error("Vue 渲染异常:", error, info, instance);
+  notifyError("页面渲染异常，请刷新后重试");
+};
+
+window.addEventListener("unhandledrejection", (event) => {
+  console.error("未处理 Promise 异常:", event.reason);
+  notifyWarning("请求处理异常，请稍后重试");
+});
+
+window.addEventListener("error", (event) => {
+  console.error("全局脚本错误:", event.error || event.message);
+});
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component);

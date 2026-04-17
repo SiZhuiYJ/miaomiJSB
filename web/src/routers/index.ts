@@ -66,7 +66,13 @@ router.beforeEach(
       }
     }
     // 、判断是否有用户信息
-    if (!useAuthStore().user) useAuthStore().initialAuth();
+    if (!useAuthStore().user) {
+      try {
+        await useAuthStore().initialAuth();
+      } catch (error) {
+        console.error("初始化用户信息失败", error);
+      }
+    }
 
     next();
   },

@@ -53,6 +53,9 @@ class MM {
    */
   private refreshPromise: Promise<void> | null = null;
 
+  /** 不需要携带 accessToken 的公开接口。 */
+  private anonymousAuthPathRegex = /\/mm\/Auth\/(refresh|login(?:-account|-email-code)?|register|email-code|validate-account)$/i;
+
   constructor(axiosConfig: AxiosRequestConfig, httpConfig?: Partial<HttpConfig>) {
     this.instance = axios.create(axiosConfig);
     const finalConfig = { ...defaultHttpConfig, ...httpConfig };
@@ -83,7 +86,7 @@ class MM {
   private async handleRequest(config: InternalAxiosRequestConfig): Promise<InternalAxiosRequestConfig> {
     const auth = useAuthStore();
     config.headers = this.normalizeHeaders(config.headers);
-    if (auth.accessToken) {
+    if (auth.accessToken && !config.skipAuth) {
       config.headers.set("Authorization", `Bearer ${auth.accessToken}`);
     }
     return Promise.resolve(config);
@@ -183,7 +186,7 @@ class MM {
       return Promise.reject({ ...error, hasClearedAuth: true });
     }
 
-    if (status === 401 && auth.refreshToken && !config._retry) {
+    if (status === 401 && auth.refreshToken && !config._retry && !config.skipAuthRefresh) {
       config._retry = true;
       try {
         await this.refreshTokenWithLock();
@@ -191,7 +194,12 @@ class MM {
         config.headers.set("Authorization", `Bearer ${auth.accessToken}`);
         return this.instance(config);
       } catch (refreshError) {
-        this.clearAuthAndRedirect();
+        const shouldLogout = this.shouldForceLogout(refreshError);
+        if (shouldLogout) {
+          this.clearAuthAndRedirect();
+        } else if (config.showError !== false) {
+          notifyWarning("网络异常，登录状态刷新失败，请稍后重试");
+        }
         return Promise.reject(refreshError);
       }
     }
@@ -220,6 +228,9 @@ class MM {
       const auth = useAuthStore();
       this.refreshPromise = this.post<AuthData>("/mm/Auth/refresh", {
         refreshToken: auth.refreshToken,
+      }, {
+        skipAuth: true,
+        skipAuthRefresh: true,
       })
         .then((refreshResponse) => {
           auth.setSession(refreshResponse.data);
@@ -237,7 +248,15 @@ class MM {
     const auth = useAuthStore();
     auth.clear();
     notifyWarning("登录过期，请重新登录");
-    router.push("/login");
+    if (router.currentRoute.value.path !== "/login") {
+      router.push("/login");
+    }
+  }
+
+  private shouldForceLogout(error: unknown) {
+    if (!axios.isAxiosError(error)) return false;
+    const status = error.response?.status;
+    return status === 401 || status === 403;
   }
 
   private sleep(ms: number) {
@@ -340,6 +359,7 @@ class MM {
       method,
       url,
       headers: this.normalizeHeaders(config.headers),
+      skipAuth: config.skipAuth ?? this.anonymousAuthPathRegex.test(url),
     };
   }
 
@@ -367,6 +387,8 @@ class MM {
       "originalResponse",
       "retryCount",
       "allowDuplicate",
+      "skipAuth",
+      "skipAuthRefresh",
     ]);
 
     return Object.keys(value).some((key) => configKeys.has(key));
