@@ -27,8 +27,15 @@ const emit = defineEmits<{
     jumpToMessage: [messageId: number]
 }>()
 
+const RECALL_WINDOW_MS = 5 * 60 * 1000
+
 const canReply = computed(() => !props.message.isRecalled)
-const canRecall = computed(() => props.isMine && !props.message.isRecalled)
+const isRecallWithinTimeLimit = computed(() => {
+    const createdAtTimestamp = Date.parse(props.message.createdAt)
+    if (Number.isNaN(createdAtTimestamp)) return false
+    return Date.now() - createdAtTimestamp <= RECALL_WINDOW_MS
+})
+const canRecall = computed(() => props.isMine && !props.message.isRecalled && isRecallWithinTimeLimit.value)
 const recalledText = computed(() => getRecalledMessageText(props.message))
 
 function handleJumpToReply() {
@@ -38,7 +45,12 @@ function handleJumpToReply() {
 </script>
 
 <template>
-    <div :class="['msg-item', { mine: props.isMine, highlighted: props.highlighted }]">
+    <div v-if="props.message.isRecalled" :class="['msg-item', 'system-notice-item', { highlighted: props.highlighted }]">
+        <div class="recalled-message system-notice-text">
+            {{ recalledText }}
+        </div>
+    </div>
+    <div v-else :class="['msg-item', { mine: props.isMine, highlighted: props.highlighted }]">
         <el-avatar class="message-avatar" :src="props.src || undefined" :size="40" shape="square">
             {{ (props.message.senderNickName || String(props.message.senderUserId)).slice(0, 1) }}
         </el-avatar>
@@ -70,10 +82,7 @@ function handleJumpToReply() {
                 <!-- 根据消息类型渲染不同内容 -->
 
                 <!-- 文件类消息（图片、视频、音频、文档等） -->
-                <div v-if="props.message.isRecalled" class="recalled-message">
-                    {{ recalledText }}
-                </div>
-                <template v-else-if="['image', 'video', 'audio', 'file'].includes(props.message.messageType)">
+                <template v-if="['image', 'video', 'audio', 'file'].includes(props.message.messageType)">
                     <FileMessage :message="props.message" :show-download="true" :src />
                 </template>
 
@@ -170,6 +179,22 @@ function handleJumpToReply() {
     font-size: 14px;
     line-height: 20px;
     background: #f3f4f6;
+}
+
+.system-notice-item {
+    display: flex;
+    justify-content: center;
+    max-width: 100%;
+    width: 100%;
+}
+
+.system-notice-text {
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 18px;
+    text-align: center;
+    background: rgba(107, 114, 128, 0.12);
 }
 
 .msg-item.mine .reply-card {

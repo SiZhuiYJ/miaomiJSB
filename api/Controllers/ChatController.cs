@@ -323,6 +323,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     [HttpPost("messages/{messageId:ulong}/recall")]
     public async Task<ActionResult<MessageSummaryDto>> RecallMessage(ulong messageId)
     {
+        const int recallWindowMinutes = 5;
         var userId = GetUserId();
 
         var message = await _db.ChatMessages
@@ -346,6 +347,9 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             return Ok(await BuildMessageSummary(message.Id));
 
         var now = DateTime.UtcNow;
+        if (message.CreatedAt.AddMinutes(recallWindowMinutes) < now)
+            return BadRequest(new { message = $"消息发送超过{recallWindowMinutes}分钟，无法撤回" });
+
         message.IsRecalled = true;
         message.RecalledAt = now;
         message.Content = null;
