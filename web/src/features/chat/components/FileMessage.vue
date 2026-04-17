@@ -174,7 +174,6 @@ function loadInlineMedia() {
 
 function handlePreviewError(error: Error) {
   console.error('FileMessage preview failed:', error);
-  clearLoadTimers();
   previewLoading.value = false;
   hasError.value = true;
   loadStatus.value = 'error';

@@ -45,7 +45,8 @@ function handleJumpToReply() {
 </script>
 
 <template>
-    <div v-if="props.message.isRecalled" :class="['msg-item', 'system-notice-item', { highlighted: props.highlighted }]">
+    <div v-if="props.message.isRecalled"
+        :class="['msg-item', 'system-notice-item', { highlighted: props.highlighted }]">
         <div class="recalled-message system-notice-text">
             {{ recalledText }}
         </div>
@@ -69,18 +70,17 @@ function handleJumpToReply() {
                     撤回
                 </el-button>
             </div>
+            <!-- 根据消息类型渲染不同内容 -->
+            <button v-if="props.replyTarget || props.replyTargetId" class="reply-card" type="button"
+                @click="handleJumpToReply">
+                <div class="reply-card-sender">
+                    {{ props.replyTarget ? getMessageSenderName(props.replyTarget) : `消息 #${props.replyTargetId}` }}
+                </div>
+                <div class="reply-card-preview">
+                    {{ props.replyTarget ? getMessagePreview(props.replyTarget) : '原消息不可用' }}
+                </div>
+            </button>
             <div class="bubble-wrap">
-                <button v-if="props.replyTarget || props.replyTargetId" class="reply-card" type="button"
-                    @click="handleJumpToReply">
-                    <div class="reply-card-sender">
-                        {{ props.replyTarget ? getMessageSenderName(props.replyTarget) : `消息 #${props.replyTargetId}` }}
-                    </div>
-                    <div class="reply-card-preview">
-                        {{ props.replyTarget ? getMessagePreview(props.replyTarget) : '原消息不可用' }}
-                    </div>
-                </button>
-                <!-- 根据消息类型渲染不同内容 -->
-
                 <!-- 文件类消息（图片、视频、音频、文档等） -->
                 <template v-if="['image', 'video', 'audio', 'file'].includes(props.message.messageType)">
                     <FileMessage :message="props.message" :show-download="true" :src />
@@ -211,16 +211,32 @@ function handleJumpToReply() {
     background: #e7f0ff;
 }
 
-.msg-item.highlighted :deep(.file-message),
+.msg-item.highlighted :deep(.video-message),
+.msg-item.highlighted :deep(.audio-message),
+.msg-item.highlighted :deep(.document-message),
+.msg-item.highlighted :deep(.image-message),
 .msg-item.highlighted .bubble,
 .msg-item.highlighted .reply-card,
 .msg-item.highlighted .recalled-message {
-    box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.12);
+    box-shadow: 0 0 0px 0px rgb(200 176 19 / 28%);
+    animation: highlighted-blink 1.1s ease-in-out infinite alternate;
 }
 
 .msg-item.highlighted .bubble,
 .msg-item.highlighted .reply-card,
 .msg-item.highlighted .recalled-message {
     background-color: #fff8d9;
+}
+
+@keyframes highlighted-blink {
+    from {
+        box-shadow: 0 0 1px 1px rgb(200 176 19 / 18%);
+        filter: brightness(1);
+    }
+
+    to {
+        box-shadow: 0 0 2px 2px rgb(200 176 19 / 42%);
+        filter: brightness(1.06);
+    }
 }
 </style>

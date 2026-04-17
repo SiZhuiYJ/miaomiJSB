@@ -1,4 +1,5 @@
 import http from '@/libs/http';
+import fileHttp from '@/libs/http/file';
 import { API_BASE_URL } from '@/config';
 import type {
   ConversationDetail,
@@ -87,7 +88,7 @@ export async function uploadChatFile(conversationId: number, file: File) {
   const formData = new FormData();
   formData.append('file', file);
 
-  return await http.upload<ChatFileInfo>(
+  return await fileHttp.upload<ChatFileInfo>(
     `/mm/files/chat/${conversationId}/upload`,
     formData,
     { allowDuplicate: true },
@@ -114,7 +115,7 @@ export async function uploadConversationAvatar(conversationId: number, file: Fil
   const formData = new FormData();
   formData.append('file', file);
 
-  return await http.upload<{ key: string }>(
+  return await fileHttp.upload<{ key: string }>(
     `/mm/files/chat/${conversationId}/avatar`,
     formData,
   );

@@ -19,6 +19,20 @@ interface FileItem {
   type?: string
 }
 
+type FilePreviewType =
+  | 'image'
+  | 'video'
+  | 'audio'
+  | 'pdf'
+  | 'word'
+  | 'excel'
+  | 'pptx'
+  | 'text'
+  | 'doc'
+  | 'xls'
+  | 'ppt'
+  | 'unknown'
+
 interface Props {
   modelValue: boolean
   fileList: FileItem[]
@@ -50,7 +64,7 @@ const rotate = ref(0)
 
 // 元素引用
 const imageRef = ref<HTMLImageElement>()
-const videoRef = ref<HTMLVideoElement>()
+const previewOverlayRef = ref<HTMLElement>()
 const carouselRef = ref<CarouselInstance>()
 const loadedFileKeys = ref<Set<string>>(new Set())
 
@@ -65,24 +79,60 @@ const handleNativePdfLoaded = (file?: FileItem) => {
 }
 
 // 获取文件类型
-const getFileType = (file: FileItem): string => {
-  if (file.type) return file.type
+const fileTypeMap: Record<string, FilePreviewType> = {
+  image: 'image',
+  jpg: 'image',
+  jpeg: 'image',
+  png: 'image',
+  gif: 'image',
+  bmp: 'image',
+  webp: 'image',
+  svg: 'image',
+  ico: 'image',
+  video: 'video',
+  mp4: 'video',
+  webm: 'video',
+  ogv: 'video',
+  mov: 'video',
+  avi: 'video',
+  mkv: 'video',
+  flv: 'video',
+  audio: 'audio',
+  mp3: 'audio',
+  wav: 'audio',
+  ogg: 'audio',
+  aac: 'audio',
+  flac: 'audio',
+  wma: 'audio',
+  pdf: 'pdf',
+  word: 'word',
+  docx: 'word',
+  excel: 'excel',
+  xlsx: 'excel',
+  pptx: 'pptx',
+  text: 'text',
+  txt: 'text',
+  csv: 'text',
+  doc: 'doc',
+  xls: 'xls',
+  ppt: 'ppt',
+  unknown: 'unknown',
+}
+
+const getFileType = (file: FileItem): FilePreviewType => {
+  const rawType = file.type?.toLowerCase()
+  if (rawType && rawType !== 'document') {
+    const normalizedType = fileTypeMap[rawType]
+    if (normalizedType) return normalizedType
+  }
 
   const ext = file.name.split('.').pop()?.toLowerCase() || ''
+  return fileTypeMap[ext] ?? 'unknown'
+}
 
-  const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico']
-  const videoExts = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv', 'flv']
-  const audioExts = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'wma']
-  const pdfExts = ['pdf']
-  const docExts = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv']
-
-  if (imageExts.includes(ext)) return 'image'
-  if (videoExts.includes(ext)) return 'video'
-  if (audioExts.includes(ext)) return 'audio'
-  if (pdfExts.includes(ext)) return 'pdf'
-  if (docExts.includes(ext)) return 'document'
-
-  return 'unknown'
+const getFileIconType = (type: FilePreviewType) => {
+  if (type === 'xls') return 'excel'
+  return type
 }
 
 const getFileCacheKey = (file?: FileItem) =>
@@ -229,14 +279,20 @@ async function blobUrlToString(blobUrl: string): Promise<string> {
 const resetPreview = () => {
   scale.value = 1;
   rotate.value = 0;
+  pausePreviewMedia()
 }
 
 // 关闭预览
+const pausePreviewMedia = () => {
+  const mediaElements = previewOverlayRef.value?.querySelectorAll('video, audio')
+  mediaElements?.forEach((media) => (media as HTMLMediaElement).pause())
+}
+
 const handleClose = () => {
   visible.value = false
   emit('close')
   // 暂停视频播放
-  videoRef.value?.pause()
+  pausePreviewMedia()
 }
 
 // 下载文件
@@ -340,6 +396,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  pausePreviewMedia()
   document.removeEventListener('keydown', handleKeyDown)
 })
 </script>
@@ -347,7 +404,7 @@ onUnmounted(() => {
 <template>
   <Teleport to="body">
     <Transition name="preview-fade">
-      <div v-show="visible" class="file-preview-overlay" @click.self="handleClose">
+      <div ref="previewOverlayRef" v-show="visible" class="file-preview-overlay" @click.self="handleClose">
         <!-- 顶部工具栏 -->
         <div class="preview-toolbar">
           <el-collapse v-model="activeNames" style="width: 100%;">
@@ -419,7 +476,7 @@ onUnmounted(() => {
                           size="24px" color="#ffffff" />
                       </div>
                       <div v-else class="thumbnail-icon" style="background-color: rgb(255 255 255)">
-                        <svg-icon v-if="getFileType(file)" :icon-class="'document-' + getFileType(file)" size="48px" />
+                        <svg-icon v-if="getFileType(file)" :icon-class="'document-' + getFileIconType(getFileType(file))" size="48px" />
                       </div>
                     </button>
                   </div>
@@ -455,7 +512,7 @@ onUnmounted(() => {
               </div>
 
               <div v-else-if="getFileType(file) === 'video'" class="video-preview">
-                <video ref="videoRef" :key="file?.url || file?.path" :src="file?.url" :poster="file?.path" controls
+                <video :key="file?.url || file?.path" :src="file?.url" :poster="file?.path" controls
                   autoplay preload="metadata" @loadeddata="handleVideoLoaded(file)" v-videoPlay>
                   您的浏览器不支持视频播放
                 </video>
