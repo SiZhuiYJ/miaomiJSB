@@ -51,7 +51,9 @@ const createConversationTypeOptions = [
               </el-icon>
             </div>
             <el-text :line-clamp="1">
-              {{ item.lastMessage?.senderNickName || item.lastMessage?.senderUserId || '系统' }}：
+              {{ (item.lastMessage?.isRecalled ? '' : (item.lastMessage?.senderNickName ||
+                item.lastMessage?.senderUserId
+                || '系统' )+'：') }}
               {{ getMessagePreview(item) }}
             </el-text>
             <template #content="{ value }">
@@ -88,6 +90,4 @@ const createConversationTypeOptions = [
   </aside>
 </template>
 
-<style scoped lang="scss">
-
-</style>
+<style scoped lang="scss"></style>
