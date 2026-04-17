@@ -45,13 +45,8 @@ const previewLoading = ref(false);
 const thumbnailLoading = ref(false);
 const hasError = ref(false);
 const loadProgress = ref(0);
-const loadStatus = ref<'idle' | 'loading' | 'ready' | 'error'>('idle');
-const loadStartedAt = ref(0);
-let readyStatusTimer: ReturnType<typeof window.setTimeout> | null = null;
-let delayedReadyTimer: ReturnType<typeof window.setTimeout> | null = null;
-
-const MIN_LOADING_VISIBLE_MS = 700;
-const READY_STATUS_VISIBLE_MS = 1800;
+const loadStatus = ref<'idle' | 'loading' | 'error'>('idle');
+const isPrepared = ref(false);
 
 const { requestBlobUrl, requestDownload, downloadAndSaveFile } = useFileDownloader();
 
@@ -75,31 +70,17 @@ watch(
     hasError.value = false;
     loadProgress.value = 0;
     loadStatus.value = 'idle';
-    loadStartedAt.value = 0;
-    clearLoadTimers();
+    isPrepared.value = false;
     loadInlineMedia();
   },
   { immediate: true },
 );
 
 onBeforeUnmount(() => {
-  clearLoadTimers();
+  loadStatus.value = 'idle';
 });
 
-function clearLoadTimers() {
-  if (readyStatusTimer) {
-    window.clearTimeout(readyStatusTimer);
-    readyStatusTimer = null;
-  }
-  if (delayedReadyTimer) {
-    window.clearTimeout(delayedReadyTimer);
-    delayedReadyTimer = null;
-  }
-}
-
 function beginLoadStatus() {
-  clearLoadTimers();
-  loadStartedAt.value = Date.now();
   loadProgress.value = 0;
   loadStatus.value = 'loading';
 }
@@ -109,19 +90,10 @@ function updateLoadProgress(progress: number) {
   loadProgress.value = Math.min(progress, 99);
 }
 
-function markLoadReady() {
-  clearLoadTimers();
-  const elapsed = Date.now() - loadStartedAt.value;
-  const delay = Math.max(0, MIN_LOADING_VISIBLE_MS - elapsed);
-  delayedReadyTimer = window.setTimeout(() => {
-    loadProgress.value = 100;
-    loadStatus.value = 'ready';
-    readyStatusTimer = window.setTimeout(() => {
-      if (loadStatus.value === 'ready') {
-        loadStatus.value = 'idle';
-      }
-    }, READY_STATUS_VISIBLE_MS);
-  }, delay);
+function markPrepared() {
+  loadProgress.value = 100;
+  loadStatus.value = 'idle';
+  isPrepared.value = true;
 }
 
 function registerToGlobalGallery(url: string) {
@@ -142,15 +114,14 @@ function openGlobalPreview(url = previewUrl.value) {
 
 function openCachedPreview() {
   if (!previewUrl.value) return false;
-  beginLoadStatus();
-  markLoadReady();
+  isPrepared.value = true;
   registerToGlobalGallery(previewUrl.value);
   openGlobalPreview(previewUrl.value);
   return true;
 }
 
 function setPreviewUrl(blobUrl: string) {
-  markLoadReady();
+  markPrepared();
   previewUrl.value = blobUrl;
   registerToGlobalGallery(blobUrl);
   openGlobalPreview(blobUrl);
@@ -170,6 +141,7 @@ function loadInlineMedia() {
         if (fileExtra.value?.fileKey !== fileKey) return;
         previewUrl.value = blobUrl;
         previewLoading.value = false;
+        isPrepared.value = true;
         registerToGlobalGallery(blobUrl);
       },
       onError: (error: Error) => {
@@ -225,7 +197,7 @@ async function triggerPreview() {
       },
       onComplete: () => {
         previewLoading.value = false;
-        markLoadReady();
+        markPrepared();
         void handleDownload();
       },
       onError: handlePreviewError,
@@ -363,11 +335,11 @@ function formatDuration(seconds: number): string {
             <div class="file-meta">
               <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
               <span v-if="fileExtra.duration">{{ formatDuration(fileExtra.duration) }}</span>
-              <span v-if="loadStatus !== 'idle'" class="status-text" :class="{
-                ready: loadStatus === 'ready',
+              <span v-if="loadStatus !== 'idle' || isPrepared" class="status-text" :class="{
+                ready: isPrepared,
                 error: loadStatus === 'error',
               }">
-                {{ loadStatus === 'ready' ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
+                {{ isPrepared ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
               </span>
             </div>
           </div>
@@ -389,11 +361,11 @@ function formatDuration(seconds: number): string {
             <div class="file-meta">
               <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
               <span v-if="fileExtra.duration">{{ formatDuration(fileExtra.duration) }}</span>
-              <span v-if="loadStatus !== 'idle'" class="status-text" :class="{
-                ready: loadStatus === 'ready',
+              <span v-if="loadStatus !== 'idle' || isPrepared" class="status-text" :class="{
+                ready: isPrepared,
                 error: loadStatus === 'error',
               }">
-                {{ loadStatus === 'ready' ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
+                {{ isPrepared ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
               </span>
             </div>
           </div>
@@ -417,11 +389,11 @@ function formatDuration(seconds: number): string {
             <div class="file-meta">
               <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
               <span class="file-type">{{ displayType }}</span>
-              <span v-if="loadStatus !== 'idle'" class="status-text" :class="{
-                ready: loadStatus === 'ready',
+              <span v-if="loadStatus !== 'idle' || isPrepared" class="status-text" :class="{
+                ready: isPrepared,
                 error: loadStatus === 'error',
               }">
-                {{ loadStatus === 'ready' ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
+                {{ isPrepared ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
               </span>
             </div>
           </div>
@@ -434,23 +406,19 @@ function formatDuration(seconds: number): string {
 
         <!-- 文件加载进度-->
         <transition name="status-fade">
-          <div v-if="loadStatus !== 'idle'" class="file-load-status" :class="{
+          <div v-if="loadStatus === 'loading' || loadStatus === 'error'" class="file-load-status" :class="{
             loading: loadStatus === 'loading',
-            ready: loadStatus === 'ready',
             error: loadStatus === 'error',
           }">
             <el-icon v-if="loadStatus === 'loading'" class="status-icon is-loading">
               <Loading />
-            </el-icon>
-            <el-icon v-else-if="loadStatus === 'ready'" class="status-icon">
-              <CircleCheckFilled />
             </el-icon>
             <el-icon v-else class="status-icon">
               <CircleCloseFilled />
             </el-icon>
 
             <div class="status-text">
-              {{ loadStatus === 'loading' ? `正在加载 ${Math.round(loadProgress)}%` : loadStatus === 'ready' ? '加载完成' : '加载失败，请重试' }}
+              {{ loadStatus === 'loading' ? `正在加载 ${Math.round(loadProgress)}%` : '加载失败，请重试' }}
             </div>
             <el-progress v-if="loadStatus === 'loading'" :percentage="loadProgress" :stroke-width="6" :show-text="false"
               color="#409eff" />
@@ -499,10 +467,6 @@ function formatDuration(seconds: number): string {
 
   &.loading {
     background: linear-gradient(120deg, rgba(59, 130, 246, 0.88), rgba(14, 116, 144, 0.84));
-  }
-
-  &.ready {
-    background: linear-gradient(120deg, rgba(16, 185, 129, 0.88), rgba(21, 128, 61, 0.84));
   }
 
   &.error {
