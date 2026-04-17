@@ -484,8 +484,10 @@ onUnmounted(() => {
               <div v-else-if="getFileType(file) === 'pdf' && file?.url" class="pdf-preview">
                 <object :data="file.url" type="application/pdf" width="100%" height="100%"
                   @load="handleNativePdfLoaded(file)">
-                  <vue-office-pdf :src="file.url" class="pdf-class" @rendered="handlePdfRendered(file)"
-                    @error="handleOfficeError" />
+                  <div class="vue-pdf">
+                    <vue-office-pdf :src="file.url" class="pdf-class" @rendered="handlePdfRendered(file)"
+                      @error="handleOfficeError" />
+                  </div>
                 </object>
               </div>
 
@@ -778,13 +780,12 @@ onUnmounted(() => {
 .pdf-preview {
   width: 100%;
   height: 100%;
-  // 垂直滚动条
-  overflow-x: auto;
 
-  .pdf-frame {
+  .vue-pdf {
     width: 100%;
     height: 100%;
-    border: none;
+    // 垂直滚动条
+    overflow-x: auto;
   }
 }
 
@@ -818,7 +819,7 @@ onUnmounted(() => {
 .xlsx-class::-webkit-scrollbar,
 .pptx-class::-webkit-scrollbar,
 .docx-class::-webkit-scrollbar,
-.pdf-preview::-webkit-scrollbar,
+.vue-pdf::-webkit-scrollbar,
 .txt-preview::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -826,8 +827,8 @@ onUnmounted(() => {
 
 .xlsx-class::-webkit-scrollbar-corner,
 .xlsx-class::-webkit-scrollbar-track,
-.pdf-preview::-webkit-scrollbar-corner,
-.pdf-preview::-webkit-scrollbar-track,
+.vue-pdf::-webkit-scrollbar-corner,
+.vue-pdf::-webkit-scrollbar-track,
 .pptx-class::-webkit-scrollbar-corner,
 .pptx-class::-webkit-scrollbar-track,
 .docx-class::-webkit-scrollbar-corner,
@@ -841,7 +842,7 @@ onUnmounted(() => {
 .xlsx-class::-webkit-scrollbar-thumb,
 .pptx-class::-webkit-scrollbar-thumb,
 .docx-class::-webkit-scrollbar-thumb,
-.pdf-preview::-webkit-scrollbar-thumb,
+.vue-pdf::-webkit-scrollbar-thumb,
 .txt-preview::-webkit-scrollbar-thumb {
   background: #555;
   border-radius: 4px;
@@ -853,8 +854,8 @@ onUnmounted(() => {
 .pptx-class::-webkit-scrollbar-thumb:hover,
 .docx-class::-webkit-scrollbar-thumb:active,
 .docx-class::-webkit-scrollbar-thumb:hover,
-.pdf-preview::-webkit-scrollbar-thumb:active,
-.pdf-preview::-webkit-scrollbar-thumb:hover,
+.vue-pdf::-webkit-scrollbar-thumb:active,
+.vue-pdf::-webkit-scrollbar-thumb:hover,
 .txt-preview::-webkit-scrollbar-thumb:active,
 .txt-preview::-webkit-scrollbar-thumb:hover {
   background: #777;
