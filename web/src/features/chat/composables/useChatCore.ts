@@ -106,11 +106,14 @@ export function useChatCore() {
 
     const newMsg = await originalSendMessage(effectivePayload);
     if (newMsg) {
-      await conversationsModule.loadConversations();
-      await readModule.loadMessageReadStatus(newMsg.id);
       if (effectivePayload.replyToMessageId) {
         clearReplyingMessage();
       }
+
+      void Promise.allSettled([
+        conversationsModule.loadConversations(),
+        readModule.loadMessageReadStatus(newMsg.id),
+      ]);
     }
     return newMsg;
   };

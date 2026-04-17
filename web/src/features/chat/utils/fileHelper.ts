@@ -1,13 +1,12 @@
-import { uploadChatFile, getChatFileUrl } from "../api";
-import type { FileExtra, MessageType } from "../types";
-import { convertToWebP, extractVideoFrameToWebP } from '@/utils/convertToWebP';
-import http from "@/libs/http";
+import type { AxiosProgressEvent } from "axios";
 import { API_BASE_URL } from "@/config";
+import http from "@/libs/http";
+import { convertToWebP, extractVideoFrameToWebP } from "@/utils/convertToWebP";
+import { getChatFileUrl, uploadChatFile } from "../api";
+import type { FileExtra, MessageType } from "../types";
 
-// 文件大小限制 (100MB)
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
-// 支持的文件类型
 export const SUPPORTED_FILE_TYPES = {
   image: [
     "image/jpeg",
@@ -54,7 +53,7 @@ export const SUPPORTED_FILE_TYPES = {
     "application/gzip",
     "application/x-bzip2",
   ],
-};
+} as const;
 
 export type FileCategory = keyof typeof SUPPORTED_FILE_TYPES | "unknown";
 export type FilePreviewType =
@@ -146,27 +145,28 @@ const PREVIEWABLE_FILE_TYPES = new Set<FilePreviewType>([
   "ppt",
 ]);
 
-/**
- * 获取文件类型分类
- */
-export function getFileCategory(
-  mimeType?: string | null,
-): FileCategory {
+export interface PreparedMessageUploadFiles {
+  files: File[];
+  invalidFiles: { name: string; error: string }[];
+  failedFiles: { name: string; error: string }[];
+}
+
+export interface FileUploadProgressOptions {
+  onProgress?: (progress: number) => void;
+  onThumbnailReady?: (thumbnailUrl: string) => void;
+}
+
+export function getFileCategory(mimeType?: string | null): FileCategory {
   if (!mimeType) return "unknown";
   for (const [category, types] of Object.entries(SUPPORTED_FILE_TYPES)) {
-    if (types.includes(mimeType)) {
+    if (types.includes(mimeType as never)) {
       return category as FileCategory;
     }
   }
   return "unknown";
 }
 
-/**
- * 根据文件名获取文件类型
- */
-export function getFileCategoryByName(
-  fileName: string,
-): FileCategory {
+export function getFileCategoryByName(fileName: string): FileCategory {
   const ext = fileName.split(".").pop()?.toLowerCase();
 
   const imageExts = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "ico"];
@@ -193,7 +193,6 @@ export function getFileCategoryByName(
   if (audioExts.includes(ext)) return "audio";
   if (docExts.includes(ext)) return "document";
   if (archiveExts.includes(ext)) return "archive";
-
   return "unknown";
 }
 
@@ -233,7 +232,6 @@ export function getDocumentIconType(
   if (ext === "js") return "java";
   if (ext === "md") return "note";
   if (previewType === "text") return "text";
-
   return "unknown";
 }
 
@@ -260,26 +258,19 @@ export function isPreviewableFileType(previewType: FilePreviewType): boolean {
   return PREVIEWABLE_FILE_TYPES.has(previewType);
 }
 
-/**
- * 格式化文件大小
- */
 export function formatFileSize(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes < 0) return "0 B";
-  if (bytes === 0) return "0 B";
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
   const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
+  return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`;
 }
 
-/**
- * 验证文件
- */
 export function validateFile(file: File): { valid: boolean; error?: string } {
   if (file.size > MAX_FILE_SIZE) {
     return {
       valid: false,
-      error: `文件大小超过限制（最大${formatFileSize(MAX_FILE_SIZE)}）`,
+      error: `文件大小超过限制（最大 ${formatFileSize(MAX_FILE_SIZE)}）`,
     };
   }
 
@@ -296,12 +287,6 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
   return { valid: true };
 }
 
-export interface PreparedMessageUploadFiles {
-  files: File[];
-  invalidFiles: { name: string; error: string }[];
-  failedFiles: { name: string; error: string }[];
-}
-
 function getWebPFileName(fileName: string): string {
   const normalizedName = fileName.trim() || "image";
   return /\.[^.]+$/.test(normalizedName)
@@ -309,9 +294,6 @@ function getWebPFileName(fileName: string): string {
     : `${normalizedName}.webp`;
 }
 
-/**
- * 校验聊天文件，并将图片转换为 WebP 后再上传。
- */
 export async function prepareFilesForMessageUpload(
   files: File[],
 ): Promise<PreparedMessageUploadFiles> {
@@ -341,7 +323,7 @@ export async function prepareFilesForMessageUpload(
         preparedFiles.push(file);
       }
     } catch (error) {
-      console.error(`处理文件 ${file.name} 失败:`, error);
+      console.error(`Failed to prepare file ${file.name}:`, error);
       failedFiles.push({
         name: file.name,
         error: error instanceof Error ? error.message : "处理失败",
@@ -352,54 +334,84 @@ export async function prepareFilesForMessageUpload(
   return { files: preparedFiles, invalidFiles, failedFiles };
 }
 
-/**
- * 上传图片/视频/音频等文件并生成消息extra
- */
 export async function uploadFileForMessage(
   conversationId: number,
   file: File,
+  options: FileUploadProgressOptions = {},
 ): Promise<{ extra: FileExtra; messageType: MessageType }> {
-  // 验证文件
   const validation = validateFile(file);
   if (!validation.valid) {
     throw new Error(validation.error);
   }
-  // 判断是否为视频
-  if (file.type.startsWith('video/')) {
-    // 1. 生成封面文件
-    const coverFile = await extractVideoFrameToWebP(file, { quality: 1 });
 
-    // 2. 并行上传视频和封面
+  const reportProgress = (progress: number) => {
+    options.onProgress?.(Math.max(0, Math.min(100, progress)));
+  };
+
+  reportProgress(0);
+
+  if (file.type.startsWith("video/")) {
+    reportProgress(5);
+    const coverFile = await extractVideoFrameToWebP(file, { quality: 1 });
+    options.onThumbnailReady?.(URL.createObjectURL(coverFile));
+
+    const totalBytes = Math.max(file.size + coverFile.size, 1);
+    const uploadedBytes = {
+      video: 0,
+      cover: 0,
+    };
+
+    const updateAggregateProgress = () => {
+      const loadedBytes = uploadedBytes.video + uploadedBytes.cover;
+      const progress = Math.min(100, Math.round((loadedBytes / totalBytes) * 100));
+      reportProgress(Math.max(progress, 6));
+    };
+
+    const createProgressHandler = (key: keyof typeof uploadedBytes, fallbackTotal: number) =>
+      (event: AxiosProgressEvent) => {
+        const total = event.total ?? fallbackTotal;
+        if (!total) return;
+        uploadedBytes[key] = Math.min(event.loaded, total);
+        updateAggregateProgress();
+      };
+
     const [videoInfo, coverInfo] = await Promise.all([
-      uploadChatFile(conversationId, file),
-      uploadChatFile(conversationId, coverFile),
+      uploadChatFile(conversationId, file, {
+        onUploadProgress: createProgressHandler("video", file.size),
+      }),
+      uploadChatFile(conversationId, coverFile, {
+        onUploadProgress: createProgressHandler("cover", coverFile.size),
+      }),
     ]);
 
-    // 3. 获取视频时长
-    const duration = await getMediaDuration(file);
+    reportProgress(100);
 
-    // 4. 构造 extra
+    const duration = await getMediaDuration(file);
     const extra: FileExtra = {
       fileName: file.name,
       fileSize: file.size,
-      fileKey: videoInfo.data.fileKey,          // 视频 key（带 .mp4 等扩展名）
+      fileKey: videoInfo.data.fileKey,
       fileUrl: getChatFileUrl(videoInfo.data.fileKey),
       mimeType: file.type,
-      // thumbnailKey: coverInfo.data.fileKey,      // 封面 key（.webp）
       thumbnailUrl: coverInfo.data.fileKey,
       duration: duration ?? undefined,
     };
-    return { extra, messageType: 'video' };
+
+    return { extra, messageType: "video" };
   }
 
-  // 上传文件
-  const response = await uploadChatFile(conversationId, file);
+  const response = await uploadChatFile(conversationId, file, {
+    onUploadProgress: (event) => {
+      const total = event.total ?? file.size;
+      if (!total) return;
+      reportProgress(Math.round((event.loaded / total) * 100));
+    },
+  });
+
+  reportProgress(100);
+
   const fileInfo = response.data;
-
-  // 构建文件URL
   const fileUrl = getChatFileUrl(fileInfo.fileKey);
-
-  // 确定消息类型
   const category = getFileCategory(fileInfo.contentType);
   let messageType: MessageType;
 
@@ -417,16 +429,14 @@ export async function uploadFileForMessage(
       messageType = "file";
   }
 
-  // 构建FileExtra对象
   const fileExtra: FileExtra = {
     fileName: fileInfo.originalFileName,
     fileSize: fileInfo.fileSize,
-    fileUrl: fileUrl,
+    fileUrl,
     fileKey: fileInfo.fileKey,
     mimeType: fileInfo.contentType,
   };
 
-  // 对于图片，尝试获取尺寸
   if (messageType === "image") {
     try {
       const dimensions = await getImageDimensions(file);
@@ -434,20 +444,19 @@ export async function uploadFileForMessage(
         fileExtra.width = dimensions.width;
         fileExtra.height = dimensions.height;
       }
-    } catch (e) {
-      console.warn("Failed to get image dimensions:", e);
+    } catch (error) {
+      console.warn("Failed to get image dimensions:", error);
     }
   }
 
-  // 对于视频/音频，可以尝试获取时长
   if (messageType === "video" || messageType === "audio") {
     try {
       const duration = await getMediaDuration(file);
       if (duration) {
         fileExtra.duration = duration;
       }
-    } catch (e) {
-      console.warn("Failed to get media duration:", e);
+    } catch (error) {
+      console.warn("Failed to get media duration:", error);
     }
   }
 
@@ -457,9 +466,6 @@ export async function uploadFileForMessage(
   };
 }
 
-/**
- * 获取图片尺寸
- */
 function getImageDimensions(
   file: File,
 ): Promise<{ width: number; height: number } | null> {
@@ -482,9 +488,6 @@ function getImageDimensions(
   });
 }
 
-/**
- * 获取媒体文件时长
- */
 function getMediaDuration(file: File): Promise<number | null> {
   return new Promise((resolve) => {
     const video = document.createElement("video");
@@ -506,14 +509,12 @@ function getMediaDuration(file: File): Promise<number | null> {
   });
 }
 
-/**
- *  * 解析消息的extra字段（兼容大小写不一的字段名）
- */
 export function parseMessageExtra(extra?: string | null): FileExtra | null {
   if (!extra) return null;
+
   try {
-    const raw = JSON.parse(extra);
-    // 标准化常见的大小写不一致字段
+    const raw = JSON.parse(extra) as Record<string, unknown>;
+
     if (raw.MimeType && !raw.mimeType) {
       raw.mimeType = raw.MimeType;
       delete raw.MimeType;
@@ -550,41 +551,40 @@ export function parseMessageExtra(extra?: string | null): FileExtra | null {
       raw.duration = raw.Duration;
       delete raw.Duration;
     }
-    return raw as FileExtra;
+    if (raw.LocalPreviewUrl && !raw.localPreviewUrl) {
+      raw.localPreviewUrl = raw.LocalPreviewUrl;
+      delete raw.LocalPreviewUrl;
+    }
+    if (raw.LocalThumbnailUrl && !raw.localThumbnailUrl) {
+      raw.localThumbnailUrl = raw.LocalThumbnailUrl;
+      delete raw.LocalThumbnailUrl;
+    }
+
+    return raw as unknown as FileExtra;
   } catch {
     return null;
   }
 }
 
-/**
- * 获取文件图标（用于文档和压缩包）
- */
 export function getFileIcon(category: string): string {
   const icons: Record<string, string> = {
-    image: "🖼️",
-    video: "🎬",
-    audio: "🎵",
-    document: "📄",
-    archive: "📦",
-    unknown: "📎",
+    image: "image",
+    video: "video",
+    audio: "audio",
+    document: "doc",
+    archive: "zip",
+    unknown: "file",
   };
-  return icons[category] || "📎";
+  return icons[category] || "file";
 }
 
-/**
- * 获取聊天文件的Blob数据（带Token认证）
- * @param fileKey 文件Key（会自动去除扩展名）
- * @returns Blob对象
- */
 export async function fetchChatFile(fileKey: string): Promise<Blob> {
   if (!fileKey) {
-    throw new Error("文件Key不能为空");
+    throw new Error("文件 Key 不能为空");
   }
 
-  // 去除扩展名，统一使用不带扩展名的fileKey
   const lastDot = fileKey.lastIndexOf(".");
   const cleanFileKey = lastDot > 0 ? fileKey.substring(0, lastDot) : fileKey;
-
   const url = `${API_BASE_URL}/mm/files/chat/${cleanFileKey}`;
 
   const token = localStorage.getItem("accessToken");
@@ -598,24 +598,15 @@ export async function fetchChatFile(fileKey: string): Promise<Blob> {
 
     return response.data as Blob;
   } catch (error) {
-    console.error("获取文件失败:", error);
+    console.error("Failed to fetch chat file:", error);
     throw new Error("文件获取失败");
   }
 }
 
-/**
- * 将Blob转换为Object URL
- * @param blob Blob对象
- * @returns Object URL
- */
 export function createBlobUrl(blob: Blob): string {
   return URL.createObjectURL(blob);
 }
 
-/**
- * 释放Object URL
- * @param url Object URL
- */
 export function revokeBlobUrl(url: string): void {
   if (url) {
     URL.revokeObjectURL(url);

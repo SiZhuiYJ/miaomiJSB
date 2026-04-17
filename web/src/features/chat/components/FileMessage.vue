@@ -1,28 +1,22 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, ref, watch } from 'vue';
-import type { FileExtra, MessageSummary } from '../types';
-import {
-  formatFileSize,
-  getDocumentIconType,
-  getFilePreviewType,
-  getFileTypeLabel,
-  isPreviewableFileType,
-  parseMessageExtra,
-} from '../utils/fileHelper';
-import { useFileDownloader } from '../composables/useFileDownloader';
-import SvgIcon from '@/components/SvgIcon/index.vue'
+import SvgIcon from '@/components/SvgIcon/index.vue';
 import { notifyError } from '@/utils/notification';
+import { useFileDownloader } from '../composables/useFileDownloader';
+import type { FileExtra, MessageSummary, PendingUpload } from '../types';
+import { formatFileSize, getDocumentIconType, getFilePreviewType, getFileTypeLabel, isPreviewableFileType, parseMessageExtra } from '../utils/fileHelper';
 
 const props = defineProps<{
   message?: MessageSummary | null;
+  pendingUpload?: PendingUpload | null;
   showDownload?: boolean;
   src: string;
   isNewMessage?: boolean;
 }>();
 
-const fileExtra = computed<FileExtra | null>(() => {
-  return parseMessageExtra(props.message?.extra);
-});
+const emit = defineEmits<{
+  mediaSettled: [payload: { messageId: number; ready: boolean }];
+}>();
 
 interface GalleryFile {
   name: string;
@@ -39,6 +33,18 @@ const gallery = inject<{
 
 const PREVIEW_SIZE_LIMIT = 15 * 1024 * 1024;
 
+const fileExtra = computed<FileExtra | null>(() =>
+  props.pendingUpload?.fileExtra ?? parseMessageExtra(props.message?.extra),
+);
+const category = computed(() => getFilePreviewType(fileExtra.value));
+const documentIconName = computed(() => `document-${getDocumentIconType(category.value, fileExtra.value)}`);
+const displayType = computed(() => getFileTypeLabel(category.value));
+const isPreviewable = computed(() => isPreviewableFileType(category.value));
+const isLargeForPreview = computed(() => (fileExtra.value?.fileSize ?? 0) > PREVIEW_SIZE_LIMIT);
+const isUploading = computed(() => props.pendingUpload?.status === 'uploading');
+const isFailed = computed(() => props.pendingUpload?.status === 'failed');
+const uploadProgress = computed(() => Math.max(0, Math.min(100, props.pendingUpload?.progress ?? 0)));
+
 const previewUrl = ref('');
 const thumbnailUrl = ref('');
 const previewLoading = ref(false);
@@ -47,20 +53,41 @@ const hasError = ref(false);
 const loadProgress = ref(0);
 const loadStatus = ref<'idle' | 'loading' | 'error'>('idle');
 const isPrepared = ref(false);
+const settledMessageId = ref<number | null>(null);
 
 const { requestBlobUrl, requestDownload, downloadAndSaveFile } = useFileDownloader();
 
-const category = computed(() => getFilePreviewType(fileExtra.value));
-const documentIconName = computed(() => `document-${getDocumentIconType(category.value, fileExtra.value)}`);
-const displayType = computed(() => getFileTypeLabel(category.value));
-const isPreviewable = computed(() => isPreviewableFileType(category.value));
-const isLargeForPreview = computed(() => (fileExtra.value?.fileSize ?? 0) > PREVIEW_SIZE_LIMIT);
+const imageDisplayUrl = computed(() => {
+  const localPreviewUrl = fileExtra.value?.localPreviewUrl;
+  if (localPreviewUrl) return localPreviewUrl;
+
+  if (previewUrl.value) return previewUrl.value;
+
+  const fileUrl = fileExtra.value?.fileUrl;
+  if (fileUrl && (fileUrl.startsWith('blob:') || fileUrl.startsWith('data:'))) {
+    return fileUrl;
+  }
+
+  return '';
+});
+const videoCoverUrl = computed(() =>
+  fileExtra.value?.localThumbnailUrl || thumbnailUrl.value || '',
+);
+const uploadMaskStyle = computed(() => ({
+  '--upload-progress': `${uploadProgress.value}%`,
+}));
+const documentProgressStyle = computed(() => ({
+  width: `${uploadProgress.value}%`,
+}));
 
 watch(
   () => ({
     fileKey: fileExtra.value?.fileKey,
     thumbnailKey: fileExtra.value?.thumbnailUrl,
     category: category.value,
+    localPreviewUrl: fileExtra.value?.localPreviewUrl,
+    localThumbnailUrl: fileExtra.value?.localThumbnailUrl,
+    uploading: isUploading.value,
   }),
   () => {
     previewUrl.value = '';
@@ -71,6 +98,7 @@ watch(
     loadProgress.value = 0;
     loadStatus.value = 'idle';
     isPrepared.value = false;
+    settledMessageId.value = null;
     loadInlineMedia();
   },
   { immediate: true },
@@ -96,19 +124,28 @@ function markPrepared() {
   isPrepared.value = true;
 }
 
+function notifyMediaSettled(ready: boolean) {
+  const messageId = props.message?.id;
+  if (!messageId || props.pendingUpload) return;
+  if (category.value !== 'image' && category.value !== 'video') return;
+  if (settledMessageId.value === messageId) return;
+  settledMessageId.value = messageId;
+  emit('mediaSettled', { messageId, ready });
+}
+
 function registerToGlobalGallery(url: string) {
-  if (!gallery || !fileExtra.value) return;
+  if (!gallery || !fileExtra.value || props.pendingUpload) return;
   gallery.register({
     name: fileExtra.value.fileName,
     url,
     type: category.value,
-    path: category.value == "image" ? url : thumbnailUrl.value || props.src,
+    path: category.value === 'image' ? url : videoCoverUrl.value || props.src,
     messageId: props.message?.id,
   });
 }
 
 function openGlobalPreview(url = previewUrl.value) {
-  if (!url) return;
+  if (!url || props.pendingUpload) return;
   gallery?.open(url);
 }
 
@@ -129,7 +166,7 @@ function setPreviewUrl(blobUrl: string) {
 
 function loadInlineMedia() {
   const currentFile = fileExtra.value;
-  if (!currentFile?.fileKey) return;
+  if (!currentFile?.fileKey || isUploading.value || props.pendingUpload) return;
 
   if (category.value === 'image') {
     const fileKey = currentFile.fileKey;
@@ -143,10 +180,12 @@ function loadInlineMedia() {
         previewLoading.value = false;
         isPrepared.value = true;
         registerToGlobalGallery(blobUrl);
+        notifyMediaSettled(true);
       },
       onError: (error: Error) => {
         if (fileExtra.value?.fileKey !== fileKey) return;
         handlePreviewError(error);
+        notifyMediaSettled(false);
       },
     });
     return;
@@ -162,11 +201,13 @@ function loadInlineMedia() {
         if (fileExtra.value?.thumbnailUrl !== thumbnailKey) return;
         thumbnailUrl.value = blobUrl;
         thumbnailLoading.value = false;
+        notifyMediaSettled(true);
       },
       onError: (error: Error) => {
         if (fileExtra.value?.thumbnailUrl !== thumbnailKey) return;
         console.error('FileMessage thumbnail failed:', error);
         thumbnailLoading.value = false;
+        notifyMediaSettled(false);
       },
     });
   }
@@ -181,7 +222,9 @@ function handlePreviewError(error: Error) {
 }
 
 async function triggerPreview() {
-  if (!fileExtra.value?.fileKey || previewLoading.value) return;
+  if (!fileExtra.value?.fileKey || previewLoading.value || isUploading.value || isFailed.value || props.pendingUpload) {
+    return;
+  }
 
   if (!isPreviewable.value) {
     previewLoading.value = true;
@@ -235,12 +278,12 @@ async function triggerPreview() {
 }
 
 async function handleDownload() {
-  if (!fileExtra.value?.fileKey) return;
+  if (!fileExtra.value?.fileKey || isUploading.value || props.pendingUpload) return;
   await downloadAndSaveFile(fileExtra.value.fileKey, fileExtra.value.fileName);
 }
 
 function handleClick() {
-  if (!fileExtra.value) return;
+  if (!fileExtra.value || isUploading.value || props.pendingUpload) return;
   void triggerPreview();
 }
 
@@ -258,7 +301,7 @@ const imageStyle = computed(() => {
 function handleImageError(event: Event) {
   hasError.value = true;
   const img = event.target as HTMLImageElement;
-  img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3E加载失败%3C/text%3E%3C/svg%3E';
+  img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3Eerror%3C/text%3E%3C/svg%3E';
 }
 
 function formatDuration(seconds: number): string {
@@ -269,23 +312,24 @@ function formatDuration(seconds: number): string {
 </script>
 
 <template>
-  <div class="file-message" @click="handleClick">
+  <div class="file-message" :class="{ uploading: isUploading, failed: isFailed }" @click="handleClick">
     <template v-if="fileExtra">
       <div class="file-item-wrap">
-        <!-- 图片消息 -->
         <div v-if="category === 'image'" class="image-message">
-          <img v-if="previewUrl && !hasError" :src="previewUrl" :alt="fileExtra.fileName" :style="imageStyle"
-            @error="handleImageError" loading="lazy" />
+          <img
+            v-if="imageDisplayUrl && !hasError"
+            :src="imageDisplayUrl"
+            :alt="fileExtra.fileName"
+            :style="imageStyle"
+            @error="handleImageError"
+            loading="lazy"
+          />
           <div v-else-if="previewLoading" class="image-loading">
-            <el-icon class="is-loading">
-              <Loading />
-            </el-icon>
+            <el-icon class="is-loading"><Loading /></el-icon>
             <span>加载中...</span>
           </div>
           <div v-else-if="hasError" class="image-error-placeholder">
-            <el-icon>
-              <WarningFilled />
-            </el-icon>
+            <el-icon><WarningFilled /></el-icon>
             <span>图片加载失败</span>
           </div>
           <div v-else class="image-placeholder">
@@ -293,36 +337,39 @@ function formatDuration(seconds: number): string {
             <span>{{ fileExtra.fileName }}</span>
             <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
           </div>
-          <div v-if="showDownload && previewUrl && !hasError" class="image-overlay">
+
+          <div v-if="isUploading && imageDisplayUrl" class="upload-visual-overlay" :style="uploadMaskStyle">
+            <div class="upload-progress-badge">{{ uploadProgress }}%</div>
+          </div>
+
+          <div v-else-if="showDownload && previewUrl && !hasError" class="image-overlay">
             <el-button size="small" circle @click.stop="handleDownload">
-              <el-icon>
-                <Download />
-              </el-icon>
+              <el-icon><Download /></el-icon>
             </el-button>
           </div>
         </div>
 
-        <!-- 视频消息 -->
-        <div v-else-if="category === 'video' && fileExtra" class="video-message">
-          <div v-if="thumbnailUrl" class="video-cover">
-            <img :src="thumbnailUrl" :alt="fileExtra.fileName" loading="lazy" />
-            <div class="video-cover-overlay">
-              <el-icon v-if="previewLoading" class="is-loading" :size="28">
-                <Loading />
-              </el-icon>
+        <div v-else-if="category === 'video'" class="video-message">
+          <div v-if="videoCoverUrl" class="video-cover">
+            <img :src="videoCoverUrl" :alt="fileExtra.fileName" loading="lazy" />
+            <div v-if="isUploading" class="upload-visual-overlay" :style="uploadMaskStyle">
+              <div class="upload-progress-badge">{{ uploadProgress }}%</div>
+            </div>
+            <div v-else class="video-cover-overlay">
+              <el-icon v-if="previewLoading" class="is-loading" :size="28"><Loading /></el-icon>
               <svg-icon v-else icon-class="general-play" size="32px" />
             </div>
           </div>
+          <div v-else-if="isUploading" class="media-loading">
+            <el-icon class="is-loading"><Loading /></el-icon>
+            <span>提取封面中...</span>
+          </div>
           <div v-else-if="thumbnailLoading" class="media-loading">
-            <el-icon class="is-loading">
-              <Loading />
-            </el-icon>
+            <el-icon class="is-loading"><Loading /></el-icon>
             <span>加载封面中...</span>
           </div>
           <div v-else-if="hasError" class="media-error-placeholder">
-            <el-icon>
-              <WarningFilled />
-            </el-icon>
+            <el-icon><WarningFilled /></el-icon>
             <span>视频加载失败</span>
           </div>
           <div v-else class="media-placeholder">
@@ -334,25 +381,23 @@ function formatDuration(seconds: number): string {
             <div class="file-meta">
               <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
               <span v-if="fileExtra.duration">{{ formatDuration(fileExtra.duration) }}</span>
-              <span v-if="loadStatus !== 'idle' || isPrepared" class="status-text" :class="{
-                ready: isPrepared,
-                error: loadStatus === 'error',
-              }">
-                {{ isPrepared ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
+              <span v-if="isUploading" class="status-text uploading">上传 {{ uploadProgress }}%</span>
+              <span v-else-if="isFailed" class="status-text error">上传失败</span>
+              <span
+                v-else-if="loadStatus !== 'idle' || isPrepared"
+                class="status-text"
+                :class="{ ready: isPrepared, error: loadStatus === 'error' }"
+              >
+                {{ isPrepared ? '可预览' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
               </span>
             </div>
           </div>
         </div>
 
-        <!-- 音频消息 -->
-        <div v-else-if="category === 'audio' && fileExtra" class="audio-message">
+        <div v-else-if="category === 'audio'" class="audio-message">
           <div class="audio-icon">
-            <el-icon v-if="previewLoading" class="is-loading" :size="24">
-              <Loading />
-            </el-icon>
-            <el-icon v-else-if="hasError" :size="24">
-              <WarningFilled />
-            </el-icon>
+            <el-icon v-if="previewLoading || isUploading" class="is-loading" :size="24"><Loading /></el-icon>
+            <el-icon v-else-if="hasError || isFailed" :size="24"><WarningFilled /></el-icon>
             <svg-icon v-else icon-class="document-voice" size="48px" />
           </div>
           <div class="audio-content">
@@ -360,77 +405,77 @@ function formatDuration(seconds: number): string {
             <div class="file-meta">
               <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
               <span v-if="fileExtra.duration">{{ formatDuration(fileExtra.duration) }}</span>
-              <span v-if="loadStatus !== 'idle' || isPrepared" class="status-text" :class="{
-                ready: isPrepared,
-                error: loadStatus === 'error',
-              }">
-                {{ isPrepared ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
+              <span v-if="isUploading" class="status-text uploading">上传 {{ uploadProgress }}%</span>
+              <span v-else-if="isFailed" class="status-text error">上传失败</span>
+              <span
+                v-else-if="loadStatus !== 'idle' || isPrepared"
+                class="status-text"
+                :class="{ ready: isPrepared, error: loadStatus === 'error' }"
+              >
+                {{ isPrepared ? '可预览' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
               </span>
             </div>
           </div>
 
-          <el-button v-if="showDownload" size="small" circle class="download-btn" @click.stop="handleDownload">
-            <el-icon>
-              <Download />
-            </el-icon>
+          <el-button v-if="showDownload && !isUploading" size="small" circle class="download-btn" @click.stop="handleDownload">
+            <el-icon><Download /></el-icon>
           </el-button>
         </div>
 
-        <!-- 文档和压缩包消息 -->
-        <div v-else-if="fileExtra" class="document-message">
+        <div v-else class="document-message">
           <div class="document-icon" :class="category">
             <svg-icon :icon-class="documentIconName" size="48px" />
           </div>
           <div class="document-info">
-            <div class="file-name" :title="fileExtra.fileName">
-              {{ fileExtra.fileName }}
-            </div>
+            <div class="file-name" :title="fileExtra.fileName">{{ fileExtra.fileName }}</div>
             <div class="file-meta">
               <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
               <span class="file-type">{{ displayType }}</span>
-              <span v-if="loadStatus !== 'idle' || isPrepared" class="status-text" :class="{
-                ready: isPrepared,
-                error: loadStatus === 'error',
-              }">
-                {{ isPrepared ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
+              <span v-if="isUploading" class="status-text uploading">上传 {{ uploadProgress }}%</span>
+              <span v-else-if="isFailed" class="status-text error">上传失败</span>
+              <span
+                v-else-if="loadStatus !== 'idle' || isPrepared"
+                class="status-text"
+                :class="{ ready: isPrepared, error: loadStatus === 'error' }"
+              >
+                {{ isPrepared ? '已就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
               </span>
             </div>
+            <div v-if="isUploading" class="document-upload-progress">
+              <div class="document-upload-progress-bar" :style="documentProgressStyle"></div>
+            </div>
           </div>
-          <el-button v-if="showDownload" size="small" circle class="download-btn" @click.stop="handleDownload">
-            <el-icon>
-              <Download />
-            </el-icon>
+          <el-button v-if="showDownload && !isUploading" size="small" circle class="download-btn" @click.stop="handleDownload">
+            <el-icon><Download /></el-icon>
           </el-button>
         </div>
 
-        <!-- 文件加载进度-->
         <transition name="status-fade">
-          <div v-if="loadStatus === 'loading' || loadStatus === 'error'" class="file-load-status" :class="{
-            loading: loadStatus === 'loading',
-            error: loadStatus === 'error',
-          }">
-            <el-icon v-if="loadStatus === 'loading'" class="status-icon is-loading">
-              <Loading />
-            </el-icon>
-            <el-icon v-else class="status-icon">
-              <CircleCloseFilled />
-            </el-icon>
+          <div
+            v-if="!isUploading && !props.pendingUpload && (loadStatus === 'loading' || loadStatus === 'error')"
+            class="file-load-status"
+            :class="{ loading: loadStatus === 'loading', error: loadStatus === 'error' }"
+          >
+            <el-icon v-if="loadStatus === 'loading'" class="status-icon is-loading"><Loading /></el-icon>
+            <el-icon v-else class="status-icon"><CircleCloseFilled /></el-icon>
 
             <div class="status-text">
               {{ loadStatus === 'loading' ? `正在加载 ${Math.round(loadProgress)}%` : '加载失败，请重试' }}
             </div>
-            <el-progress v-if="loadStatus === 'loading'" :percentage="loadProgress" :stroke-width="6" :show-text="false"
-              color="#409eff" />
+            <el-progress
+              v-if="loadStatus === 'loading'"
+              :percentage="loadProgress"
+              :stroke-width="6"
+              :show-text="false"
+              color="#409eff"
+            />
           </div>
         </transition>
       </div>
     </template>
 
-    <!-- 无效文件信息 -->
     <div v-else class="file-error">
-      <el-icon :size="24">
-        <WarningFilled />
-      </el-icon>
+      <el-icon :size="24"><WarningFilled /></el-icon>
       <span>文件信息无效</span>
     </div>
   </div>
@@ -441,6 +486,10 @@ function formatDuration(seconds: number): string {
   max-width: 300px;
   cursor: pointer;
   user-select: none;
+
+  &.uploading {
+    cursor: default;
+  }
 }
 
 .file-item-wrap {
@@ -516,7 +565,8 @@ function formatDuration(seconds: number): string {
   }
 }
 
-.image-loading {
+.image-loading,
+.media-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -553,16 +603,57 @@ function formatDuration(seconds: number): string {
 
 .image-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   opacity: 0;
+  background: rgba(0, 0, 0, 0.3);
   transition: opacity 0.2s;
+}
+
+.upload-visual-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.82);
+    -webkit-mask-image: radial-gradient(
+      circle at center,
+      transparent 0,
+      transparent var(--upload-progress),
+      #000 calc(var(--upload-progress) + 1%)
+    );
+    mask-image: radial-gradient(
+      circle at center,
+      transparent 0,
+      transparent var(--upload-progress),
+      #000 calc(var(--upload-progress) + 1%)
+    );
+  }
+}
+
+.upload-progress-badge {
+  position: relative;
+  z-index: 1;
+  min-width: 58px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  background: rgba(17, 24, 39, 0.74);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.24);
 }
 
 .image-error-placeholder,
@@ -584,12 +675,6 @@ function formatDuration(seconds: number): string {
   border-radius: 8px;
   overflow: hidden;
   background: #f5f5f5;
-
-  .video-cover,
-  video {
-    width: 100%;
-    display: block;
-  }
 
   .video-cover {
     position: relative;
@@ -614,34 +699,24 @@ function formatDuration(seconds: number): string {
     background: rgba(0, 0, 0, 0.22);
   }
 
-  .media-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 60px 40px;
-    color: #999;
-    font-size: 13px;
-  }
-
   .file-info {
     padding: 8px 12px;
 
     .file-name {
-      font-size: 13px;
-      color: #333;
-      margin-bottom: 4px;
       overflow: hidden;
+      margin-bottom: 4px;
+      color: #333;
+      font-size: 13px;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .file-meta {
-      font-size: 12px;
-      color: #999;
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
+      color: #999;
+      font-size: 12px;
     }
   }
 }
@@ -650,6 +725,7 @@ function formatDuration(seconds: number): string {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 300px;
   padding: 12px;
   background: #f5f5f5;
   border-radius: 8px;
@@ -668,48 +744,29 @@ function formatDuration(seconds: number): string {
     flex: 1;
     min-width: 0;
 
-    audio {
-      width: 100%;
-      height: 32px;
-      margin-bottom: 4px;
-    }
-
-    .audio-loading,
-    .audio-error-placeholder {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 0;
-      color: #999;
-      font-size: 13px;
-    }
-
     .file-name {
-      font-size: 13px;
-      color: #333;
       overflow: hidden;
+      color: #333;
+      font-size: 13px;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .file-meta {
-      font-size: 12px;
-      color: #999;
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
+      color: #999;
+      font-size: 12px;
     }
   }
-}
-
-.audio-message,
-.document-message {
-  width: 300px;
 }
 
 .document-message {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 300px;
   padding: 12px;
   background: #f5f5f5;
   border-radius: 8px;
@@ -739,39 +796,36 @@ function formatDuration(seconds: number): string {
     &.unknown {
       background: #f5f5f5;
     }
-
-    .icon {
-      font-size: 24px;
-    }
   }
 
   .document-info {
     flex: 1;
     min-width: 0;
+  }
 
-    .file-name {
-      font-size: 14px;
-      color: #333;
-      margin-bottom: 4px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+  .file-name {
+    overflow: hidden;
+    margin-bottom: 4px;
+    color: #333;
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-    .file-meta {
-      font-size: 12px;
-      color: #999;
-      display: flex;
-      gap: 8px;
-      align-items: center;
+  .file-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    color: #999;
+    font-size: 12px;
+  }
 
-      .file-type {
-        background: #e0e0e0;
-        padding: 1px 6px;
-        border-radius: 3px;
-        font-size: 11px;
-      }
-    }
+  .file-type {
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    background: #e0e0e0;
   }
 
   .download-btn {
@@ -779,19 +833,36 @@ function formatDuration(seconds: number): string {
   }
 }
 
-.file-meta {
-  .status-text {
-    display: inline-block;
-    font-size: 12px;
-    color: #909399;
+.document-upload-progress {
+  height: 6px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.28);
+}
 
-    &.ready {
-      color: #67c23a;
-    }
+.document-upload-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #111827, #475569);
+  transition: width 0.16s linear;
+}
 
-    &.error {
-      color: #f56c6c;
-    }
+.file-meta .status-text {
+  display: inline-block;
+  font-size: 12px;
+  color: #909399;
+
+  &.ready {
+    color: #67c23a;
+  }
+
+  &.uploading {
+    color: #2563eb;
+  }
+
+  &.error {
+    color: #f56c6c;
   }
 }
 

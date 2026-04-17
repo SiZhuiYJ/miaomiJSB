@@ -2,6 +2,7 @@
 export type ConversationType = "direct" | "group";
 export type MessageType = "text" | "image" | "video" | "audio" | "file" | "system";
 export type UserRole = "owner" | "admin" | "member";
+export type PendingUploadStatus = "uploading" | "processing" | "failed";
 
 export interface MessageReference {
   id: number;
@@ -9,7 +10,7 @@ export interface MessageReference {
   senderNickName?: string | null;
   messageType: MessageType;
   content?: string | null;
-  extra?: string | null; // JSON 字符串
+  extra?: string | null;
   isRecalled: boolean;
   createdAt: string;
 }
@@ -23,12 +24,28 @@ export interface FileExtra {
   fileName: string;
   fileSize: number;
   fileUrl: string;
-  fileKey?: string; // 文件标识，用于构建URL
-  thumbnailUrl?: string;// 缩略图URL
-  duration?: number; // 视频/音频时长（秒）
+  fileKey?: string;
+  thumbnailUrl?: string;
+  duration?: number;
   mimeType?: string;
-  width?: number; // 图片宽度
-  height?: number; // 图片高度
+  width?: number;
+  height?: number;
+  localPreviewUrl?: string;
+  localThumbnailUrl?: string;
+}
+
+export interface PendingUpload {
+  tempId: string;
+  senderUserId: number;
+  senderNickName?: string | null;
+  messageType: Extract<MessageType, "image" | "video" | "audio" | "file">;
+  createdAt: string;
+  replyToMessageId?: number | null;
+  replyToMessage?: MessageReference | null;
+  status: PendingUploadStatus;
+  progress: number;
+  confirmedMessageId?: number | null;
+  fileExtra: FileExtra;
 }
 
 export interface ConversationSummary {

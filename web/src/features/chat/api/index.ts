@@ -1,6 +1,7 @@
 import http from '@/libs/http';
 import fileHttp from '@/libs/http/file';
 import { API_BASE_URL } from '@/config';
+import type { AxiosProgressEvent } from 'axios';
 import type {
   ConversationDetail,
   ConversationSummary,
@@ -18,6 +19,10 @@ export interface ChatFileInfo {
   originalFileName: string;
   fileSize: number;
   contentType: string;
+}
+
+export interface ChatUploadOptions {
+  onUploadProgress?: (event: AxiosProgressEvent) => void;
 }
 
 export async function getConversations() {
@@ -84,14 +89,21 @@ export async function getMessageReadStatus(messageId: number) {
  * @param file 文件对象
  * @returns 文件信息
  */
-export async function uploadChatFile(conversationId: number, file: File) {
+export async function uploadChatFile(
+  conversationId: number,
+  file: File,
+  options: ChatUploadOptions = {},
+) {
   const formData = new FormData();
   formData.append('file', file);
 
   return await fileHttp.upload<ChatFileInfo>(
     `/mm/files/chat/${conversationId}/upload`,
     formData,
-    { allowDuplicate: true },
+    {
+      allowDuplicate: true,
+      onUploadProgress: options.onUploadProgress,
+    },
   );
 }
 
