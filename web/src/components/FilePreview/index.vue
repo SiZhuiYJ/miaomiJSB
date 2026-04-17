@@ -54,6 +54,16 @@ const videoRef = ref<HTMLVideoElement>()
 const carouselRef = ref<CarouselInstance>()
 const loadedFileKeys = ref<Set<string>>(new Set())
 
+const handlePdfRendered = (file?: FileItem) => {
+  markFileLoaded(file)
+  loading.value = false
+}
+
+const handleNativePdfLoaded = (file?: FileItem) => {
+  markFileLoaded(file)
+  loading.value = false
+}
+
 // 获取文件类型
 const getFileType = (file: FileItem): string => {
   if (file.type) return file.type
@@ -315,6 +325,8 @@ watch(currentFile, (newFile) => {
     } else if (type === 'text') {
       // 调用文本加载函数
       convertBlobUrl();
+    } else if (type === 'pdf') {
+      loading.value = !isFileLoaded(newFile)
     } else {
       // 其他类型（PDF、文档等）立即隐藏 loading
       loading.value = false
@@ -470,8 +482,11 @@ onUnmounted(() => {
               </div>
 
               <div v-else-if="getFileType(file) === 'pdf' && file?.url" class="pdf-preview">
-                <vue-office-pdf :src="file.url" class="pdf-class"
-                  @rendered="() => { console.log('PDF 渲染完成', file?.url) }" @error="handleOfficeError" />
+                <object :data="file.url" type="application/pdf" width="100%" height="100%"
+                  @load="handleNativePdfLoaded(file)">
+                  <vue-office-pdf :src="file.url" class="pdf-class" @rendered="handlePdfRendered(file)"
+                    @error="handleOfficeError" />
+                </object>
               </div>
 
               <div v-else-if="getFileType(file) === 'text'" class="txt-preview">
