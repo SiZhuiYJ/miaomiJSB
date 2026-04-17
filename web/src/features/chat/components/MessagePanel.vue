@@ -537,8 +537,7 @@ async function handleFileSelected(files: File[]) {
               :is-mine="msg.senderUserId === props.meUserId" :reply-target="getReplyTarget(msg)"
               :reply-target-id="msg.replyToMessageId ?? null" :highlighted="highlightedMessageId === msg.id"
               v-bind="getReadDisplay(msg.id)" @reply="emit('replyMessage', $event)"
-              @recall="emit('recallMessage', $event)"
-              @jump-to-message="jumpToMessage" />
+              @recall="emit('recallMessage', $event)" @jump-to-message="jumpToMessage" />
           </template>
         </div>
       </el-scrollbar>
@@ -571,28 +570,28 @@ async function handleFileSelected(files: File[]) {
             <div class="replying-sender">{{ getMessageSenderName(props.replyingMessage) }}</div>
             <div class="replying-preview">{{ getMessagePreview(props.replyingMessage) }}</div>
           </button>
-          <el-button text color="#111827" class="replying-cancel" @click="emit('clearReplyMessage')">
+          <el-button link color="#111827" class="replying-cancel" @click="emit('clearReplyMessage')">
             取消引用
           </el-button>
         </div>
 
         <div class="composer-main">
-        <FileUploadButton :conversation-id="currentConversation?.id" :disabled="uploadingFiles || props.loading"
-          @file-selected="handleFileSelected" />
-        <el-input v-model="model" clearable placeholder="输入消息" @keyup.enter="handleSendTextMessage" />
-        <el-button color="#111827" :disabled="props.loading || uploadingFiles" @click="handleSendTextMessage">
-          发送
-        </el-button>
-        <el-button color="#111827" :disabled="props.loading" @click="emit('markRead')">
-          标为已读
-        </el-button>
-      </div>
+          <FileUploadButton :conversation-id="currentConversation?.id" :disabled="uploadingFiles || props.loading"
+            @file-selected="handleFileSelected" />
+          <el-input v-model="model" clearable placeholder="输入消息" @keyup.enter="handleSendTextMessage" />
+          <el-button color="#111827" :disabled="props.loading || uploadingFiles" @click="handleSendTextMessage">
+            发送
+          </el-button>
+          <el-button color="#111827" :disabled="props.loading" @click="emit('markRead')">
+            标为已读
+          </el-button>
+        </div>
       </div>
 
       <ConversationDetailDialog v-model="isChatDetail" :conversation="currentConversation"
         @update:conversation="emit('updateConversation')" @load-more="emit('loadMore')" />
-      
-        <!-- 全局唯一 FilePreview 组件 -->
+
+      <!-- 全局唯一 FilePreview 组件 -->
       <FilePreview v-model="galleryVisible" :file-list="galleryFileList" v-model:current-index="galleryIndex" />
 
       <el-dialog v-model="dropUploadDialogVisible" title="确认上传文件" width="560px" :close-on-click-modal="!dropUploadBusy"
@@ -790,11 +789,6 @@ async function handleFileSelected(files: File[]) {
   gap: 8px;
 }
 
-/* 移动端适配 */
-.message-list {
-  padding-bottom: 132px;
-}
-
 .composer {
   display: grid;
   gap: 8px;
@@ -866,14 +860,6 @@ async function handleFileSelected(files: File[]) {
   .drop-upload-indicator {
     min-width: 150px;
     padding: 22px 24px;
-  }
-
-  .message-list {
-    padding-bottom: 148px;
-  }
-
-  .composer-main {
-    flex-wrap: wrap;
   }
 
   .replying-banner {

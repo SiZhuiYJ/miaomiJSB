@@ -2,29 +2,29 @@
 import { computed } from 'vue'
 import type { MessageReference, MessageSummary } from '../types'
 import {
-  formatChatTimeShort,
-  getMessagePreview,
-  getMessageSenderName,
-  getRecalledMessageText,
+    formatChatTimeShort,
+    getMessagePreview,
+    getMessageSenderName,
+    getRecalledMessageText,
 } from '../utils/chat'
 import FileMessage from './FileMessage.vue'
 
 const props = defineProps<{
-  message: MessageSummary
-  meUserId: number
-  src: string
-  isMine: boolean
-  readText: string
-  readColor: string
-  replyTarget?: MessageSummary | MessageReference | null
-  replyTargetId?: number | null
-  highlighted?: boolean
+    message: MessageSummary
+    meUserId: number
+    src: string
+    isMine: boolean
+    readText: string
+    readColor: string
+    replyTarget?: MessageSummary | MessageReference | null
+    replyTargetId?: number | null
+    highlighted?: boolean
 }>()
 
 const emit = defineEmits<{
-  reply: [message: MessageSummary]
-  recall: [message: MessageSummary]
-  jumpToMessage: [messageId: number]
+    reply: [message: MessageSummary]
+    recall: [message: MessageSummary]
+    jumpToMessage: [messageId: number]
 }>()
 
 const canReply = computed(() => !props.message.isRecalled)
@@ -32,8 +32,8 @@ const canRecall = computed(() => props.isMine && !props.message.isRecalled)
 const recalledText = computed(() => getRecalledMessageText(props.message))
 
 function handleJumpToReply() {
-  if (!props.replyTargetId) return
-  emit('jumpToMessage', props.replyTargetId)
+    if (!props.replyTargetId) return
+    emit('jumpToMessage', props.replyTargetId)
 }
 </script>
 
@@ -48,15 +48,18 @@ function handleJumpToReply() {
                     #{{ props.message.id }} · {{ props.message.senderNickName || props.message.senderUserId }} ·
                     {{ props.message.messageType }}
                 </span>
-                <el-button v-if="canReply" text color="#111827" class="reply-action" @click="emit('reply', props.message)">
+                <el-button v-if="canReply" link color="#111827" size="small" class="reply-action"
+                    @click="emit('reply', props.message)">
                     引用
                 </el-button>
-                <el-button v-if="canRecall" text color="#dc2626" class="reply-action" @click="emit('recall', props.message)">
+                <el-button v-if="canRecall" link color="#dc2659" size="small" class="reply-action"
+                    @click="emit('recall', props.message)">
                     撤回
                 </el-button>
             </div>
             <div class="bubble-wrap">
-                <button v-if="props.replyTarget || props.replyTargetId" class="reply-card" type="button" @click="handleJumpToReply">
+                <button v-if="props.replyTarget || props.replyTargetId" class="reply-card" type="button"
+                    @click="handleJumpToReply">
                     <div class="reply-card-sender">
                         {{ props.replyTarget ? getMessageSenderName(props.replyTarget) : `消息 #${props.replyTargetId}` }}
                     </div>
@@ -117,7 +120,7 @@ function handleJumpToReply() {
     padding: 0;
 }
 
-.reply-action + .reply-action {
+.reply-action+.reply-action {
     margin-left: 8px;
 }
 
@@ -134,11 +137,13 @@ function handleJumpToReply() {
     padding: 8px 10px;
     border: 0;
     border-left: 3px solid #9ca3af;
-    border-radius: 8px;
+    border-radius: 6px;
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
     color: inherit;
     text-align: left;
     cursor: pointer;
-    background: rgba(229, 231, 235, 0.7);
+    background: rgba(229, 231, 235, 0.3);
 }
 
 .reply-card-sender {
@@ -155,6 +160,7 @@ function handleJumpToReply() {
     line-height: 18px;
     text-overflow: ellipsis;
     white-space: nowrap;
+
 }
 
 .recalled-message {
@@ -167,8 +173,13 @@ function handleJumpToReply() {
 }
 
 .msg-item.mine .reply-card {
-    border-left-color: #111827;
-    background: rgba(230, 240, 255, 0.9);
+    border-left: 0px solid #9ca3af;
+    border-right: 3px solid #111827;
+    background: rgba(230, 240, 255, 0.5);
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
 }
 
 .msg-item.mine .recalled-message {

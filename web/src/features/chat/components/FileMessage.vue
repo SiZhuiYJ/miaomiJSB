@@ -387,7 +387,7 @@ function formatDuration(seconds: number): string {
 
         <!-- 文件加载进度-->
         <el-progress v-if="loadStatus !== 'idle' && loadStatus === 'loading'" class="file-load-status"
-          :percentage="loadProgress" :stroke-width="6" :show-text="false" />
+          :percentage="loadProgress" :stroke-width="6" :show-text="false" color="#67c23a" />
       </div>
     </template>
 
