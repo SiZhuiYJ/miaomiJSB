@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, ref, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, ref, watch } from 'vue';
 import type { FileExtra, MessageSummary } from '../types';
 import {
   formatFileSize,
@@ -45,7 +45,8 @@ const previewLoading = ref(false);
 const thumbnailLoading = ref(false);
 const hasError = ref(false);
 const loadProgress = ref(0);
-const loadStatus = ref<'idle' | 'loading' | 'ready' | 'error'>('idle');
+const loadStatus = ref<'idle' | 'loading' | 'error'>('idle');
+const isPrepared = ref(false);
 
 const { requestBlobUrl, requestDownload, downloadAndSaveFile } = useFileDownloader();
 
@@ -69,10 +70,31 @@ watch(
     hasError.value = false;
     loadProgress.value = 0;
     loadStatus.value = 'idle';
+    isPrepared.value = false;
     loadInlineMedia();
   },
   { immediate: true },
 );
+
+onBeforeUnmount(() => {
+  loadStatus.value = 'idle';
+});
+
+function beginLoadStatus() {
+  loadProgress.value = 0;
+  loadStatus.value = 'loading';
+}
+
+function updateLoadProgress(progress: number) {
+  if (loadStatus.value !== 'loading') return;
+  loadProgress.value = Math.min(progress, 99);
+}
+
+function markPrepared() {
+  loadProgress.value = 100;
+  loadStatus.value = 'idle';
+  isPrepared.value = true;
+}
 
 function registerToGlobalGallery(url: string) {
   if (!gallery || !fileExtra.value) return;
@@ -92,16 +114,14 @@ function openGlobalPreview(url = previewUrl.value) {
 
 function openCachedPreview() {
   if (!previewUrl.value) return false;
-  loadProgress.value = 100;
-  loadStatus.value = 'ready';
+  isPrepared.value = true;
   registerToGlobalGallery(previewUrl.value);
   openGlobalPreview(previewUrl.value);
   return true;
 }
 
 function setPreviewUrl(blobUrl: string) {
-  loadProgress.value = 100;
-  loadStatus.value = 'ready';
+  markPrepared();
   previewUrl.value = blobUrl;
   registerToGlobalGallery(blobUrl);
   openGlobalPreview(blobUrl);
@@ -121,6 +141,7 @@ function loadInlineMedia() {
         if (fileExtra.value?.fileKey !== fileKey) return;
         previewUrl.value = blobUrl;
         previewLoading.value = false;
+        isPrepared.value = true;
         registerToGlobalGallery(blobUrl);
       },
       onError: (error: Error) => {
@@ -165,19 +186,17 @@ async function triggerPreview() {
   if (!isPreviewable.value) {
     previewLoading.value = true;
     hasError.value = false;
-    loadProgress.value = 0;
-    loadStatus.value = 'loading';
+    beginLoadStatus();
     requestDownload({
       fileKey: fileExtra.value.fileKey,
       category: category.value,
       priorityId: props.message?.id,
       onProgress: (progress: number) => {
-        loadProgress.value = progress;
+        updateLoadProgress(progress);
       },
       onComplete: () => {
         previewLoading.value = false;
-        loadProgress.value = 100;
-        loadStatus.value = 'ready';
+        markPrepared();
         void handleDownload();
       },
       onError: handlePreviewError,
@@ -194,8 +213,7 @@ async function triggerPreview() {
 
   previewLoading.value = true;
   hasError.value = false;
-  loadProgress.value = 0;
-  loadStatus.value = 'loading';
+  beginLoadStatus();
 
   requestDownload({
     fileKey: fileExtra.value.fileKey,
@@ -210,7 +228,7 @@ async function triggerPreview() {
       thumbnailUrl.value = blobUrl;
     },
     onProgress: (progress: number) => {
-      loadProgress.value = progress;
+      updateLoadProgress(progress);
     },
     onError: handlePreviewError,
   }, props.isNewMessage ?? true);
@@ -316,11 +334,11 @@ function formatDuration(seconds: number): string {
             <div class="file-meta">
               <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
               <span v-if="fileExtra.duration">{{ formatDuration(fileExtra.duration) }}</span>
-              <span v-if="loadStatus !== 'idle'" class="status-text" :class="{
-                ready: loadStatus === 'ready',
+              <span v-if="loadStatus !== 'idle' || isPrepared" class="status-text" :class="{
+                ready: isPrepared,
                 error: loadStatus === 'error',
               }">
-                {{ loadStatus === 'ready' ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
+                {{ isPrepared ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
               </span>
             </div>
           </div>
@@ -342,11 +360,11 @@ function formatDuration(seconds: number): string {
             <div class="file-meta">
               <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
               <span v-if="fileExtra.duration">{{ formatDuration(fileExtra.duration) }}</span>
-              <span v-if="loadStatus !== 'idle'" class="status-text" :class="{
-                ready: loadStatus === 'ready',
+              <span v-if="loadStatus !== 'idle' || isPrepared" class="status-text" :class="{
+                ready: isPrepared,
                 error: loadStatus === 'error',
               }">
-                {{ loadStatus === 'ready' ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
+                {{ isPrepared ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
               </span>
             </div>
           </div>
@@ -370,11 +388,11 @@ function formatDuration(seconds: number): string {
             <div class="file-meta">
               <span>{{ formatFileSize(fileExtra.fileSize) }}</span>
               <span class="file-type">{{ displayType }}</span>
-              <span v-if="loadStatus !== 'idle'" class="status-text" :class="{
-                ready: loadStatus === 'ready',
+              <span v-if="loadStatus !== 'idle' || isPrepared" class="status-text" :class="{
+                ready: isPrepared,
                 error: loadStatus === 'error',
               }">
-                {{ loadStatus === 'ready' ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
+                {{ isPrepared ? '准备就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
               </span>
             </div>
           </div>
@@ -386,8 +404,25 @@ function formatDuration(seconds: number): string {
         </div>
 
         <!-- 文件加载进度-->
-        <el-progress v-if="loadStatus !== 'idle' && loadStatus === 'loading'" class="file-load-status"
-          :percentage="loadProgress" :stroke-width="6" :show-text="false" color="#67c23a" />
+        <transition name="status-fade">
+          <div v-if="loadStatus === 'loading' || loadStatus === 'error'" class="file-load-status" :class="{
+            loading: loadStatus === 'loading',
+            error: loadStatus === 'error',
+          }">
+            <el-icon v-if="loadStatus === 'loading'" class="status-icon is-loading">
+              <Loading />
+            </el-icon>
+            <el-icon v-else class="status-icon">
+              <CircleCloseFilled />
+            </el-icon>
+
+            <div class="status-text">
+              {{ loadStatus === 'loading' ? `正在加载 ${Math.round(loadProgress)}%` : '加载失败，请重试' }}
+            </div>
+            <el-progress v-if="loadStatus === 'loading'" :percentage="loadProgress" :stroke-width="6" :show-text="false"
+              color="#409eff" />
+          </div>
+        </transition>
       </div>
     </template>
 
@@ -417,17 +452,51 @@ function formatDuration(seconds: number): string {
 
 .file-load-status {
   position: absolute;
-  /* 子元素绝对定位 */
-  top: 0px;
-  /* 向上偏移 10px（覆盖父元素顶部） */
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  /* 水平居中 */
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.3);
-  padding: 12px;
-  border-radius: 8px;
+  width: calc(100% - 20px);
+  padding: 10px 12px;
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.2);
+  z-index: 3;
+  pointer-events: none;
+  color: #ffffff;
+
+  &.loading {
+    background: linear-gradient(120deg, rgba(59, 130, 246, 0.88), rgba(14, 116, 144, 0.84));
+  }
+
+  &.error {
+    background: linear-gradient(120deg, rgba(244, 63, 94, 0.88), rgba(185, 28, 28, 0.84));
+  }
+
+  .status-icon {
+    margin-right: 6px;
+    vertical-align: middle;
+    font-size: 14px;
+  }
+
+  .status-text {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 500;
+  }
+}
+
+.status-fade-enter-active,
+.status-fade-leave-active {
+  transition: all 0.25s ease;
+}
+
+.status-fade-enter-from,
+.status-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -6px);
 }
 
 .image-message {
