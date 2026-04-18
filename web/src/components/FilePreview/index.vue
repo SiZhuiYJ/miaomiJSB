@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // web/src/components/FilePreview/index.vue
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import type { ComponentPublicInstance } from 'vue'
 import type { CarouselInstance } from 'element-plus'
 import { MiniAudioPlayer } from '../MiniAudioPlayer/index'
 import SvgIcon from '@/components/SvgIcon/index.vue';
@@ -29,7 +30,7 @@ type FilePreviewType =
   | 'excel'
   | 'pptx'
   | 'text'
-  | 'markdown'
+  | 'md'
   | 'doc'
   | 'xls'
   | 'ppt'
@@ -63,12 +64,102 @@ const error = ref('')
 // 缩放和旋转状态
 const scale = ref(1)
 const rotate = ref(0)
+const translateX = ref(0)
+const translateY = ref(0)
+const isDragging = ref(false)
+const dragStartX = ref(0)
+const dragStartY = ref(0)
+const dragOriginX = ref(0)
+const dragOriginY = ref(0)
+
+const MIN_SCALE = 0.2
+const MAX_SCALE = 5
+const ZOOM_STEP = 0.2
 
 // 元素引用
-const imageRef = ref<HTMLImageElement>()
+const imageRefs = ref<Record<number, HTMLImageElement | null>>({})
+const imageContainerRefs = ref<Record<number, HTMLDivElement | null>>({})
 const previewOverlayRef = ref<HTMLElement>()
 const carouselRef = ref<CarouselInstance>()
 const loadedFileKeys = ref<Set<string>>(new Set())
+
+const setImageRef = (index: number) => (el: Element | ComponentPublicInstance | null) => {
+  imageRefs.value[index] = el as HTMLImageElement | null
+}
+
+const setImageContainerRef = (index: number) => (el: Element | ComponentPublicInstance | null) => {
+  imageContainerRefs.value[index] = el as HTMLDivElement | null
+}
+
+const getCurrentImageRef = () => imageRefs.value[currentIndex.value] ?? null
+const getCurrentImageContainerRef = () => imageContainerRefs.value[currentIndex.value] ?? null
+
+const canDragImage = computed(() => (
+  !!currentFile.value
+  && getFileType(currentFile.value) === 'image'
+  && scale.value > 1
+))
+
+const getDragBounds = (targetScale = scale.value, targetRotate = rotate.value) => {
+  const image = getCurrentImageRef()
+  const container = getCurrentImageContainerRef()
+
+  if (!image || !container) {
+    return { maxX: 0, maxY: 0 }
+  }
+
+  const normalizedRotate = ((targetRotate % 360) + 360) % 360
+  const rotated = normalizedRotate % 180 !== 0
+  const baseWidth = image.clientWidth
+  const baseHeight = image.clientHeight
+  const scaledWidth = (rotated ? baseHeight : baseWidth) * targetScale
+  const scaledHeight = (rotated ? baseWidth : baseHeight) * targetScale
+
+  return {
+    maxX: Math.max((scaledWidth - container.clientWidth) / 2, 0),
+    maxY: Math.max((scaledHeight - container.clientHeight) / 2, 0),
+  }
+}
+
+const clampTranslate = (
+  nextX = translateX.value,
+  nextY = translateY.value,
+  targetScale = scale.value,
+  targetRotate = rotate.value,
+) => {
+  const { maxX, maxY } = getDragBounds(targetScale, targetRotate)
+
+  return {
+    x: Math.min(Math.max(nextX, -maxX), maxX),
+    y: Math.min(Math.max(nextY, -maxY), maxY),
+  }
+}
+
+const applyTranslateBounds = () => {
+  const clamped = clampTranslate()
+  translateX.value = clamped.x
+  translateY.value = clamped.y
+}
+
+const stopImageDrag = () => {
+  isDragging.value = false
+}
+
+const updateScale = (nextScale: number) => {
+  const normalizedScale = Math.min(Math.max(nextScale, MIN_SCALE), MAX_SCALE)
+  scale.value = normalizedScale
+
+  if (normalizedScale <= 1) {
+    translateX.value = 0
+    translateY.value = 0
+    stopImageDrag()
+    return
+  }
+
+  const clamped = clampTranslate(translateX.value, translateY.value, normalizedScale, rotate.value)
+  translateX.value = clamped.x
+  translateY.value = clamped.y
+}
 
 const handlePdfRendered = (file?: FileItem) => {
   markFileLoaded(file)
@@ -115,8 +206,8 @@ const fileTypeMap: Record<string, FilePreviewType> = {
   text: 'text',
   txt: 'text',
   csv: 'text',
-  md: 'markdown',
-  markdown: 'markdown',
+  md: 'md',
+  markdown: 'md',
   doc: 'doc',
   xls: 'xls',
   ppt: 'ppt',
@@ -156,13 +247,13 @@ const markFileLoaded = (file?: FileItem) => {
 
 // 图片样式
 const imageStyle = computed(() => ({
-  transform: `scale(${scale.value}) rotate(${rotate.value}deg)`,
-  transition: 'transform 0.3s ease'
+  transform: `translate3d(${translateX.value}px, ${translateY.value}px, 0) rotate(${rotate.value}deg) scale(${scale.value})`,
+  transition: isDragging.value ? 'none' : 'transform 0.3s ease'
 }))
 
 // 内容区域样式
 const contentStyle = computed(() => ({
-  cursor: scale.value > 1 ? 'grab' : 'default'
+  cursor: isDragging.value ? 'grabbing' : canDragImage.value ? 'grab' : 'default'
 }))
 
 
@@ -185,6 +276,9 @@ const handleImageError = () => {
 const handleImageLoad = (file?: FileItem) => {
   markFileLoaded(file)
   loading.value = false
+  requestAnimationFrame(() => {
+    applyTranslateBounds()
+  })
 }
 
 // 处理音频加载完成
@@ -201,21 +295,61 @@ const handleVideoLoaded = (file?: FileItem) => {
 
 // 缩放控制
 const handleZoomIn = () => {
-  scale.value = Math.min(scale.value + 0.2, 5)
+  updateScale(scale.value + ZOOM_STEP)
 }
 
 const handleZoomOut = () => {
-  scale.value = Math.max(scale.value - 0.2, 0.2)
+  updateScale(scale.value - ZOOM_STEP)
 }
 
 const handleResetZoom = () => {
   scale.value = 1
   rotate.value = 0
+  translateX.value = 0
+  translateY.value = 0
+  stopImageDrag()
 }
 
 // 旋转控制
 const handleRotate = () => {
   rotate.value = (rotate.value + 90) % 360
+  requestAnimationFrame(() => {
+    applyTranslateBounds()
+  })
+}
+
+const handleImageWheel = (event: WheelEvent, index: number) => {
+  const file = props.fileList[index]
+  if (!file || index !== currentIndex.value || getFileType(file) !== 'image') return
+
+  const delta = event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP
+  updateScale(scale.value + delta)
+}
+
+const handleImageMouseDown = (event: MouseEvent, index: number) => {
+  if (index !== currentIndex.value || !canDragImage.value) return
+
+  dragStartX.value = event.clientX
+  dragStartY.value = event.clientY
+  dragOriginX.value = translateX.value
+  dragOriginY.value = translateY.value
+  isDragging.value = true
+}
+
+const handleDocumentMouseMove = (event: MouseEvent) => {
+  if (!isDragging.value) return
+
+  const next = clampTranslate(
+    dragOriginX.value + event.clientX - dragStartX.value,
+    dragOriginY.value + event.clientY - dragStartY.value,
+  )
+
+  translateX.value = next.x
+  translateY.value = next.y
+}
+
+const handleDocumentMouseUp = () => {
+  stopImageDrag()
 }
 
 // 导航控制
@@ -281,8 +415,11 @@ async function blobUrlToString(blobUrl: string): Promise<string> {
 
 // 重置预览状态
 const resetPreview = () => {
-  scale.value = 1;
-  rotate.value = 0;
+  scale.value = 1
+  rotate.value = 0
+  translateX.value = 0
+  translateY.value = 0
+  stopImageDrag()
   pausePreviewMedia()
 }
 
@@ -295,6 +432,7 @@ const pausePreviewMedia = () => {
 const handleClose = () => {
   visible.value = false
   emit('close')
+  resetPreview()
   // 暂停视频播放
   pausePreviewMedia()
 }
@@ -327,11 +465,12 @@ const handleRetry = () => {
   error.value = ''
   loading.value = true
   // 重新加载当前文件
-  if (imageRef.value) {
-    imageRef.value.src = ''
+  const imageRef = getCurrentImageRef()
+  if (imageRef) {
+    imageRef.src = ''
     setTimeout(() => {
-      if (imageRef.value && currentFile.value) {
-        imageRef.value.src = currentFile.value.url || currentFile.value.path || ''
+      if (imageRef && currentFile.value) {
+        imageRef.src = currentFile.value.url || currentFile.value.path || ''
       }
     }, 100)
   }
@@ -382,7 +521,7 @@ watch(currentFile, (newFile) => {
       loading.value = !isFileLoaded(newFile)
     } else if (type === 'image') {
       loading.value = !isFileLoaded(newFile)
-    } else if (type === 'text' || type === 'markdown') {
+    } else if (type === 'text' || type === 'md') {
       // 调用文本加载函数
       convertBlobUrl();
     } else if (type === 'pdf') {
@@ -397,11 +536,16 @@ watch(currentFile, (newFile) => {
 // 生命周期
 onMounted(() => {
   document.addEventListener('keydown', handleKeyDown)
+  document.addEventListener('mousemove', handleDocumentMouseMove)
+  document.addEventListener('mouseup', handleDocumentMouseUp)
 })
 
 onUnmounted(() => {
   pausePreviewMedia()
+  stopImageDrag()
   document.removeEventListener('keydown', handleKeyDown)
+  document.removeEventListener('mousemove', handleDocumentMouseMove)
+  document.removeEventListener('mouseup', handleDocumentMouseUp)
 })
 </script>
 
@@ -480,7 +624,8 @@ onUnmounted(() => {
                           size="24px" color="#ffffff" />
                       </div>
                       <div v-else class="thumbnail-icon" style="background-color: rgb(255 255 255)">
-                        <svg-icon v-if="getFileType(file)" :icon-class="'document-' + getFileIconType(getFileType(file))" size="48px" />
+                        <svg-icon v-if="getFileType(file)"
+                          :icon-class="'document-' + getFileIconType(getFileType(file))" size="48px" />
                       </div>
                     </button>
                   </div>
@@ -508,16 +653,16 @@ onUnmounted(() => {
           @change="handleCarouselChange">
           <el-carousel-item v-for="(file, index) in fileList" :key="`${file.url || file.path}-${index}`">
             <div class="preview-content" :style="contentStyle">
-              <div v-if="getFileType(file) === 'image'" class="image-preview">
-                <el-image ref="imageRef" v-if="file?.url || file?.path" :key="file?.url || file?.path"
-                  :src="file?.url || file?.path" :alt="file?.name" :style="imageStyle" fit="contain"
-                  :preview-src-list="file.url ? [file.url] : []" :hide-on-click-modal="true"
-                  @load="handleImageLoad(file)" @error="handleImageError" />
+              <div v-if="getFileType(file) === 'image'" :ref="setImageContainerRef(index)" class="image-preview"
+                @wheel.prevent="handleImageWheel($event, index)" @mousedown.prevent="handleImageMouseDown($event, index)">
+                <img v-if="file?.url || file?.path" :ref="setImageRef(index)" :key="file?.url || file?.path"
+                  class="preview-image-element" :src="file?.url || file?.path" :alt="file?.name" :style="imageStyle"
+                  @load="handleImageLoad(file)" @error="handleImageError" @dragstart.prevent />
               </div>
 
               <div v-else-if="getFileType(file) === 'video'" class="video-preview">
-                <video :key="file?.url || file?.path" :src="file?.url" :poster="file?.path" controls
-                  autoplay preload="metadata" @loadeddata="handleVideoLoaded(file)" v-videoPlay>
+                <video :key="file?.url || file?.path" :src="file?.url" :poster="file?.path" controls autoplay
+                  preload="metadata" @loadeddata="handleVideoLoaded(file)" v-videoPlay>
                   您的浏览器不支持视频播放
                 </video>
               </div>
@@ -556,7 +701,7 @@ onUnmounted(() => {
                 <pre v-if="index === currentIndex && content">{{ content }}</pre>
               </div>
 
-              <div v-else-if="getFileType(file) === 'markdown'" class="markdown-preview">
+              <div v-else-if="getFileType(file) === 'md'" class="markdown-preview">
                 <el-scrollbar>
                   <v-md-preview v-if="index === currentIndex && content" :text="content" />
                 </el-scrollbar>
@@ -750,7 +895,7 @@ onUnmounted(() => {
   z-index: 10;
 
   &:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(0, 0, 0, 0.6);
     transform: translateY(-50%) scale(1.1);
   }
 
@@ -801,19 +946,27 @@ onUnmounted(() => {
 
 // 图片预览
 .image-preview {
-  overflow: visible; // 允许 transform 后内容不被裁剪
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  padding: 24px;
+  box-sizing: border-box;
+}
 
-  img {
-    max-width: 90%;
-    max-height: 90%;
-    object-fit: contain;
-    user-select: none;
-  }
+.preview-image-element {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  transform-origin: center center;
+  cursor: inherit;
+  user-select: none;
+  will-change: transform;
 }
 
 // 视频预览
@@ -862,7 +1015,6 @@ onUnmounted(() => {
   height: 100%;
   background: #ffffff;
   border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
   overflow: auto;
   padding: 24px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -887,12 +1039,11 @@ onUnmounted(() => {
   height: 100%;
   background: #ffffff;
   border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
   overflow: hidden;
 
   :deep(.v-md-editor-preview) {
-    padding: 24px;
+    // padding: 24px;
     height: 100%;
     overflow: auto;
     box-sizing: border-box;

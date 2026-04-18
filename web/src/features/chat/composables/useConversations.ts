@@ -9,6 +9,7 @@ import type {
   ConversationDetail,
   ConversationMember,
   CreateConversationPayload,
+  UpdateConversationMemberRolePayload,
 } from "../types";
 
 export function useConversations() {
@@ -156,6 +157,28 @@ export function useConversations() {
     }
   }
 
+  async function updateConversationMemberRole(
+    conversationId: number,
+    memberUserId: number,
+    memberRole: UpdateConversationMemberRolePayload["memberRole"],
+  ) {
+    loading.value = true;
+    clearError();
+    try {
+      const detail = (await API.updateConversationMemberRole(conversationId, memberUserId, { memberRole })).data;
+      if (currentConversation.value?.id === conversationId) {
+        currentConversation.value = detail;
+      }
+      await loadConversations();
+      return detail;
+    } catch (error: any) {
+      setError(error, "更新成员权限失败");
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  }
+
   return {
     conversations,
     currentConversation,
@@ -165,6 +188,7 @@ export function useConversations() {
     selectConversation,
     createConversation,
     updateConversation,
+    updateConversationMemberRole,
     getDirectPeerDisplayName,
     updateConversationSummaryTitle,
   };

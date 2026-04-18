@@ -20,6 +20,7 @@ public interface IFileService
     Task<(Stream Stream, string ContentType, string FileName)?> GetChatFileAsync(ulong userId, string fileKey, CancellationToken cancellationToken = default);
     Task<string> SaveConversationAvatarAsync(ulong userId, ulong conversationId, IFormFile file, CancellationToken cancellationToken = default);
     Task<(Stream Stream, string ContentType)?> GetConversationAvatarAsync(ulong userId, ulong conversationId, string fileKey, CancellationToken cancellationToken = default);
+    Task<(Stream Stream, string ContentType)?> GetPublicConversationAvatarAsync(ulong conversationId, string fileKey, CancellationToken cancellationToken = default);
 }
 
 public class FileInfoResult
@@ -251,6 +252,23 @@ public class LocalFileService : IFileService
 
         var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         var contentType = GetMimeType(extension);
+        return (stream, contentType);
+    }
+
+    public async Task<(Stream Stream, string ContentType)?> GetPublicConversationAvatarAsync(ulong conversationId, string fileKey, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(fileKey))
+            return null;
+
+        fileKey = Path.GetFileName(fileKey);
+        var root = GetConversationAvatarRoot(conversationId);
+        var (filePath, extension) = GetFilePathWithFallback(root, fileKey, AllowedImageExtensions, defaultExtension: ".webp");
+        if (!File.Exists(filePath))
+            return null;
+
+        Stream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var contentType = GetMimeType(extension);
+        await Task.CompletedTask;
         return (stream, contentType);
     }
 

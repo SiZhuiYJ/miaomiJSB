@@ -12,6 +12,7 @@ const props = defineProps<{
   showDownload?: boolean;
   src: string;
   isNewMessage?: boolean;
+  allowInlineMediaLoad?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -88,6 +89,7 @@ watch(
     localPreviewUrl: fileExtra.value?.localPreviewUrl,
     localThumbnailUrl: fileExtra.value?.localThumbnailUrl,
     uploading: isUploading.value,
+    allowInlineMediaLoad: props.allowInlineMediaLoad,
   }),
   () => {
     previewUrl.value = '';
@@ -167,6 +169,10 @@ function setPreviewUrl(blobUrl: string) {
 function loadInlineMedia() {
   const currentFile = fileExtra.value;
   if (!currentFile?.fileKey || isUploading.value || props.pendingUpload) return;
+
+  if (props.allowInlineMediaLoad === false && (category.value === 'image' || category.value === 'video')) {
+    return;
+  }
 
   if (category.value === 'image') {
     const fileKey = currentFile.fileKey;

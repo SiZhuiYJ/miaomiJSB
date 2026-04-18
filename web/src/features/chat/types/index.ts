@@ -116,6 +116,10 @@ export interface UpdateConversation {
   isMuted: boolean;
 }
 
+export interface UpdateConversationMemberRolePayload {
+  memberRole: Extract<UserRole, "admin" | "member">;
+}
+
 export interface ReadUser {
   userId: number;
   nickName: string;

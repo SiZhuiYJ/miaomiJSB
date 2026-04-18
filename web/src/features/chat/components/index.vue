@@ -77,6 +77,7 @@ const readInfoMap = computed<Map<number, { readText: string; readColor: string }
         @mark-read="chat.markRead" @back-to-list="handleBackToList"
         @reply-message="chat.setReplyingMessage" @clear-reply-message="chat.clearReplyingMessage"
         @update-conversation="() => chat.updateConversation(chat.currentConversation.value!)"
+        @update-member-role="({ memberUserId, memberRole }) => chat.updateConversationMemberRole(chat.currentConversation.value!.id, memberUserId, memberRole)"
         @load-message-read-status="chat.loadMessageReadStatus" />
     </div>
   </div>

@@ -54,6 +54,17 @@ public class UpdateConversationRequest
 }
 
 /// <summary>
+/// 更新群成员角色请求参数
+/// </summary>
+public class UpdateConversationMemberRoleRequest
+{
+    /// <summary>
+    /// 目标成员角色，仅支持 admin 或 member
+    /// </summary>
+    public string MemberRole { get; set; } = "member";
+}
+
+/// <summary>
 /// 会话成员信息数据传输对象
 /// </summary>
 public class ConversationMemberDto

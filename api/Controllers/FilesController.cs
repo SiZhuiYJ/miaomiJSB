@@ -292,6 +292,54 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
     /// <response code="400">文件为空、格式不支持或超过大小限制</response>
     /// <response code="403">不是会话成员，无权上传</response>
     /// <response code="404">会话不存在</response>
+    [HttpPost("chat/{conversationId:ulong}/avatar")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult> UploadConversationAvatar(ulong conversationId, IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "鏂囦欢涓嶈兘涓虹┖" });
+
+        var userId = GetUserId();
+        var membership = await _db.ChatConversationMembers
+            .Include(m => m.Conversation)
+            .SingleOrDefaultAsync(m => m.ConversationId == conversationId && m.UserId == userId && m.LeftAt == null);
+
+        if (membership == null || membership.Conversation.IsActive != true)
+            return NotFound(new { message = "浼氳瘽涓嶅瓨鍦ㄦ垨鏃犳潈闄?" });
+
+        if (membership.Conversation.ConversationType != "group")
+            return BadRequest(new { message = "仅群聊支持上传会话头像" });
+
+        var memberRole = (membership.MemberRole ?? string.Empty).Trim().ToLowerInvariant();
+        if (memberRole is not ("owner" or "admin"))
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "仅群主或管理员可修改群头像" });
+
+        try
+        {
+            var fileKey = await _fileService.SaveConversationAvatarAsync(userId, conversationId, file);
+            membership.Conversation.AvatarKey = fileKey;
+            membership.Conversation.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return Ok(new { key = fileKey });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpGet("chat/{conversationId:ulong}/avatars/{key}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetConversationAvatar(ulong conversationId, string key)
+    {
+        var result = await _fileService.GetPublicConversationAvatarAsync(conversationId, key);
+
+        if (result == null)
+            return NotFound("澶村儚鏂囦欢涓嶅瓨鍦ㄦ垨鏃犺闂潈闄?");
+
+        return File(result.Value.Stream, result.Value.ContentType);
+    }
+
     [HttpPost("chat/{conversationId:ulong}/upload")]
     [RequestSizeLimit(100 * 1024 * 1024)] // 100MB
     public async Task<ActionResult> UploadChatFile(ulong conversationId, IFormFile file)
@@ -310,7 +358,7 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
         {
             // 根据错误消息判断返回不同的状态码
             if (ex.Message.Contains("不是该会话的成员"))
-                return Forbid(ex.Message);
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
             return BadRequest(new { message = ex.Message });
         }
     }

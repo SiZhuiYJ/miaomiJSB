@@ -638,110 +638,55 @@
         </member>
         <member name="T:api.Controllers.ChatController">
             <summary>
-            聊天控制器，处理会话创建、消息发送、读取等相关功能
+            閼卞﹤銇夐幒褍鍩楅崳顭掔礉婢跺嫮鎮婃导姘崇樈閸掓稑缂撻妴浣圭Х閹垰褰傞柅浣碘偓浣筋嚢閸欐牜鐡戦惄绋垮彠閸旂喕鍏?
             </summary>
         </member>
         <member name="M:api.Controllers.ChatController.#ctor(api.Data.DailyCheckDbContext,Microsoft.AspNetCore.SignalR.IHubContext{api.Hubs.ChatHub})">
             <summary>
-            聊天控制器，处理会话创建、消息发送、读取等相关功能
+            閼卞﹤銇夐幒褍鍩楅崳顭掔礉婢跺嫮鎮婃导姘崇樈閸掓稑缂撻妴浣圭Х閹垰褰傞柅浣碘偓浣筋嚢閸欐牜鐡戦惄绋垮彠閸旂喕鍏?
             </summary>
         </member>
-        <member name="M:api.Controllers.ChatController.CreateConversation(api.Models.CreateConversationRequest)">
+        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.CreateConversation(api.Models.CreateConversationRequest)" -->
+        <member name="M:api.Controllers.ChatController.UpdateConversationMemberRole(System.UInt64,System.UInt64,api.Models.UpdateConversationMemberRoleRequest)">
             <summary>
-            创建一个新的聊天会话
+            鏇存柊缇ゆ垚鍛樿鑹?
             </summary>
-            <param name="request">创建会话的请求参数</param>
-            <returns>创建成功的会话详情</returns>
         </member>
-        <member name="M:api.Controllers.ChatController.GetMyConversations">
-            <summary>
-            获取当前用户的会话列表
-            </summary>
-            <returns>会话摘要列表</returns>
-        </member>
-        <member name="M:api.Controllers.ChatController.UpdateConversation(System.UInt64,api.Models.UpdateConversationRequest)">
-            <summary>
-            更新会话信息
-            </summary>
-            <param name="conversationId">会话ID</param>
-            <param name="request">更新会话的请求参数</param>
-            <returns>更新后的会话详情</returns>
-        </member>
+        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.GetMyConversations" -->
+        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.UpdateConversation(System.UInt64,api.Models.UpdateConversationRequest)" -->
         <member name="M:api.Controllers.ChatController.GetConversationById(System.UInt64)">
             <summary>
-            根据ID获取会话详情
+            閺嶈宓両D閼惧嘲褰囨导姘崇樈鐠囷附鍎?
             </summary>
-            <param name="conversationId">会话ID</param>
-            <returns>会话详情</returns>
+            <param name="conversationId">娴兼俺鐦絀D</param>
+            <returns>娴兼俺鐦界拠锔藉剰</returns>
         </member>
-        <member name="M:api.Controllers.ChatController.SendMessage(System.UInt64,api.Models.SendMessageRequest)">
-            <summary>
-            在指定会话中发送消息
-            </summary>
-            <param name="conversationId">会话ID</param>
-            <param name="request">发送消息的请求参数</param>
-            <returns>发送的消息详情</returns>
-        </member>
+        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.SendMessage(System.UInt64,api.Models.SendMessageRequest)" -->
         <member name="M:api.Controllers.ChatController.RecallMessage(System.UInt64)">
             <summary>
-            撤回消息
+            閹俱倕娲栧☉鍫熶紖
             </summary>
-            <param name="messageId">消息ID</param>
-            <returns>撤回后的消息摘要</returns>
+            <param name="messageId">濞戝牊浼匢D</param>
+            <returns>閹俱倕娲栭崥搴ｆ畱濞戝牊浼呴幗妯款洣</returns>
         </member>
-        <member name="M:api.Controllers.ChatController.GetMessages(System.UInt64,System.Nullable{System.UInt64},System.Int32)">
-            <summary>
-            获取会话中的消息列表
-            </summary>
-            <param name="conversationId">会话ID</param>
-            <param name="beforeMessageId">获取此消息ID之前的消息</param>
-            <param name="pageSize">每页大小，默认为20</param>
-            <returns>消息摘要列表</returns>
-        </member>
-        <member name="M:api.Controllers.ChatController.GetMessageDelta(System.UInt64,System.Nullable{System.UInt64},System.Int32)">
-            <summary>
-            获取会话中的消息增量
-            </summary>
-            <param name="conversationId">会话ID</param>
-            <param name="afterMessageId">获取此消息ID之后的消息</param>
-            <param name="pageSize">每页大小，默认为50</param>
-            <returns>消息增量数据</returns>
-        </member>
-        <member name="M:api.Controllers.ChatController.MarkConversationRead(System.UInt64,api.Models.ReadConversationRequest)">
-            <summary>
-            标记会话为已读
-            </summary>
-            <param name="conversationId">会话ID</param>
-            <param name="request">标记已读的请求参数</param>
-            <returns>操作结果</returns>
-        </member>
-        <member name="M:api.Controllers.ChatController.GetMessageReadStatus(System.UInt64)">
-            <summary>
-            获取消息的已读详情
-            </summary>
-            <param name="messageId">消息ID</param>
-            <returns>消息已读详情</returns>
-        </member>
-        <member name="M:api.Controllers.ChatController.BuildConversationSummaryProjection(System.UInt64)">
-            <summary>
-            构建会话摘要投影
-            </summary>
-            <param name="userId">用户ID</param>
-            <returns>会话摘要投影表达式</returns>
-        </member>
+        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.GetMessages(System.UInt64,System.Nullable{System.UInt64},System.Int32)" -->
+        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.GetMessageDelta(System.UInt64,System.Nullable{System.UInt64},System.Int32)" -->
+        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.MarkConversationRead(System.UInt64,api.Models.ReadConversationRequest)" -->
+        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.GetMessageReadStatus(System.UInt64)" -->
+        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.BuildConversationSummaryProjection(System.UInt64)" -->
         <member name="M:api.Controllers.ChatController.BuildConversationDetail(System.UInt64,System.UInt64)">
             <summary>
-            构建会话详情
+            閺嬪嫬缂撴导姘崇樈鐠囷附鍎?
             </summary>
-            <param name="conversationId">会话ID</param>
-            <param name="userId">用户ID</param>
-            <returns>会话详情</returns>
+            <param name="conversationId">娴兼俺鐦絀D</param>
+            <param name="userId">閻劍鍩汭D</param>
+            <returns>娴兼俺鐦界拠锔藉剰</returns>
         </member>
         <member name="M:api.Controllers.ChatController.GetUserId">
             <summary>
-            获取当前用户ID
+            閼惧嘲褰囪ぐ鎾冲閻劍鍩汭D
             </summary>
-            <returns>用户ID</returns>
+            <returns>閻劍鍩汭D</returns>
         </member>
         <member name="T:api.Controllers.CheckinsController">
             <summary>
@@ -1178,7 +1123,7 @@
             <response code="200">图片获取成功</response>
             <response code="404">图片文件不存在或无访问权限</response>
         </member>
-        <member name="M:api.Controllers.FilesController.UploadChatFile(System.UInt64,Microsoft.AspNetCore.Http.IFormFile)">
+        <member name="M:api.Controllers.FilesController.UploadConversationAvatar(System.UInt64,Microsoft.AspNetCore.Http.IFormFile)">
             <summary>
             上传聊天文件接口，支持视频、音频、文档、压缩包等多种文件类型。
             文件将按会话隔离存储，只有会话成员才能访问。
@@ -2899,6 +2844,16 @@
         <member name="P:api.Models.UpdateConversationRequest.IsMuted">
             <summary>
             是否静音，可为空
+            </summary>
+        </member>
+        <member name="T:api.Models.UpdateConversationMemberRoleRequest">
+            <summary>
+            更新群成员角色请求参数
+            </summary>
+        </member>
+        <member name="P:api.Models.UpdateConversationMemberRoleRequest.MemberRole">
+            <summary>
+            目标成员角色，仅支持 admin 或 member
             </summary>
         </member>
         <member name="T:api.Models.ConversationMemberDto">

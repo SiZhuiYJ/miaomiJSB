@@ -209,6 +209,7 @@ export function useChatCore() {
     loadConversations: conversationsModule.loadConversations,
     selectConversation: conversationsModule.selectConversation,
     updateConversation: conversationsModule.updateConversation,
+    updateConversationMemberRole: conversationsModule.updateConversationMemberRole,
     loadMore: messagesModule.loadMore,
     sendTextMessage: handleSendText,
     sendMessage: messagesModule.sendMessage,

@@ -10,7 +10,8 @@ import type {
   MessageReadStatus,
   MessageSummary,
   SendMessagePayload,
-  UpdateConversation
+  UpdateConversation,
+  UpdateConversationMemberRolePayload,
 } from '../types';
 
 // 文件信息接口
@@ -39,6 +40,17 @@ export async function createConversation(payload: CreateConversationPayload) {
 // 更新会话信息
 export async function updateConversation(id: number, payload: UpdateConversation) {
   return await http.post<ConversationDetail>(`/mm/chat/conversations/${id}`, payload);
+}
+
+export async function updateConversationMemberRole(
+  conversationId: number,
+  memberUserId: number,
+  payload: UpdateConversationMemberRolePayload,
+) {
+  return await http.post<ConversationDetail>(
+    `/mm/chat/conversations/${conversationId}/members/${memberUserId}/role`,
+    payload,
+  );
 }
 export async function getMessages(
   id: number,
@@ -152,6 +164,7 @@ export default {
   getMessageDelta,
   createConversation,
   updateConversation,
+  updateConversationMemberRole,
   markRead,
   recallMessage,
   getMessageReadStatus,

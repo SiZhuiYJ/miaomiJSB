@@ -19,6 +19,7 @@ const props = defineProps<{
   readColor: string;
   replyTarget?: MessageSummary | MessageReference | null;
   replyTargetId?: number | null;
+  allowInlineMediaLoad?: boolean;
   highlighted?: boolean;
 }>();
 
@@ -138,6 +139,7 @@ function handleRecall() {
             :pending-upload="props.pendingUpload"
             :show-download="true"
             :src
+            :allow-inline-media-load="props.allowInlineMediaLoad"
             @media-settled="emit('mediaSettled', $event)"
           />
         </template>

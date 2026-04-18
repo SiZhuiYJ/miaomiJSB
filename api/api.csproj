@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MailKit" Version="4.15.1" />
-    <PackageReference Include="MimeKit" Version="4.15.1" />
+    <PackageReference Include="MailKit" Version="4.16.0" />
+    <PackageReference Include="MimeKit" Version="4.16.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
       <PrivateAssets>all</PrivateAssets>
@@ -35,8 +35,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="obj\**\*.cs" />
+    <Compile Remove="bin\**\*.cs" />
+    <Compile Remove=".vs\**\*.cs" />
     <Compile Remove="obj_build\**\*.cs" />
+    <EmbeddedResource Remove="obj\**\*" />
+    <EmbeddedResource Remove="bin\**\*" />
+    <EmbeddedResource Remove=".vs\**\*" />
     <EmbeddedResource Remove="obj_build\**\*" />
+    <None Remove="obj\**\*" />
+    <None Remove="bin\**\*" />
+    <None Remove=".vs\**\*" />
     <None Remove="obj_build\**\*" />
   </ItemGroup>
 

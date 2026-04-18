@@ -133,9 +133,13 @@ export function getConversationDisplayTitle(
 export function getConversationAvatarUrl(
   item: ConversationSummary | ConversationDetail,
 ): string {
-  const avatarUserId = item.avatarUserId;
   const avatarKey = item.avatarKey;
-  if (!avatarKey || !avatarUserId) return "";
+  if (!avatarKey) return "";
+  if (item.conversationType === "group") {
+    return `${API_BASE_URL}/mm/files/chat/${item.id}/avatars/${avatarKey}`;
+  }
+  const avatarUserId = item.avatarUserId;
+  if (!avatarUserId) return "";
   return `${API_BASE_URL}/mm/Files/users/${avatarUserId}/${avatarKey}`;
 }
 

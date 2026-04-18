@@ -54,17 +54,17 @@ interface DroppedFileItem {
 
 type RenderedChatItem =
   | {
-      kind: 'message';
-      key: string;
-      createdAt: string;
-      message: MessageSummary;
-    }
+    kind: 'message';
+    key: string;
+    createdAt: string;
+    message: MessageSummary;
+  }
   | {
-      kind: 'pending';
-      key: string;
-      createdAt: string;
-      pendingUpload: PendingUpload;
-    };
+    kind: 'pending';
+    key: string;
+    createdAt: string;
+    pendingUpload: PendingUpload;
+  };
 
 interface MessageGroup {
   dateLabel: string;
@@ -88,6 +88,7 @@ const emit = defineEmits<{
   markRead: [];
   backToList: [];
   updateConversation: [];
+  updateMemberRole: [payload: { memberUserId: number; memberRole: 'admin' | 'member' }];
   loadMessageReadStatus: [messageId: number];
   replyMessage: [message: MessageSummary];
   recallMessage: [message: MessageSummary];
@@ -107,6 +108,10 @@ const pendingUploads = ref<PendingUpload[]>([]);
 const galleryVisible = ref(false);
 const galleryFileList = ref<GalleryFile[]>([]);
 const galleryIndex = ref(0);
+const visibleMessageIds = ref<Set<number>>(new Set());
+
+// 预加载消息数量
+const INLINE_MEDIA_PRELOAD_MESSAGE_LIMIT = 15;
 
 const pendingResourceMap = new Map<string, Set<string>>();
 const emptyReadDisplay = { readText: '', readColor: '#909399' };
@@ -122,7 +127,7 @@ const FILE_TYPE_LABELS: Record<ReturnType<typeof getFilePreviewType>, string> = 
   pptx: 'PPT 演示',
   pdf: 'PDF',
   text: '文本',
-  markdown: 'Markdown',
+  md: 'Markdown',
   doc: 'Word 文档',
   xls: 'Excel 表格',
   ppt: 'PPT 演示',
@@ -217,6 +222,14 @@ const renderedItems = computed<RenderedChatItem[]>(() =>
     if (leftTime !== rightTime) return leftTime - rightTime;
     return left.key.localeCompare(right.key);
   }),
+);
+
+const recentInlineMediaMessageIds = computed(() =>
+  new Set(
+    props.messages
+      .slice(-INLINE_MEDIA_PRELOAD_MESSAGE_LIMIT)
+      .map((message) => message.id),
+  ),
 );
 
 const groupedMessages = computed<MessageGroup[]>(() => {
@@ -536,6 +549,17 @@ function handlePendingMediaSettled({ messageId }: { messageId: number; ready: bo
   removePendingUpload(matchedUpload.tempId);
 }
 
+function shouldPreloadInlineMedia(item: RenderedChatItem) {
+  if (item.kind !== 'message') return true;
+
+  const { message } = item;
+  if (message.messageType !== 'image' && message.messageType !== 'video') {
+    return true;
+  }
+
+  return recentInlineMediaMessageIds.value.has(message.id) || visibleMessageIds.value.has(message.id);
+}
+
 function hasDraggedFiles(event: DragEvent) {
   return Array.from(event.dataTransfer?.types || []).includes('Files');
 }
@@ -715,6 +739,11 @@ async function handleFileSelected(files: File[]) {
 function onMessageVisible(entry: IntersectionObserverEntry) {
   const messageId = Number((entry.target as HTMLElement).dataset.messageId);
   if (!Number.isFinite(messageId) || messageId <= 0) return;
+
+  if (!visibleMessageIds.value.has(messageId)) {
+    visibleMessageIds.value = new Set(visibleMessageIds.value).add(messageId);
+  }
+
   if (!props.messageReadStatus?.has(messageId)) {
     emit('loadMessageReadStatus', messageId);
   }
@@ -782,6 +811,7 @@ watch(
     resetFileDragState();
     clearHighlightedMessage();
     clearPendingUploads();
+    visibleMessageIds.value = new Set();
     await nextTick();
     scrollToBottom();
   },
@@ -794,13 +824,8 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main
-    class="main-panel"
-    @dragenter="handleDragEnter"
-    @dragover="handleDragOver"
-    @dragleave="handleDragLeave"
-    @drop="handleDrop"
-  >
+  <main class="main-panel" @dragenter="handleDragEnter" @dragover="handleDragOver" @dragleave="handleDragLeave"
+    @drop="handleDrop">
     <div v-if="currentConversation" class="conversation-detail">
       <el-scrollbar ref="scrollbarRef" view-class="message-list-container">
         <div v-if="props.meUserId" class="message-list">
@@ -809,38 +834,24 @@ onBeforeUnmount(() => {
               <el-divider border-style="dashed">{{ group.dateLabel }}</el-divider>
             </div>
 
-            <MessageItem
-              v-for="item in group.items"
-              :key="item.key"
-              v-viewport="onMessageVisible"
+            <MessageItem v-for="item in group.items" :key="item.key" v-viewport="onMessageVisible"
               :data-message-id="item.kind === 'message' ? item.message.id : undefined"
               :message="item.kind === 'message' ? item.message : undefined"
               :pending-upload="item.kind === 'pending' ? item.pendingUpload : undefined"
-              :src="getMemberAvatarBySender(currentConversation, getItemSenderId(item))"
-              :meUserId="props.meUserId"
-              :is-mine="getItemSenderId(item) === props.meUserId"
-              :reply-target="getItemReplyTarget(item)"
-              :reply-target-id="getItemReplyTargetId(item)"
+              :src="getMemberAvatarBySender(currentConversation, getItemSenderId(item))" :meUserId="props.meUserId"
+              :is-mine="getItemSenderId(item) === props.meUserId" :reply-target="getItemReplyTarget(item)"
+              :reply-target-id="getItemReplyTargetId(item)" :allow-inline-media-load="shouldPreloadInlineMedia(item)"
               :highlighted="item.kind === 'message' && highlightedMessageId === item.message.id"
               v-bind="item.kind === 'message' ? getReadDisplay(item.message.id) : emptyReadDisplay"
-              @reply="emit('replyMessage', $event)"
-              @recall="emit('recallMessage', $event)"
-              @media-settled="handlePendingMediaSettled"
-              @jump-to-message="jumpToMessage"
-            />
+              @reply="emit('replyMessage', $event)" @recall="emit('recallMessage', $event)"
+              @media-settled="handlePendingMediaSettled" @jump-to-message="jumpToMessage" />
           </template>
         </div>
       </el-scrollbar>
 
       <div v-if="pendingMediaPreloads.length > 0" class="media-preload-layer" aria-hidden="true">
-        <FileMessage
-          v-for="item in pendingMediaPreloads"
-          :key="`preload-${item.tempId}-${item.message.id}`"
-          :message="item.message"
-          :show-download="false"
-          src=""
-          @media-settled="handlePendingMediaSettled"
-        />
+        <FileMessage v-for="item in pendingMediaPreloads" :key="`preload-${item.tempId}-${item.message.id}`"
+          :message="item.message" :show-download="false" src="" @media-settled="handlePendingMediaSettled" />
       </div>
 
       <div v-if="showDropOverlay" class="drop-upload-overlay">
@@ -854,12 +865,7 @@ onBeforeUnmount(() => {
 
       <div class="chat-header">
         <div class="chat-header-main">
-          <el-button
-            v-if="props.showBackToList"
-            color="#111827"
-            class="back-to-list"
-            @click="emit('backToList')"
-          >
+          <el-button v-if="props.showBackToList" color="#111827" class="back-to-list" @click="emit('backToList')">
             会话列表
           </el-button>
           <h3>{{ conversationHeaderTitle }}</h3>
@@ -882,11 +888,8 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="composer-main">
-          <FileUploadButton
-            :conversation-id="currentConversation?.id"
-            :disabled="uploadingFiles || props.loading"
-            @file-selected="handleFileSelected"
-          />
+          <FileUploadButton :conversation-id="currentConversation?.id" :disabled="uploadingFiles || props.loading"
+            @file-selected="handleFileSelected" />
           <el-input v-model="model" clearable placeholder="输入消息" @keyup.enter="handleSendTextMessage" />
           <el-button color="#111827" :disabled="props.loading || uploadingFiles" @click="handleSendTextMessage">
             发送
@@ -897,24 +900,14 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <ConversationDetailDialog
-        v-model="isChatDetail"
-        :conversation="currentConversation"
-        @update:conversation="emit('updateConversation')"
-        @load-more="emit('loadMore')"
-      />
+      <ConversationDetailDialog v-model="isChatDetail" :conversation="currentConversation"
+        @update:conversation="emit('updateConversation')" @update-member-role="emit('updateMemberRole', $event)"
+        @load-more="emit('loadMore')" />
 
       <FilePreview v-model="galleryVisible" :file-list="galleryFileList" v-model:current-index="galleryIndex" />
 
-      <el-dialog
-        v-model="dropUploadDialogVisible"
-        title="确认上传文件"
-        width="560px"
-        :close-on-click-modal="!dropUploadBusy"
-        :close-on-press-escape="!dropUploadBusy"
-        :show-close="!dropUploadBusy"
-        @closed="clearDroppedFiles"
-      >
+      <el-dialog v-model="dropUploadDialogVisible" title="确认上传文件" width="560px" :close-on-click-modal="!dropUploadBusy"
+        :close-on-press-escape="!dropUploadBusy" :show-close="!dropUploadBusy" @closed="clearDroppedFiles">
         <div class="drop-file-dialog">
           <div class="drop-file-question">是否上传这些文件到当前会话？</div>
           <div class="drop-file-summary">
@@ -925,12 +918,8 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="drop-file-list">
-            <div
-              v-for="item in droppedFileItems"
-              :key="`${item.name}-${item.file.lastModified}-${item.file.size}`"
-              class="drop-file-row"
-              :class="{ invalid: !item.valid }"
-            >
+            <div v-for="item in droppedFileItems" :key="`${item.name}-${item.file.lastModified}-${item.file.size}`"
+              class="drop-file-row" :class="{ invalid: !item.valid }">
               <div class="drop-file-icon">
                 <el-icon :size="22">
                   <Document />
@@ -953,12 +942,8 @@ onBeforeUnmount(() => {
         <template #footer>
           <div class="drop-dialog-footer">
             <el-button :disabled="dropUploadBusy" @click="closeDropUploadDialog">取消</el-button>
-            <el-button
-              color="#111827"
-              :loading="dropUploadBusy"
-              :disabled="!canConfirmDropUpload"
-              @click="confirmDropUpload"
-            >
+            <el-button color="#111827" :loading="dropUploadBusy" :disabled="!canConfirmDropUpload"
+              @click="confirmDropUpload">
               上传 {{ validDroppedFiles.length }} 个文件
             </el-button>
           </div>
