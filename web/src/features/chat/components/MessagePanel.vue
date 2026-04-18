@@ -122,6 +122,7 @@ const FILE_TYPE_LABELS: Record<ReturnType<typeof getFilePreviewType>, string> = 
   pptx: 'PPT 演示',
   pdf: 'PDF',
   text: '文本',
+  markdown: 'Markdown',
   doc: 'Word 文档',
   xls: 'Excel 表格',
   ppt: 'PPT 演示',

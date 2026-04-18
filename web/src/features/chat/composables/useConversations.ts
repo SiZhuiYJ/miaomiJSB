@@ -13,7 +13,7 @@ import type {
 
 export function useConversations() {
   const { user } = storeToRefs(useAuthStore());
-  const { errorMessage, setError, clearError } = useErrorHandler();
+  const { setError, clearError } = useErrorHandler();
 
   const conversations = ref<ConversationSummary[]>([]);
   const currentConversation = ref<ConversationDetail | null>(null);
@@ -160,7 +160,6 @@ export function useConversations() {
     conversations,
     currentConversation,
     loading,
-    errorMessage,
     selectedConversationId,
     loadConversations,
     selectConversation,

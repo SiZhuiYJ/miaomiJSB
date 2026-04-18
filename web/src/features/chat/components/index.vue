@@ -54,15 +54,13 @@ const readInfoMap = computed<Map<number, { readText: string; readColor: string }
 
 <template>
   <div class="chat-page">
-    <el-alert v-if="chat.errorMessage.value" :title="chat.errorMessage.value" type="error" :closable="false" show-icon
-      class="connection-alert" />
 
     <ChatToolbar :status-text="chat.statusText.value" :polling="chat.polling.value || chat.realtimeConnected.value"
       :loading="chat.loading.value" @back="router.push('/home')" @refresh="chat.loadConversations"
       @toggle-push="chat.togglePush" />
 
     <div class="layout" :class="{ mobile: isMobile }">
-      <ConversationSidebar v-show="showConversationList" :errorMessage="chat.errorMessage.value"
+      <ConversationSidebar v-show="showConversationList"
         v-model:create-conversation-type="chat.createConversationType.value"
         v-model:create-title="chat.createTitle.value" v-model:create-members-text="chat.createMembersText.value"
         :selected-conversation-id="chat.selectedConversationId.value" :conversations="chat.conversations.value"
