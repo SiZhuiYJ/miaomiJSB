@@ -8,6 +8,7 @@ import VueOfficeDocx from '@vue-office/docx';
 import VueOfficePptx from '@vue-office/pptx';
 import VueOfficeExcel from '@vue-office/excel';
 import VueOfficePdf from '@vue-office/pdf';
+import { VMdPreview } from '@/components/MDPreview';
 
 import '@vue-office/docx/lib/index.css';
 import '@vue-office/excel/lib/index.css';
@@ -28,6 +29,7 @@ type FilePreviewType =
   | 'excel'
   | 'pptx'
   | 'text'
+  | 'markdown'
   | 'doc'
   | 'xls'
   | 'ppt'
@@ -113,6 +115,8 @@ const fileTypeMap: Record<string, FilePreviewType> = {
   text: 'text',
   txt: 'text',
   csv: 'text',
+  md: 'markdown',
+  markdown: 'markdown',
   doc: 'doc',
   xls: 'xls',
   ppt: 'ppt',
@@ -378,7 +382,7 @@ watch(currentFile, (newFile) => {
       loading.value = !isFileLoaded(newFile)
     } else if (type === 'image') {
       loading.value = !isFileLoaded(newFile)
-    } else if (type === 'text') {
+    } else if (type === 'text' || type === 'markdown') {
       // 调用文本加载函数
       convertBlobUrl();
     } else if (type === 'pdf') {
@@ -550,6 +554,12 @@ onUnmounted(() => {
 
               <div v-else-if="getFileType(file) === 'text'" class="txt-preview">
                 <pre v-if="index === currentIndex && content">{{ content }}</pre>
+              </div>
+
+              <div v-else-if="getFileType(file) === 'markdown'" class="markdown-preview">
+                <el-scrollbar>
+                  <v-md-preview v-if="index === currentIndex && content" :text="content" />
+                </el-scrollbar>
               </div>
 
               <div v-else-if="['doc', 'xls', 'ppt'].includes(getFileType(file))" class="unsupported-preview">
@@ -870,6 +880,23 @@ onUnmounted(() => {
   word-wrap: break-word;
   tab-size: 4;
   -moz-tab-size: 4;
+}
+
+.markdown-preview {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+
+  :deep(.v-md-editor-preview) {
+    padding: 24px;
+    height: 100%;
+    overflow: auto;
+    box-sizing: border-box;
+  }
 }
 
 /* 自定义滚动条（与整体风格一致） */

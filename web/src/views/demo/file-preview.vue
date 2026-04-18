@@ -2,7 +2,7 @@
   <div class="file-preview-demo-page">
     <div class="demo-header">
       <h1>文件预览组件演示</h1>
-      <p class="subtitle">支持图片、视频、音频、PDF和Office文档的全屏预览</p>
+      <p class="subtitle">支持图片、视频、音频、PDF、Markdown和Office文档的全屏预览</p>
     </div>
 
     <!-- 功能卡片 -->
@@ -213,6 +213,11 @@ const sampleFiles = [
     name: '打卡功能网站开发文档_202601121315_58609.txt',
     url: '/data/打卡功能网站开发文档_202601121315_58609.txt',
     type: 'pdf'
+  },
+  {
+    name: 'API接口文档.md',
+    url: '/data/API接口文档.md',
+    type: 'markdown'
   },
   {
     name: '示例文档.pdf',
