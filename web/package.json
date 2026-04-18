@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "@kangc/v-md-editor": "^2.3.18",
     "@microsoft/signalr": "^8.0.17",
     "@vue-office/docx": "^1.6.3",
     "@vue-office/excel": "^1.7.14",
@@ -24,14 +25,17 @@
     "pinia": "^3.0.4",
     "pinia-plugin-persistedstate": "^4.7.1",
     "vconsole": "^3.15.1",
+    "vite-plugin-prismjs": "^0.0.11",
     "vite-plugin-svg-icons": "^2.0.1",
     "vue": "^3.5.24",
     "vue-cropper": "^1.1.4",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@types/codemirror": "^5.60.17",
     "@types/node": "^24.10.1",
     "@types/nprogress": "^0.2.3",
+    "@types/prismjs": "^1.26.6",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/tsconfig": "^0.8.1",
     "rollup-plugin-visualizer": "^7.0.0",

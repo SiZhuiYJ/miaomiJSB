@@ -25,6 +25,8 @@ function getNodeModulePackageName(id: string) {
   return parts[0];
 }
 
+import prismjs from "vite-plugin-prismjs";
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -35,6 +37,12 @@ export default defineConfig(({ mode }) => {
     plugins: [
       // 引入Vue插件
       vue(),
+
+      // PrismJS插件，用于代码高亮
+      prismjs({
+        languages: ["json", "bash", "typescript", "css", "sql", "javascript"],
+      }),
+
       // 自动导入插件，自动导入Vue和Pinia相关函数，并自动注册Element Plus组件
       AutoImport({
         imports: ["vue", "pinia"],
