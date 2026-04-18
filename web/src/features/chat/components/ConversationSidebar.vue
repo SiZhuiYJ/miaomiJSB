@@ -13,7 +13,6 @@ const createTitle = defineModel<string>('createTitle');
 const createMembersText = defineModel<string>('createMembersText');
 
 defineProps<{
-  errorMessage: string;
   selectedConversationId: number;
   conversations: ConversationSummary[];
   isMobile: boolean;

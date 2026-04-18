@@ -65,6 +65,7 @@ export type FilePreviewType =
   | "pptx"
   | "pdf"
   | "text"
+  | "markdown"
   | "doc"
   | "xls"
   | "ppt"
@@ -77,6 +78,7 @@ export type DocumentIconType =
   | "pptx"
   | "pdf"
   | "text"
+  | "markdown"
   | "zip"
   | "rar"
   | "css"
@@ -93,7 +95,7 @@ const MIME_PREVIEW_TYPE_MAP: Record<string, FilePreviewType> = {
   "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
   "application/vnd.ms-powerpoint": "ppt",
   "application/pdf": "pdf",
-  "text/markdown": "text",
+  "text/markdown": "markdown",
   "text/plain": "text",
   "text/csv": "text",
   "text/html": "text",
@@ -115,7 +117,7 @@ const EXT_PREVIEW_TYPE_MAP: Record<string, FilePreviewType> = {
   ppt: "ppt",
   pdf: "pdf",
   txt: "text",
-  md: "text",
+  md: "markdown",
   csv: "text",
   html: "text",
   htm: "text",
@@ -140,6 +142,7 @@ const PREVIEWABLE_FILE_TYPES = new Set<FilePreviewType>([
   "pptx",
   "pdf",
   "text",
+  "markdown",
   "doc",
   "xls",
   "ppt",
@@ -232,6 +235,7 @@ export function getDocumentIconType(
   if (ext === "js") return "java";
   if (ext === "md") return "note";
   if (previewType === "text") return "text";
+  if (previewType === "markdown") return "markdown";
   return "unknown";
 }
 
@@ -245,6 +249,7 @@ export function getFileTypeLabel(previewType: FilePreviewType): string {
     pptx: "pptx",
     pdf: "pdf",
     text: "text",
+    markdown: "markdown",
     doc: "doc",
     xls: "xls",
     ppt: "ppt",

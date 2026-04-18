@@ -43,12 +43,6 @@ export function useChatCore() {
   const loading = computed(
     () => conversationsModule.loading.value || messagesModule.loading.value,
   );
-  const errorMessage = computed(
-    () =>
-      conversationsModule.errorMessage.value ||
-      messagesModule.errorMessage.value,
-  );
-
   // 推送模块（依赖以上模块的方法）
   const pushModule = useChatPush({
     fetchConversations: conversationsModule.loadConversations,
@@ -204,7 +198,6 @@ export function useChatCore() {
     // 状态
     meUserId,
     loading,
-    errorMessage,
     conversations: conversationsModule.conversations,
     currentConversation: conversationsModule.currentConversation,
     selectedConversationId: conversationsModule.selectedConversationId,

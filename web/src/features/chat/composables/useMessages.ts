@@ -7,7 +7,7 @@ import type { MessageSummary, SendMessagePayload } from "../types";
 export function useMessages(conversationId: () => number) {
   const messages = ref<MessageSummary[]>([]);
   const loading = ref(false);
-  const { errorMessage, setError, clearError } = useErrorHandler();
+  const { setError, clearError } = useErrorHandler();
 
   // 消息去重合并工具
   function mergeMessages(
@@ -162,7 +162,6 @@ export function useMessages(conversationId: () => number) {
   return {
     messages,
     loading,
-    errorMessage,
     loadMessages,
     loadMore,
     pullLatestMessages,
