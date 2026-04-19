@@ -188,39 +188,28 @@ export async function extractVideoFrameToWebP(
     return new Promise<File>((resolve, reject) => {
         const videoUrl = URL.createObjectURL(videoFile);
         const video = document.createElement('video');
+        let settled = false;
 
-        video.preload = 'metadata';
-        video.muted = true;
-        video.playsInline = true;
+        const cleanup = () => {
+            URL.revokeObjectURL(videoUrl);
+        };
 
-        // 视频元数据加载完成
-        video.addEventListener('loadedmetadata', () => {
-            // 生成随机时间戳（避开开头和结尾）
-            const duration = video.duration;
-            if (!duration || !isFinite(duration)) {
-                URL.revokeObjectURL(videoUrl);
-                reject(new Error('无法获取视频时长'));
-                return;
-            }
+        const rejectOnce = (error: Error) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            reject(error);
+        };
 
-            // 随机选择时间点（避开前0.5秒和后0.5秒）
-            const minTime = Math.min(0.5, duration * 0.1);
-            const maxTime = Math.max(duration - 0.5, duration * 0.9);
-            const randomTime = minTime + Math.random() * (maxTime - minTime);
-
-            video.currentTime = randomTime;
-        });
-
-        // 视频跳转到指定时间点
-        video.addEventListener('seeked', () => {
+        const resolveFromCurrentFrame = () => {
+            if (settled) return;
             try {
                 // 创建 canvas 并绘制当前帧
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
 
                 if (!ctx) {
-                    URL.revokeObjectURL(videoUrl);
-                    reject(new Error('Canvas 2D context not available'));
+                    rejectOnce(new Error('Canvas 2D context not available'));
                     return;
                 }
 
@@ -238,10 +227,9 @@ export async function extractVideoFrameToWebP(
                 // 转换为 WebP
                 canvas.toBlob(
                     (blob) => {
-                        URL.revokeObjectURL(videoUrl);
-
+                        if (settled) return;
                         if (!blob) {
-                            reject(new Error('转换视频帧为 WebP 失败'));
+                            rejectOnce(new Error('转换视频帧为 WebP 失败'));
                             return;
                         }
 
@@ -251,21 +239,52 @@ export async function extractVideoFrameToWebP(
                             lastModified: Date.now(),
                         });
 
+                        settled = true;
+                        cleanup();
                         resolve(webpFile);
                     },
                     'image/webp',
                     Math.max(0, Math.min(1, quality))
                 );
             } catch (error) {
-                URL.revokeObjectURL(videoUrl);
-                reject(error);
+                rejectOnce(error instanceof Error ? error : new Error('提取视频帧失败'));
             }
+        };
+
+        video.preload = 'metadata';
+        video.muted = true;
+        video.playsInline = true;
+
+        // 视频元数据加载完成
+        video.addEventListener('loadedmetadata', () => {
+            // 生成随机时间戳（避开开头和结尾）
+            const duration = video.duration;
+            if (!duration || !isFinite(duration)) {
+                // 某些 webm 文件在 loadedmetadata 时拿不到时长，退化为首帧封面
+                if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+                    resolveFromCurrentFrame();
+                    return;
+                }
+                video.currentTime = 0;
+                return;
+            }
+
+            // 随机选择时间点（避开前0.5秒和后0.5秒）
+            const minTime = Math.min(0.5, duration * 0.1);
+            const maxTime = Math.max(duration - 0.5, duration * 0.9);
+            const randomTime = minTime + Math.random() * (maxTime - minTime);
+
+            video.currentTime = randomTime;
         });
+
+        // 视频跳转到指定时间点
+        video.addEventListener('seeked', resolveFromCurrentFrame);
+        // 兼容无法 seek 的流式/特殊 webm，回退到当前可用帧
+        video.addEventListener('loadeddata', resolveFromCurrentFrame);
 
         // 错误处理
         video.addEventListener('error', () => {
-            URL.revokeObjectURL(videoUrl);
-            reject(new Error('加载视频失败'));
+            rejectOnce(new Error('加载视频失败'));
         });
 
         // 设置视频源
