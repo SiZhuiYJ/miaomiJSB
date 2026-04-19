@@ -1,2 +1,1 @@
-MessagePanel.vue? [sm]:720 Failed to upload file 10.webm: Error: 无法获取视频时长
-    at HTMLVideoElement.<anonymous> (convertToWebP.ts? [sm]:202:24)
+npm install @ffmpeg/ffmpeg @ffmpeg/util @ffmpeg/core
