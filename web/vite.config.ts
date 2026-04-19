@@ -27,6 +27,9 @@ function getNodeModulePackageName(id: string) {
 
 import prismjs from "vite-plugin-prismjs";
 
+// 定义路径别名函数（简化配置，避免重复书写）
+const resolve = (dir: string) => path.resolve(__dirname, dir);
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -79,8 +82,8 @@ export default defineConfig(({ mode }) => {
     // 开发服务器配置
     server: {
       headers: {
-        'Cross-Origin-Opener-Policy': 'same-origin',
-        'Cross-Origin-Embedder-Policy': 'require-corp',
+        "Cross-Origin-Opener-Policy": "same-origin", // 保护你的源站点免受攻击
+        "Cross-Origin-Embedder-Policy": "require-corp", // 保护受害者免受你的源站点的影响
       },
       host: '0.0.0.0', // 设置服务器监听所有网络接口
       proxy: {
@@ -111,6 +114,16 @@ export default defineConfig(({ mode }) => {
      * 构建配置
      */
     build: {
+      // 静态资源体积限制（超过该大小的资源会单独打包，单位：kb）
+      assetsInlineLimit: 4096, // 4kb，常用配置
+      // 打包时删除输出目录（避免旧产物残留，规范）
+      emptyOutDir: true,
+      // 开启打包压缩（进一步减小体积，可选 gzip 或 brotli）
+      compression: {
+        enabled: true,
+        algorithm: 'gzip',
+        threshold: 10240, // 超过 10kb 的文件才压缩
+      },
       cssCodeSplit: true, // 保持CSS分包
       rollupOptions: {
         output: {
@@ -160,7 +173,10 @@ export default defineConfig(({ mode }) => {
             }
 
             // 5. 其他大型依赖可单独拆分（如 pdf/office 相关）
-            if (pkgName === "@vue-office/pdf" || pkgName === "@vue-office/docx" || pkgName === "@vue-office/excel") {
+            if (pkgName === "@vue-office/pdf" ||
+              pkgName === "@vue-office/docx" ||
+              pkgName === "@vue-office/excel" ||
+              pkgName === "@vue-office/pptx") {
               return "vendor-office";
             }
 
@@ -189,19 +205,21 @@ export default defineConfig(({ mode }) => {
       // 删除 所有的console 和 debugger
       // drop: ["console", "debugger"],
     },
-    /**
-     * 路径解析配置
-     * 设置模块导入路径别名，提高代码可读性和维护性
-     */
+    /* ========================== 路径别名配置（工程化必备） ========================== */
     resolve: {
+      // 路径别名（解决长相对路径问题，与 tsconfig.json 保持一致）
       alias: {
-        "@": path.resolve(__dirname, "src"),
-        "@assets": path.resolve(__dirname, "src/assets"),
-        "@components": path.resolve(__dirname, "src/components"),
-        "@libs": path.resolve(__dirname, "src/libs"),
-        "@utils": path.resolve(__dirname, "src/utils"),
-        "@views": path.resolve(__dirname, "src/views"),
+        '@': resolve('src'), // 核心别名：@ 指向 src 根目录（标准）
+        '@/components': resolve('src/components'), // 组件目录
+        '@/utils': resolve('src/utils'), // 工具函数目录
+        '@/api': resolve('src/api'), // 接口请求目录
+        '@/types': resolve('src/types'), // TypeScript 类型声明目录
+        '@/assets': resolve('src/assets'), // 静态资源目录
+        '@/store': resolve('src/store'), // 状态管理目录（Pinia）
+        '@/router': resolve('src/router'), // 路由目录
       },
+      // 省略文件后缀（简化导入，常用配置）
+      extensions: ['.ts', '.tsx', '.vue', '.js', '.jsx', '.json', '.scss'],
     },
   };
 });
