@@ -235,78 +235,80 @@ export async function convertVideoToWebM(
     videoFrameCallbackId = callbackApi.requestVideoFrameCallback(draw);
   };
 
-  const outputBlob = await new Promise<Blob>((resolve, reject) => {
-    recorder.ondataavailable = (event) => {
-      if (event.data && event.data.size > 0) {
-        chunks.push(event.data);
-      }
-    };
-
-    recorder.onerror = () => {
-      reject(new Error("视频编码失败，请更换源视频或浏览器后重试"));
-    };
-
-    recorder.onstop = () => {
-      if (chunks.length === 0) {
-        reject(new Error("未生成有效的 WebM 数据"));
-        return;
-      }
-      resolve(new Blob(chunks, { type: "video/webm" }));
-    };
-
-    video.onended = () => {
-      if (recorder.state !== "inactive") {
-        recorder.stop();
-      }
-    };
-
-    recorder.start(500);
-    video
-      .play()
-      .then(() => {
-        if (useCanvasDraw) {
-          drawFrameByVideoFrameCallback();
+  try {
+    const outputBlob = await new Promise<Blob>((resolve, reject) => {
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          chunks.push(event.data);
         }
-        progressTimer = window.setInterval(() => {
-          if (!options.onProgress || !video.duration) return;
-          const progress = Math.min(99, Math.round((video.currentTime / video.duration) * 100));
-          options.onProgress(progress);
-        }, 200);
-      })
-      .catch(() => {
-        reject(new Error("视频播放失败，无法开始转码"));
-      });
-  });
+      };
 
-  if (options.maxOutputSizeBytes && outputBlob.size > options.maxOutputSizeBytes) {
-    throw new Error(
-      `转换后文件超过 ${Math.round(options.maxOutputSizeBytes / 1024 / 1024)}MB，请缩短时长或降低分辨率后重试`,
-    );
-  }
+      recorder.onerror = () => {
+        reject(new Error("视频编码失败，请更换源视频或浏览器后重试"));
+      };
 
-  if (useCanvasDraw) {
-    cancelAnimationFrame(rafId);
-    const cancelApi = video as HTMLVideoElement & {
-      cancelVideoFrameCallback?: (handle: number) => void;
-    };
-    if (videoFrameCallbackId && typeof cancelApi.cancelVideoFrameCallback === "function") {
-      cancelApi.cancelVideoFrameCallback(videoFrameCallbackId);
+      recorder.onstop = () => {
+        if (chunks.length === 0) {
+          reject(new Error("未生成有效的 WebM 数据"));
+          return;
+        }
+        resolve(new Blob(chunks, { type: "video/webm" }));
+      };
+
+      video.onended = () => {
+        if (recorder.state !== "inactive") {
+          recorder.stop();
+        }
+      };
+
+      recorder.start(500);
+      video
+        .play()
+        .then(() => {
+          if (useCanvasDraw) {
+            drawFrameByVideoFrameCallback();
+          }
+          progressTimer = window.setInterval(() => {
+            if (!options.onProgress || !video.duration) return;
+            const progress = Math.min(99, Math.round((video.currentTime / video.duration) * 100));
+            options.onProgress(progress);
+          }, 200);
+        })
+        .catch(() => {
+          reject(new Error("视频播放失败，无法开始转码"));
+        });
+    });
+
+    if (options.maxOutputSizeBytes && outputBlob.size > options.maxOutputSizeBytes) {
+      throw new Error(
+        `转换后文件超过 ${Math.round(options.maxOutputSizeBytes / 1024 / 1024)}MB，请缩短时长或降低分辨率后重试`,
+      );
     }
+
+    options.onProgress?.(100);
+
+    return new File([outputBlob], normalizeWebMName(sourceFile.name), {
+      type: "video/webm",
+      lastModified: Date.now(),
+    });
+  } finally {
+    if (useCanvasDraw) {
+      cancelAnimationFrame(rafId);
+      const cancelApi = video as HTMLVideoElement & {
+        cancelVideoFrameCallback?: (handle: number) => void;
+      };
+      if (videoFrameCallbackId && typeof cancelApi.cancelVideoFrameCallback === "function") {
+        cancelApi.cancelVideoFrameCallback(videoFrameCallbackId);
+      }
+    }
+    if (progressTimer) {
+      clearInterval(progressTimer);
+    }
+
+    mixedStream.getTracks().forEach((track) => track.stop());
+    video.pause();
+    video.removeAttribute("src");
+    video.load();
+    URL.revokeObjectURL(sourceUrl);
   }
-  if (progressTimer) {
-    clearInterval(progressTimer);
-  }
-
-  mixedStream.getTracks().forEach((track) => track.stop());
-  video.pause();
-  video.removeAttribute("src");
-  video.load();
-  URL.revokeObjectURL(sourceUrl);
-
-  options.onProgress?.(100);
-
-  return new File([outputBlob], normalizeWebMName(sourceFile.name), {
-    type: "video/webm",
-    lastModified: Date.now(),
-  });
 }
