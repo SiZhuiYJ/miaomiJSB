@@ -17,6 +17,10 @@ export type ConvertOptions = {
     output?: 'blob' | 'dataURL' | 'file';
     fileName?: string; // used when output==='file'
 };
+
+export type ExtractVideoFrameOptions = ConvertOptions & {
+    onProgress?: (progress: number) => void;
+};
 /**
  * 获取 Blob 对象，如果 input 是 URL，则从 URL 获取 Blob
  * @param input - File | Blob | string (URL)
@@ -181,14 +185,17 @@ export async function convertToWebP(input: File | Blob | string, options: Conver
  */
 export async function extractVideoFrameToWebP(
     videoFile: File,
-    options: ConvertOptions = {}
+    options: ExtractVideoFrameOptions = {}
 ): Promise<File> {
-    const { quality = 0.8, maxWidth, maxHeight, fileName = 'video-cover.webp' } = options;
+    const { quality = 0.8, maxWidth, maxHeight, fileName = 'video-cover.webp', onProgress } = options;
 
     return new Promise<File>((resolve, reject) => {
         const videoUrl = URL.createObjectURL(videoFile);
         const video = document.createElement('video');
         let settled = false;
+        const reportProgress = (progress: number) => {
+            onProgress?.(Math.max(0, Math.min(100, progress)));
+        };
 
         const cleanup = () => {
             URL.revokeObjectURL(videoUrl);
@@ -203,60 +210,78 @@ export async function extractVideoFrameToWebP(
 
         const resolveFromCurrentFrame = () => {
             if (settled) return;
-            try {
+            // 等待浏览器真正渲染到当前帧，避免拿到透明画面
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    if (settled) return;
+                    try {
                 // 创建 canvas 并绘制当前帧
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
 
-                if (!ctx) {
-                    rejectOnce(new Error('Canvas 2D context not available'));
-                    return;
-                }
-
-                // 计算尺寸
-                const srcWidth = video.videoWidth;
-                const srcHeight = video.videoHeight;
-                const { w, h } = calcSize(srcWidth, srcHeight, maxWidth, maxHeight);
-
-                canvas.width = w;
-                canvas.height = h;
-
-                // 绘制视频帧
-                ctx.drawImage(video, 0, 0, w, h);
-
-                // 转换为 WebP
-                canvas.toBlob(
-                    (blob) => {
-                        if (settled) return;
-                        if (!blob) {
-                            rejectOnce(new Error('转换视频帧为 WebP 失败'));
+                        if (!ctx) {
+                            rejectOnce(new Error('Canvas 2D context not available'));
                             return;
                         }
 
-                        // 创建 File 对象
-                        const webpFile = new File([blob], fileName, {
-                            type: 'image/webp',
-                            lastModified: Date.now(),
-                        });
+                        // 计算尺寸
+                        const srcWidth = video.videoWidth;
+                        const srcHeight = video.videoHeight;
+                        if (!srcWidth || !srcHeight) {
+                            rejectOnce(new Error('视频尺寸无效，无法提取封面'));
+                            return;
+                        }
+                        const { w, h } = calcSize(srcWidth, srcHeight, maxWidth, maxHeight);
 
-                        settled = true;
-                        cleanup();
-                        resolve(webpFile);
-                    },
-                    'image/webp',
-                    Math.max(0, Math.min(1, quality))
-                );
-            } catch (error) {
-                rejectOnce(error instanceof Error ? error : new Error('提取视频帧失败'));
-            }
+                        canvas.width = w;
+                        canvas.height = h;
+
+                        // 先填充背景，避免个别浏览器拿到透明封面
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(0, 0, w, h);
+
+                        // 绘制视频帧
+                        ctx.drawImage(video, 0, 0, w, h);
+                        reportProgress(90);
+
+                // 转换为 WebP
+                        canvas.toBlob(
+                            (blob) => {
+                                if (settled) return;
+                                if (!blob) {
+                                    rejectOnce(new Error('转换视频帧为 WebP 失败'));
+                                    return;
+                                }
+
+                                // 创建 File 对象
+                                const webpFile = new File([blob], fileName, {
+                                    type: 'image/webp',
+                                    lastModified: Date.now(),
+                                });
+
+                                settled = true;
+                                reportProgress(100);
+                                cleanup();
+                                resolve(webpFile);
+                            },
+                            'image/webp',
+                            Math.max(0, Math.min(1, quality))
+                        );
+                    } catch (error) {
+                        rejectOnce(error instanceof Error ? error : new Error('提取视频帧失败'));
+                    }
+                });
+            });
         };
 
-        video.preload = 'metadata';
+        video.preload = 'auto';
         video.muted = true;
         video.playsInline = true;
+        reportProgress(5);
 
         // 视频元数据加载完成
         video.addEventListener('loadedmetadata', () => {
+            reportProgress(35);
             // 生成随机时间戳（避开开头和结尾）
             const duration = video.duration;
             if (!duration || !isFinite(duration)) {
@@ -274,6 +299,7 @@ export async function extractVideoFrameToWebP(
             const maxTime = Math.max(duration - 0.5, duration * 0.9);
             const randomTime = minTime + Math.random() * (maxTime - minTime);
 
+            reportProgress(55);
             video.currentTime = randomTime;
         });
 

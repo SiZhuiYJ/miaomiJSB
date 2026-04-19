@@ -366,9 +366,10 @@ function formatDuration(seconds: number): string {
               <svg-icon v-else icon-class="general-play" size="32px" />
             </div>
           </div>
-          <div v-else-if="isUploading" class="media-loading">
+          <div v-else-if="isUploading" class="media-loading uploading-placeholder">
             <el-icon class="is-loading"><Loading /></el-icon>
-            <span>提取封面中...</span>
+            <span>提取封面中 {{ uploadProgress }}%</span>
+            <div class="upload-progress-badge">{{ uploadProgress }}%</div>
           </div>
           <div v-else-if="thumbnailLoading" class="media-loading">
             <el-icon class="is-loading"><Loading /></el-icon>
