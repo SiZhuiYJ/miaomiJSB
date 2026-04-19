@@ -2,6 +2,7 @@ import type { AxiosProgressEvent } from "axios";
 import { API_BASE_URL } from "@/config";
 import http from "@/libs/http";
 import { convertToWebP, extractVideoFrameToWebP } from "@/utils/convertToWebP";
+import { convertVideoToWebM } from "@/utils/videoConverter";
 import { getChatFileUrl, uploadChatFile } from "../api";
 import type { FileExtra, MessageType } from "../types";
 
@@ -324,6 +325,9 @@ export async function prepareFilesForMessageUpload(
           fileName: getWebPFileName(file.name),
         }) as File;
         preparedFiles.push(webpFile);
+      } else if (file.type.startsWith("video/") && file.type !== "video/webm") {
+        const webmFile = await convertVideoToWebM(file);
+        preparedFiles.push(webmFile);
       } else {
         preparedFiles.push(file);
       }
