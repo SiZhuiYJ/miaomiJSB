@@ -3,6 +3,7 @@ import { API_BASE_URL } from "@/config";
 import http from "@/libs/http";
 import { convertToWebP, extractVideoFrameToWebP } from "@/utils/convertToWebP";
 import { convertVideoToWebM } from "@/utils/videoConverter";
+import { getVideoDuration } from "@/utils/mediaDuration";
 import { getChatFileUrl, uploadChatFile } from "../api";
 import type { FileExtra, MessageType } from "../types";
 
@@ -506,24 +507,7 @@ function getImageDimensions(
 }
 
 function getMediaDuration(file: File): Promise<number | null> {
-  return new Promise((resolve) => {
-    const video = document.createElement("video");
-    const url = URL.createObjectURL(file);
-
-    video.onloadedmetadata = () => {
-      const duration = video.duration;
-      URL.revokeObjectURL(url);
-      resolve(duration && isFinite(duration) ? duration : null);
-    };
-
-    video.onerror = () => {
-      URL.revokeObjectURL(url);
-      resolve(null);
-    };
-
-    video.preload = "metadata";
-    video.src = url;
-  });
+  return getVideoDuration(file);
 }
 
 export function parseMessageExtra(extra?: string | null): FileExtra | null {
