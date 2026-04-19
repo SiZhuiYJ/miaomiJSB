@@ -360,8 +360,15 @@ export async function uploadFileForMessage(
   reportProgress(0);
 
   if (file.type.startsWith("video/")) {
-    reportProgress(5);
-    const coverFile = await extractVideoFrameToWebP(file, { quality: 1 });
+    reportProgress(3);
+    const coverFile = await extractVideoFrameToWebP(file, {
+      quality: 1,
+      onProgress: (progress) => {
+        // 封面提取阶段占整体进度的 0% - 30%
+        reportProgress(Math.round((Math.max(0, Math.min(100, progress)) / 100) * 30));
+      },
+    });
+    reportProgress(30);
     options.onThumbnailReady?.(URL.createObjectURL(coverFile));
 
     const totalBytes = Math.max(file.size + coverFile.size, 1);
@@ -372,8 +379,9 @@ export async function uploadFileForMessage(
 
     const updateAggregateProgress = () => {
       const loadedBytes = uploadedBytes.video + uploadedBytes.cover;
-      const progress = Math.min(100, Math.round((loadedBytes / totalBytes) * 100));
-      reportProgress(Math.max(progress, 6));
+      const uploadProgress = Math.min(100, Math.round((loadedBytes / totalBytes) * 100));
+      // 上传阶段占整体进度的 30% - 100%
+      reportProgress(30 + Math.round(uploadProgress * 0.7));
     };
 
     const createProgressHandler = (key: keyof typeof uploadedBytes, fallbackTotal: number) =>
