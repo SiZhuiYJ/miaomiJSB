@@ -1,5 +1,7 @@
 export interface ConvertVideoToWebMOptions {
   videoBitsPerSecond?: number;
+  audioBitsPerSecond?: number;
+  maxOutputSizeBytes?: number;
   mimeType?: string;
   maxDurationSeconds?: number;
   onProgress?: (progress: number) => void;
@@ -62,11 +64,33 @@ function waitForMediaEvent(
   });
 }
 
-function createMixedStream(video: HTMLVideoElement, canvas: HTMLCanvasElement): MediaStream {
-  const stream = canvas.captureStream(30);
+function createVideoCaptureStream(video: HTMLVideoElement): MediaStream | null {
+  const source = video as HTMLVideoElement & {
+    captureStream?: () => MediaStream;
+    mozCaptureStream?: () => MediaStream;
+  };
+  if (typeof source.captureStream === "function") {
+    return source.captureStream();
+  }
+  if (typeof source.mozCaptureStream === "function") {
+    return source.mozCaptureStream();
+  }
+  return null;
+}
+
+function createMixedStream(
+  video: HTMLVideoElement,
+  canvas: HTMLCanvasElement,
+): { stream: MediaStream; useCanvasDraw: boolean } {
+  const directStream = createVideoCaptureStream(video);
+  if (directStream && directStream.getVideoTracks().length > 0) {
+    return { stream: directStream, useCanvasDraw: false };
+  }
+
+  const stream = canvas.captureStream();
 
   const AudioContextImpl = window.AudioContext || (window as any).webkitAudioContext;
-  if (!AudioContextImpl) return stream;
+  if (!AudioContextImpl) return { stream, useCanvasDraw: true };
 
   const audioContext = new AudioContextImpl();
   const destination = audioContext.createMediaStreamDestination();
@@ -85,7 +109,36 @@ function createMixedStream(video: HTMLVideoElement, canvas: HTMLCanvasElement): 
   video.addEventListener("ended", teardown, { once: true });
   video.addEventListener("pause", teardown, { once: true });
 
-  return stream;
+  return { stream, useCanvasDraw: true };
+}
+
+function estimateSourceBitrate(
+  sourceFile: File,
+  durationSeconds: number,
+  maxOutputSizeBytes?: number,
+): { videoBitsPerSecond?: number; audioBitsPerSecond?: number } {
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    return {};
+  }
+
+  const sourceTotalBitsPerSecond = Math.floor((sourceFile.size * 8) / durationSeconds);
+  const maxOutputBitsPerSecond = maxOutputSizeBytes
+    ? Math.floor((maxOutputSizeBytes * 8) / durationSeconds)
+    : undefined;
+  const totalBitsPerSecond = typeof maxOutputBitsPerSecond === "number"
+    ? Math.min(sourceTotalBitsPerSecond, maxOutputBitsPerSecond)
+    : sourceTotalBitsPerSecond;
+  if (!Number.isFinite(totalBitsPerSecond) || totalBitsPerSecond <= 0) {
+    return {};
+  }
+
+  const audioBitsPerSecond = Math.min(192_000, Math.max(96_000, Math.floor(totalBitsPerSecond * 0.12)));
+  const videoBitsPerSecond = Math.max(300_000, Math.floor(totalBitsPerSecond - audioBitsPerSecond));
+
+  return {
+    videoBitsPerSecond,
+    audioBitsPerSecond,
+  };
 }
 
 export function canConvertVideoToWebM(): boolean {
@@ -138,24 +191,48 @@ export async function convertVideoToWebM(
     throw new Error("浏览器不支持 Canvas 2D，无法转换视频");
   }
 
-  const mixedStream = createMixedStream(video, canvas);
+  const { stream: mixedStream, useCanvasDraw } = createMixedStream(video, canvas);
   const mimeType = pickSupportedMimeType(options.mimeType);
-  const bitsPerSecond =
-    options.videoBitsPerSecond ?? Math.min(Math.max(width * height * 3, 1_200_000), 6_000_000);
+  const guessedBitrate = estimateSourceBitrate(sourceFile, video.duration, options.maxOutputSizeBytes);
+  const videoBitsPerSecond = options.videoBitsPerSecond ?? guessedBitrate.videoBitsPerSecond;
+  const audioBitsPerSecond = options.audioBitsPerSecond ?? guessedBitrate.audioBitsPerSecond;
 
   const chunks: BlobPart[] = [];
-  const recorder = new MediaRecorder(mixedStream, {
-    mimeType,
-    videoBitsPerSecond: bitsPerSecond,
-  });
+  const recorderOptions: MediaRecorderOptions = { mimeType };
+  if (typeof videoBitsPerSecond === "number") {
+    recorderOptions.videoBitsPerSecond = videoBitsPerSecond;
+  }
+  if (typeof audioBitsPerSecond === "number") {
+    recorderOptions.audioBitsPerSecond = audioBitsPerSecond;
+  }
+  const recorder = new MediaRecorder(mixedStream, recorderOptions);
 
   let rafId = 0;
+  let videoFrameCallbackId = 0;
   let progressTimer = 0;
 
-  const drawFrame = () => {
+  const drawFrameByRaf = () => {
     if (video.paused || video.ended) return;
     ctx.drawImage(video, 0, 0, width, height);
-    rafId = requestAnimationFrame(drawFrame);
+    rafId = requestAnimationFrame(drawFrameByRaf);
+  };
+
+  const drawFrameByVideoFrameCallback = () => {
+    const callbackApi = video as HTMLVideoElement & {
+      requestVideoFrameCallback?: (callback: () => void) => number;
+    };
+    if (typeof callbackApi.requestVideoFrameCallback !== "function") {
+      drawFrameByRaf();
+      return;
+    }
+
+    const draw = () => {
+      if (video.paused || video.ended) return;
+      ctx.drawImage(video, 0, 0, width, height);
+      videoFrameCallbackId = callbackApi.requestVideoFrameCallback!(draw);
+    };
+
+    videoFrameCallbackId = callbackApi.requestVideoFrameCallback(draw);
   };
 
   const outputBlob = await new Promise<Blob>((resolve, reject) => {
@@ -187,7 +264,9 @@ export async function convertVideoToWebM(
     video
       .play()
       .then(() => {
-        drawFrame();
+        if (useCanvasDraw) {
+          drawFrameByVideoFrameCallback();
+        }
         progressTimer = window.setInterval(() => {
           if (!options.onProgress || !video.duration) return;
           const progress = Math.min(99, Math.round((video.currentTime / video.duration) * 100));
@@ -199,7 +278,21 @@ export async function convertVideoToWebM(
       });
   });
 
-  cancelAnimationFrame(rafId);
+  if (options.maxOutputSizeBytes && outputBlob.size > options.maxOutputSizeBytes) {
+    throw new Error(
+      `转换后文件超过 ${Math.round(options.maxOutputSizeBytes / 1024 / 1024)}MB，请缩短时长或降低分辨率后重试`,
+    );
+  }
+
+  if (useCanvasDraw) {
+    cancelAnimationFrame(rafId);
+    const cancelApi = video as HTMLVideoElement & {
+      cancelVideoFrameCallback?: (handle: number) => void;
+    };
+    if (videoFrameCallbackId && typeof cancelApi.cancelVideoFrameCallback === "function") {
+      cancelApi.cancelVideoFrameCallback(videoFrameCallbackId);
+    }
+  }
   if (progressTimer) {
     clearInterval(progressTimer);
   }

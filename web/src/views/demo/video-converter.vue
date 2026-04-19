@@ -42,6 +42,16 @@
 
         <el-progress v-if="converting" :percentage="progress" />
 
+        <div class="preview-block" v-if="sourcePreviewUrl">
+          <h4>原视频预览</h4>
+          <video :src="sourcePreviewUrl" controls preload="metadata" />
+        </div>
+
+        <div class="preview-block" v-if="convertedPreviewUrl">
+          <h4>转换后视频预览（WebM）</h4>
+          <video :src="convertedPreviewUrl" controls preload="metadata" />
+        </div>
+
         <div v-if="coverPreviewUrl" class="preview-block">
           <h4>封面预览（WebP）</h4>
           <img :src="coverPreviewUrl" alt="cover preview" />
@@ -63,9 +73,26 @@ const canConvert = canConvertVideoToWebM();
 const sourceFile = ref<File | null>(null);
 const convertedFile = ref<File | null>(null);
 const coverFile = ref<File | null>(null);
+const sourcePreviewUrl = ref("");
+const convertedPreviewUrl = ref("");
 const coverPreviewUrl = ref("");
 const converting = ref(false);
 const progress = ref(0);
+const MAX_OUTPUT_SIZE_BYTES = 100 * 1024 * 1024;
+
+function releaseSourcePreview() {
+  if (sourcePreviewUrl.value) {
+    URL.revokeObjectURL(sourcePreviewUrl.value);
+    sourcePreviewUrl.value = "";
+  }
+}
+
+function releaseConvertedPreview() {
+  if (convertedPreviewUrl.value) {
+    URL.revokeObjectURL(convertedPreviewUrl.value);
+    convertedPreviewUrl.value = "";
+  }
+}
 
 function releasePreview() {
   if (coverPreviewUrl.value) {
@@ -82,7 +109,10 @@ function handleFileChange(uploadFile: UploadFile) {
   convertedFile.value = null;
   coverFile.value = null;
   progress.value = 0;
+  releaseSourcePreview();
+  releaseConvertedPreview();
   releasePreview();
+  sourcePreviewUrl.value = URL.createObjectURL(raw);
 }
 
 async function startConvert() {
@@ -95,6 +125,7 @@ async function startConvert() {
   try {
     const [webm, cover] = await Promise.all([
       convertVideoToWebM(sourceFile.value, {
+        maxOutputSizeBytes: MAX_OUTPUT_SIZE_BYTES,
         onProgress: (value) => {
           progress.value = value;
         },
@@ -107,6 +138,8 @@ async function startConvert() {
 
     convertedFile.value = webm;
     coverFile.value = cover;
+    releaseConvertedPreview();
+    convertedPreviewUrl.value = URL.createObjectURL(webm);
     coverPreviewUrl.value = URL.createObjectURL(cover);
     ElMessage.success("转换完成，可用于 chat 上传前处理");
   } catch (error) {
@@ -138,6 +171,8 @@ function downloadCover() {
 }
 
 onBeforeUnmount(() => {
+  releaseSourcePreview();
+  releaseConvertedPreview();
   releasePreview();
 });
 </script>
@@ -167,6 +202,14 @@ onBeforeUnmount(() => {
 
 .preview-block {
   margin-top: 12px;
+
+  video {
+    width: 420px;
+    max-width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--el-border-color);
+    background: #000;
+  }
 
   img {
     width: 240px;
