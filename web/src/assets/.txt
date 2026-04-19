@@ -1,1 +1,1 @@
-web/src/assets/icons/document
+git reset --soft HEAD~1

@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@kangc/v-md-editor": "^2.3.18",
     "@microsoft/signalr": "^8.0.17",
     "@vue-office/docx": "^1.6.3",

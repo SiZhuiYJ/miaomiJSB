@@ -73,8 +73,15 @@ export default defineConfig(({ mode }) => {
         ]
         : []),
     ],
+    optimizeDeps: {
+      exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
+    },
     // 开发服务器配置
     server: {
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin',
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+      },
       host: '0.0.0.0', // 设置服务器监听所有网络接口
       proxy: {
         "/mm": {
