@@ -1,6 +1,11 @@
 // composables/useMessages.ts
 import { ref } from "vue";
-import API from "../api";
+import {
+  getMessageDelta as getMessageDeltaApi,
+  getMessages as getMessagesApi,
+  recallMessage as recallMessageApi,
+  sendMessage as sendMessageApi,
+} from "../api/messages";
 import { useErrorHandler } from "./useErrorHandler";
 import type { MessageSummary, SendMessagePayload } from "../types";
 
@@ -37,7 +42,7 @@ export function useMessages(conversationId: () => number) {
     loading.value = true;
     clearError();
     try {
-      const data = (await API.getMessages(convId, beforeId, limit)).data;
+      const data = (await getMessagesApi(convId, beforeId, limit)).data;
       if (!beforeId) {
         messages.value = data.sort((a, b) => a.id - b.id);
       }
@@ -72,7 +77,7 @@ export function useMessages(conversationId: () => number) {
     }
 
     try {
-      const delta = (await API.getMessageDelta(convId, lastId, 50)).data;
+      const delta = (await getMessageDeltaApi(convId, lastId, 50)).data;
       if (delta.messages.length > 0 && lastId) {
         const newMessages = delta.messages
           .filter(m => m.id > lastId)
@@ -97,7 +102,7 @@ export function useMessages(conversationId: () => number) {
 
       while (remaining > 0) {
         const pageSize = Math.min(remaining, 100);
-        const data = (await API.getMessages(convId, beforeMessageId, pageSize)).data;
+        const data = (await getMessagesApi(convId, beforeMessageId, pageSize)).data;
 
         if (data.length === 0) {
           break;
@@ -124,7 +129,7 @@ export function useMessages(conversationId: () => number) {
     loading.value = true;
     clearError();
     try {
-      const result = await API.sendMessage(convId, payload);
+      const result = await sendMessageApi(convId, payload);
       if (result.data) {
         messages.value = mergeMessages(messages.value, [result.data]);
       }
@@ -141,7 +146,7 @@ export function useMessages(conversationId: () => number) {
     loading.value = true;
     clearError();
     try {
-      const result = await API.recallMessage(messageId);
+      const result = await recallMessageApi(messageId);
       if (result.data) {
         upsertMessage(result.data);
       }

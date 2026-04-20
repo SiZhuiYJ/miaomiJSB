@@ -1,6 +1,9 @@
 // composables/useMessageRead.ts
 import { ref } from "vue";
-import API from "../api";
+import {
+  getMessageReadStatus as getMessageReadStatusApi,
+  markRead as markReadApi,
+} from "../api/messages";
 import type { MessageReadStatus, MessageSummary } from "../types";
 
 export function useMessageRead(
@@ -11,7 +14,7 @@ export function useMessageRead(
 
   async function loadMessageReadStatus(messageId: number) {
     try {
-      const status = (await API.getMessageReadStatus(messageId)).data;
+      const status = (await getMessageReadStatusApi(messageId)).data;
       messageReadStatus.value.set(messageId, status);
       // 触发响应式更新
       messageReadStatus.value = new Map(messageReadStatus.value);
@@ -28,7 +31,7 @@ export function useMessageRead(
   async function markRead(lastMessageId?: number) {
     const convId = conversationId();
     if (!convId) return;
-    await API.markRead(convId, lastMessageId);
+    await markReadApi(convId, lastMessageId);
   }
 
   // 获取某条消息的已读显示文本（用于 MessageItem）

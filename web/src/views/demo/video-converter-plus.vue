@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<!-- <script setup lang="ts">
 import { ref } from 'vue';
 import type { FileData, ProgressEvent } from '@ffmpeg/ffmpeg';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
@@ -47,12 +47,11 @@ const convertToWebm = async (event: Event) => {
     // FFmpeg 指令，多线程 + 稳定配置
     await ffmpeg.exec([
       '-i', 'input_video',
-      // '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
       '-c:v', 'libvpx',       // VP9 视频编码libvpx-vp9
-      '-threads', '8',        // 指定线程数，可根据设备调整
+      '-threads', '32',        // 指定线程数，可根据设备调整
       // '-crf', '0',
-      '-b:v', '1M',           // 视频码率
-      '-c:a', 'libvorbis',    // 音频编码
+      // '-b:v', '1M',           // 视频码率
+      // '-c:a', 'copy',          // 音频复制, 可选  // 音频编码
       'output.webm'
     ]);
 
@@ -106,10 +105,10 @@ const convertToWebm = async (event: Event) => {
   background: var(--page-bg);
   color: var(--text-main);
 }
-</style>
-<!-- <template>
+</style> -->
+<template>
   <VideoConverter />
 </template>
 <script setup lang="ts">
 import VideoConverter from '@/components/ToWebM/index.vue'
-</script> -->
+</script>

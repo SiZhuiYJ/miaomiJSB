@@ -1,4 +1,3 @@
-// composables/useVideoMetadata.ts
 import MediaInfoFactory, { type MediaInfo, type Track } from 'mediainfo.js';
 
 export interface VideoMetadata {
@@ -16,128 +15,211 @@ export interface VideoMetadata {
     container: string;
 }
 
-// 类型守卫：判断轨道是否为视频轨道
 function isVideoTrack(track: Track): track is Track & { '@type': 'Video' } {
     return track['@type'] === 'Video';
 }
 
-// 类型守卫：判断轨道是否为音频轨道
 function isAudioTrack(track: Track): track is Track & { '@type': 'Audio' } {
     return track['@type'] === 'Audio';
 }
 
-// 类型守卫：判断轨道是否为通用轨道
 function isGeneralTrack(track: Track): track is Track & { '@type': 'General' } {
     return track['@type'] === 'General';
 }
 
+function getPublicAssetUrl(path: string): string {
+    const base = new URL(import.meta.env.BASE_URL, window.location.origin);
+    return new URL(path.replace(/^\/+/, ''), base).toString();
+}
+
+function getContainerFromFile(file: File): string {
+    const mimeType = file.type.toLowerCase();
+    if (mimeType.includes('webm')) return 'WebM';
+    if (mimeType.includes('mp4')) return 'MPEG-4';
+    return 'Unknown';
+}
+
+function getStringValue(value: unknown, fallback = 'Unknown'): string {
+    if (typeof value === 'string' && value.trim()) {
+        return value.trim();
+    }
+
+    return fallback;
+}
+
+function getNumericValue(...values: Array<number | null | undefined>): number {
+    for (const value of values) {
+        if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+            return value;
+        }
+    }
+
+    return 0;
+}
+
+function resolveAverageBitrate(fileSize: number, duration: number | undefined): number {
+    if (!duration || !Number.isFinite(duration) || duration <= 0) {
+        return 0;
+    }
+
+    return Math.round((fileSize * 8) / duration);
+}
+
+function getTrackField(track: Track | undefined, field: string): unknown {
+    if (!track) return undefined;
+    return Reflect.get(track as object, field);
+}
+
 export async function extractMetadataWithMediaInfo(file: File): Promise<VideoMetadata> {
     let mediaInfo: MediaInfo | null = null;
+
     try {
         mediaInfo = await MediaInfoFactory({
             format: 'object',
-            locateFile: () => '/mediainfo/MediaInfoModule.wasm'
+            locateFile: () => getPublicAssetUrl('mediainfo/MediaInfoModule.wasm'),
         });
 
         const getSize = () => file.size;
         const readChunk = (size: number, offset: number): Promise<Uint8Array> =>
             new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = (e) => resolve(new Uint8Array(e.target?.result as ArrayBuffer));
+                reader.onload = (event) => resolve(new Uint8Array(event.target?.result as ArrayBuffer));
                 reader.onerror = reject;
                 reader.readAsArrayBuffer(file.slice(offset, offset + size));
             });
 
         const result = await mediaInfo.analyzeData(getSize, readChunk);
-
-        // 安全访问 media 属性
         const tracks = result.media?.track ?? [];
 
-        // 查找各类型轨道
         const videoTrack = tracks.find(isVideoTrack);
         const audioTrack = tracks.find(isAudioTrack);
         const generalTrack = tracks.find(isGeneralTrack);
 
-        // 安全获取属性值，提供默认值
         return {
             duration: parseFloat(generalTrack?.Duration?.toString() ?? generalTrack?.Duration_String4?.toString() ?? '0') || 0,
-            width: parseInt(videoTrack?.Width?.toString() ?? '0') || 0,
-            height: parseInt(videoTrack?.Height?.toString() ?? '0') || 0,
+            width: parseInt(videoTrack?.Width?.toString() ?? '0', 10) || 0,
+            height: parseInt(videoTrack?.Height?.toString() ?? '0', 10) || 0,
             frameRate: parseFloat(videoTrack?.FrameRate?.toString() ?? videoTrack?.FrameRate_String?.toString() ?? '0') || 0,
             fileSize: file.size,
-            codec: videoTrack?.Format ?? videoTrack?.CodecID ?? videoTrack?.CodecID_String ?? 'Unknown',
-            bitRate: parseInt(videoTrack?.BitRate?.toString() ?? videoTrack?.BitRate_String?.toString() ?? '0') || 0,
-            audioCodec: audioTrack?.Format ?? audioTrack?.CodecID ?? 'Unknown',
-            audioSampleRate: parseInt(audioTrack?.SamplingRate?.toString() ?? audioTrack?.SamplingRate_String?.toString() ?? '0') || 0,
-            audioChannels: parseInt(audioTrack?.Channels?.toString() ?? audioTrack?.Channels_String ?? '0') || 0,
-            pixelFormat: videoTrack?.PixelAspectRatio?.toString() ?? videoTrack?.PixelAspectRatio_String ?? 'Unknown',
-            container: generalTrack?.Format ?? generalTrack?.Format_String ?? 'Unknown',
+            codec: getStringValue(videoTrack?.Format ?? videoTrack?.CodecID ?? videoTrack?.CodecID_String),
+            bitRate: parseInt(videoTrack?.BitRate?.toString() ?? videoTrack?.BitRate_String?.toString() ?? '0', 10) || 0,
+            audioCodec: getStringValue(audioTrack?.Format ?? audioTrack?.CodecID),
+            audioSampleRate: parseInt(audioTrack?.SamplingRate?.toString() ?? audioTrack?.SamplingRate_String?.toString() ?? '0', 10) || 0,
+            audioChannels: parseInt(audioTrack?.Channels?.toString() ?? audioTrack?.Channels_String ?? '0', 10) || 0,
+            pixelFormat: getStringValue(
+                getTrackField(videoTrack, 'PixelFormat')
+                ?? getTrackField(videoTrack, 'ChromaSubsampling')
+                ?? getTrackField(videoTrack, 'ColorSpace'),
+            ),
+            container: getStringValue(generalTrack?.Format ?? generalTrack?.Format_String, getContainerFromFile(file)),
         };
     } finally {
-        // 清理 MediaInfo 实例，避免内存泄漏
-        if (mediaInfo?.close) {
-            mediaInfo.close();
-        }
+        mediaInfo?.close?.();
     }
 }
 
-// 原生 video 元素降级方案
 export async function extractMetadataBasic(file: File): Promise<Partial<VideoMetadata>> {
     return new Promise((resolve) => {
         const video = document.createElement('video');
         const url = URL.createObjectURL(file);
-        video.src = url;
+        let settled = false;
 
-        video.onloadedmetadata = () => {
+        const cleanup = () => {
+            video.onloadedmetadata = null;
+            video.onerror = null;
+            video.ontimeupdate = null;
+            video.removeAttribute('src');
+            video.load();
+            URL.revokeObjectURL(url);
+        };
+
+        const finish = (duration: number | null) => {
+            if (settled) return;
+            settled = true;
+
+            const safeDuration = duration && Number.isFinite(duration) && duration > 0 ? duration : 0;
             resolve({
-                duration: video.duration,
-                width: video.videoWidth,
-                height: video.videoHeight,
+                duration: safeDuration,
+                width: video.videoWidth || 0,
+                height: video.videoHeight || 0,
                 fileSize: file.size,
                 frameRate: 0,
                 codec: '',
-                bitRate: 0,
+                bitRate: resolveAverageBitrate(file.size, safeDuration),
                 audioCodec: '',
                 audioSampleRate: 0,
                 audioChannels: 0,
                 pixelFormat: '',
-                container: '',
+                container: getContainerFromFile(file),
             });
-            URL.revokeObjectURL(url);
+            cleanup();
         };
 
-        video.onerror = () => {
-            URL.revokeObjectURL(url);
-            resolve({
-                duration: 0,
-                width: 0,
-                height: 0,
-                fileSize: file.size,
-            });
+        const resolveFiniteDuration = () => {
+            if (Number.isFinite(video.duration) && video.duration > 0) {
+                finish(video.duration);
+                return;
+            }
+
+            if (video.duration === Number.POSITIVE_INFINITY) {
+                const fallbackTimer = window.setTimeout(() => finish(video.currentTime || null), 1500);
+                video.ontimeupdate = () => {
+                    window.clearTimeout(fallbackTimer);
+                    const duration = Number.isFinite(video.duration) ? video.duration : video.currentTime;
+                    finish(duration || null);
+                };
+
+                try {
+                    video.currentTime = 1e101;
+                } catch {
+                    window.clearTimeout(fallbackTimer);
+                    finish(null);
+                }
+                return;
+            }
+
+            finish(null);
         };
+
+        video.onloadedmetadata = resolveFiniteDuration;
+        video.onerror = () => finish(null);
+        video.preload = 'metadata';
+        video.src = url;
     });
 }
 
 export async function extractMetadata(file: File): Promise<VideoMetadata> {
+    let mediaInfoMetadata: VideoMetadata | null = null;
+
     try {
-        return await extractMetadataWithMediaInfo(file);
+        mediaInfoMetadata = await extractMetadataWithMediaInfo(file);
     } catch (error) {
-        console.warn('mediainfo.js 解析失败，使用原生API降级:', error);
-        const basic = await extractMetadataBasic(file);
-        // 确保返回完整的 VideoMetadata 类型
-        return {
-            duration: basic.duration ?? 0,
-            width: basic.width ?? 0,
-            height: basic.height ?? 0,
-            frameRate: basic.frameRate ?? 0,
-            fileSize: basic.fileSize ?? file.size,
-            codec: basic.codec ?? 'Unknown',
-            bitRate: basic.bitRate ?? 0,
-            audioCodec: basic.audioCodec ?? 'Unknown',
-            audioSampleRate: basic.audioSampleRate ?? 0,
-            audioChannels: basic.audioChannels ?? 0,
-            pixelFormat: basic.pixelFormat ?? 'Unknown',
-            container: basic.container ?? 'Unknown',
-        };
+        console.warn('mediainfo.js failed, merging with native metadata fallback:', error);
     }
+
+    const basicMetadata = await extractMetadataBasic(file);
+    const duration = getNumericValue(mediaInfoMetadata?.duration, basicMetadata.duration);
+    const fileSize = getNumericValue(mediaInfoMetadata?.fileSize, basicMetadata.fileSize, file.size);
+
+    return {
+        duration,
+        width: getNumericValue(mediaInfoMetadata?.width, basicMetadata.width),
+        height: getNumericValue(mediaInfoMetadata?.height, basicMetadata.height),
+        frameRate: getNumericValue(mediaInfoMetadata?.frameRate, basicMetadata.frameRate),
+        fileSize,
+        codec: getStringValue(mediaInfoMetadata?.codec, getStringValue(basicMetadata.codec)),
+        bitRate: getNumericValue(
+            mediaInfoMetadata?.bitRate,
+            basicMetadata.bitRate,
+            resolveAverageBitrate(fileSize, duration),
+        ),
+        audioCodec: getStringValue(mediaInfoMetadata?.audioCodec, getStringValue(basicMetadata.audioCodec)),
+        audioSampleRate: getNumericValue(mediaInfoMetadata?.audioSampleRate, basicMetadata.audioSampleRate),
+        audioChannels: getNumericValue(mediaInfoMetadata?.audioChannels, basicMetadata.audioChannels),
+        pixelFormat: getStringValue(mediaInfoMetadata?.pixelFormat, getStringValue(basicMetadata.pixelFormat)),
+        container: getStringValue(
+            mediaInfoMetadata?.container,
+            getStringValue(basicMetadata.container, getContainerFromFile(file)),
+        ),
+    };
 }

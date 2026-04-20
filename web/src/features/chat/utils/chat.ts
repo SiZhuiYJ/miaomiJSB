@@ -1,6 +1,6 @@
 // utils/chat.ts
 import { API_BASE_URL } from "@/config";
-import { parseMessageExtra } from "./fileHelper";
+import { parseMessageExtra } from "./fileMeta";
 import type {
   UserRole,
   ConversationSummary,

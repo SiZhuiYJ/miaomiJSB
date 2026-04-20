@@ -2,7 +2,13 @@
 import { ref, computed } from "vue";
 import { useAuthStore } from "@/stores";
 import { storeToRefs } from "pinia";
-import API from "../api";
+import {
+  createConversation as createConversationApi,
+  getConversation as getConversationApi,
+  getConversations as getConversationsApi,
+  updateConversation as updateConversationApi,
+  updateConversationMemberRole as updateConversationMemberRoleApi,
+} from "../api/conversations";
 import { useErrorHandler } from "./useErrorHandler";
 import type {
   ConversationSummary,
@@ -56,7 +62,7 @@ export function useConversations() {
     if (directItems.length === 0) return;
 
     const detailResults = await Promise.allSettled(
-      directItems.map((item) => API.getConversation(item.id)),
+      directItems.map((item) => getConversationApi(item.id)),
     );
 
     detailResults.forEach((result, index) => {
@@ -74,7 +80,7 @@ export function useConversations() {
     loading.value = true;
     clearError();
     try {
-      const items = (await API.getConversations()).data;
+      const items = (await getConversationsApi()).data;
       conversations.value = items;
       await hydrateDirectConversationTitles(items);
     } catch (error: any) {
@@ -88,7 +94,7 @@ export function useConversations() {
     loading.value = true;
     clearError();
     try {
-      const detail = (await API.getConversation(item.id)).data;
+      const detail = (await getConversationApi(item.id)).data;
       currentConversation.value = detail;
       if (detail.conversationType === "direct") {
         const directName = getDirectPeerDisplayName(detail);
@@ -110,7 +116,7 @@ export function useConversations() {
     loading.value = true;
     clearError();
     try {
-      const detail = (await API.createConversation(payload)).data;
+      const detail = (await createConversationApi(payload)).data;
       await loadConversations();
       await selectConversation({
         id: detail.id,
@@ -138,7 +144,7 @@ export function useConversations() {
     loading.value = true;
     clearError();
     try {
-      await API.updateConversation(detail.id, {
+      await updateConversationApi(detail.id, {
         title: detail.title,
         avatarKey: detail.avatarKey,
         isActive: detail.isActive,
@@ -165,7 +171,7 @@ export function useConversations() {
     loading.value = true;
     clearError();
     try {
-      const detail = (await API.updateConversationMemberRole(conversationId, memberUserId, { memberRole })).data;
+      const detail = (await updateConversationMemberRoleApi(conversationId, memberUserId, { memberRole })).data;
       if (currentConversation.value?.id === conversationId) {
         currentConversation.value = detail;
       }

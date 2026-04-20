@@ -7,7 +7,7 @@
         </el-icon>
       </el-button>
     </el-tooltip>
-    <input ref="fileInputRef" type="file" multiple size="104857600"
+    <input ref="fileInputRef" type="file" multiple
       accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar,.7z" style="display: none"
       @change="handleFileSelect" />
   </div>
@@ -16,10 +16,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Paperclip } from '@element-plus/icons-vue';
-import { prepareFilesForMessageUpload } from '../utils/fileHelper';
+import { prepareFilesForMessageUpload } from '../utils/fileUpload';
 
 const props = defineProps<{
-  conversationId?: number;
   disabled?: boolean;
 }>();
 

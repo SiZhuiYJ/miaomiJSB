@@ -4,7 +4,7 @@ import SvgIcon from '@/components/SvgIcon/index.vue';
 import { notifyError } from '@/utils/notification';
 import { useFileDownloader } from '../composables/useFileDownloader';
 import type { FileExtra, MessageSummary, PendingUpload } from '../types';
-import { formatFileSize, getDocumentIconType, getFilePreviewType, getFileTypeLabel, isPreviewableFileType, parseMessageExtra } from '../utils/fileHelper';
+import { formatFileSize, getDocumentIconType, getFilePreviewType, getFileTypeLabel, isPreviewableFileType, parseMessageExtra } from '../utils/fileMeta';
 
 const props = defineProps<{
   message?: MessageSummary | null;

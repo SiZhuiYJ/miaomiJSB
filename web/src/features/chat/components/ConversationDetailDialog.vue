@@ -4,7 +4,8 @@ import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@/stores';
 import IsPin from './IsPin.vue';
 import type { ConversationDetail, ConversationMember, UserRole } from '../types';
-import { updateConversationMemberRole, uploadConversationAvatar as uploadConversationAvatarApi } from '../api';
+import { updateConversationMemberRole } from '../api/conversations';
+import { uploadConversationAvatar as uploadConversationAvatarApi } from '../api/files';
 import {
   groupRoleMap,
   formatChatTime,

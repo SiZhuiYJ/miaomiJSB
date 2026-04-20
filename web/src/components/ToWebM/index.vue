@@ -22,6 +22,30 @@ const convertedVideoUrl = ref('');
 // 添加 fileInput 模板引用类型声明
 const fileInput = ref<HTMLInputElement | null>(null);
 
+function resolveSourceHasAudio(metadata: VideoMetadata | null): boolean | undefined {
+    if (!metadata) return undefined;
+
+    if (metadata.audioChannels > 0 || metadata.audioSampleRate > 0) {
+        return true;
+    }
+
+    const normalizedAudioCodec = metadata.audioCodec.trim().toLowerCase();
+    if (normalizedAudioCodec && normalizedAudioCodec !== 'unknown') {
+        return true;
+    }
+
+    const metadataLooksIncomplete =
+        metadata.codec === 'Unknown'
+        && metadata.container === 'Unknown'
+        && metadata.frameRate === 0;
+
+    if (metadataLooksIncomplete) {
+        return undefined;
+    }
+
+    return false;
+}
+
 async function handleFileSelect(event: Event) {
     const target = event.target as HTMLInputElement;
     const file = target.files?.[0];
@@ -56,6 +80,9 @@ async function startConversion() {
     try {
         const blob = await convertVideo(selectedFile.value, {
             quality: qualityOption.value,
+            sourceHasAudio: resolveSourceHasAudio(originalMetadata.value),
+            sourceBitRate: originalMetadata.value?.bitRate || undefined,
+            sourceDuration: originalMetadata.value?.duration || undefined,
             onProgress: (p: number) => {
                 progress.value = p;
                 if (p < 30) progressHint.value = '正在初始化转换器...';
@@ -235,7 +262,7 @@ watch(qualityOption, (val: string) => {
                     <tr>
                         <td>文件大小</td>
                         <td>{{ formatFileSize(originalMetadata.fileSize) }}</td>
-                        <td>{{ formatFileSize(convertedMetadata?.fileSize) }}</td>
+                        <td>{{ formatFileSize(convertedMetadata?.fileSize ?? 0) }}</td>
                         <td :class="getSizeChangeClass()">
                             {{ getSizeChange() }}
                         </td>

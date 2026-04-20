@@ -163,7 +163,7 @@ import {
   getVideoConverterModeDescription,
 } from "@/utils/videoConverter";
 import { getVideoFileMetadata, type VideoFileMetadata } from "@/utils/videoMetadata";
-import { formatFileSize } from "@/features/chat/utils/fileHelper";
+import { formatFileSize } from "@/features/chat/utils/fileMeta";
 
 type SyncAction = "play" | "pause" | "seek" | "rate" | "ended";
 

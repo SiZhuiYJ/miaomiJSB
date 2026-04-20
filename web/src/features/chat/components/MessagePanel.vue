@@ -27,10 +27,12 @@ import {
 import {
   formatFileSize,
   getFilePreviewType,
+} from '../utils/fileMeta';
+import {
   prepareFilesForMessageUpload,
   uploadFileForMessage,
   validateFile,
-} from '../utils/fileHelper';
+} from '../utils/fileUpload';
 
 const model = defineModel<string>({ default: '' });
 const currentConversation = defineModel<ConversationDetail>('conversationDetail');
@@ -888,7 +890,7 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="composer-main">
-          <FileUploadButton :conversation-id="currentConversation?.id" :disabled="uploadingFiles || props.loading"
+          <FileUploadButton :disabled="uploadingFiles || props.loading"
             @file-selected="handleFileSelected" />
           <el-input v-model="model" clearable placeholder="输入消息" @keyup.enter="handleSendTextMessage" />
           <el-button color="#111827" :disabled="props.loading || uploadingFiles" @click="handleSendTextMessage">

@@ -654,7 +654,8 @@ onUnmounted(() => {
           <el-carousel-item v-for="(file, index) in fileList" :key="`${file.url || file.path}-${index}`">
             <div class="preview-content" :style="contentStyle">
               <div v-if="getFileType(file) === 'image'" :ref="setImageContainerRef(index)" class="image-preview"
-                @wheel.prevent="handleImageWheel($event, index)" @mousedown.prevent="handleImageMouseDown($event, index)">
+                @wheel.prevent="handleImageWheel($event, index)"
+                @mousedown.prevent="handleImageMouseDown($event, index)">
                 <img v-if="file?.url || file?.path" :ref="setImageRef(index)" :key="file?.url || file?.path"
                   class="preview-image-element" :src="file?.url || file?.path" :alt="file?.name" :style="imageStyle"
                   @load="handleImageLoad(file)" @error="handleImageError" @dragstart.prevent />
@@ -780,7 +781,9 @@ onUnmounted(() => {
   color: #fff;
   z-index: 10;
 
-
+  @media (max-width: 768px) {
+    padding: 6px
+  }
 }
 
 .toolbar-left {
@@ -952,8 +955,13 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: 24px;
+  padding: 0 12px 12px;
+  ;
   box-sizing: border-box;
+
+  @media (max-width: 768px) {
+    padding: 0 6px 6px;
+  }
 }
 
 .preview-image-element {
