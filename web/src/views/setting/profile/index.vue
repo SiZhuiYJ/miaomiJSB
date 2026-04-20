@@ -1,24 +1,19 @@
 <script setup lang="ts">
+import ProgressiveAvatar from '@/components/ProgressiveAvatar.vue';
 import nickname from '@/features/auth/components/Settings/nickname.vue';
 import router from "@/routers";
 import { useAuthStore } from '@/stores';
 import { storeToRefs } from 'pinia';
-import { API_BASE_URL } from '@/config';
 import { extractEmail, extractDomain } from '@/utils/auth';
+import { getUserAvatarSources } from '@/utils/avatar';
 
 const { user } = storeToRefs(useAuthStore());
 const inputEmail = ref<string>('');
 const emailDisabled = ref<boolean>(true);
-const url = computed(() => {
-    if (user.value?.avatarKey) {
-        return `${API_BASE_URL}/mm/Files/users/${user.value.userId}/${user.value.avatarKey}`;
-    }
-    return '';
-});
+const avatar = computed(() => getUserAvatarSources(user.value?.userId, user.value?.avatarKey));
 // 邮箱后缀名
 const emailFix = ref<string[]>(['@qq.com', '@163.com', '@126.com', '@sina.com', '@aliyun.com']);
 const select = ref<string>();
-const fit = 'fill';
 watch(
     () => user.value?.email,
     (newVal?: string) => {
@@ -42,8 +37,14 @@ watch(
             </div>
 
             <div class="profile-main">
-                <el-image style="width: 100px; height: 100px; border-radius: 16px;" :src="url" :fit="fit" :preview-src-list="[url]"
-                    lazy />
+                <ProgressiveAvatar
+                    :src="avatar.src"
+                    :thumbnail-src="avatar.thumbnailSrc"
+                    :size="100"
+                    shape="square"
+                >
+                    {{ (user ? (user?.nickName || user?.userAccount || user?.email).slice(0, 1).toUpperCase() : 'U') }}
+                </ProgressiveAvatar>
                 <el-button type="primary" plain @click="router.push('/setting/avatar')">
                     更换头像
                 </el-button>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ProgressiveAvatar from '@/components/ProgressiveAvatar.vue';
 import { computed } from 'vue';
 import type { MessageReference, MessageSummary, PendingUpload } from '../types';
 import {
@@ -14,6 +15,7 @@ const props = defineProps<{
   pendingUpload?: PendingUpload | null;
   meUserId: number;
   src: string;
+  thumbnailSrc?: string;
   isMine: boolean;
   readText: string;
   readColor: string;
@@ -100,9 +102,15 @@ function handleRecall() {
     </div>
   </div>
   <div v-else :class="['msg-item', { mine: props.isMine, highlighted: props.highlighted }]">
-    <el-avatar class="message-avatar" :src="props.src || undefined" :size="40" shape="square">
+    <ProgressiveAvatar
+      class="message-avatar"
+      :src="props.src || undefined"
+      :thumbnail-src="props.thumbnailSrc || props.src || undefined"
+      :size="40"
+      shape="square"
+    >
       {{ senderName.slice(0, 1) }}
-    </el-avatar>
+    </ProgressiveAvatar>
     <div class="content">
       <div class="meta header">
         <span class="header-text">

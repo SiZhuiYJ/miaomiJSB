@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 using System;
 using System.IO;
 using System.Linq;
@@ -15,12 +16,13 @@ namespace api.Infrastructure;
 public interface IFileService
 {
     Task<string> SaveImageAsync(ulong userId, IFormFile file, bool isPublic, CancellationToken cancellationToken = default);
-    Task<(Stream Stream, string ContentType)?> GetImageAsync(ulong userId, string fileKey, bool isPublic, CancellationToken cancellationToken = default);
+    Task<string> SaveUserAvatarAsync(ulong userId, IFormFile file, IFormFile? thumbnail = null, CancellationToken cancellationToken = default);
+    Task<(Stream Stream, string ContentType)?> GetImageAsync(ulong userId, string fileKey, bool isPublic, bool preferThumbnail = false, CancellationToken cancellationToken = default);
     Task<FileInfoResult> SaveChatFileAsync(ulong userId, ulong conversationId, IFormFile file, CancellationToken cancellationToken = default);
     Task<(Stream Stream, string ContentType, string FileName)?> GetChatFileAsync(ulong userId, string fileKey, CancellationToken cancellationToken = default);
-    Task<string> SaveConversationAvatarAsync(ulong userId, ulong conversationId, IFormFile file, CancellationToken cancellationToken = default);
-    Task<(Stream Stream, string ContentType)?> GetConversationAvatarAsync(ulong userId, ulong conversationId, string fileKey, CancellationToken cancellationToken = default);
-    Task<(Stream Stream, string ContentType)?> GetPublicConversationAvatarAsync(ulong conversationId, string fileKey, CancellationToken cancellationToken = default);
+    Task<string> SaveConversationAvatarAsync(ulong userId, ulong conversationId, IFormFile file, IFormFile? thumbnail = null, CancellationToken cancellationToken = default);
+    Task<(Stream Stream, string ContentType)?> GetConversationAvatarAsync(ulong userId, ulong conversationId, string fileKey, bool preferThumbnail = false, CancellationToken cancellationToken = default);
+    Task<(Stream Stream, string ContentType)?> GetPublicConversationAvatarAsync(ulong conversationId, string fileKey, bool preferThumbnail = false, CancellationToken cancellationToken = default);
 }
 
 public class FileInfoResult
@@ -38,6 +40,8 @@ public class LocalFileService : IFileService
 
     private const long MaxImageBytes = 10 * 1024 * 1024;          // 10 MB
     private const long MaxChatFileBytes = 100 * 1024 * 1024;      // 100 MB
+    private const int AvatarThumbnailMaxPixels = 96;
+    private const string AvatarThumbnailSuffix = "_thumb";
 
     private static readonly string[] AllowedImageExtensions =
     [
@@ -97,7 +101,21 @@ public class LocalFileService : IFileService
         return fileKey;
     }
 
-    public Task<(Stream Stream, string ContentType)?> GetImageAsync(ulong userId, string fileKey, bool isPublic, CancellationToken cancellationToken = default)
+    public async Task<string> SaveUserAvatarAsync(ulong userId, IFormFile file, IFormFile? thumbnail = null, CancellationToken cancellationToken = default)
+    {
+        ValidateImageFile(file);
+        if (thumbnail != null)
+            ValidateImageFile(thumbnail);
+
+        var root = GetUserRoot(userId, isPublic: true);
+        Directory.CreateDirectory(root);
+
+        var (_, fileKey) = await ComputeHashAsync(file.OpenReadStream(), cancellationToken);
+        await SaveAvatarAssetsAsync(file, thumbnail, root, fileKey, cancellationToken);
+        return fileKey;
+    }
+
+    public Task<(Stream Stream, string ContentType)?> GetImageAsync(ulong userId, string fileKey, bool isPublic, bool preferThumbnail = false, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(fileKey))
             return Task.FromResult<(Stream, string)?>(null);
@@ -105,7 +123,11 @@ public class LocalFileService : IFileService
         fileKey = Path.GetFileName(fileKey); // 防目录遍历
         var root = GetUserRoot(userId, isPublic);
 
-        var (filePath, extension) = GetFilePathWithFallback(root, fileKey, AllowedImageExtensions, defaultExtension: ".webp");
+        var lookupKey = preferThumbnail ? BuildAvatarThumbnailKey(fileKey) : fileKey;
+        var (filePath, extension) = GetFilePathWithFallback(root, lookupKey, AllowedImageExtensions, defaultExtension: ".webp");
+        if (preferThumbnail && !File.Exists(filePath))
+            (filePath, extension) = GetFilePathWithFallback(root, fileKey, AllowedImageExtensions, defaultExtension: ".webp");
+
         if (!File.Exists(filePath))
             return Task.FromResult<(Stream, string)?>(null);
 
@@ -225,19 +247,23 @@ public class LocalFileService : IFileService
 
     #region Conversation Avatar
 
-    public async Task<string> SaveConversationAvatarAsync(ulong userId, ulong conversationId, IFormFile file, CancellationToken cancellationToken = default)
+    public async Task<string> SaveConversationAvatarAsync(ulong userId, ulong conversationId, IFormFile file, IFormFile? thumbnail = null, CancellationToken cancellationToken = default)
     {
         ValidateImageFile(file);
+        if (thumbnail != null)
+            ValidateImageFile(thumbnail);
+
         await EnsureUserIsConversationMember(userId, conversationId, cancellationToken);
 
         var root = GetConversationAvatarRoot(conversationId);
         Directory.CreateDirectory(root);
 
-        var (hash, fileKey) = await ComputeHashAndSaveWebpAsync(file, root, cancellationToken);
+        var (_, fileKey) = await ComputeHashAsync(file.OpenReadStream(), cancellationToken);
+        await SaveAvatarAssetsAsync(file, thumbnail, root, fileKey, cancellationToken);
         return fileKey;
     }
 
-    public async Task<(Stream Stream, string ContentType)?> GetConversationAvatarAsync(ulong userId, ulong conversationId, string fileKey, CancellationToken cancellationToken = default)
+    public async Task<(Stream Stream, string ContentType)?> GetConversationAvatarAsync(ulong userId, ulong conversationId, string fileKey, bool preferThumbnail = false, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(fileKey))
             return null;
@@ -246,7 +272,11 @@ public class LocalFileService : IFileService
 
         fileKey = Path.GetFileName(fileKey);
         var root = GetConversationAvatarRoot(conversationId);
-        var (filePath, extension) = GetFilePathWithFallback(root, fileKey, AllowedImageExtensions, defaultExtension: ".webp");
+        var lookupKey = preferThumbnail ? BuildAvatarThumbnailKey(fileKey) : fileKey;
+        var (filePath, extension) = GetFilePathWithFallback(root, lookupKey, AllowedImageExtensions, defaultExtension: ".webp");
+        if (preferThumbnail && !File.Exists(filePath))
+            (filePath, extension) = GetFilePathWithFallback(root, fileKey, AllowedImageExtensions, defaultExtension: ".webp");
+
         if (!File.Exists(filePath))
             return null;
 
@@ -255,14 +285,18 @@ public class LocalFileService : IFileService
         return (stream, contentType);
     }
 
-    public async Task<(Stream Stream, string ContentType)?> GetPublicConversationAvatarAsync(ulong conversationId, string fileKey, CancellationToken cancellationToken = default)
+    public async Task<(Stream Stream, string ContentType)?> GetPublicConversationAvatarAsync(ulong conversationId, string fileKey, bool preferThumbnail = false, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(fileKey))
             return null;
 
         fileKey = Path.GetFileName(fileKey);
         var root = GetConversationAvatarRoot(conversationId);
-        var (filePath, extension) = GetFilePathWithFallback(root, fileKey, AllowedImageExtensions, defaultExtension: ".webp");
+        var lookupKey = preferThumbnail ? BuildAvatarThumbnailKey(fileKey) : fileKey;
+        var (filePath, extension) = GetFilePathWithFallback(root, lookupKey, AllowedImageExtensions, defaultExtension: ".webp");
+        if (preferThumbnail && !File.Exists(filePath))
+            (filePath, extension) = GetFilePathWithFallback(root, fileKey, AllowedImageExtensions, defaultExtension: ".webp");
+
         if (!File.Exists(filePath))
             return null;
 
@@ -367,6 +401,80 @@ public class LocalFileService : IFileService
         }
 
         return (hash, fileKey);
+    }
+
+    private async Task SaveAvatarAssetsAsync(
+        IFormFile originalFile,
+        IFormFile? thumbnailFile,
+        string targetDirectory,
+        string fileKey,
+        CancellationToken cancellationToken)
+    {
+        var originalPath = Path.Combine(targetDirectory, fileKey + ".webp");
+        if (!File.Exists(originalPath))
+            await SaveImageAsWebpAsync(originalFile, originalPath, cancellationToken);
+
+        var thumbnailPath = Path.Combine(targetDirectory, BuildAvatarThumbnailKey(fileKey) + ".webp");
+        if (!File.Exists(thumbnailPath))
+            await SaveImageAsWebpAsync(
+                thumbnailFile ?? originalFile,
+                thumbnailPath,
+                cancellationToken,
+                AvatarThumbnailMaxPixels,
+                AvatarThumbnailMaxPixels);
+    }
+
+    private static string BuildAvatarThumbnailKey(string fileKey)
+    {
+        var sanitized = Path.GetFileName(fileKey);
+        if (string.IsNullOrWhiteSpace(sanitized))
+            return sanitized;
+
+        return Path.HasExtension(sanitized)
+            ? $"{Path.GetFileNameWithoutExtension(sanitized)}{AvatarThumbnailSuffix}"
+            : sanitized + AvatarThumbnailSuffix;
+    }
+
+    private static async Task SaveImageAsWebpAsync(
+        IFormFile file,
+        string targetPath,
+        CancellationToken cancellationToken,
+        int? maxWidth = null,
+        int? maxHeight = null)
+    {
+        try
+        {
+            var originalExt = Path.GetExtension(file.FileName).ToLowerInvariant();
+            await using var sourceStream = file.OpenReadStream();
+
+            if (originalExt == ".webp" && maxWidth == null && maxHeight == null)
+            {
+                await using var targetStream = new FileStream(targetPath, FileMode.CreateNew, FileAccess.Write);
+                await sourceStream.CopyToAsync(targetStream, cancellationToken);
+                return;
+            }
+
+            using var image = await Image.LoadAsync(sourceStream, cancellationToken);
+            if (maxWidth.HasValue || maxHeight.HasValue)
+            {
+                image.Mutate(context => context.Resize(new ResizeOptions
+                {
+                    Mode = ResizeMode.Max,
+                    Size = new Size(maxWidth ?? image.Width, maxHeight ?? image.Height)
+                }));
+            }
+
+            await image.SaveAsWebpAsync(targetPath, cancellationToken);
+        }
+        catch (IOException) when (File.Exists(targetPath))
+        {
+            // 并发上传同一资源时，文件已落盘即可直接复用。
+        }
+        catch
+        {
+            try { File.Delete(targetPath); } catch { /* ignore cleanup failures */ }
+            throw new InvalidOperationException("鍥剧墖澶勭悊澶辫触");
+        }
     }
 
     private static (string FilePath, string Extension) GetFilePathWithFallback(

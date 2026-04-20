@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import ProgressiveAvatar from '@/components/ProgressiveAvatar.vue';
+import { createAvatarUploadFormData } from '@/utils/avatar';
 import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '@/stores';
@@ -9,9 +11,10 @@ import { uploadConversationAvatar as uploadConversationAvatarApi } from '../api/
 import {
   groupRoleMap,
   formatChatTime,
+  getConversationAvatarSources,
   getConversationAvatarText,
-  getConversationAvatarUrl,
   getConversationDisplayTitle,
+  getMemberAvatarSources,
   getMemberAvatarUrl,
 } from '../utils/chat';
 
@@ -33,7 +36,7 @@ const uploadingAvatar = ref(false);
 const roleUpdatingUserId = ref<number | null>(null);
 
 const title = computed(() => getConversationDisplayTitle(props.conversation, user.value?.userId));
-const avatarUrl = computed(() => getConversationAvatarUrl(props.conversation));
+const avatarSources = computed(() => getConversationAvatarSources(props.conversation));
 const isGroupConversation = computed(() => props.conversation.conversationType === 'group');
 const currentMember = computed(
   () => props.conversation.members.find((item) => item.userId === user.value?.userId) ?? null,
@@ -106,7 +109,8 @@ async function handleAvatarChange(event: Event) {
 
   uploadingAvatar.value = true;
   try {
-    const { data } = await uploadConversationAvatarApi(props.conversation.id, file);
+    const formData = await createAvatarUploadFormData(file);
+    const { data } = await uploadConversationAvatarApi(props.conversation.id, formData);
     props.conversation.avatarKey = data.key;
     emit('update:conversation');
     ElMessage.success('群头像已更新');
@@ -154,17 +158,15 @@ async function handleToggleMemberRole(member: ConversationMember) {
   >
     <div class="conversation-detail-dialog">
       <div class="avatar-section">
-        <el-image
-          v-if="avatarUrl"
+        <ProgressiveAvatar
           class="avatar-preview"
-          :src="avatarUrl"
-          fit="cover"
-          :preview-src-list="[avatarUrl]"
-          lazy
-        />
-        <el-avatar v-else class="avatar-fallback" :size="96" shape="square">
+          :src="avatarSources.src"
+          :thumbnail-src="avatarSources.thumbnailSrc"
+          :size="96"
+          shape="square"
+        >
           {{ getConversationAvatarText(conversation) }}
-        </el-avatar>
+        </ProgressiveAvatar>
 
         <div v-if="isGroupConversation" class="avatar-actions">
           <el-button
@@ -206,9 +208,15 @@ async function handleToggleMemberRole(member: ConversationMember) {
         <div class="member-list">
           <div v-for="item in sortedMembers" :key="item.userId" class="member-row">
             <div class="member-main">
-              <el-avatar class="conversation-avatar" :src="getMemberAvatarUrl(item)" :size="48" shape="square">
+              <ProgressiveAvatar
+                class="conversation-avatar"
+                :src="getMemberAvatarUrl(item)"
+                :thumbnail-src="getMemberAvatarSources(item).thumbnailSrc"
+                :size="48"
+                shape="square"
+              >
                 {{ item.nickName ? item.nickName.slice(0, 1) : '用' }}
-              </el-avatar>
+              </ProgressiveAvatar>
               <div class="member-text">
                 <div class="member-name-row">
                   <span class="member-name">{{ item.nickName || item.userAccount || item.userId }}</span>

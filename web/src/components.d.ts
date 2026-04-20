@@ -11,7 +11,6 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    ElAvatar: typeof import('element-plus/es')['ElAvatar']
     ElBadge: typeof import('element-plus/es')['ElBadge']
     ElButton: typeof import('element-plus/es')['ElButton']
     ElCalendar: typeof import('element-plus/es')['ElCalendar']
@@ -49,6 +48,7 @@ declare module 'vue' {
     MusicPlayer: typeof import('./components/MiniAudioPlayer/components/music-player.vue')['default']
     NotificationSystem: typeof import('./components/NotificationSystem/index.vue')['default']
     ProgressBar: typeof import('./components/ProgressBar/index.vue')['default']
+    ProgressiveAvatar: typeof import('./components/ProgressiveAvatar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SettingsMenu: typeof import('./components/Menu/SettingsMenu.vue')['default']

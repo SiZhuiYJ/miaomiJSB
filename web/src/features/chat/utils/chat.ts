@@ -1,5 +1,11 @@
 // utils/chat.ts
-import { API_BASE_URL } from "@/config";
+import type { AvatarSources } from "@/utils/avatar";
+import {
+  getConversationAvatarSources as buildConversationAvatarSources,
+  getConversationAvatarUrl as buildConversationAvatarUrl,
+  getUserAvatarSources,
+  getUserAvatarUrl,
+} from "@/utils/avatar";
 import { parseMessageExtra } from "./fileMeta";
 import type {
   UserRole,
@@ -136,11 +142,26 @@ export function getConversationAvatarUrl(
   const avatarKey = item.avatarKey;
   if (!avatarKey) return "";
   if (item.conversationType === "group") {
-    return `${API_BASE_URL}/mm/files/chat/${item.id}/avatars/${avatarKey}`;
+    return buildConversationAvatarUrl(item.id, avatarKey);
   }
   const avatarUserId = item.avatarUserId;
   if (!avatarUserId) return "";
-  return `${API_BASE_URL}/mm/Files/users/${avatarUserId}/${avatarKey}`;
+  return getUserAvatarUrl(avatarUserId, avatarKey);
+}
+
+export function getConversationAvatarSources(
+  item: ConversationSummary | ConversationDetail,
+): AvatarSources {
+  const avatarKey = item.avatarKey;
+  if (!avatarKey) {
+    return { src: "", thumbnailSrc: "" };
+  }
+
+  if (item.conversationType === "group") {
+    return buildConversationAvatarSources(item.id, avatarKey);
+  }
+
+  return getUserAvatarSources(item.avatarUserId, avatarKey);
 }
 
 /**
@@ -160,7 +181,11 @@ export function getConversationAvatarText(
  */
 export function getMemberAvatarUrl(member: ConversationMember): string {
   if (!member.avatarKey) return "";
-  return `${API_BASE_URL}/mm/Files/users/${member.userId}/${member.avatarKey}`;
+  return getUserAvatarUrl(member.userId, member.avatarKey);
+}
+
+export function getMemberAvatarSources(member: ConversationMember): AvatarSources {
+  return getUserAvatarSources(member.userId, member.avatarKey);
 }
 
 /**
@@ -172,6 +197,14 @@ export function getMemberAvatarBySender(
 ): string {
   const member = detail.members.find((m) => m.userId === senderUserId);
   return member ? getMemberAvatarUrl(member) : "";
+}
+
+export function getMemberAvatarSourcesBySender(
+  detail: ConversationDetail,
+  senderUserId: number,
+): AvatarSources {
+  const member = detail.members.find((m) => m.userId === senderUserId);
+  return member ? getMemberAvatarSources(member) : { src: "", thumbnailSrc: "" };
 }
 
 /**

@@ -35,6 +35,22 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const isAnalyze = env.ANALYZE === "true";
   const dropConsole = env.VITE_DROP_CONSOLE !== "false";
+  const apiProxyTarget = (() => {
+    const raw = env.VITE_API_BASE_URL?.trim();
+    if (!raw || raw === "/") return "https://8.137.127.7";
+
+    try {
+      return new URL(raw).origin;
+    } catch {
+      return raw.replace(/\/+$/, "");
+    }
+  })();
+  const apiProxyHeaders =
+    apiProxyTarget === "https://8.137.127.7"
+      ? {
+        host: "check.meowmemoirs.cn",
+      }
+      : undefined;
 
   return {
     plugins: [
@@ -89,18 +105,15 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0', // 设置服务器监听所有网络接口
       proxy: {
         "/mm": {
-          target: "https://8.137.127.7",
-          // target: "http://localhost:5210",
-          headers: {
-            host: "check.meowmemoirs.cn",
-          },
+          target: apiProxyTarget,
+          headers: apiProxyHeaders,
           //* 忽略https证书错误 */
           changeOrigin: true,
           // 允许代理服务器使用自签名证书
           secure: false,
         },
         "/hubs/chat": {
-          target: "https://check.meowmemoirs.cn",
+          target: apiProxyTarget,
           changeOrigin: true,
           secure: false,
           ws: true,

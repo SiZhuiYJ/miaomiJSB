@@ -1,16 +1,19 @@
 <script setup lang="ts">
 
+import ProgressiveAvatar from "@/components/ProgressiveAvatar.vue";
 import { useAuthStore } from "@/features/auth/stores";
 import { authApi } from "@/features/auth/api/index";
 import type { PasswordPayload } from "@/features/auth/types";
 import { ElMessageBox } from "element-plus";
 import { notifySuccess, notifyError } from "@/utils/notification";
-import { APP_TITLE, API_BASE_URL } from "@/config";
+import { APP_TITLE } from "@/config";
+import { getUserAvatarSources } from "@/utils/avatar";
 import { storeToRefs } from "pinia";
 import router from "@/routers/index";
 import { maskEmail, maskString } from "@/utils/auth";
 import Txet from '@/components/Text/index.vue'
 const { user } = storeToRefs(useAuthStore());
+const currentAvatar = computed(() => getUserAvatarSources(user.value?.userId, user.value?.avatarKey));
 
 // SVG Icons
 const MoonIcon = {
@@ -253,11 +256,13 @@ async function handleDeactivateConfirm(): Promise<void> {
               <el-skeleton-item variant="circle" style="width: 30px; height: 30px" />
             </template>
             <template #default>
-              <el-avatar v-if="user.avatarKey" fit="cover"
-                :src="`${API_BASE_URL}/mm/Files/users/${user.userId}/${user.avatarKey}`" :size="30" mode="aspectFill" />
-              <el-avatar v-else :size="30">
+              <ProgressiveAvatar
+                :src="currentAvatar.src"
+                :thumbnail-src="currentAvatar.thumbnailSrc"
+                :size="30"
+              >
                 {{ user.nickName ? user.nickName.charAt(0).toUpperCase() : "U" }}
-              </el-avatar>
+              </ProgressiveAvatar>
               <Txet :text="`${maskEmail(user.email)}${user.nickName ? `(${maskString(user.nickName!)})` : ''}`"
                 :width="150" :speed="10" mode="bounce" shrinkWhenShort />
               <el-icon class="dropdown-arrow"><arrow-down /></el-icon>

@@ -82,7 +82,7 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
     /// <response code="404">用户不存在</response>
     [HttpPost("avatar")]
     [RequestSizeLimit(10 * 1024 * 1024)]
-    public async Task<ActionResult> UploadUserAvatar(IFormFile file)
+    public async Task<ActionResult> UploadUserAvatar(IFormFile file, IFormFile? thumbnail)
     {
         if (file == null || file.Length == 0)
             return BadRequest("文件不能为空");
@@ -94,7 +94,7 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
 
         try
         {
-            var fileKey = await _fileService.SaveImageAsync(userId, file, true);
+            var fileKey = await _fileService.SaveUserAvatarAsync(userId, file, thumbnail);
 
             user.AvatarKey = fileKey;
             user.UpdatedAt = DateTime.UtcNow;
@@ -140,9 +140,12 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
     /// <response code="404">头像文件不存在</response>
     [HttpGet("users/{userId}/{key}")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetUserAvatar(ulong userId, string key)
+    public async Task<IActionResult> GetUserAvatar(
+        ulong userId,
+        string key,
+        [FromQuery(Name = "thumbnail")] string? thumbnail = null)
     {
-        var result = await _fileService.GetImageAsync(userId, key, true);
+        var result = await _fileService.GetImageAsync(userId, key, true, ParseBooleanQuery(thumbnail));
 
         if (result == null)
             return NotFound("头像文件不存在");
@@ -294,7 +297,7 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
     /// <response code="404">会话不存在</response>
     [HttpPost("chat/{conversationId:ulong}/avatar")]
     [RequestSizeLimit(10 * 1024 * 1024)]
-    public async Task<ActionResult> UploadConversationAvatar(ulong conversationId, IFormFile file)
+    public async Task<ActionResult> UploadConversationAvatar(ulong conversationId, IFormFile file, IFormFile? thumbnail)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "鏂囦欢涓嶈兘涓虹┖" });
@@ -316,7 +319,7 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
 
         try
         {
-            var fileKey = await _fileService.SaveConversationAvatarAsync(userId, conversationId, file);
+            var fileKey = await _fileService.SaveConversationAvatarAsync(userId, conversationId, file, thumbnail);
             membership.Conversation.AvatarKey = fileKey;
             membership.Conversation.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
@@ -330,9 +333,12 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
 
     [HttpGet("chat/{conversationId:ulong}/avatars/{key}")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetConversationAvatar(ulong conversationId, string key)
+    public async Task<IActionResult> GetConversationAvatar(
+        ulong conversationId,
+        string key,
+        [FromQuery(Name = "thumbnail")] string? thumbnail = null)
     {
-        var result = await _fileService.GetPublicConversationAvatarAsync(conversationId, key);
+        var result = await _fileService.GetPublicConversationAvatarAsync(conversationId, key, ParseBooleanQuery(thumbnail));
 
         if (result == null)
             return NotFound("澶村儚鏂囦欢涓嶅瓨鍦ㄦ垨鏃犺闂潈闄?");
@@ -421,6 +427,25 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
     /// 从当前访问令牌中解析用户 ID。
     /// </summary>
     /// <returns>当前登录用户的 ID。</returns>
+    static bool ParseBooleanQuery(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        return value.Trim().ToLowerInvariant() switch
+        {
+            "1" => true,
+            "0" => false,
+            "true" => true,
+            "false" => false,
+            "yes" => true,
+            "no" => false,
+            "on" => true,
+            "off" => false,
+            _ => false
+        };
+    }
+
     ulong GetUserId()
     {
         var candidateTypes = new[] { ClaimTypes.NameIdentifier, "sub", "nameid", "user_id", "id" };

@@ -981,7 +981,7 @@
             • 存储优化：智能压缩算法
             </remarks>
         </member>
-        <member name="M:api.Controllers.FilesController.UploadUserAvatar(Microsoft.AspNetCore.Http.IFormFile)">
+        <member name="M:api.Controllers.FilesController.UploadUserAvatar(Microsoft.AspNetCore.Http.IFormFile,Microsoft.AspNetCore.Http.IFormFile)">
             <summary>
             上传用户头像接口，提供公开访问的头像存储服务。
             上传成功后自动更新当前用户的头像链接(AvatarKey)。
@@ -1017,7 +1017,7 @@
             <response code="400">文件为空或格式不支持</response>
             <response code="404">用户不存在</response>
         </member>
-        <member name="M:api.Controllers.FilesController.GetUserAvatar(System.UInt64,System.String)">
+        <member name="M:api.Controllers.FilesController.GetUserAvatar(System.UInt64,System.String,System.String)">
             <summary>
             获取指定用户头像接口，提供公开访问的头像读取服务。
             无需认证即可访问，支持跨域请求。
@@ -1123,7 +1123,7 @@
             <response code="200">图片获取成功</response>
             <response code="404">图片文件不存在或无访问权限</response>
         </member>
-        <member name="M:api.Controllers.FilesController.UploadConversationAvatar(System.UInt64,Microsoft.AspNetCore.Http.IFormFile)">
+        <member name="M:api.Controllers.FilesController.UploadConversationAvatar(System.UInt64,Microsoft.AspNetCore.Http.IFormFile,Microsoft.AspNetCore.Http.IFormFile)">
             <summary>
             上传聊天文件接口，支持视频、音频、文档、压缩包等多种文件类型。
             文件将按会话隔离存储，只有会话成员才能访问。
@@ -1204,7 +1204,7 @@
             <response code="200">文件获取成功</response>
             <response code="404">文件不存在或无访问权限</response>
         </member>
-        <member name="M:api.Controllers.FilesController.GetUserId">
+        <member name="M:api.Controllers.FilesController.ParseBooleanQuery(System.String)">
             <summary>
             从当前访问令牌中解析用户 ID。
             </summary>

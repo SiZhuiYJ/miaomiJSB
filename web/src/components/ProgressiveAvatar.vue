@@ -1,0 +1,163 @@
+<script setup lang="ts">
+import { computed, ref, watch } from "vue";
+
+type SizeValue = number | string;
+
+const props = withDefaults(
+  defineProps<{
+    src?: string;
+    thumbnailSrc?: string;
+    alt?: string;
+    size?: SizeValue;
+    width?: SizeValue;
+    height?: SizeValue;
+    shape?: "circle" | "square";
+    fit?: "cover" | "contain";
+  }>(),
+  {
+    src: "",
+    thumbnailSrc: "",
+    alt: "avatar",
+    size: 40,
+    width: undefined,
+    height: undefined,
+    shape: "circle",
+    fit: "cover",
+  },
+);
+
+const fullReady = ref(false);
+const fullFailed = ref(false);
+const thumbFailed = ref(false);
+
+watch(
+  () => [props.src, props.thumbnailSrc],
+  () => {
+    fullReady.value = false;
+    fullFailed.value = false;
+    thumbFailed.value = false;
+  },
+  { immediate: true },
+);
+
+const normalizedWidth = computed(() => props.width ?? props.size);
+const normalizedHeight = computed(() => props.height ?? props.size);
+
+const rootStyle = computed(() => ({
+  width:
+    typeof normalizedWidth.value === "number"
+      ? `${normalizedWidth.value}px`
+      : normalizedWidth.value,
+  height:
+    typeof normalizedHeight.value === "number"
+      ? `${normalizedHeight.value}px`
+      : normalizedHeight.value,
+}));
+
+const thumbSrc = computed(() => {
+  if (thumbFailed.value) {
+    return fullFailed.value ? "" : props.src;
+  }
+  return props.thumbnailSrc || props.src;
+});
+
+const showFullLayer = computed(() => Boolean(props.src && !fullFailed.value));
+const hasImage = computed(() => Boolean(thumbSrc.value || showFullLayer.value));
+const mediaStyle = computed(() => ({
+  objectFit: props.fit,
+}));
+
+function handleFullLoad() {
+  fullReady.value = true;
+}
+
+function handleFullError() {
+  fullFailed.value = true;
+}
+
+function handleThumbError() {
+  thumbFailed.value = true;
+}
+</script>
+
+<template>
+  <div
+    class="progressive-avatar"
+    :class="[shape, { 'has-image': hasImage, 'full-ready': fullReady }]"
+    :style="rootStyle"
+  >
+    <div class="avatar-fallback">
+      <slot />
+    </div>
+
+    <img
+      v-if="thumbSrc"
+      class="avatar-layer avatar-thumb"
+      :src="thumbSrc"
+      :alt="alt"
+      :style="mediaStyle"
+      loading="lazy"
+      @error="handleThumbError"
+    />
+    <img
+      v-if="showFullLayer"
+      class="avatar-layer avatar-full"
+      :src="src"
+      :alt="alt"
+      :style="mediaStyle"
+      loading="lazy"
+      @load="handleFullLoad"
+      @error="handleFullError"
+    />
+  </div>
+</template>
+
+<style scoped lang="scss">
+.progressive-avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: inherit;
+  background: #f3f4f6;
+
+  &.circle {
+    border-radius: 999px;
+  }
+
+  &.square {
+    border-radius: 16px;
+  }
+}
+
+.avatar-layer,
+.avatar-fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.avatar-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  background: inherit;
+}
+
+.avatar-thumb {
+  transform: scale(1.04);
+  filter: blur(10px);
+}
+
+.avatar-full {
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.full-ready .avatar-full {
+  opacity: 1;
+}
+</style>

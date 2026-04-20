@@ -1,6 +1,7 @@
 import type { AxiosProgressEvent } from "axios";
 import { API_BASE_URL } from "@/config";
 import fileHttp from "@/libs/http/file";
+import { getConversationAvatarUrl as buildConversationAvatarUrl } from "@/utils/avatar";
 
 export interface ChatFileInfo {
   fileKey: string;
@@ -36,9 +37,14 @@ export function getChatFileUrl(fileKey: string): string {
   return `${API_BASE_URL}/mm/files/chat/${fileKey}`;
 }
 
-export async function uploadConversationAvatar(conversationId: number, file: File) {
-  const formData = new FormData();
-  formData.append("file", file);
+export async function uploadConversationAvatar(
+  conversationId: number,
+  payload: File | FormData,
+) {
+  const formData = payload instanceof FormData ? payload : new FormData();
+  if (!(payload instanceof FormData)) {
+    formData.append("file", payload);
+  }
 
   return await fileHttp.upload<{ key: string }>(
     `/mm/files/chat/${conversationId}/avatar`,
@@ -47,6 +53,5 @@ export async function uploadConversationAvatar(conversationId: number, file: Fil
 }
 
 export function getConversationAvatarUrl(conversationId: number, fileKey: string): string {
-  if (!fileKey) return "";
-  return `${API_BASE_URL}/mm/files/chat/${conversationId}/avatars/${fileKey}`;
+  return buildConversationAvatarUrl(conversationId, fileKey);
 }

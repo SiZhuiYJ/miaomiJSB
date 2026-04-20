@@ -21,6 +21,7 @@ import {
   formatDateSeparator,
   getConversationDisplayTitle,
   getMemberAvatarBySender,
+  getMemberAvatarSourcesBySender,
   getMessagePreview,
   getMessageSenderName,
 } from '../utils/chat';
@@ -841,6 +842,7 @@ onBeforeUnmount(() => {
               :message="item.kind === 'message' ? item.message : undefined"
               :pending-upload="item.kind === 'pending' ? item.pendingUpload : undefined"
               :src="getMemberAvatarBySender(currentConversation, getItemSenderId(item))" :meUserId="props.meUserId"
+              :thumbnail-src="getMemberAvatarSourcesBySender(currentConversation, getItemSenderId(item)).thumbnailSrc"
               :is-mine="getItemSenderId(item) === props.meUserId" :reply-target="getItemReplyTarget(item)"
               :reply-target-id="getItemReplyTargetId(item)" :allow-inline-media-load="shouldPreloadInlineMedia(item)"
               :highlighted="item.kind === 'message' && highlightedMessageId === item.message.id"

@@ -1,7 +1,9 @@
 <!-- ConversationSidebar.vue -->
 <script setup lang="ts">
+import ProgressiveAvatar from "@/components/ProgressiveAvatar.vue";
 import type { ConversationSummary } from '../types';
 import {
+  getConversationAvatarSources,
   getConversationAvatarUrl,
   getConversationAvatarText,
   getConversationDisplayTitle,
@@ -35,9 +37,15 @@ const createConversationTypeOptions = [
       <ul class="conversation-list">
         <li v-for="item in conversations" :key="item.id" class="conversation-item"
           :class="{ active: item.id === selectedConversationId }" @click="emit('selectConversation', item)">
-          <el-avatar class="conversation-avatar" :src="getConversationAvatarUrl(item)" :size="60" shape="square">
+          <ProgressiveAvatar
+            class="conversation-avatar"
+            :src="getConversationAvatarUrl(item)"
+            :thumbnail-src="getConversationAvatarSources(item).thumbnailSrc"
+            :size="60"
+            shape="square"
+          >
             {{ getConversationAvatarText(item) }}
-          </el-avatar>
+          </ProgressiveAvatar>
           <el-badge :value="item.unreadCount" :show-zero="false" :max="99" :offset="[-22, 5]"
             :color="item.isMuted ? '#f5f7fa' : ''" class="item">
             <div class="title-row">
