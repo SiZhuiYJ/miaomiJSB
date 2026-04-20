@@ -77,6 +77,7 @@ export default defineConfig(({ mode }) => {
         : []),
     ],
     optimizeDeps: {
+      // npm install @ffmpeg/ffmpeg @ffmpeg/util @ffmpeg/core-mt
       exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
     },
     // 开发服务器配置
