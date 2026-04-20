@@ -55,6 +55,7 @@ declare module 'vue' {
     SettingsMenuItem: typeof import('./components/Menu/SettingsMenuItem.vue')['default']
     SvgIcon: typeof import('./components/SvgIcon/index.vue')['default']
     Text: typeof import('./components/Text/index.vue')['default']
+    ToWebM: typeof import('./components/ToWebM/index.vue')['default']
   }
   export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

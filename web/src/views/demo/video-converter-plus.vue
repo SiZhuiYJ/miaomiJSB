@@ -47,9 +47,10 @@ const convertToWebm = async (event: Event) => {
     // FFmpeg 指令，多线程 + 稳定配置
     await ffmpeg.exec([
       '-i', 'input_video',
-      '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
-      '-c:v', 'libvpx',       // VP8 视频编码
-      '-threads', '4',        // 指定线程数，可根据设备调整
+      // '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2',
+      '-c:v', 'libvpx',       // VP9 视频编码libvpx-vp9
+      '-threads', '8',        // 指定线程数，可根据设备调整
+      // '-crf', '0',
       '-b:v', '1M',           // 视频码率
       '-c:a', 'libvorbis',    // 音频编码
       'output.webm'
@@ -106,3 +107,9 @@ const convertToWebm = async (event: Event) => {
   color: var(--text-main);
 }
 </style>
+<!-- <template>
+  <VideoConverter />
+</template>
+<script setup lang="ts">
+import VideoConverter from '@/components/ToWebM/index.vue'
+</script> -->
