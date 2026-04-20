@@ -71,7 +71,7 @@ const convertToWebm = async (event: Event) => {
 </script>
 
 <template>
-  <div>
+  <div class="video-converter-page">
     <h3>视频转 WebM (多线程 Vue + TS)</h3>
     <input type="file" @change="convertToWebm" accept="video/*" />
 
@@ -87,3 +87,22 @@ const convertToWebm = async (event: Event) => {
     </div>
   </div>
 </template>
+<style lang="scss" scoped>
+.video-converter-page {
+  --page-bg: linear-gradient(180deg, #f5f7fb 0%, #eef3f8 100%);
+  --card-bg: rgba(255, 255, 255, 0.92);
+  --card-border: rgba(15, 23, 42, 0.08);
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+  --accent: #2563eb;
+  --accent-soft: rgba(37, 99, 235, 0.12);
+  --danger: #dc2626;
+  --warning: #b45309;
+  width: 100vw;
+  height: 100vh;
+  overflow-x: auto;
+  padding: 24px;
+  background: var(--page-bg);
+  color: var(--text-main);
+}
+</style>

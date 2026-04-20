@@ -135,64 +135,72 @@ export const staticRouter: RouteRecordRaw[] = [
     },
   },
   {
-    path: "/demo/video-converter",
-    name: "videoConverter",
-    component: () => import("@/views/demo/video-converter.vue"),
-    meta: {
-      title: "视频转WebM", // 标题
-      enName: "Video Converter", // 英文名称
-      icon: "VideoCamera", // 图标
-      isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
-      isLink: "", // 是否外链[有值则是外链]
-      isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
-      isFull: "1", // 是否缓存全屏[0是，1否]
-      isAffix: "0", // 是否缓存固定路由[0是，1否]
-    },
-  },
-  {
-    path: "/demo/video-converter-pro",
-    name: "videoConverter",
-    component: () => import("@/views/demo/video-converter-pro.vue"),
-    meta: {
-      title: "视频转WebM", // 标题
-      enName: "Video Converter", // 英文名称
-      icon: "VideoCamera", // 图标
-      isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
-      isLink: "", // 是否外链[有值则是外链]
-      isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
-      isFull: "1", // 是否缓存全屏[0是，1否]
-      isAffix: "0", // 是否缓存固定路由[0是，1否]
-    },
-  },
-  {
-    path: "/demo/video-converter-plus",
-    name: "videoConverter",
-    component: () => import("@/views/demo/video-converter-plus.vue"),
-    meta: {
-      title: "视频转WebM", // 标题
-      enName: "Video Converter", // 英文名称
-      icon: "VideoCamera", // 图标
-      isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
-      isLink: "", // 是否外链[有值则是外链]
-      isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
-      isFull: "1", // 是否缓存全屏[0是，1否]
-      isAffix: "0", // 是否缓存固定路由[0是，1否]
-    },
-  },
-  {
-    path: "/demo/file-preview",
-    name: "filePreviewDemo",
-    component: () => import("@/views/demo/file-preview.vue"),
-    meta: {
-      title: "文件预览演示", // 标题
-      enName: "File Preview Demo", // 英文名称
-      icon: "View", // 图标
-      isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
-      isLink: "", // 是否外链[有值则是外链]
-      isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
-      isFull: "1", // 是否缓存全屏[0是，1否]
-      isAffix: "0", // 是否缓存固定路由[0是，1否]
-    },
+    path: "/demo", // [唯一]
+    name: "demo",
+    redirect: "/demo/video-converter",
+    // component: () => import("@/views/demo/video-converter.vue"),
+    children: [
+      {
+        path: "/demo/video-converter",
+        name: "videoConverter",
+        component: () => import("@/views/demo/video-converter.vue"),
+        meta: {
+          title: "视频转WebM", // 标题
+          enName: "Video Converter", // 英文名称
+          icon: "VideoCamera", // 图标
+          isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
+          isLink: "", // 是否外链[有值则是外链]
+          isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
+          isFull: "1", // 是否缓存全屏[0是，1否]
+          isAffix: "0", // 是否缓存固定路由[0是，1否]
+        },
+      },
+      {
+        path: "/demo/video-converter-pro",
+        name: "videoConverter",
+        component: () => import("@/views/demo/video-converter-pro.vue"),
+        meta: {
+          title: "视频转WebM", // 标题
+          enName: "Video Converter", // 英文名称
+          icon: "VideoCamera", // 图标
+          isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
+          isLink: "", // 是否外链[有值则是外链]
+          isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
+          isFull: "1", // 是否缓存全屏[0是，1否]
+          isAffix: "0", // 是否缓存固定路由[0是，1否]
+        },
+      },
+      {
+        path: "/demo/video-converter-plus",
+        name: "videoConverter",
+        component: () => import("@/views/demo/video-converter-plus.vue"),
+        meta: {
+          title: "视频转WebM", // 标题
+          enName: "Video Converter", // 英文名称
+          icon: "VideoCamera", // 图标
+          isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
+          isLink: "", // 是否外链[有值则是外链]
+          isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
+          isFull: "1", // 是否缓存全屏[0是，1否]
+          isAffix: "0", // 是否缓存固定路由[0是，1否]
+        },
+      },
+      {
+        path: "/demo/file-preview",
+        name: "filePreviewDemo",
+        component: () => import("@/views/demo/file-preview.vue"),
+        meta: {
+          title: "文件预览演示", // 标题
+          enName: "File Preview Demo", // 英文名称
+          icon: "View", // 图标
+          isHide: "1", // 代表路由在菜单中是否隐藏，是否隐藏[0隐藏，1显示]
+          isLink: "", // 是否外链[有值则是外链]
+          isKeepAlive: "0", // 是否缓存路由数据[0是，1否]
+          isFull: "1", // 是否缓存全屏[0是，1否]
+          isAffix: "0", // 是否缓存固定路由[0是，1否]
+        },
+      },
+    ]
   },
   {
     path: LOGIN_URL,
