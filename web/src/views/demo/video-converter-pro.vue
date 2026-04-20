@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import type { FileData } from '@ffmpeg/ffmpeg';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
@@ -7,6 +8,8 @@ const ffmpeg = new FFmpeg();
 const progress = ref(0);
 const isLoaded = ref(false);
 const videoUrl = ref('');
+const toBlobPart = (data: FileData): BlobPart =>
+  typeof data === 'string' ? data : new Uint8Array(data);
 
 // 1. 加载 FFmpeg 核心库
 const loadFFmpeg = async () => {
@@ -48,7 +51,7 @@ const convertToWebm = async (event: Event) => {
     // 读取生成的文件
     const data = await ffmpeg.readFile('output.webm');
 
-    const blob = new Blob([data], { type: 'video/webm' });
+    const blob = new Blob([toBlobPart(data)], { type: 'video/webm' });
     videoUrl.value = URL.createObjectURL(blob);
     // 转换完成后清理虚拟文件
     await ffmpeg.deleteFile('input_video');

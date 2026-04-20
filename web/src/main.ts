@@ -36,7 +36,7 @@ app.use(pinia);
 // 注册全局自定义指令
 app.use(directives);
 
-app.config.errorHandler = (error, instance, info) => {
+app.config.errorHandler = (error: unknown, instance: unknown, info: string) => {
   console.error("Vue 渲染异常:", error, info, instance);
   notifyError("页面渲染异常，请刷新后重试");
 };

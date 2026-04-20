@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import type { FileData, ProgressEvent } from '@ffmpeg/ffmpeg';
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 
-const ffmpeg = new FFmpeg({ log: true, worker: true }); // ⚡ 多线程模式
+const ffmpeg = new FFmpeg();
 const progress = ref(0);
 const isLoaded = ref(false);
 const videoUrl = ref('');
+
+const toBlobPart = (data: FileData): BlobPart =>
+  typeof data === 'string' ? data : new Uint8Array(data);
 
 // 加载 FFmpeg 核心库（多线程版）
 const loadFFmpeg = async () => {
@@ -20,11 +24,11 @@ const loadFFmpeg = async () => {
   });
 
   // 监听进度
-  ffmpeg.on('progress', ({ ratio }) => {
-    progress.value = Math.min(Math.round(ratio * 100), 100);
+  ffmpeg.on('progress', (event: ProgressEvent) => {
+    progress.value = Math.min(Math.round(event.progress * 100), 100);
   });
 
-  ffmpeg.on('log', ({ message }) => console.log('[FFmpeg LOG]', message));
+  ffmpeg.on('log', ({ message }: { message: string }) => console.log('[FFmpeg LOG]', message));
 
   isLoaded.value = true;
 };
@@ -53,7 +57,7 @@ const convertToWebm = async (event: Event) => {
 
     // 读取输出文件
     const data = await ffmpeg.readFile('output.webm');
-    const blob = new Blob([data], { type: 'video/webm' });
+    const blob = new Blob([toBlobPart(data)], { type: 'video/webm' });
     videoUrl.value = URL.createObjectURL(blob);
 
     // 清理临时文件
