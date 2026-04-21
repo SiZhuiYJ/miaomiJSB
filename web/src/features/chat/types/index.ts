@@ -132,6 +132,72 @@ export interface InviteConversationMembersPayload {
 export interface MuteConversationMemberPayload {
   mode: GroupMuteMode;
   durationMinutes?: number;
+  reason?: string;
+}
+
+export interface ConversationDetailUpdateOptions {
+  persist?: boolean;
+  clearCurrent?: boolean;
+}
+
+export type FriendRequestStatus =
+  | "pending"
+  | "accepted"
+  | "rejected"
+  | "cancelled"
+  | "expired";
+
+export type FriendRequestSource = "account" | "group" | "search" | "system";
+export type FriendRequestDirection = "sent" | "received";
+
+export interface FriendUser {
+  userId: number;
+  userAccount?: string | null;
+  nickName?: string | null;
+  avatarKey?: string | null;
+}
+
+export interface Friendship {
+  id: number;
+  status: "active" | "deleted";
+  friendRemark?: string | null;
+  isStarred: boolean;
+  isMuted: boolean;
+  acceptedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  friend: FriendUser;
+}
+
+export interface FriendRequest {
+  id: number;
+  requesterUserId: number;
+  receiverUserId: number;
+  sourceConversationId?: number | null;
+  requestMessage?: string | null;
+  requestSource: FriendRequestSource;
+  requestStatus: FriendRequestStatus;
+  direction: FriendRequestDirection;
+  handledByUserId?: number | null;
+  handledAt?: string | null;
+  rejectReason?: string | null;
+  expireAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  requester: FriendUser;
+  receiver: FriendUser;
+}
+
+export interface CreateFriendRequestPayload {
+  receiverUserId?: number;
+  receiverUserAccount?: string;
+  requestMessage?: string;
+  sourceConversationId?: number | null;
+  requestSource?: FriendRequestSource;
+}
+
+export interface RejectFriendRequestPayload {
+  rejectReason?: string;
 }
 
 export interface ReadUser {

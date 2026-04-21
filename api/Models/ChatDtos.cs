@@ -74,6 +74,10 @@ public class ConversationMemberDto
     /// </summary>
     public ulong UserId { get; set; }
     /// <summary>
+    /// User account, nullable
+    /// </summary>
+    public string? UserAccount { get; set; }
+    /// <summary>
     /// 昵称，可为空
     /// </summary>
     public string? NickName { get; set; }
@@ -93,6 +97,18 @@ public class ConversationMemberDto
     /// 最后阅读消息ID，可为空
     /// </summary>
     public ulong? LastReadMessageId { get; set; }
+    /// <summary>
+    /// Whether the member is currently muted in the group
+    /// </summary>
+    public bool IsMuted { get; set; }
+    /// <summary>
+    /// Group mute expiration time, nullable
+    /// </summary>
+    public DateTime? MutedUntil { get; set; }
+    /// <summary>
+    /// Group mute mode, nullable
+    /// </summary>
+    public string? MutedMode { get; set; }
 }
 
 /// <summary>
@@ -198,6 +214,10 @@ public class ConversationSummaryDto
     /// 会话标题，可为空
     /// </summary>
     public string? Title { get; set; }
+    /// <summary>
+    /// Peer user account for direct conversation, nullable
+    /// </summary>
+    public string? UserAccount { get; set; }
     /// <summary>
     /// 头像键，可为空
     /// </summary>

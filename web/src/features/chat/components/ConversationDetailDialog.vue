@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import ProgressiveAvatar from '@/components/ProgressiveAvatar.vue';
-import { createAvatarUploadFormData } from '@/utils/avatar';
-import { computed, ref } from 'vue';
-import { ElMessageBox } from 'element-plus';
-import { storeToRefs } from 'pinia';
-import { useAuthStore } from '@/stores';
-import IsPin from './IsPin.vue';
+import ProgressiveAvatar from "@/components/ProgressiveAvatar.vue";
+import { createAvatarUploadFormData } from "@/utils/avatar";
+import { computed, ref, watch } from "vue";
+import { ElMessageBox } from "element-plus";
+import { storeToRefs } from "pinia";
+import { useAuthStore } from "@/stores";
+import IsPin from "./IsPin.vue";
 import type {
   ConversationDetail,
+  ConversationDetailUpdateOptions,
   ConversationMember,
+  Friendship,
   GroupMuteMode,
   UserRole,
-} from '../types';
+} from "../types";
 import {
   disbandConversation,
   inviteConversationMembers,
@@ -19,17 +21,25 @@ import {
   muteConversationMember,
   unmuteConversationMember,
   updateConversationMemberRole,
-} from '../api/conversations';
-import { uploadConversationAvatar as uploadConversationAvatarApi } from '../api/files';
+} from "../api/conversations";
+import { getFriends } from "../api/friends";
+import { uploadConversationAvatar as uploadConversationAvatarApi } from "../api/files";
 import {
-  groupRoleMap,
   formatChatTime,
   getConversationAvatarSources,
   getConversationAvatarText,
   getConversationDisplayTitle,
   getMemberAvatarSources,
   getMemberAvatarUrl,
-} from '../utils/chat';
+  groupRoleMap,
+} from "../utils/chat";
+
+interface MuteOption {
+  value: string;
+  label: string;
+  mode: GroupMuteMode;
+  durationMinutes?: number;
+}
 
 const props = defineProps<{
   modelValue: boolean;
@@ -37,9 +47,9 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean];
-  'update:conversation': [];
-  'load-more': [];
+  "update:modelValue": [value: boolean];
+  "update:conversation": [options?: ConversationDetailUpdateOptions];
+  "load-more": [];
 }>();
 
 const { user } = storeToRefs(useAuthStore());
@@ -50,32 +60,48 @@ const roleUpdatingUserId = ref<number | null>(null);
 const kickingUserId = ref<number | null>(null);
 const mutingUserId = ref<number | null>(null);
 const disbanding = ref(false);
+
+const inviteDialogVisible = ref(false);
 const inviting = ref(false);
+const inviteSelection = ref<number[]>([]);
+const friendLoading = ref(false);
+const friends = ref<Friendship[]>([]);
+
+const muteDialogVisible = ref(false);
+const pendingMuteMember = ref<ConversationMember | null>(null);
+const selectedMuteOptionValue = ref("");
+
+const muteOptions: MuteOption[] = [
+  { value: "temporary-10", label: "10 分钟", mode: "temporary", durationMinutes: 10 },
+  { value: "temporary-60", label: "1 小时", mode: "temporary", durationMinutes: 60 },
+  { value: "temporary-1440", label: "24 小时", mode: "temporary", durationMinutes: 60 * 24 },
+  { value: "permanent", label: "永久禁言", mode: "permanent" },
+];
 
 const title = computed(() => getConversationDisplayTitle(props.conversation, user.value?.userId));
 const avatarSources = computed(() => getConversationAvatarSources(props.conversation));
-const isGroupConversation = computed(() => props.conversation.conversationType === 'group');
+const isGroupConversation = computed(() => props.conversation.conversationType === "group");
 const currentMember = computed(
   () => props.conversation.members.find((item) => item.userId === user.value?.userId) ?? null,
 );
 const currentMemberRole = computed<UserRole | null>(() => currentMember.value?.memberRole ?? null);
 const canChangeGroupAvatar = computed(
-  () => isGroupConversation.value && ['owner', 'admin'].includes(currentMemberRole.value || ''),
+  () => isGroupConversation.value && ["owner", "admin"].includes(currentMemberRole.value || ""),
 );
 const canManageMemberRoles = computed(
-  () => isGroupConversation.value && currentMemberRole.value === 'owner',
+  () => isGroupConversation.value && currentMemberRole.value === "owner",
 );
 const canInviteMembers = computed(
-  () => isGroupConversation.value && ['owner', 'admin'].includes(currentMemberRole.value || ''),
-);
-const canKickMembers = computed(
-  () => isGroupConversation.value && ['owner', 'admin'].includes(currentMemberRole.value || ''),
-);
-const canMuteMembers = computed(
-  () => isGroupConversation.value && ['owner', 'admin'].includes(currentMemberRole.value || ''),
+  () => isGroupConversation.value && props.conversation.isActive && currentMember.value !== null,
 );
 const canDisbandConversation = computed(
-  () => isGroupConversation.value && currentMemberRole.value === 'owner',
+  () => isGroupConversation.value && currentMemberRole.value === "owner",
+);
+const muteTargetName = computed(() =>
+  pendingMuteMember.value ? getMemberName(pendingMuteMember.value) : "",
+);
+const muteConfirmLoading = computed(
+  () => pendingMuteMember.value !== null && mutingUserId.value === pendingMuteMember.value.userId,
 );
 
 const sortedMembers = computed(() => {
@@ -92,15 +118,37 @@ const sortedMembers = computed(() => {
   });
 });
 
+const activeMemberUserIds = computed(() => new Set(props.conversation.members.map((item) => item.userId)));
+const inviteableFriends = computed(() =>
+  friends.value
+    .map((item) => item.friend)
+    .filter((item) => !activeMemberUserIds.value.has(item.userId))
+    .sort((left, right) =>
+      (left.nickName || left.userAccount || String(left.userId)).localeCompare(
+        right.nickName || right.userAccount || String(right.userId),
+        "zh-CN",
+      ),
+    ),
+);
+const inviteOptions = computed(() =>
+  inviteableFriends.value.map((item) => ({
+    userId: item.userId,
+    label: item.nickName || item.userAccount || String(item.userId),
+    meta: item.userAccount || `ID: ${item.userId}`,
+  })),
+);
+
 function getErrorMessage(error: unknown, fallback: string) {
-  if (typeof error === 'object' && error !== null) {
-    const responseMessage = (error as { response?: { data?: { message?: unknown } } }).response?.data?.message;
-    if (typeof responseMessage === 'string' && responseMessage.trim()) {
+  if (typeof error === "object" && error !== null) {
+    const responseMessage = (
+      error as { response?: { data?: { message?: unknown } } }
+    ).response?.data?.message;
+    if (typeof responseMessage === "string" && responseMessage.trim()) {
       return responseMessage;
     }
 
     const message = (error as { message?: unknown }).message;
-    if (typeof message === 'string' && message.trim()) {
+    if (typeof message === "string" && message.trim()) {
       return message;
     }
   }
@@ -119,14 +167,52 @@ function getMemberName(member: ConversationMember) {
   return member.nickName || member.userAccount || String(member.userId);
 }
 
+function canModerateMember(member: ConversationMember) {
+  if (!isGroupConversation.value || member.userId === user.value?.userId) return false;
+
+  switch (currentMemberRole.value) {
+    case "owner":
+      return member.memberRole !== "owner";
+    case "admin":
+      return member.memberRole === "member";
+    default:
+      return false;
+  }
+}
+
+async function loadFriends() {
+  if (!isGroupConversation.value || !currentMember.value) return;
+
+  friendLoading.value = true;
+  try {
+    const { data } = await getFriends();
+    friends.value = data;
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, "加载好友列表失败"));
+  } finally {
+    friendLoading.value = false;
+  }
+}
+
+function resetMuteDialog() {
+  muteDialogVisible.value = false;
+  pendingMuteMember.value = null;
+  selectedMuteOptionValue.value = "";
+}
+
+function resetInviteDialog() {
+  inviteDialogVisible.value = false;
+  inviteSelection.value = [];
+}
+
 function toggleMuted() {
   props.conversation.isMuted = !props.conversation.isMuted;
-  emit('update:conversation');
+  emit("update:conversation", { persist: true });
 }
 
 function togglePinned() {
   props.conversation.isPinned = !props.conversation.isPinned;
-  emit('update:conversation');
+  emit("update:conversation", { persist: true });
 }
 
 function openAvatarPicker() {
@@ -137,7 +223,7 @@ function openAvatarPicker() {
 async function handleAvatarChange(event: Event) {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
-  input.value = '';
+  input.value = "";
 
   if (!file || !canChangeGroupAvatar.value) return;
 
@@ -146,19 +232,18 @@ async function handleAvatarChange(event: Event) {
     const formData = await createAvatarUploadFormData(file);
     const { data } = await uploadConversationAvatarApi(props.conversation.id, formData);
     props.conversation.avatarKey = data.key;
-    emit('update:conversation');
-    ElMessage.success('群头像已更新');
+    emit("update:conversation");
+    ElMessage.success("群头像已更新");
   } catch (error) {
-    console.error('Failed to upload conversation avatar:', error);
-    ElMessage.error(getErrorMessage(error, '群头像上传失败'));
+    ElMessage.error(getErrorMessage(error, "群头像上传失败"));
   } finally {
     uploadingAvatar.value = false;
   }
 }
 
-function getNextMemberRole(member: ConversationMember): 'admin' | 'member' | null {
-  if (member.memberRole === 'admin') return 'member';
-  if (member.memberRole === 'member') return 'admin';
+function getNextMemberRole(member: ConversationMember): "admin" | "member" | null {
+  if (member.memberRole === "admin") return "member";
+  if (member.memberRole === "member") return "admin";
   return null;
 }
 
@@ -172,11 +257,10 @@ async function handleToggleMemberRole(member: ConversationMember) {
       memberRole: nextRole,
     });
     applyConversationDetail(data);
-    emit('update:conversation');
-    ElMessage.success(nextRole === 'admin' ? '已设为管理员' : '已设为成员');
+    emit("update:conversation");
+    ElMessage.success(nextRole === "admin" ? "已设为管理员" : "已设为普通成员");
   } catch (error) {
-    console.error('Failed to update conversation member role:', error);
-    ElMessage.error(getErrorMessage(error, '成员权限更新失败'));
+    ElMessage.error(getErrorMessage(error, "成员权限更新失败"));
   } finally {
     roleUpdatingUserId.value = null;
   }
@@ -189,101 +273,90 @@ function isMemberMuted(member: ConversationMember) {
 }
 
 function formatMuteStatus(member: ConversationMember) {
-  if (!isMemberMuted(member)) return '正常发言';
-  if (member.mutedMode === 'permanent' || !member.mutedUntil) return '永久禁言中';
+  if (!isMemberMuted(member)) return "可正常发言";
+  if (member.mutedMode === "permanent" || !member.mutedUntil) return "永久禁言中";
   return `禁言至 ${formatChatTime(member.mutedUntil)}`;
 }
 
-function getMuteOptions() {
-  return [
-    { label: '10 分钟', mode: 'temporary' as GroupMuteMode, durationMinutes: 10 },
-    { label: '1 小时', mode: 'temporary' as GroupMuteMode, durationMinutes: 60 },
-    { label: '24 小时', mode: 'temporary' as GroupMuteMode, durationMinutes: 60 * 24 },
-    { label: '永久禁言', mode: 'permanent' as GroupMuteMode, durationMinutes: undefined },
-  ];
-}
-
-async function handleInviteMembers() {
+async function openInviteDialog() {
   if (!canInviteMembers.value || inviting.value) return;
 
+  await loadFriends();
+  inviteSelection.value = [];
+
+  if (inviteableFriends.value.length === 0) {
+    ElMessage.info("你当前没有可邀请入群的好友");
+    return;
+  }
+
+  inviteDialogVisible.value = true;
+}
+
+async function submitInviteMembers() {
+  if (!inviteSelection.value.length) {
+    ElMessage.warning("请选择要邀请的好友");
+    return;
+  }
+
+  inviting.value = true;
   try {
-    const { value } = await ElMessageBox.prompt(
-      '请输入待邀请用户 ID，多个 ID 用英文逗号分隔（例如：1001,1002）',
-      '邀请成员',
-      {
-        inputPlaceholder: '用户ID列表',
-        confirmButtonText: '确认邀请',
-        cancelButtonText: '取消',
-      },
-    );
-
-    const memberUserIds = value
-      .split(',')
-      .map((item: string) => Number(item.trim()))
-      .filter((item: number) => Number.isFinite(item) && item > 0);
-
-    if (!memberUserIds.length) {
-      ElMessage.warning('请输入有效的用户 ID');
-      return;
-    }
-
-    inviting.value = true;
-    const { data } = await inviteConversationMembers(props.conversation.id, { memberUserIds });
+    const { data } = await inviteConversationMembers(props.conversation.id, {
+      memberUserIds: inviteSelection.value,
+    });
     applyConversationDetail(data);
-    emit('update:conversation');
-    ElMessage.success('邀请已发起');
+    emit("update:conversation");
+    ElMessage.success("邀请已发起");
+    resetInviteDialog();
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error(getErrorMessage(error, '邀请成员失败'));
-    }
+    ElMessage.error(getErrorMessage(error, "邀请成员失败"));
   } finally {
     inviting.value = false;
   }
 }
 
 async function handleKickMember(member: ConversationMember) {
-  if (!canKickMembers.value || member.memberRole === 'owner') return;
+  if (!canModerateMember(member)) return;
 
-  const confirmText = `确认将「${getMemberName(member)}」移出群聊吗？`;
   try {
-    await ElMessageBox.confirm(confirmText, '踢出成员', {
-      type: 'warning',
-      confirmButtonText: '确认踢出',
-      cancelButtonText: '取消',
-    });
+    await ElMessageBox.confirm(
+      `确认将“${getMemberName(member)}”移出群聊吗？`,
+      "移出成员",
+      {
+        type: "warning",
+        confirmButtonText: "确认移出",
+        cancelButtonText: "取消",
+      },
+    );
 
     kickingUserId.value = member.userId;
     const { data } = await kickConversationMember(props.conversation.id, member.userId);
     applyConversationDetail(data);
-    emit('update:conversation');
-    ElMessage.success('成员已移出群聊');
+    emit("update:conversation");
+    ElMessage.success("成员已移出群聊");
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error(getErrorMessage(error, '踢出成员失败'));
+    if (error !== "cancel") {
+      ElMessage.error(getErrorMessage(error, "移出成员失败"));
     }
   } finally {
     kickingUserId.value = null;
   }
 }
 
-async function handleMuteMember(member: ConversationMember) {
-  if (!canMuteMembers.value || member.memberRole === 'owner') return;
+function handleMuteMember(member: ConversationMember) {
+  if (!canModerateMember(member)) return;
 
-  const options = getMuteOptions();
-  const label = await ElMessageBox.prompt(
-    `请选择禁言模式：${options.map((item) => item.label).join(' / ')}`,
-    `禁言 ${getMemberName(member)}`,
-    {
-      inputPlaceholder: '例如：10 分钟 / 1 小时 / 24 小时 / 永久禁言',
-      confirmButtonText: '确认',
-      cancelButtonText: '取消',
-    },
-  ).then((res: { value: string }) => res.value).catch(() => '');
+  pendingMuteMember.value = member;
+  selectedMuteOptionValue.value = muteOptions[0]?.value ?? "";
+  muteDialogVisible.value = true;
+}
 
-  if (!label) return;
-  const targetOption = options.find((item) => item.label === label.trim());
+async function confirmMuteMember() {
+  const member = pendingMuteMember.value;
+  if (!member) return;
+
+  const targetOption = muteOptions.find((item) => item.value === selectedMuteOptionValue.value);
   if (!targetOption) {
-    ElMessage.warning('禁言选项无效，请按照提示输入');
+    ElMessage.warning("请选择禁言时长");
     return;
   }
 
@@ -294,26 +367,27 @@ async function handleMuteMember(member: ConversationMember) {
       durationMinutes: targetOption.durationMinutes,
     });
     applyConversationDetail(data);
-    emit('update:conversation');
-    ElMessage.success(targetOption.mode === 'permanent' ? '已永久禁言' : '成员已禁言');
+    emit("update:conversation");
+    ElMessage.success(targetOption.mode === "permanent" ? "已设为永久禁言" : "成员已禁言");
+    resetMuteDialog();
   } catch (error) {
-    ElMessage.error(getErrorMessage(error, '禁言失败'));
+    ElMessage.error(getErrorMessage(error, "禁言失败"));
   } finally {
     mutingUserId.value = null;
   }
 }
 
 async function handleUnmuteMember(member: ConversationMember) {
-  if (!canMuteMembers.value) return;
+  if (!canModerateMember(member)) return;
 
   mutingUserId.value = member.userId;
   try {
     const { data } = await unmuteConversationMember(props.conversation.id, member.userId);
     applyConversationDetail(data);
-    emit('update:conversation');
-    ElMessage.success('已解除禁言');
+    emit("update:conversation");
+    ElMessage.success("已解除禁言");
   } catch (error) {
-    ElMessage.error(getErrorMessage(error, '解除禁言失败'));
+    ElMessage.error(getErrorMessage(error, "解除禁言失败"));
   } finally {
     mutingUserId.value = null;
   }
@@ -323,25 +397,42 @@ async function handleDisbandConversation() {
   if (!canDisbandConversation.value || disbanding.value) return;
 
   try {
-    await ElMessageBox.confirm('解散后将无法恢复，确定要解散该群聊吗？', '解散群聊', {
-      type: 'warning',
-      confirmButtonText: '确认解散',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm("解散后将无法恢复，确认要解散该群聊吗？", "解散群聊", {
+      type: "warning",
+      confirmButtonText: "确认解散",
+      cancelButtonText: "取消",
     });
 
     disbanding.value = true;
-    await disbandConversation(props.conversation.id);
-    ElMessage.success('群聊已解散');
-    emit('update:modelValue', false);
-    emit('update:conversation');
+    const { data } = await disbandConversation(props.conversation.id);
+    applyConversationDetail(data);
+    ElMessage.success("群聊已解散");
+    emit("update:modelValue", false);
+    emit("update:conversation", { clearCurrent: true });
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error(getErrorMessage(error, '解散群聊失败'));
+    if (error !== "cancel") {
+      ElMessage.error(getErrorMessage(error, "解散群聊失败"));
     }
   } finally {
     disbanding.value = false;
   }
 }
+
+watch(
+  () => props.modelValue,
+  (value) => {
+    if (value && isGroupConversation.value) {
+      void loadFriends();
+      return;
+    }
+
+    if (!value) {
+      resetInviteDialog();
+      resetMuteDialog();
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -374,7 +465,7 @@ async function handleDisbandConversation() {
             更换群头像
           </el-button>
           <span class="avatar-tip">
-            {{ canChangeGroupAvatar ? '仅支持常见图片格式' : '仅群主或管理员可更换群头像' }}
+            {{ canChangeGroupAvatar ? "支持上传常见图片格式" : "仅群主或管理员可更换群头像" }}
           </span>
         </div>
         <input
@@ -388,7 +479,7 @@ async function handleDisbandConversation() {
 
       <div class="detail-meta">
         <p class="meta-item">会话标题：{{ title }}</p>
-        <p class="meta-item">会话类型：{{ conversation.conversationType === 'group' ? '群聊' : '单聊' }}</p>
+        <p class="meta-item">会话类型：{{ conversation.conversationType === "group" ? "群聊" : "单聊" }}</p>
         <p class="meta-item">会话 ID：{{ conversation.id }}</p>
         <p class="meta-item">创建时间：{{ formatChatTime(conversation.createdAt) }}</p>
         <p class="meta-item">更新时间：{{ formatChatTime(conversation.updatedAt) }}</p>
@@ -397,10 +488,10 @@ async function handleDisbandConversation() {
       <div v-if="isGroupConversation" class="group-management-section">
         <div class="section-header">
           <span>群管理</span>
-          <span class="section-tip">邀请成员 / 踢人 / 禁言 / 解散群聊</span>
+          <span class="section-tip">所有群成员都可以邀请自己的好友入群</span>
         </div>
         <div class="management-actions">
-          <el-button color="#111827" plain :disabled="!canInviteMembers" :loading="inviting" @click="handleInviteMembers">
+          <el-button color="#111827" plain :disabled="!canInviteMembers" :loading="inviting" @click="openInviteDialog">
             邀请成员
           </el-button>
           <el-button
@@ -418,7 +509,7 @@ async function handleDisbandConversation() {
       <div class="members-section">
         <div class="section-header">
           <span>成员列表</span>
-          <span v-if="canManageMemberRoles" class="section-tip">群主可切换成员和管理员职位</span>
+          <span v-if="canManageMemberRoles" class="section-tip">群主可切换管理员和普通成员</span>
         </div>
 
         <div class="member-list">
@@ -431,20 +522,23 @@ async function handleDisbandConversation() {
                 :size="48"
                 shape="square"
               >
-                {{ item.nickName ? item.nickName.slice(0, 1) : '用' }}
+                {{ (item.nickName || item.userAccount || String(item.userId)).slice(0, 1) }}
               </ProgressiveAvatar>
               <div class="member-text">
                 <div class="member-name-row">
-                  <span class="member-name">{{ item.nickName || item.userAccount || item.userId }}</span>
+                  <span class="member-name">{{ getMemberName(item) }}</span>
                   <el-tag
                     size="small"
                     :type="item.memberRole === 'owner' ? 'danger' : item.memberRole === 'admin' ? 'warning' : 'info'"
                   >
                     {{ groupRoleMap[item.memberRole] || item.memberRole }}
                   </el-tag>
-                  <el-tag v-if="isMemberMuted(item)" size="small" type="danger">{{ formatMuteStatus(item) }}</el-tag>
+                  <el-tag v-if="isMemberMuted(item)" size="small" type="danger">
+                    {{ formatMuteStatus(item) }}
+                  </el-tag>
                 </div>
                 <div class="member-subtext">加入时间：{{ formatChatTime(item.joinedAt) }}</div>
+                <div v-if="item.userAccount" class="member-subtext">账号：{{ item.userAccount }}</div>
               </div>
             </div>
 
@@ -457,29 +551,29 @@ async function handleDisbandConversation() {
                 :loading="roleUpdatingUserId === item.userId"
                 @click="handleToggleMemberRole(item)"
               >
-                {{ item.memberRole === 'admin' ? '设为成员' : '设为管理员' }}
+                {{ item.memberRole === "admin" ? "设为普通成员" : "设为管理员" }}
               </el-button>
 
               <el-button
-                v-if="canMuteMembers && item.memberRole !== 'owner' && item.userId !== user?.userId"
+                v-if="canModerateMember(item)"
                 size="small"
                 type="warning"
                 plain
                 :loading="mutingUserId === item.userId"
                 @click="isMemberMuted(item) ? handleUnmuteMember(item) : handleMuteMember(item)"
               >
-                {{ isMemberMuted(item) ? '解除禁言' : '禁言' }}
+                {{ isMemberMuted(item) ? "解除禁言" : "禁言" }}
               </el-button>
 
               <el-button
-                v-if="canKickMembers && item.memberRole !== 'owner' && item.userId !== user?.userId"
+                v-if="canModerateMember(item)"
                 size="small"
                 type="danger"
                 plain
                 :loading="kickingUserId === item.userId"
                 @click="handleKickMember(item)"
               >
-                踢出群聊
+                移出群聊
               </el-button>
             </div>
           </div>
@@ -497,6 +591,98 @@ async function handleDisbandConversation() {
       <el-button color="#111827" class="load-more" @click="emit('load-more')">加载更早消息</el-button>
     </div>
   </el-dialog>
+
+  <el-dialog
+    v-model="inviteDialogVisible"
+    title="邀请好友入群"
+    width="min(92vw, 460px)"
+    append-to-body
+    :close-on-click-modal="!inviting"
+    :close-on-press-escape="!inviting"
+    :show-close="!inviting"
+    @closed="resetInviteDialog"
+  >
+    <div class="invite-dialog-body">
+      <p class="invite-dialog-text">只能邀请你自己的好友入群。</p>
+      <el-select
+        v-model="inviteSelection"
+        class="invite-select"
+        multiple
+        filterable
+        clearable
+        collapse-tags
+        collapse-tags-tooltip
+        :loading="friendLoading"
+        placeholder="选择要邀请的好友"
+      >
+        <el-option
+          v-for="item in inviteOptions"
+          :key="item.userId"
+          :label="item.label"
+          :value="item.userId"
+        >
+          <div class="friend-option">
+            <span>{{ item.label }}</span>
+            <span class="friend-option-meta">{{ item.meta }}</span>
+          </div>
+        </el-option>
+      </el-select>
+      <el-empty
+        v-if="!friendLoading && inviteableFriends.length === 0"
+        description="暂无可邀请的好友"
+      />
+    </div>
+
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button :disabled="inviting" @click="resetInviteDialog">取消</el-button>
+        <el-button color="#111827" :loading="inviting" :disabled="!inviteSelection.length" @click="submitInviteMembers">
+          确认邀请
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
+
+  <el-dialog
+    v-model="muteDialogVisible"
+    title="设置禁言"
+    width="min(92vw, 420px)"
+    append-to-body
+    :close-on-click-modal="!muteConfirmLoading"
+    :close-on-press-escape="!muteConfirmLoading"
+    :show-close="!muteConfirmLoading"
+    @closed="resetMuteDialog"
+  >
+    <div class="mute-dialog-body">
+      <p class="mute-dialog-text">选择对“{{ muteTargetName }}”的禁言时长</p>
+      <el-select
+        v-model="selectedMuteOptionValue"
+        placeholder="请选择禁言时长"
+        class="mute-select"
+      >
+        <el-option
+          v-for="item in muteOptions"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value"
+        />
+      </el-select>
+    </div>
+
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button :disabled="muteConfirmLoading" @click="resetMuteDialog">取消</el-button>
+        <el-button
+          color="#111827"
+          :loading="muteConfirmLoading"
+          :disabled="!selectedMuteOptionValue"
+          @click="confirmMuteMember"
+        >
+          确认禁言
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped lang="scss">
@@ -511,12 +697,9 @@ async function handleDisbandConversation() {
   gap: 10px;
 }
 
-.avatar-preview,
-.avatar-fallback {
-  width: 96px;
-  height: 96px;
-  border-radius: 16px;
+.avatar-preview {
   overflow: hidden;
+  border-radius: 16px;
   background: #f3f4f6;
 }
 
@@ -651,20 +834,56 @@ async function handleDisbandConversation() {
   justify-self: flex-start;
 }
 
+.invite-dialog-body,
+.mute-dialog-body {
+  display: grid;
+  gap: 14px;
+}
+
+.invite-dialog-text,
+.mute-dialog-text {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.invite-select,
+.mute-select {
+  width: 100%;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.friend-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.friend-option-meta {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
 @media (max-width: 768px) {
-  .section-header,
   .member-row {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .member-main,
-  .member-ops {
-    width: 100%;
-  }
-
   .member-ops {
     justify-content: flex-start;
+  }
+
+  .section-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

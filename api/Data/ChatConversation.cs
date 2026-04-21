@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace api.Data;
 
 /// <summary>
-/// 聊天会话主表
+/// 聊天会话主表（支持群管理扩展）
 /// </summary>
 public partial class ChatConversation
 {
@@ -39,6 +39,36 @@ public partial class ChatConversation
     public bool? IsActive { get; set; }
 
     /// <summary>
+    /// Conversation status
+    /// </summary>
+    public string ConversationStatus { get; set; } = null!;
+
+    /// <summary>
+    /// Group member limit
+    /// </summary>
+    public uint MemberLimit { get; set; }
+
+    /// <summary>
+    /// Last message time
+    /// </summary>
+    public DateTime? LastMessageAt { get; set; }
+
+    /// <summary>
+    /// Disband time
+    /// </summary>
+    public DateTime? DisbandedAt { get; set; }
+
+    /// <summary>
+    /// Disband operator user id
+    /// </summary>
+    public ulong? DisbandedByUserId { get; set; }
+
+    /// <summary>
+    /// Disband reason
+    /// </summary>
+    public string? DisbandReason { get; set; }
+
+    /// <summary>
     /// 创建时间
     /// </summary>
     public DateTime CreatedAt { get; set; }
@@ -52,7 +82,15 @@ public partial class ChatConversation
 
     public virtual ICollection<ChatFileRecord> ChatFileRecords { get; set; } = new List<ChatFileRecord>();
 
+    public virtual ICollection<ChatGroupActionLog> ChatGroupActionLogs { get; set; } = new List<ChatGroupActionLog>();
+
     public virtual ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
 
+    public virtual User? DisbandedByUser { get; set; }
+
     public virtual User? OwnerUser { get; set; }
+
+    public virtual ICollection<UserFriendRequest> UserFriendRequests { get; set; } = new List<UserFriendRequest>();
+
+    public virtual ICollection<UserFriendship> UserFriendships { get; set; } = new List<UserFriendship>();
 }

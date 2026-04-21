@@ -3,6 +3,7 @@ import ProgressiveAvatar from '@/components/ProgressiveAvatar.vue';
 import { computed } from 'vue';
 import type { MessageReference, MessageSummary, PendingUpload } from '../types';
 import {
+  formatSystemMessageText,
   formatChatTimeShort,
   getMessagePreview,
   getMessageSenderName,
@@ -68,6 +69,9 @@ const canRecall = computed(() => {
   );
 });
 const recalledText = computed(() => props.message ? getRecalledMessageText(props.message) : '');
+const isSystemMessage = computed(() =>
+  Boolean(props.message && !props.message.isRecalled && props.message.messageType === 'system'),
+);
 const headerText = computed(() => {
   if (isUploading.value) return '发送中';
   if (isProcessing.value) return '准备中';
@@ -99,6 +103,17 @@ function handleRecall() {
   >
     <div class="recalled-message system-notice-text">
       {{ recalledText }}
+    </div>
+  </div>
+  <div
+    v-else-if="isSystemMessage"
+    :class="['msg-item', 'system-notice-item', { highlighted: props.highlighted }]"
+  >
+    <div class="system-notice-body">
+      <div class="system-notice-text">
+        {{ formatSystemMessageText(props.message?.content) }}
+      </div>
+      <div class="system-notice-time">{{ createdAtText }}</div>
     </div>
   </div>
   <div v-else :class="['msg-item', { mine: props.isMine, highlighted: props.highlighted }]">
@@ -277,13 +292,26 @@ function handleRecall() {
   width: 100%;
 }
 
+.system-notice-body {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
 .system-notice-text {
-  padding: 2px 10px;
+  padding: 4px 12px;
   border-radius: 999px;
+  color: #4b5563;
   font-size: 12px;
   line-height: 18px;
   text-align: center;
   background: rgba(107, 114, 128, 0.12);
+}
+
+.system-notice-time {
+  color: #9ca3af;
+  font-size: 11px;
+  line-height: 16px;
 }
 
 .msg-item.mine .reply-card {
@@ -306,14 +334,16 @@ function handleRecall() {
 .msg-item.highlighted :deep(.image-message),
 .msg-item.highlighted .bubble,
 .msg-item.highlighted .reply-card,
-.msg-item.highlighted .recalled-message {
+.msg-item.highlighted .recalled-message,
+.msg-item.highlighted .system-notice-text {
   box-shadow: 0 0 0 0 rgb(200 176 19 / 28%);
   animation: highlighted-blink 1.1s ease-in-out infinite alternate;
 }
 
 .msg-item.highlighted .bubble,
 .msg-item.highlighted .reply-card,
-.msg-item.highlighted .recalled-message {
+.msg-item.highlighted .recalled-message,
+.msg-item.highlighted .system-notice-text {
   background-color: #fff8d9 !important;
 }
 

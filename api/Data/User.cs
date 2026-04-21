@@ -88,11 +88,23 @@ public partial class User
     /// </summary>
     public DateTime? AccountUpdatedAt { get; set; }
 
-    public virtual ICollection<ChatConversationMember> ChatConversationMembers { get; set; } = new List<ChatConversationMember>();
+    public virtual ICollection<ChatConversation> ChatConversationDisbandedByUsers { get; set; } = new List<ChatConversation>();
 
-    public virtual ICollection<ChatConversation> ChatConversations { get; set; } = new List<ChatConversation>();
+    public virtual ICollection<ChatConversationMember> ChatConversationMemberInvitedByUsers { get; set; } = new List<ChatConversationMember>();
+
+    public virtual ICollection<ChatConversationMember> ChatConversationMemberMutedByUsers { get; set; } = new List<ChatConversationMember>();
+
+    public virtual ICollection<ChatConversationMember> ChatConversationMemberRemovedByUsers { get; set; } = new List<ChatConversationMember>();
+
+    public virtual ICollection<ChatConversationMember> ChatConversationMemberUsers { get; set; } = new List<ChatConversationMember>();
+
+    public virtual ICollection<ChatConversation> ChatConversationOwnerUsers { get; set; } = new List<ChatConversation>();
 
     public virtual ICollection<ChatFileRecord> ChatFileRecords { get; set; } = new List<ChatFileRecord>();
+
+    public virtual ICollection<ChatGroupActionLog> ChatGroupActionLogOperatorUsers { get; set; } = new List<ChatGroupActionLog>();
+
+    public virtual ICollection<ChatGroupActionLog> ChatGroupActionLogTargetUsers { get; set; } = new List<ChatGroupActionLog>();
 
     public virtual ICollection<ChatMessageReceipt> ChatMessageReceipts { get; set; } = new List<ChatMessageReceipt>();
 
@@ -111,6 +123,20 @@ public partial class User
     public virtual ICollection<UserBlacklistRecord> UserBlacklistRecordOperatorUsers { get; set; } = new List<UserBlacklistRecord>();
 
     public virtual ICollection<UserBlacklistRecord> UserBlacklistRecordUsers { get; set; } = new List<UserBlacklistRecord>();
+
+    public virtual ICollection<UserFriendRequest> UserFriendRequestHandledByUsers { get; set; } = new List<UserFriendRequest>();
+
+    public virtual ICollection<UserFriendRequest> UserFriendRequestReceiverUsers { get; set; } = new List<UserFriendRequest>();
+
+    public virtual ICollection<UserFriendRequest> UserFriendRequestRequesterUsers { get; set; } = new List<UserFriendRequest>();
+
+    public virtual ICollection<UserFriendship> UserFriendshipCreatedByUsers { get; set; } = new List<UserFriendship>();
+
+    public virtual ICollection<UserFriendship> UserFriendshipDeletedByUsers { get; set; } = new List<UserFriendship>();
+
+    public virtual ICollection<UserFriendship> UserFriendshipFriendUsers { get; set; } = new List<UserFriendship>();
+
+    public virtual ICollection<UserFriendship> UserFriendshipUsers { get; set; } = new List<UserFriendship>();
 
     public virtual ICollection<UserOauthAccount> UserOauthAccounts { get; set; } = new List<UserOauthAccount>();
 }

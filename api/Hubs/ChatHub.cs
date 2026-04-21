@@ -16,6 +16,12 @@ public class ChatHub(DailyCheckDbContext db) : Hub
 {
     readonly DailyCheckDbContext _db = db;
 
+    public override async Task OnConnectedAsync()
+    {
+        await Groups.AddToGroupAsync(Context.ConnectionId, UserGroupName(GetUserId()));
+        await base.OnConnectedAsync();
+    }
+
     /// <summary>
     /// 订阅指定的会话以接收实时消息
     /// </summary>
@@ -156,6 +162,8 @@ public class ChatHub(DailyCheckDbContext db) : Hub
     /// <param name="conversationId">会话ID</param>
     /// <returns>群组名称</returns>
     public static string GroupName(ulong conversationId) => $"conversation-{conversationId}";
+
+    public static string UserGroupName(ulong userId) => $"user-{userId}";
 
     /// <summary>
     /// 获取当前用户ID

@@ -63,6 +63,8 @@ public partial class ChatMessage
     /// </summary>
     public DateTime UpdatedAt { get; set; }
 
+    public virtual ICollection<ChatGroupActionLog> ChatGroupActionLogs { get; set; } = new List<ChatGroupActionLog>();
+
     public virtual ICollection<ChatMessageReceipt> ChatMessageReceipts { get; set; } = new List<ChatMessageReceipt>();
 
     public virtual ChatConversation Conversation { get; set; } = null!;

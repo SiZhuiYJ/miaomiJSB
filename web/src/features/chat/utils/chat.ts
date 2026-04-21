@@ -33,13 +33,64 @@ export function getMessageSenderName(
   message?: Pick<MessageReference, "senderNickName" | "senderUserId"> | null,
 ): string {
   if (!message) return "系统";
-  return message.senderNickName?.trim() || String(message.senderUserId);
+  if (message.senderNickName?.trim()) return message.senderNickName.trim();
+  if (!message.senderUserId) return "系统";
+  return String(message.senderUserId);
 }
 
 export function getRecalledMessageText(
   message?: Pick<MessageReference, "senderNickName" | "senderUserId"> | null,
 ): string {
   return `${getMessageSenderName(message)} 撤回了一条消息`;
+}
+
+function formatDurationMinutesZh(totalMinutes: number): string {
+  if (!Number.isFinite(totalMinutes) || totalMinutes <= 0) {
+    return "0 分钟";
+  }
+
+  const days = Math.floor(totalMinutes / (24 * 60));
+  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
+  const minutes = totalMinutes % 60;
+  const parts: string[] = [];
+
+  if (days > 0) parts.push(`${days} 天`);
+  if (hours > 0) parts.push(`${hours} 小时`);
+  if (minutes > 0 || parts.length === 0) parts.push(`${minutes} 分钟`);
+
+  return parts.join("");
+}
+
+export function formatSystemMessageText(content?: string | null): string {
+  const normalized = content?.trim();
+  if (!normalized) return "[系统通知]";
+
+  const inviteMatch = normalized.match(/^(.+?) invited (.+?) to the group$/i);
+  if (inviteMatch) {
+    return `${inviteMatch[1]} 邀请 ${inviteMatch[2]} 加入了群聊`;
+  }
+
+  const kickMatch = normalized.match(/^(.+?) removed (.+?) from the group$/i);
+  if (kickMatch) {
+    return `${kickMatch[1]} 将 ${kickMatch[2]} 移出了群聊`;
+  }
+
+  const muteMatch = normalized.match(/^(.+?) muted (.+?) for (\d+) minute\(s\)$/i);
+  if (muteMatch) {
+    return `${muteMatch[1]} 已将 ${muteMatch[2]} 禁言 ${formatDurationMinutesZh(Number(muteMatch[3]))}`;
+  }
+
+  const unmuteMatch = normalized.match(/^(.+?) removed the mute for (.+)$/i);
+  if (unmuteMatch) {
+    return `${unmuteMatch[1]} 已解除 ${unmuteMatch[2]} 的禁言`;
+  }
+
+  const disbandMatch = normalized.match(/^(.+?) disbanded the group$/i);
+  if (disbandMatch) {
+    return `${disbandMatch[1]} 已解散群聊`;
+  }
+
+  return normalized;
 }
 
 function resolvePreviewMessage(
@@ -222,7 +273,7 @@ export function getMessagePreview(
   }
 
   if (message.messageType === "system") {
-    return message.content?.trim() || "[系统通知]";
+    return formatSystemMessageText(message.content);
   }
 
   const fileExtra = parseMessageExtra(message.extra);

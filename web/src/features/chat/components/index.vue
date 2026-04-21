@@ -62,7 +62,7 @@ const readInfoMap = computed<Map<number, { readText: string; readColor: string }
     <div class="layout" :class="{ mobile: isMobile }">
       <ConversationSidebar v-show="showConversationList"
         v-model:create-conversation-type="chat.createConversationType.value"
-        v-model:create-title="chat.createTitle.value" v-model:create-members-text="chat.createMembersText.value"
+        v-model:create-title="chat.createTitle.value" v-model:create-member-user-ids="chat.createMemberUserIds.value"
         :selected-conversation-id="chat.selectedConversationId.value" :conversations="chat.conversations.value"
         :is-mobile="isMobile" @create-conversation="chat.handleCreateConversation"
         @select-conversation="handleSelectConversation" />
@@ -76,7 +76,7 @@ const readInfoMap = computed<Map<number, { readText: string; readColor: string }
         @recall-message="chat.recallMessage"
         @mark-read="chat.markRead" @back-to-list="handleBackToList"
         @reply-message="chat.setReplyingMessage" @clear-reply-message="chat.clearReplyingMessage"
-        @update-conversation="() => chat.updateConversation(chat.currentConversation.value!)"
+        @update-conversation="chat.handleConversationDetailUpdate"
         @update-member-role="({ memberUserId, memberRole }) => chat.updateConversationMemberRole(chat.currentConversation.value!.id, memberUserId, memberRole)"
         @load-message-read-status="chat.loadMessageReadStatus" />
     </div>

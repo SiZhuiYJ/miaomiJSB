@@ -6,7 +6,11 @@ import { useConversations } from "./useConversations";
 import { useMessages } from "./useMessages";
 import { useMessageRead } from "./useMessageRead";
 import { useChatPush } from "./useChatPush";
-import type { MessageSummary, SendMessagePayload } from "../types";
+import type {
+  ConversationDetailUpdateOptions,
+  MessageSummary,
+  SendMessagePayload,
+} from "../types";
 
 export function useChatCore() {
   const { user } = storeToRefs(useAuthStore());
@@ -115,7 +119,7 @@ export function useChatCore() {
   // 创建会话的表单状态
   const createConversationType = ref<"direct" | "group">("direct");
   const createTitle = ref("");
-  const createMembersText = ref("");
+  const createMemberUserIds = ref<number[]>([]);
   const composeText = ref("");
 
   watch(
@@ -143,10 +147,9 @@ export function useChatCore() {
   );
 
   async function handleCreateConversation() {
-    const memberUserIds = createMembersText.value
-      .split(",")
-      .map((x) => Number(x.trim()))
-      .filter((x) => Number.isFinite(x) && x > 0);
+    const memberUserIds = createMemberUserIds.value
+      .filter((x) => Number.isFinite(x) && x > 0)
+      .filter((value, index, array) => array.indexOf(value) === index);
     const detail = await conversationsModule.createConversation({
       conversationType: createConversationType.value,
       title: createTitle.value || undefined,
@@ -154,7 +157,7 @@ export function useChatCore() {
     });
     if (detail) {
       createTitle.value = "";
-      createMembersText.value = "";
+      createMemberUserIds.value = [];
     }
   }
 
@@ -184,6 +187,26 @@ export function useChatCore() {
     return recalledMessage;
   }
 
+  async function handleConversationDetailUpdate(
+    options?: ConversationDetailUpdateOptions,
+  ) {
+    if (options?.persist && conversationsModule.currentConversation.value) {
+      await conversationsModule.updateConversation(
+        conversationsModule.currentConversation.value,
+      );
+      return;
+    }
+
+    await conversationsModule.loadConversations();
+
+    if (options?.clearCurrent) {
+      clearReplyingMessage();
+      conversationsModule.currentConversation.value = null;
+      messagesModule.resetMessages();
+      readModule.clearReadStatus();
+    }
+  }
+
   // 在 useChatCore 中添加
   const togglePush = (force?: boolean) => {
     if (force === true) pushModule.startPush();
@@ -210,6 +233,7 @@ export function useChatCore() {
     selectConversation: conversationsModule.selectConversation,
     updateConversation: conversationsModule.updateConversation,
     updateConversationMemberRole: conversationsModule.updateConversationMemberRole,
+    handleConversationDetailUpdate,
     loadMore: messagesModule.loadMore,
     sendTextMessage: handleSendText,
     sendMessage: messagesModule.sendMessage,
@@ -232,7 +256,7 @@ export function useChatCore() {
     // 表单
     createConversationType,
     createTitle,
-    createMembersText,
+    createMemberUserIds,
     composeText,
     handleCreateConversation,
 

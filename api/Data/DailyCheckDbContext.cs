@@ -22,6 +22,8 @@ public partial class DailyCheckDbContext : DbContext
 
     public virtual DbSet<ChatFileRecord> ChatFileRecords { get; set; }
 
+    public virtual DbSet<ChatGroupActionLog> ChatGroupActionLogs { get; set; }
+
     public virtual DbSet<ChatMessage> ChatMessages { get; set; }
 
     public virtual DbSet<ChatMessageReceipt> ChatMessageReceipts { get; set; }
@@ -42,6 +44,10 @@ public partial class DailyCheckDbContext : DbContext
 
     public virtual DbSet<UserBlacklistRecord> UserBlacklistRecords { get; set; }
 
+    public virtual DbSet<UserFriendRequest> UserFriendRequests { get; set; }
+
+    public virtual DbSet<UserFriendship> UserFriendships { get; set; }
+
     public virtual DbSet<UserOauthAccount> UserOauthAccounts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -55,12 +61,18 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 
             entity
-                .ToTable("chat_conversations", tb => tb.HasComment("聊天会话主表"))
+                .ToTable("chat_conversations", tb => tb.HasComment("聊天会话主表（支持群管理扩展）"))
                 .UseCollation("utf8mb4_unicode_ci");
 
             entity.HasIndex(e => e.IsActive, "idx_chat_conversations_active");
 
+            entity.HasIndex(e => e.DisbandedByUserId, "idx_chat_conversations_disbanded_by");
+
+            entity.HasIndex(e => e.LastMessageAt, "idx_chat_conversations_last_message_at");
+
             entity.HasIndex(e => e.OwnerUserId, "idx_chat_conversations_owner");
+
+            entity.HasIndex(e => e.ConversationStatus, "idx_chat_conversations_status");
 
             entity.HasIndex(e => e.ConversationType, "idx_chat_conversations_type");
 
@@ -71,6 +83,11 @@ public partial class DailyCheckDbContext : DbContext
                 .HasMaxLength(512)
                 .HasComment("会话头像")
                 .HasColumnName("avatar_key");
+            entity.Property(e => e.ConversationStatus)
+                .HasDefaultValueSql("'active'")
+                .HasComment("Conversation status")
+                .HasColumnType("enum('active','disbanded','archived')")
+                .HasColumnName("conversation_status");
             entity.Property(e => e.ConversationType)
                 .HasDefaultValueSql("'group'")
                 .HasComment("会话类型：direct=双人，group=多人/群聊")
@@ -81,11 +98,30 @@ public partial class DailyCheckDbContext : DbContext
                 .HasComment("创建时间")
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
+            entity.Property(e => e.DisbandReason)
+                .HasMaxLength(255)
+                .HasComment("Disband reason")
+                .HasColumnName("disband_reason");
+            entity.Property(e => e.DisbandedAt)
+                .HasComment("Disband time")
+                .HasColumnType("datetime")
+                .HasColumnName("disbanded_at");
+            entity.Property(e => e.DisbandedByUserId)
+                .HasComment("Disband operator user id")
+                .HasColumnName("disbanded_by_user_id");
             entity.Property(e => e.IsActive)
                 .IsRequired()
                 .HasDefaultValueSql("'1'")
                 .HasComment("是否可用：1可用，0停用")
                 .HasColumnName("is_active");
+            entity.Property(e => e.LastMessageAt)
+                .HasComment("Last message time")
+                .HasColumnType("datetime")
+                .HasColumnName("last_message_at");
+            entity.Property(e => e.MemberLimit)
+                .HasDefaultValueSql("'500'")
+                .HasComment("Group member limit")
+                .HasColumnName("member_limit");
             entity.Property(e => e.OwnerUserId)
                 .HasComment("群主/创建者用户ID")
                 .HasColumnName("owner_user_id");
@@ -100,7 +136,12 @@ public partial class DailyCheckDbContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("updated_at");
 
-            entity.HasOne(d => d.OwnerUser).WithMany(p => p.ChatConversations)
+            entity.HasOne(d => d.DisbandedByUser).WithMany(p => p.ChatConversationDisbandedByUsers)
+                .HasForeignKey(d => d.DisbandedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_chat_conversations_disbanded_by");
+
+            entity.HasOne(d => d.OwnerUser).WithMany(p => p.ChatConversationOwnerUsers)
                 .HasForeignKey(d => d.OwnerUserId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_chat_conversations_owner");
@@ -111,12 +152,24 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 
             entity
-                .ToTable("chat_conversation_members", tb => tb.HasComment("会话成员关系表"))
+                .ToTable("chat_conversation_members", tb => tb.HasComment("会话成员关系表（支持邀请、踢出、禁言）"))
                 .UseCollation("utf8mb4_unicode_ci");
 
             entity.HasIndex(e => e.ConversationId, "idx_chat_members_conversation");
 
+            entity.HasIndex(e => new { e.ConversationId, e.LeftAt }, "idx_chat_members_conversation_active");
+
+            entity.HasIndex(e => e.InvitedByUserId, "idx_chat_members_invited_by");
+
+            entity.HasIndex(e => e.MutedByUserId, "idx_chat_members_muted_by");
+
+            entity.HasIndex(e => e.RemovedByUserId, "idx_chat_members_removed_by");
+
+            entity.HasIndex(e => e.MembershipStatus, "idx_chat_members_status");
+
             entity.HasIndex(e => e.UserId, "idx_chat_members_user");
+
+            entity.HasIndex(e => new { e.UserId, e.LeftAt }, "idx_chat_members_user_active");
 
             entity.HasIndex(e => new { e.ConversationId, e.UserId }, "ux_chat_members_conversation_user").IsUnique();
 
@@ -131,6 +184,13 @@ public partial class DailyCheckDbContext : DbContext
                 .HasComment("创建时间")
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
+            entity.Property(e => e.InvitedAt)
+                .HasComment("Invite time")
+                .HasColumnType("datetime")
+                .HasColumnName("invited_at");
+            entity.Property(e => e.InvitedByUserId)
+                .HasComment("Inviter user id")
+                .HasColumnName("invited_by_user_id");
             entity.Property(e => e.IsMuted)
                 .HasComment("是否消息免打扰：1是，0否")
                 .HasColumnName("is_muted");
@@ -154,10 +214,37 @@ public partial class DailyCheckDbContext : DbContext
                 .HasComment("成员角色")
                 .HasColumnType("enum('owner','admin','member')")
                 .HasColumnName("member_role");
+            entity.Property(e => e.MembershipStatus)
+                .HasDefaultValueSql("'active'")
+                .HasComment("Membership status")
+                .HasColumnType("enum('active','left','kicked')")
+                .HasColumnName("membership_status");
+            entity.Property(e => e.MuteMode)
+                .HasComment("Mute mode")
+                .HasColumnType("enum('temporary','permanent')")
+                .HasColumnName("mute_mode");
+            entity.Property(e => e.MuteReason)
+                .HasMaxLength(255)
+                .HasComment("Mute reason")
+                .HasColumnName("mute_reason");
             entity.Property(e => e.MuteUntil)
                 .HasComment("禁言截至时间（NULL表示不禁言）")
                 .HasColumnType("datetime")
                 .HasColumnName("mute_until");
+            entity.Property(e => e.MutedAt)
+                .HasComment("Mute start time")
+                .HasColumnType("datetime")
+                .HasColumnName("muted_at");
+            entity.Property(e => e.MutedByUserId)
+                .HasComment("Mute operator user id")
+                .HasColumnName("muted_by_user_id");
+            entity.Property(e => e.RemovedByUserId)
+                .HasComment("Removal operator user id")
+                .HasColumnName("removed_by_user_id");
+            entity.Property(e => e.RemovedReason)
+                .HasMaxLength(255)
+                .HasComment("Leave or removal reason")
+                .HasColumnName("removed_reason");
             entity.Property(e => e.UpdatedAt)
                 .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -172,7 +259,22 @@ public partial class DailyCheckDbContext : DbContext
                 .HasForeignKey(d => d.ConversationId)
                 .HasConstraintName("fk_chat_members_conversation");
 
-            entity.HasOne(d => d.User).WithMany(p => p.ChatConversationMembers)
+            entity.HasOne(d => d.InvitedByUser).WithMany(p => p.ChatConversationMemberInvitedByUsers)
+                .HasForeignKey(d => d.InvitedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_chat_members_invited_by");
+
+            entity.HasOne(d => d.MutedByUser).WithMany(p => p.ChatConversationMemberMutedByUsers)
+                .HasForeignKey(d => d.MutedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_chat_members_muted_by");
+
+            entity.HasOne(d => d.RemovedByUser).WithMany(p => p.ChatConversationMemberRemovedByUsers)
+                .HasForeignKey(d => d.RemovedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_chat_members_removed_by");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ChatConversationMemberUsers)
                 .HasForeignKey(d => d.UserId)
                 .HasConstraintName("fk_chat_members_user");
         });
@@ -243,6 +345,77 @@ public partial class DailyCheckDbContext : DbContext
                 .HasConstraintName("fk_chat_file_records_uploader");
         });
 
+        modelBuilder.Entity<ChatGroupActionLog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity
+                .ToTable("chat_group_action_logs", tb => tb.HasComment("Group action logs"))
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => e.ActionType, "idx_chat_group_logs_action_type");
+
+            entity.HasIndex(e => new { e.ConversationId, e.CreatedAt }, "idx_chat_group_logs_conversation_created");
+
+            entity.HasIndex(e => e.RelatedMessageId, "idx_chat_group_logs_message");
+
+            entity.HasIndex(e => e.OperatorUserId, "idx_chat_group_logs_operator");
+
+            entity.HasIndex(e => e.TargetUserId, "idx_chat_group_logs_target");
+
+            entity.Property(e => e.Id)
+                .HasComment("Primary key")
+                .HasColumnName("id");
+            entity.Property(e => e.ActionPayload)
+                .HasComment("Extra JSON payload")
+                .HasColumnType("json")
+                .HasColumnName("action_payload");
+            entity.Property(e => e.ActionReason)
+                .HasMaxLength(255)
+                .HasComment("Action reason")
+                .HasColumnName("action_reason");
+            entity.Property(e => e.ActionType)
+                .HasComment("Group action type")
+                .HasColumnType("enum('create','invite','join','kick','mute','unmute','disband','transfer_owner','set_admin','unset_admin','leave')")
+                .HasColumnName("action_type");
+            entity.Property(e => e.ConversationId)
+                .HasComment("Group conversation id")
+                .HasColumnName("conversation_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("Created time")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.OperatorUserId)
+                .HasComment("Operator user id")
+                .HasColumnName("operator_user_id");
+            entity.Property(e => e.RelatedMessageId)
+                .HasComment("Related system message id")
+                .HasColumnName("related_message_id");
+            entity.Property(e => e.TargetUserId)
+                .HasComment("Target user id")
+                .HasColumnName("target_user_id");
+
+            entity.HasOne(d => d.Conversation).WithMany(p => p.ChatGroupActionLogs)
+                .HasForeignKey(d => d.ConversationId)
+                .HasConstraintName("fk_chat_group_logs_conversation");
+
+            entity.HasOne(d => d.OperatorUser).WithMany(p => p.ChatGroupActionLogOperatorUsers)
+                .HasForeignKey(d => d.OperatorUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_chat_group_logs_operator");
+
+            entity.HasOne(d => d.RelatedMessage).WithMany(p => p.ChatGroupActionLogs)
+                .HasForeignKey(d => d.RelatedMessageId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_chat_group_logs_message");
+
+            entity.HasOne(d => d.TargetUser).WithMany(p => p.ChatGroupActionLogTargetUsers)
+                .HasForeignKey(d => d.TargetUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_chat_group_logs_target");
+        });
+
         modelBuilder.Entity<ChatMessage>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
@@ -250,6 +423,8 @@ public partial class DailyCheckDbContext : DbContext
             entity
                 .ToTable("chat_messages", tb => tb.HasComment("聊天消息表"))
                 .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => new { e.ConversationId, e.Id }, "idx_chat_messages_conversation_seq");
 
             entity.HasIndex(e => new { e.ConversationId, e.CreatedAt }, "idx_chat_messages_conversation_time");
 
@@ -789,6 +964,205 @@ public partial class DailyCheckDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("fk_blacklist_user");
+        });
+
+        modelBuilder.Entity<UserFriendRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity
+                .ToTable("user_friend_requests", tb => tb.HasComment("Friend requests"))
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => e.HandledByUserId, "idx_friend_requests_handled_by");
+
+            entity.HasIndex(e => new { e.RequesterUserId, e.ReceiverUserId, e.RequestStatus }, "idx_friend_requests_pair_status");
+
+            entity.HasIndex(e => new { e.ReceiverUserId, e.RequestStatus, e.CreatedAt }, "idx_friend_requests_receiver_status");
+
+            entity.HasIndex(e => new { e.RequesterUserId, e.RequestStatus, e.CreatedAt }, "idx_friend_requests_requester_status");
+
+            entity.HasIndex(e => e.SourceConversationId, "idx_friend_requests_source_conversation");
+
+            entity.HasIndex(e => new { e.RequestStatus, e.ExpireAt }, "idx_friend_requests_status_expire");
+
+            entity.Property(e => e.Id)
+                .HasComment("Primary key")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("Created time")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.ExpireAt)
+                .HasComment("Expire time")
+                .HasColumnType("datetime")
+                .HasColumnName("expire_at");
+            entity.Property(e => e.HandledAt)
+                .HasComment("Handled time")
+                .HasColumnType("datetime")
+                .HasColumnName("handled_at");
+            entity.Property(e => e.HandledByUserId)
+                .HasComment("Handler user id")
+                .HasColumnName("handled_by_user_id");
+            entity.Property(e => e.ReceiverUserId)
+                .HasComment("Receiver user id")
+                .HasColumnName("receiver_user_id");
+            entity.Property(e => e.RejectReason)
+                .HasMaxLength(255)
+                .HasComment("Reject reason")
+                .HasColumnName("reject_reason");
+            entity.Property(e => e.RequestMessage)
+                .HasMaxLength(255)
+                .HasComment("Request message")
+                .HasColumnName("request_message");
+            entity.Property(e => e.RequestSource)
+                .HasDefaultValueSql("'account'")
+                .HasComment("Request source")
+                .HasColumnType("enum('account','group','search','system')")
+                .HasColumnName("request_source");
+            entity.Property(e => e.RequestStatus)
+                .HasDefaultValueSql("'pending'")
+                .HasComment("Request status")
+                .HasColumnType("enum('pending','accepted','rejected','cancelled','expired')")
+                .HasColumnName("request_status");
+            entity.Property(e => e.RequesterUserId)
+                .HasComment("Requester user id")
+                .HasColumnName("requester_user_id");
+            entity.Property(e => e.SourceConversationId)
+                .HasComment("Source group conversation id")
+                .HasColumnName("source_conversation_id");
+            entity.Property(e => e.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("Updated time")
+                .HasColumnType("datetime")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.HandledByUser).WithMany(p => p.UserFriendRequestHandledByUsers)
+                .HasForeignKey(d => d.HandledByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_friend_requests_handled_by");
+
+            entity.HasOne(d => d.ReceiverUser).WithMany(p => p.UserFriendRequestReceiverUsers)
+                .HasForeignKey(d => d.ReceiverUserId)
+                .HasConstraintName("fk_friend_requests_receiver");
+
+            entity.HasOne(d => d.RequesterUser).WithMany(p => p.UserFriendRequestRequesterUsers)
+                .HasForeignKey(d => d.RequesterUserId)
+                .HasConstraintName("fk_friend_requests_requester");
+
+            entity.HasOne(d => d.SourceConversation).WithMany(p => p.UserFriendRequests)
+                .HasForeignKey(d => d.SourceConversationId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_friend_requests_source_conversation");
+        });
+
+        modelBuilder.Entity<UserFriendship>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity
+                .ToTable("user_friendships", tb => tb.HasComment("Friendships stored per user direction"))
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => e.CreatedByUserId, "idx_friendships_created_by");
+
+            entity.HasIndex(e => e.DeletedByUserId, "idx_friendships_deleted_by");
+
+            entity.HasIndex(e => new { e.FriendUserId, e.Status }, "idx_friendships_friend_status");
+
+            entity.HasIndex(e => e.SourceConversationId, "idx_friendships_source_conversation");
+
+            entity.HasIndex(e => e.SourceRequestId, "idx_friendships_source_request");
+
+            entity.HasIndex(e => new { e.UserId, e.Status }, "idx_friendships_user_status");
+
+            entity.HasIndex(e => new { e.UserId, e.FriendUserId }, "ux_friendships_user_friend").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasComment("Primary key")
+                .HasColumnName("id");
+            entity.Property(e => e.AcceptedAt)
+                .HasComment("Accepted time")
+                .HasColumnType("datetime")
+                .HasColumnName("accepted_at");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("Created time")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CreatedByUserId)
+                .HasComment("Operator user id who created the relation")
+                .HasColumnName("created_by_user_id");
+            entity.Property(e => e.DeletedAt)
+                .HasComment("Deleted time")
+                .HasColumnType("datetime")
+                .HasColumnName("deleted_at");
+            entity.Property(e => e.DeletedByUserId)
+                .HasComment("Operator user id who deleted the relation")
+                .HasColumnName("deleted_by_user_id");
+            entity.Property(e => e.FriendRemark)
+                .HasMaxLength(64)
+                .HasComment("Friend remark")
+                .HasColumnName("friend_remark");
+            entity.Property(e => e.FriendUserId)
+                .HasComment("Friend user id")
+                .HasColumnName("friend_user_id");
+            entity.Property(e => e.IsMuted)
+                .HasComment("Mute flag for this friend")
+                .HasColumnName("is_muted");
+            entity.Property(e => e.IsStarred)
+                .HasComment("Starred flag")
+                .HasColumnName("is_starred");
+            entity.Property(e => e.SourceConversationId)
+                .HasComment("Source group conversation id")
+                .HasColumnName("source_conversation_id");
+            entity.Property(e => e.SourceRequestId)
+                .HasComment("Source friend request id")
+                .HasColumnName("source_request_id");
+            entity.Property(e => e.Status)
+                .HasDefaultValueSql("'active'")
+                .HasComment("Friendship status")
+                .HasColumnType("enum('active','deleted')")
+                .HasColumnName("status");
+            entity.Property(e => e.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("Updated time")
+                .HasColumnType("datetime")
+                .HasColumnName("updated_at");
+            entity.Property(e => e.UserId)
+                .HasComment("User id")
+                .HasColumnName("user_id");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.UserFriendshipCreatedByUsers)
+                .HasForeignKey(d => d.CreatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_friendships_created_by");
+
+            entity.HasOne(d => d.DeletedByUser).WithMany(p => p.UserFriendshipDeletedByUsers)
+                .HasForeignKey(d => d.DeletedByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_friendships_deleted_by");
+
+            entity.HasOne(d => d.FriendUser).WithMany(p => p.UserFriendshipFriendUsers)
+                .HasForeignKey(d => d.FriendUserId)
+                .HasConstraintName("fk_friendships_friend");
+
+            entity.HasOne(d => d.SourceConversation).WithMany(p => p.UserFriendships)
+                .HasForeignKey(d => d.SourceConversationId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_friendships_source_conversation");
+
+            entity.HasOne(d => d.SourceRequest).WithMany(p => p.UserFriendships)
+                .HasForeignKey(d => d.SourceRequestId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_friendships_source_request");
+
+            entity.HasOne(d => d.User).WithMany(p => p.UserFriendshipUsers)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("fk_friendships_user");
         });
 
         modelBuilder.Entity<UserOauthAccount>(entity =>

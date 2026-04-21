@@ -10,6 +10,7 @@ import FileUploadButton from './FileUploadButton.vue';
 import ConversationDetailDialog from './ConversationDetailDialog.vue';
 import type {
   ConversationDetail,
+  ConversationDetailUpdateOptions,
   FileExtra,
   MessageReadStatus,
   MessageReference,
@@ -90,7 +91,7 @@ const emit = defineEmits<{
   sendTextMessage: [replyToMessageId?: number | null];
   markRead: [];
   backToList: [];
-  updateConversation: [];
+  updateConversation: [options?: ConversationDetailUpdateOptions];
   updateMemberRole: [payload: { memberUserId: number; memberRole: 'admin' | 'member' }];
   loadMessageReadStatus: [messageId: number];
   replyMessage: [message: MessageSummary];
@@ -905,7 +906,7 @@ onBeforeUnmount(() => {
       </div>
 
       <ConversationDetailDialog v-model="isChatDetail" :conversation="currentConversation"
-        @update:conversation="emit('updateConversation')" @update-member-role="emit('updateMemberRole', $event)"
+        @update:conversation="emit('updateConversation', $event)" @update-member-role="emit('updateMemberRole', $event)"
         @load-more="emit('loadMore')" />
 
       <FilePreview v-model="galleryVisible" :file-list="galleryFileList" v-model:current-index="galleryIndex" />

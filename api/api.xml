@@ -1448,7 +1448,7 @@
         </member>
         <member name="T:api.Data.ChatConversation">
             <summary>
-            聊天会话主表
+            聊天会话主表（支持群管理扩展）
             </summary>
         </member>
         <member name="P:api.Data.ChatConversation.Id">
@@ -1481,6 +1481,36 @@
             是否可用：1可用，0停用
             </summary>
         </member>
+        <member name="P:api.Data.ChatConversation.ConversationStatus">
+            <summary>
+            Conversation status
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversation.MemberLimit">
+            <summary>
+            Group member limit
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversation.LastMessageAt">
+            <summary>
+            Last message time
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversation.DisbandedAt">
+            <summary>
+            Disband time
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversation.DisbandedByUserId">
+            <summary>
+            Disband operator user id
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversation.DisbandReason">
+            <summary>
+            Disband reason
+            </summary>
+        </member>
         <member name="P:api.Data.ChatConversation.CreatedAt">
             <summary>
             创建时间
@@ -1493,7 +1523,7 @@
         </member>
         <member name="T:api.Data.ChatConversationMember">
             <summary>
-            会话成员关系表
+            会话成员关系表（支持邀请、踢出、禁言）
             </summary>
         </member>
         <member name="P:api.Data.ChatConversationMember.Id">
@@ -1516,9 +1546,24 @@
             成员角色
             </summary>
         </member>
+        <member name="P:api.Data.ChatConversationMember.MembershipStatus">
+            <summary>
+            Membership status
+            </summary>
+        </member>
         <member name="P:api.Data.ChatConversationMember.JoinedAt">
             <summary>
             加入时间
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.InvitedAt">
+            <summary>
+            Invite time
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.InvitedByUserId">
+            <summary>
+            Inviter user id
             </summary>
         </member>
         <member name="P:api.Data.ChatConversationMember.LeftAt">
@@ -1526,9 +1571,39 @@
             离开时间（NULL表示仍在会话中）
             </summary>
         </member>
+        <member name="P:api.Data.ChatConversationMember.RemovedByUserId">
+            <summary>
+            Removal operator user id
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.RemovedReason">
+            <summary>
+            Leave or removal reason
+            </summary>
+        </member>
         <member name="P:api.Data.ChatConversationMember.MuteUntil">
             <summary>
             禁言截至时间（NULL表示不禁言）
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.MuteMode">
+            <summary>
+            Mute mode
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.MuteReason">
+            <summary>
+            Mute reason
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.MutedAt">
+            <summary>
+            Mute start time
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatConversationMember.MutedByUserId">
+            <summary>
+            Mute operator user id
             </summary>
         </member>
         <member name="P:api.Data.ChatConversationMember.IsPinned">
@@ -1609,6 +1684,56 @@
         <member name="P:api.Data.ChatFileRecord.UpdatedAt">
             <summary>
             更新时间
+            </summary>
+        </member>
+        <member name="T:api.Data.ChatGroupActionLog">
+            <summary>
+            Group action logs
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupActionLog.Id">
+            <summary>
+            Primary key
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupActionLog.ConversationId">
+            <summary>
+            Group conversation id
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupActionLog.ActionType">
+            <summary>
+            Group action type
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupActionLog.OperatorUserId">
+            <summary>
+            Operator user id
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupActionLog.TargetUserId">
+            <summary>
+            Target user id
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupActionLog.RelatedMessageId">
+            <summary>
+            Related system message id
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupActionLog.ActionReason">
+            <summary>
+            Action reason
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupActionLog.ActionPayload">
+            <summary>
+            Extra JSON payload
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupActionLog.CreatedAt">
+            <summary>
+            Created time
             </summary>
         </member>
         <member name="T:api.Data.ChatMessage">
@@ -2079,6 +2204,156 @@
         <member name="P:api.Data.UserBlacklistRecord.OccurredAt">
             <summary>
             操作发生时间
+            </summary>
+        </member>
+        <member name="T:api.Data.UserFriendRequest">
+            <summary>
+            Friend requests
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendRequest.Id">
+            <summary>
+            Primary key
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendRequest.RequesterUserId">
+            <summary>
+            Requester user id
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendRequest.ReceiverUserId">
+            <summary>
+            Receiver user id
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendRequest.SourceConversationId">
+            <summary>
+            Source group conversation id
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendRequest.RequestMessage">
+            <summary>
+            Request message
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendRequest.RequestSource">
+            <summary>
+            Request source
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendRequest.RequestStatus">
+            <summary>
+            Request status
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendRequest.HandledByUserId">
+            <summary>
+            Handler user id
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendRequest.HandledAt">
+            <summary>
+            Handled time
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendRequest.RejectReason">
+            <summary>
+            Reject reason
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendRequest.ExpireAt">
+            <summary>
+            Expire time
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendRequest.CreatedAt">
+            <summary>
+            Created time
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendRequest.UpdatedAt">
+            <summary>
+            Updated time
+            </summary>
+        </member>
+        <member name="T:api.Data.UserFriendship">
+            <summary>
+            Friendships stored per user direction
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.Id">
+            <summary>
+            Primary key
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.UserId">
+            <summary>
+            User id
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.FriendUserId">
+            <summary>
+            Friend user id
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.SourceRequestId">
+            <summary>
+            Source friend request id
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.SourceConversationId">
+            <summary>
+            Source group conversation id
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.Status">
+            <summary>
+            Friendship status
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.FriendRemark">
+            <summary>
+            Friend remark
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.IsStarred">
+            <summary>
+            Starred flag
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.IsMuted">
+            <summary>
+            Mute flag for this friend
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.AcceptedAt">
+            <summary>
+            Accepted time
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.CreatedByUserId">
+            <summary>
+            Operator user id who created the relation
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.DeletedAt">
+            <summary>
+            Deleted time
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.DeletedByUserId">
+            <summary>
+            Operator user id who deleted the relation
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.CreatedAt">
+            <summary>
+            Created time
+            </summary>
+        </member>
+        <member name="P:api.Data.UserFriendship.UpdatedAt">
+            <summary>
+            Updated time
             </summary>
         </member>
         <member name="T:api.Data.UserOauthAccount">
@@ -2866,6 +3141,11 @@
             用户ID
             </summary>
         </member>
+        <member name="P:api.Models.ConversationMemberDto.UserAccount">
+            <summary>
+            User account, nullable
+            </summary>
+        </member>
         <member name="P:api.Models.ConversationMemberDto.NickName">
             <summary>
             昵称，可为空
@@ -2889,6 +3169,21 @@
         <member name="P:api.Models.ConversationMemberDto.LastReadMessageId">
             <summary>
             最后阅读消息ID，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationMemberDto.IsMuted">
+            <summary>
+            Whether the member is currently muted in the group
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationMemberDto.MutedUntil">
+            <summary>
+            Group mute expiration time, nullable
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationMemberDto.MutedMode">
+            <summary>
+            Group mute mode, nullable
             </summary>
         </member>
         <member name="T:api.Models.MessageReferenceDto">
@@ -3009,6 +3304,11 @@
         <member name="P:api.Models.ConversationSummaryDto.Title">
             <summary>
             会话标题，可为空
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationSummaryDto.UserAccount">
+            <summary>
+            Peer user account for direct conversation, nullable
             </summary>
         </member>
         <member name="P:api.Models.ConversationSummaryDto.AvatarKey">

@@ -61,9 +61,16 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         if (validUserIds.Count != memberIds.Count)
             return BadRequest(new { message = "One or more members are invalid, deleted, or disabled" });
 
+        var targetMemberUserIds = memberIds
+            .Where(x => x != userId)
+            .ToList();
+
         if (conversationType == "direct")
         {
-            var peerUserId = memberIds.Single(x => x != userId);
+            var peerUserId = targetMemberUserIds.Single();
+            if (!await AreUsersFriends(userId, peerUserId))
+                return BadRequest(new { message = "Direct conversations can only be started with users who are already your friends" });
+
             var existingDirect = await _db.ChatConversations
                 .Where(c => c.ConversationType == "direct" && c.IsActive == true)
                 .Where(c => c.ChatConversationMembers.Any(m => m.UserId == userId && m.LeftAt == null))
@@ -77,6 +84,12 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 return Ok(await BuildConversationDetail(existingDirect, userId));
             }
         }
+        else
+        {
+            var friendUserIds = await GetActiveFriendUserIds(userId, targetMemberUserIds);
+            if (friendUserIds.Count != targetMemberUserIds.Count)
+                return BadRequest(new { message = "Group conversations can only include your friends when they are created" });
+        }
 
         var now = DateTime.UtcNow;
         var conversation = new ChatConversation
@@ -86,6 +99,9 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             AvatarKey = request.AvatarKey,
             OwnerUserId = conversationType == "group" ? userId : null,
             IsActive = true,
+            ConversationStatus = "active",
+            MemberLimit = 500,
+            LastMessageAt = null,
             CreatedAt = now,
             UpdatedAt = now
         };
@@ -96,7 +112,10 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             {
                 UserId = memberUserId,
                 MemberRole = conversationType == "group" && memberUserId == userId ? "owner" : "member",
+                MembershipStatus = "active",
                 JoinedAt = now,
+                InvitedAt = memberUserId == userId ? null : now,
+                InvitedByUserId = memberUserId == userId ? null : userId,
                 IsMuted = false,
                 IsPinned = false,
                 CreatedAt = now,
@@ -106,6 +125,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
 
         _db.ChatConversations.Add(conversation);
         await _db.SaveChangesAsync();
+        await NotifyConversationInboxUpdated(conversation.Id);
 
         var detail = await BuildConversationDetail(conversation.Id, userId);
         return CreatedAtAction(nameof(GetConversationById), new { conversationId = conversation.Id }, detail);
@@ -172,6 +192,367 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         await _db.SaveChangesAsync();
         var updatedDetail = await BuildConversationDetail(conversationId, userId);
         return updatedDetail == null ? NotFound(new { message = "Conversation not found" }) : Ok(updatedDetail);
+    }
+
+    [HttpPost("conversations/{conversationId:ulong}/members/invite")]
+    public async Task<ActionResult<ConversationDetailDto>> InviteConversationMembers(
+        ulong conversationId,
+        InviteConversationMembersRequest request)
+    {
+        var userId = GetUserId();
+        var context = await GetActiveConversationContext(conversationId, userId);
+        if (context == null)
+            return NotFound(new { message = "Conversation not found or access denied" });
+
+        var (conversation, currentMember) = context.Value;
+        if (conversation.ConversationType != "group")
+            return BadRequest(new { message = "Only group conversations support inviting members" });
+
+        var memberUserIds = request.MemberUserIds
+            .Where(id => id != 0 && id != userId)
+            .Distinct()
+            .ToList();
+
+        if (memberUserIds.Count == 0)
+            return BadRequest(new { message = "memberUserIds must contain at least one valid user" });
+
+        var targetUsers = await _db.Users
+            .Where(u => memberUserIds.Contains(u.Id) && !u.IsDeleted && u.Status == true)
+            .ToListAsync();
+
+        if (targetUsers.Count != memberUserIds.Count)
+            return BadRequest(new { message = "One or more invited users are invalid, deleted, or disabled" });
+
+        var friendUserIds = await GetActiveFriendUserIds(userId, memberUserIds);
+        if (friendUserIds.Count != memberUserIds.Count)
+            return BadRequest(new { message = "Group members can only invite their own friends" });
+
+        var membersByUserId = conversation.ChatConversationMembers.ToDictionary(m => m.UserId);
+        var rejoinCount = memberUserIds.Count(userIdItem =>
+            !membersByUserId.TryGetValue(userIdItem, out var member) || member.LeftAt != null);
+        var activeMemberCount = conversation.ChatConversationMembers.Count(m => m.LeftAt == null);
+        var memberLimit = conversation.MemberLimit == 0
+            ? int.MaxValue
+            : (int)Math.Min(conversation.MemberLimit, int.MaxValue);
+
+        if (activeMemberCount + rejoinCount > memberLimit)
+            return BadRequest(new { message = "Inviting these users would exceed the group member limit" });
+
+        var now = DateTime.UtcNow;
+        var invitedNames = new List<string>();
+
+        foreach (var targetUser in targetUsers)
+        {
+            if (membersByUserId.TryGetValue(targetUser.Id, out var existingMember))
+            {
+                if (existingMember.LeftAt == null)
+                    continue;
+
+                existingMember.MemberRole = "member";
+                existingMember.MembershipStatus = "active";
+                existingMember.JoinedAt = now;
+                existingMember.InvitedAt = now;
+                existingMember.InvitedByUserId = userId;
+                existingMember.LeftAt = null;
+                existingMember.RemovedByUserId = null;
+                existingMember.RemovedReason = null;
+                existingMember.MuteMode = null;
+                existingMember.MuteUntil = null;
+                existingMember.MuteReason = null;
+                existingMember.MutedAt = null;
+                existingMember.MutedByUserId = null;
+                existingMember.UpdatedAt = now;
+            }
+            else
+            {
+                var newMember = new ChatConversationMember
+                {
+                    ConversationId = conversationId,
+                    UserId = targetUser.Id,
+                    MemberRole = "member",
+                    MembershipStatus = "active",
+                    JoinedAt = now,
+                    InvitedAt = now,
+                    InvitedByUserId = userId,
+                    IsMuted = false,
+                    IsPinned = false,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+                conversation.ChatConversationMembers.Add(newMember);
+                membersByUserId[targetUser.Id] = newMember;
+            }
+
+            invitedNames.Add(GetUserDisplayName(targetUser.NickName, targetUser.UserAccount, targetUser.Id));
+            AddGroupActionLog(
+                conversationId,
+                "invite",
+                userId,
+                targetUser.Id,
+                null,
+                new
+                {
+                    invitedByUserId = userId
+                });
+        }
+
+        if (invitedNames.Count == 0)
+        {
+            var unchangedDetail = await BuildConversationDetail(conversationId, userId);
+            return unchangedDetail == null
+                ? NotFound(new { message = "Conversation not found" })
+                : Ok(unchangedDetail);
+        }
+
+        conversation.UpdatedAt = now;
+        conversation.LastMessageAt = now;
+        var operatorName = GetUserDisplayName(currentMember.User?.NickName, currentMember.User?.UserAccount, currentMember.UserId);
+        var systemMessage = CreateSystemMessage(
+            conversationId,
+            userId,
+            $"{operatorName} 邀请 {string.Join("、", invitedNames)} 加入了群聊",
+            now);
+
+        await _db.SaveChangesAsync();
+        await BroadcastSystemMessage(systemMessage, now);
+
+        var detail = await BuildConversationDetail(conversationId, userId);
+        return detail == null ? NotFound(new { message = "Conversation not found" }) : Ok(detail);
+    }
+
+    [HttpPost("conversations/{conversationId:ulong}/members/{memberUserId:ulong}/kick")]
+    public async Task<ActionResult<ConversationDetailDto>> KickConversationMember(
+        ulong conversationId,
+        ulong memberUserId,
+        [FromBody] KickConversationMemberRequest? request = null)
+    {
+        var userId = GetUserId();
+        var context = await GetActiveConversationContext(conversationId, userId);
+        if (context == null)
+            return NotFound(new { message = "Conversation not found or access denied" });
+
+        var (conversation, currentMember) = context.Value;
+        if (conversation.ConversationType != "group")
+            return BadRequest(new { message = "Only group conversations support kicking members" });
+
+        var targetMember = conversation.ChatConversationMembers
+            .FirstOrDefault(m => m.UserId == memberUserId && m.LeftAt == null);
+        if (targetMember == null)
+            return NotFound(new { message = "Target member not found" });
+
+        if (!CanModerateMember(currentMember, targetMember))
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "You do not have permission to remove this member" });
+
+        var now = DateTime.UtcNow;
+        targetMember.LeftAt = now;
+        targetMember.MembershipStatus = "kicked";
+        targetMember.RemovedByUserId = userId;
+        targetMember.RemovedReason = NormalizeReason(request?.Reason);
+        targetMember.UpdatedAt = now;
+        conversation.UpdatedAt = now;
+        conversation.LastMessageAt = now;
+
+        var operatorName = GetUserDisplayName(currentMember.User?.NickName, currentMember.User?.UserAccount, currentMember.UserId);
+        var targetName = GetUserDisplayName(targetMember.User?.NickName, targetMember.User?.UserAccount, targetMember.UserId);
+        var systemMessage = CreateSystemMessage(
+            conversationId,
+            userId,
+            $"{operatorName} 将 {targetName} 移出了群聊",
+            now);
+
+        AddGroupActionLog(
+            conversationId,
+            "kick",
+            userId,
+            memberUserId,
+            targetMember.RemovedReason,
+            new
+            {
+                targetRole = targetMember.MemberRole
+            },
+            systemMessage);
+
+        await _db.SaveChangesAsync();
+        await BroadcastSystemMessage(systemMessage, now);
+
+        var detail = await BuildConversationDetail(conversationId, userId);
+        return detail == null ? NotFound(new { message = "Conversation not found" }) : Ok(detail);
+    }
+
+    [HttpPost("conversations/{conversationId:ulong}/members/{memberUserId:ulong}/mute")]
+    public async Task<ActionResult<ConversationDetailDto>> MuteConversationMember(
+        ulong conversationId,
+        ulong memberUserId,
+        MuteConversationMemberRequest request)
+    {
+        var userId = GetUserId();
+        var context = await GetActiveConversationContext(conversationId, userId);
+        if (context == null)
+            return NotFound(new { message = "Conversation not found or access denied" });
+
+        var (conversation, currentMember) = context.Value;
+        if (conversation.ConversationType != "group")
+            return BadRequest(new { message = "Only group conversations support muting members" });
+
+        var targetMember = conversation.ChatConversationMembers
+            .FirstOrDefault(m => m.UserId == memberUserId && m.LeftAt == null);
+        if (targetMember == null)
+            return NotFound(new { message = "Target member not found" });
+
+        if (!CanModerateMember(currentMember, targetMember))
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "You do not have permission to mute this member" });
+
+        var muteMode = NormalizeValue(request.Mode);
+        if (muteMode is not ("temporary" or "permanent"))
+            return BadRequest(new { message = "mode only supports temporary or permanent" });
+
+        if (muteMode == "temporary" && (!request.DurationMinutes.HasValue || request.DurationMinutes.Value <= 0))
+            return BadRequest(new { message = "durationMinutes must be greater than 0 for temporary mute" });
+
+        var now = DateTime.UtcNow;
+        var durationMinutes = muteMode == "temporary" ? Math.Min(request.DurationMinutes!.Value, 60 * 24 * 30) : 0;
+        var muteUntil = muteMode == "temporary" ? now.AddMinutes(durationMinutes) : (DateTime?)null;
+
+        targetMember.MuteMode = muteMode;
+        targetMember.MuteUntil = muteUntil;
+        targetMember.MuteReason = NormalizeReason(request.Reason);
+        targetMember.MutedAt = now;
+        targetMember.MutedByUserId = userId;
+        targetMember.UpdatedAt = now;
+        conversation.UpdatedAt = now;
+        conversation.LastMessageAt = now;
+
+        var operatorName = GetUserDisplayName(currentMember.User?.NickName, currentMember.User?.UserAccount, currentMember.UserId);
+        var targetName = GetUserDisplayName(targetMember.User?.NickName, targetMember.User?.UserAccount, targetMember.UserId);
+        var systemContent = muteMode == "permanent"
+            ? $"{operatorName} 已将 {targetName} 设为永久禁言"
+            : $"{operatorName} 已将 {targetName} 禁言 {FormatMuteDuration(durationMinutes)}";
+        var systemMessage = CreateSystemMessage(conversationId, userId, systemContent, now);
+
+        AddGroupActionLog(
+            conversationId,
+            "mute",
+            userId,
+            memberUserId,
+            targetMember.MuteReason,
+            new
+            {
+                mode = muteMode,
+                durationMinutes = muteMode == "temporary" ? (int?)durationMinutes : null,
+                muteUntil
+            },
+            systemMessage);
+
+        await _db.SaveChangesAsync();
+        await BroadcastSystemMessage(systemMessage, now);
+
+        var detail = await BuildConversationDetail(conversationId, userId);
+        return detail == null ? NotFound(new { message = "Conversation not found" }) : Ok(detail);
+    }
+
+    [HttpPost("conversations/{conversationId:ulong}/members/{memberUserId:ulong}/unmute")]
+    public async Task<ActionResult<ConversationDetailDto>> UnmuteConversationMember(
+        ulong conversationId,
+        ulong memberUserId)
+    {
+        var userId = GetUserId();
+        var context = await GetActiveConversationContext(conversationId, userId);
+        if (context == null)
+            return NotFound(new { message = "Conversation not found or access denied" });
+
+        var (conversation, currentMember) = context.Value;
+        if (conversation.ConversationType != "group")
+            return BadRequest(new { message = "Only group conversations support unmuting members" });
+
+        var targetMember = conversation.ChatConversationMembers
+            .FirstOrDefault(m => m.UserId == memberUserId && m.LeftAt == null);
+        if (targetMember == null)
+            return NotFound(new { message = "Target member not found" });
+
+        if (!CanModerateMember(currentMember, targetMember))
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "You do not have permission to unmute this member" });
+
+        var now = DateTime.UtcNow;
+        targetMember.MuteMode = null;
+        targetMember.MuteUntil = null;
+        targetMember.MuteReason = null;
+        targetMember.MutedAt = null;
+        targetMember.MutedByUserId = null;
+        targetMember.UpdatedAt = now;
+        conversation.UpdatedAt = now;
+        conversation.LastMessageAt = now;
+
+        var operatorName = GetUserDisplayName(currentMember.User?.NickName, currentMember.User?.UserAccount, currentMember.UserId);
+        var targetName = GetUserDisplayName(targetMember.User?.NickName, targetMember.User?.UserAccount, targetMember.UserId);
+        var systemMessage = CreateSystemMessage(
+            conversationId,
+            userId,
+            $"{operatorName} 已解除 {targetName} 的禁言",
+            now);
+
+        AddGroupActionLog(
+            conversationId,
+            "unmute",
+            userId,
+            memberUserId,
+            null,
+            null,
+            systemMessage);
+
+        await _db.SaveChangesAsync();
+        await BroadcastSystemMessage(systemMessage, now);
+
+        var detail = await BuildConversationDetail(conversationId, userId);
+        return detail == null ? NotFound(new { message = "Conversation not found" }) : Ok(detail);
+    }
+
+    [HttpPost("conversations/{conversationId:ulong}/disband")]
+    public async Task<ActionResult<ConversationDetailDto>> DisbandConversation(
+        ulong conversationId,
+        [FromBody] DisbandConversationRequest? request = null)
+    {
+        var userId = GetUserId();
+        var context = await GetActiveConversationContext(conversationId, userId);
+        if (context == null)
+            return NotFound(new { message = "Conversation not found or access denied" });
+
+        var (conversation, currentMember) = context.Value;
+        if (conversation.ConversationType != "group")
+            return BadRequest(new { message = "Only group conversations can be disbanded" });
+
+        if (!IsOwner(currentMember))
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Only the owner can disband the group" });
+
+        var now = DateTime.UtcNow;
+        conversation.ConversationStatus = "disbanded";
+        conversation.IsActive = false;
+        conversation.DisbandedAt = now;
+        conversation.DisbandedByUserId = userId;
+        conversation.DisbandReason = NormalizeReason(request?.Reason);
+        conversation.UpdatedAt = now;
+        conversation.LastMessageAt = now;
+
+        var operatorName = GetUserDisplayName(currentMember.User?.NickName, currentMember.User?.UserAccount, currentMember.UserId);
+        var systemMessage = CreateSystemMessage(
+            conversationId,
+            userId,
+            $"{operatorName} 已解散群聊",
+            now);
+
+        AddGroupActionLog(
+            conversationId,
+            "disband",
+            userId,
+            null,
+            conversation.DisbandReason,
+            null,
+            systemMessage);
+
+        await _db.SaveChangesAsync();
+        await BroadcastSystemMessage(systemMessage, now);
+
+        var detail = await BuildConversationDetail(conversationId, userId);
+        return detail == null ? NotFound(new { message = "Conversation not found" }) : Ok(detail);
     }
 
     /// <summary>
@@ -332,6 +713,14 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         if (membership == null || membership.Conversation.IsActive != true)
             return NotFound(new { message = "Conversation not found or sending is not allowed" });
 
+        if (membership.Conversation.ConversationType == "group" && IsGroupMuteActive(membership, DateTime.UtcNow))
+        {
+            var muteMessage = membership.MuteUntil.HasValue && NormalizeValue(membership.MuteMode) == "temporary"
+                ? $"You are muted until {membership.MuteUntil.Value:O}"
+                : "You are muted in this group";
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = muteMessage });
+        }
+
         var messageType = (request.MessageType ?? string.Empty).Trim().ToLowerInvariant();
         if (!AllowedMessageTypes.Contains(messageType))
             return BadRequest(new { message = "messageType 娴犲懏鏁幐?text/image/video/audio/file/system" });
@@ -371,6 +760,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         _db.ChatMessages.Add(message);
         membership.UpdatedAt = now;
         membership.Conversation.UpdatedAt = now;
+        membership.Conversation.LastMessageAt = now;
 
         await _db.SaveChangesAsync();
         membership.LastReadMessageId = message.Id;
@@ -387,6 +777,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             action = "create",
             message = result
         });
+        await NotifyConversationInboxUpdated(conversationId);
 
         return Ok(result);
     }
@@ -444,6 +835,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             updatedAt = now,
             message = result
         });
+        await NotifyConversationInboxUpdated(message.ConversationId);
 
         return Ok(result);
     }
@@ -480,8 +872,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             .Select(m => new MessageSummaryDto
             {
                 Id = m.Id,
-                SenderUserId = m.SenderUserId,
-                SenderNickName = m.SenderUser.NickName,
+                SenderUserId = m.MessageType == "system" ? 0UL : m.SenderUserId,
+                SenderNickName = m.MessageType == "system" ? "系统" : m.SenderUser.NickName,
                 MessageType = m.MessageType,
                 Content = m.IsRecalled ? null : m.Content,
                 Extra = m.IsRecalled ? null : m.Extra,
@@ -489,8 +881,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
                 {
                     Id = m.ReplyToMessage.Id,
-                    SenderUserId = m.ReplyToMessage.SenderUserId,
-                    SenderNickName = m.ReplyToMessage.SenderUser.NickName,
+                    SenderUserId = m.ReplyToMessage.MessageType == "system" ? 0UL : m.ReplyToMessage.SenderUserId,
+                    SenderNickName = m.ReplyToMessage.MessageType == "system" ? "系统" : m.ReplyToMessage.SenderUser.NickName,
                     MessageType = m.ReplyToMessage.MessageType,
                     Content = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Content,
                     Extra = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Extra,
@@ -539,8 +931,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             .Select(m => new MessageSummaryDto
             {
                 Id = m.Id,
-                SenderUserId = m.SenderUserId,
-                SenderNickName = m.SenderUser.NickName,
+                SenderUserId = m.MessageType == "system" ? 0UL : m.SenderUserId,
+                SenderNickName = m.MessageType == "system" ? "系统" : m.SenderUser.NickName,
                 MessageType = m.MessageType,
                 Content = m.IsRecalled ? null : m.Content,
                 Extra = m.IsRecalled ? null : m.Extra,
@@ -548,8 +940,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
                 {
                     Id = m.ReplyToMessage.Id,
-                    SenderUserId = m.ReplyToMessage.SenderUserId,
-                    SenderNickName = m.ReplyToMessage.SenderUser.NickName,
+                    SenderUserId = m.ReplyToMessage.MessageType == "system" ? 0UL : m.ReplyToMessage.SenderUserId,
+                    SenderNickName = m.ReplyToMessage.MessageType == "system" ? "系统" : m.ReplyToMessage.SenderUser.NickName,
                     MessageType = m.ReplyToMessage.MessageType,
                     Content = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Content,
                     Extra = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Extra,
@@ -717,9 +1109,15 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             Title = c.ConversationType == "direct"
                 ? c.ChatConversationMembers
                     .Where(m => m.UserId != userId && m.LeftAt == null)
-                    .Select(m => m.User.NickName)
+                    .Select(m => m.User.NickName ?? m.User.UserAccount)
                     .FirstOrDefault() ?? c.Title
                 : c.Title,
+            UserAccount = c.ConversationType == "direct"
+                ? c.ChatConversationMembers
+                    .Where(m => m.UserId != userId && m.LeftAt == null)
+                    .Select(m => m.User.UserAccount)
+                    .FirstOrDefault()
+                : null,
             AvatarKey = c.ConversationType == "direct"
                 ? c.ChatConversationMembers
                     .Where(m => m.UserId != userId && m.LeftAt == null)
@@ -745,8 +1143,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 .Select(m => new MessageSummaryDto
                 {
                     Id = m.Id,
-                    SenderUserId = m.SenderUserId,
-                    SenderNickName = m.SenderUser.NickName,
+                    SenderUserId = m.MessageType == "system" ? 0UL : m.SenderUserId,
+                    SenderNickName = m.MessageType == "system" ? "系统" : m.SenderUser.NickName,
                     MessageType = m.MessageType,
                     Content = m.IsRecalled ? null : m.Content,
                     Extra = m.IsRecalled ? null : m.Extra,
@@ -754,8 +1152,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                     ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
                     {
                         Id = m.ReplyToMessage.Id,
-                        SenderUserId = m.ReplyToMessage.SenderUserId,
-                        SenderNickName = m.ReplyToMessage.SenderUser.NickName,
+                        SenderUserId = m.ReplyToMessage.MessageType == "system" ? 0UL : m.ReplyToMessage.SenderUserId,
+                        SenderNickName = m.ReplyToMessage.MessageType == "system" ? "系统" : m.ReplyToMessage.SenderUser.NickName,
                         MessageType = m.ReplyToMessage.MessageType,
                         Content = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Content,
                         Extra = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Extra,
@@ -777,8 +1175,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             .Select(m => new MessageSummaryDto
             {
                 Id = m.Id,
-                SenderUserId = m.SenderUserId,
-                SenderNickName = m.SenderUser.NickName,
+                SenderUserId = m.MessageType == "system" ? 0UL : m.SenderUserId,
+                SenderNickName = m.MessageType == "system" ? "系统" : m.SenderUser.NickName,
                 MessageType = m.MessageType,
                 Content = m.IsRecalled ? null : m.Content,
                 Extra = m.IsRecalled ? null : m.Extra,
@@ -786,8 +1184,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
                 {
                     Id = m.ReplyToMessage.Id,
-                    SenderUserId = m.ReplyToMessage.SenderUserId,
-                    SenderNickName = m.ReplyToMessage.SenderUser.NickName,
+                    SenderUserId = m.ReplyToMessage.MessageType == "system" ? 0UL : m.ReplyToMessage.SenderUserId,
+                    SenderNickName = m.ReplyToMessage.MessageType == "system" ? "系统" : m.ReplyToMessage.SenderUser.NickName,
                     MessageType = m.ReplyToMessage.MessageType,
                     Content = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Content,
                     Extra = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Extra,
@@ -808,6 +1206,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     /// <returns>娴兼俺鐦界拠锔藉剰</returns>
     async Task<ConversationDetailDto?> BuildConversationDetail(ulong conversationId, ulong userId)
     {
+        var now = DateTime.UtcNow;
         return await _db.ChatConversations
             .AsNoTracking()
             .Where(c => c.Id == conversationId)
@@ -818,7 +1217,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 Title = c.ConversationType == "direct"
                     ? c.ChatConversationMembers
                         .Where(m => m.UserId != userId && m.LeftAt == null)
-                        .Select(m => m.User.NickName)
+                        .Select(m => m.User.NickName ?? m.User.UserAccount)
                         .FirstOrDefault() ?? c.Title
                     : c.Title,
                 AvatarKey = c.ConversationType == "direct"
@@ -851,15 +1250,200 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                     .Select(m => new ConversationMemberDto
                     {
                         UserId = m.UserId,
+                        UserAccount = m.User.UserAccount,
                         NickName = m.User.NickName,
                         AvatarKey = m.User.AvatarKey,
                         MemberRole = m.MemberRole,
                         JoinedAt = m.JoinedAt,
-                        LastReadMessageId = m.LastReadMessageId
+                        LastReadMessageId = m.LastReadMessageId,
+                        IsMuted = m.MuteMode == "permanent"
+                            || (m.MuteMode == "temporary" && m.MuteUntil != null && m.MuteUntil > now),
+                        MutedUntil = m.MuteUntil,
+                        MutedMode = m.MuteMode
                     })
                     .ToList()
             })
             .SingleOrDefaultAsync();
+    }
+
+    async Task<(ChatConversation Conversation, ChatConversationMember CurrentMember)?> GetActiveConversationContext(ulong conversationId, ulong userId)
+    {
+        var conversation = await _db.ChatConversations
+            .Include(c => c.ChatConversationMembers)
+                .ThenInclude(m => m.User)
+            .FirstOrDefaultAsync(c => c.Id == conversationId && c.IsActive == true);
+
+        if (conversation == null)
+            return null;
+
+        var currentMember = conversation.ChatConversationMembers
+            .FirstOrDefault(m => m.UserId == userId && m.LeftAt == null);
+
+        return currentMember == null ? null : (conversation, currentMember);
+    }
+
+    static string NormalizeValue(string? value)
+        => (value ?? string.Empty).Trim().ToLowerInvariant();
+
+    static string? NormalizeReason(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    static string GetUserDisplayName(string? nickName, string? userAccount, ulong userId)
+        => !string.IsNullOrWhiteSpace(nickName)
+            ? nickName.Trim()
+            : !string.IsNullOrWhiteSpace(userAccount)
+                ? userAccount.Trim()
+                : userId.ToString();
+
+    static string FormatMuteDuration(int durationMinutes)
+    {
+        if (durationMinutes <= 0)
+            return "0分钟";
+
+        var days = durationMinutes / (60 * 24);
+        var hours = durationMinutes % (60 * 24) / 60;
+        var minutes = durationMinutes % 60;
+        var parts = new List<string>();
+
+        if (days > 0)
+            parts.Add($"{days}天");
+        if (hours > 0)
+            parts.Add($"{hours}小时");
+        if (minutes > 0)
+            parts.Add($"{minutes}分钟");
+
+        return parts.Count > 0 ? string.Join(string.Empty, parts) : $"{durationMinutes}分钟";
+    }
+
+    static bool IsOwner(ChatConversationMember member)
+        => NormalizeValue(member.MemberRole) == "owner";
+
+    static bool CanModerateMember(ChatConversationMember currentMember, ChatConversationMember targetMember)
+    {
+        if (currentMember.UserId == targetMember.UserId)
+            return false;
+
+        var currentRole = NormalizeValue(currentMember.MemberRole);
+        var targetRole = NormalizeValue(targetMember.MemberRole);
+
+        return currentRole switch
+        {
+            "owner" => targetRole != "owner",
+            "admin" => targetRole == "member",
+            _ => false
+        };
+    }
+
+    static bool IsGroupMuteActive(ChatConversationMember member, DateTime now)
+    {
+        var muteMode = NormalizeValue(member.MuteMode);
+        return muteMode == "permanent"
+            || (muteMode == "temporary" && member.MuteUntil != null && member.MuteUntil > now);
+    }
+
+    async Task<bool> AreUsersFriends(ulong userId, ulong peerUserId)
+    {
+        return await _db.UserFriendships
+            .AsNoTracking()
+            .AnyAsync(f =>
+                f.UserId == userId &&
+                f.FriendUserId == peerUserId &&
+                f.Status == "active");
+    }
+
+    async Task<HashSet<ulong>> GetActiveFriendUserIds(ulong userId, IEnumerable<ulong> candidateUserIds)
+    {
+        var normalizedCandidateIds = candidateUserIds
+            .Where(id => id != 0 && id != userId)
+            .Distinct()
+            .ToList();
+
+        if (normalizedCandidateIds.Count == 0)
+            return [];
+
+        var friendUserIds = await _db.UserFriendships
+            .AsNoTracking()
+            .Where(f =>
+                f.UserId == userId &&
+                f.Status == "active" &&
+                normalizedCandidateIds.Contains(f.FriendUserId))
+            .Select(f => f.FriendUserId)
+            .ToListAsync();
+
+        return friendUserIds.ToHashSet();
+    }
+
+    ChatMessage CreateSystemMessage(ulong conversationId, ulong senderUserId, string content, DateTime now)
+    {
+        var message = new ChatMessage
+        {
+            ConversationId = conversationId,
+            SenderUserId = senderUserId,
+            MessageType = "system",
+            Content = content,
+            IsRecalled = false,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        _db.ChatMessages.Add(message);
+        return message;
+    }
+
+    void AddGroupActionLog(
+        ulong conversationId,
+        string actionType,
+        ulong? operatorUserId,
+        ulong? targetUserId,
+        string? actionReason,
+        object? actionPayload = null,
+        ChatMessage? relatedMessage = null)
+    {
+        _db.ChatGroupActionLogs.Add(new ChatGroupActionLog
+        {
+            ConversationId = conversationId,
+            ActionType = actionType,
+            OperatorUserId = operatorUserId,
+            TargetUserId = targetUserId,
+            ActionReason = actionReason,
+            ActionPayload = actionPayload == null ? null : JsonSerializer.Serialize(actionPayload),
+            RelatedMessage = relatedMessage,
+            CreatedAt = DateTime.UtcNow
+        });
+    }
+
+    async Task BroadcastSystemMessage(ChatMessage message, DateTime now)
+    {
+        var summary = await BuildMessageSummary(message.Id);
+        await _hubContext.Clients.Group(ChatHub.GroupName(message.ConversationId)).SendAsync("chat:message-updated", new
+        {
+            conversationId = message.ConversationId,
+            messageId = message.Id,
+            messageType = message.MessageType,
+            createdAt = now,
+            action = "create",
+            message = summary
+        });
+        await NotifyConversationInboxUpdated(message.ConversationId);
+    }
+
+    async Task NotifyConversationInboxUpdated(ulong conversationId)
+    {
+        var memberUserIds = await _db.ChatConversationMembers
+            .AsNoTracking()
+            .Where(m => m.ConversationId == conversationId && m.LeftAt == null)
+            .Select(m => m.UserId)
+            .Distinct()
+            .ToListAsync();
+
+        if (memberUserIds.Count == 0)
+            return;
+
+        await _hubContext.Clients.Groups(memberUserIds.Select(ChatHub.UserGroupName).ToList()).SendAsync("chat:inbox-updated", new
+        {
+            conversationId,
+            updatedAt = DateTime.UtcNow
+        });
     }
 
     /// <summary>
