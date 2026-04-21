@@ -28,10 +28,12 @@ const createMemberUserIds = defineModel<number[]>("createMemberUserIds", {
   required: true,
 });
 
-defineProps<{
+const props = defineProps<{
   selectedConversationId: number;
   conversations: ConversationSummary[];
   isMobile: boolean;
+  friendRequestVersion: number;
+  friendshipVersion: number;
 }>();
 
 const emit = defineEmits<{
@@ -188,9 +190,17 @@ async function loadRequests() {
   }
 }
 
+async function refreshFriendData(includeRequests = friendRequestDialogVisible.value) {
+  const tasks: Promise<unknown>[] = [loadFriends()];
+  if (includeRequests) {
+    tasks.push(loadRequests());
+  }
+  await Promise.all(tasks);
+}
+
 async function openFriendRequestDialog() {
   friendRequestDialogVisible.value = true;
-  await loadRequests();
+  await refreshFriendData(true);
 }
 
 async function handleAddFriend() {
@@ -219,10 +229,7 @@ async function handleAddFriend() {
       data.requestStatus === "accepted" ? "已自动成为好友" : "好友申请已发送",
     );
 
-    await loadFriends();
-    if (friendRequestDialogVisible.value) {
-      await loadRequests();
-    }
+    await refreshFriendData(friendRequestDialogVisible.value);
   } catch (error) {
     if (error !== "cancel") {
       ElMessage.error(getErrorMessage(error, "发送好友申请失败"));
@@ -237,7 +244,7 @@ async function handleAcceptRequest(item: FriendRequest) {
   try {
     await acceptFriendRequest(item.id);
     ElMessage.success("已通过好友申请");
-    await Promise.all([loadRequests(), loadFriends()]);
+    await refreshFriendData(true);
   } catch (error) {
     ElMessage.error(getErrorMessage(error, "处理好友申请失败"));
   } finally {
@@ -272,36 +279,36 @@ async function handleRejectRequest(item: FriendRequest) {
 onMounted(() => {
   void loadFriends();
 });
+
+watch(
+  () => props.friendshipVersion,
+  () => {
+    void refreshFriendData(friendRequestDialogVisible.value);
+  },
+);
+
+watch(
+  () => props.friendRequestVersion,
+  () => {
+    if (friendRequestDialogVisible.value) {
+      void loadRequests();
+    }
+  },
+);
 </script>
 
 <template>
   <aside class="left-panel">
     <el-scrollbar :view-class="isMobile ? 'mobile' : ''">
       <ul class="conversation-list">
-        <li
-          v-for="item in conversations"
-          :key="item.id"
-          class="conversation-item"
-          :class="{ active: item.id === selectedConversationId }"
-          @click="emit('selectConversation', item)"
-        >
-          <ProgressiveAvatar
-            class="conversation-avatar"
-            :src="getConversationAvatarUrl(item)"
-            :thumbnail-src="getConversationAvatarSources(item).thumbnailSrc"
-            :size="60"
-            shape="square"
-          >
+        <li v-for="item in conversations" :key="item.id" class="conversation-item"
+          :class="{ active: item.id === selectedConversationId }" @click="emit('selectConversation', item)">
+          <ProgressiveAvatar class="conversation-avatar" :src="getConversationAvatarUrl(item)"
+            :thumbnail-src="getConversationAvatarSources(item).thumbnailSrc" :size="60" shape="square">
             {{ getConversationAvatarText(item) }}
           </ProgressiveAvatar>
-          <el-badge
-            :value="item.unreadCount"
-            :show-zero="false"
-            :max="99"
-            :offset="[-22, 5]"
-            :color="item.isMuted ? '#f5f7fa' : ''"
-            class="item"
-          >
+          <el-badge :value="item.unreadCount" :show-zero="false" :max="99" :offset="[-22, 5]"
+            :color="item.isMuted ? '#f5f7fa' : ''" class="item">
             <div class="title-row">
               <strong>{{ getConversationDisplayTitle(item) }}</strong>
               <el-icon v-if="item.isPinned" class="pinned-icon">
@@ -337,12 +344,7 @@ onMounted(() => {
     <div class="create-box">
       <div class="create-box-item create-box-header">
         <div class="friend-actions">
-          <el-button
-            icon="Plus"
-            color="#111827"
-            :loading="friendRequestSubmitting"
-            @click="handleAddFriend"
-          >
+          <el-button icon="Plus" color="#111827" :loading="friendRequestSubmitting" @click="handleAddFriend">
             添加好友
           </el-button>
           <el-button plain @click="openFriendRequestDialog">好友申请</el-button>
@@ -350,107 +352,53 @@ onMounted(() => {
       </div>
 
       <div class="create-box-item">
-        <el-select
-          v-model="createConversationType"
-          placeholder="会话类型"
-          class="conversation-type-select"
-        >
-          <el-option
-            v-for="item in createConversationTypeOptions"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
-          />
+        <el-select v-model="createConversationType" placeholder="会话类型" class="conversation-type-select">
+          <el-option v-for="item in createConversationTypeOptions" :key="item.value" :label="item.label"
+            :value="item.value" />
         </el-select>
-        <el-input
-          v-model="createTitle"
-          clearable
-          placeholder="群聊标题，可选"
-          :disabled="createConversationType === 'direct'"
-        />
+        <el-input v-model="createTitle" clearable placeholder="群聊标题，可选"
+          :disabled="createConversationType === 'direct'" />
       </div>
 
       <div class="create-box-item create-box-stack">
-        <el-select
-          v-if="createConversationType === 'direct'"
-          v-model="directMemberUserId"
-          class="member-select"
-          filterable
-          clearable
-          :loading="friendLoading"
-          placeholder="选择一位好友发起单聊"
-        >
-          <el-option
-            v-for="item in friendOptions"
-            :key="item.userId"
-            :label="item.label"
-            :value="item.userId"
-          >
-            <div class="friend-option">
-              <span>{{ item.label }}</span>
-              <span class="friend-option-meta">{{ item.meta }}</span>
-            </div>
+        <el-select v-if="createConversationType === 'direct'" v-model="directMemberUserId" class="member-select"
+          filterable clearable :loading="friendLoading" placeholder="选择一位好友发起单聊">
+          <el-option v-for="item in friendOptions" :key="item.userId" :label="item.label" :value="item.userId">
+            <span>{{ item.label }}（{{ item.meta }}）</span>
           </el-option>
         </el-select>
 
-        <el-select
-          v-else
-          v-model="createMemberUserIds"
-          class="member-select"
-          multiple
-          filterable
-          clearable
-          collapse-tags
-          collapse-tags-tooltip
-          :loading="friendLoading"
-          placeholder="选择好友创建群聊"
-        >
-          <el-option
-            v-for="item in friendOptions"
-            :key="item.userId"
-            :label="item.label"
-            :value="item.userId"
-          >
-            <div class="friend-option">
-              <span>{{ item.label }}</span>
-              <span class="friend-option-meta">{{ item.meta }}</span>
-            </div>
+        <el-select v-else v-model="createMemberUserIds" class="member-select" multiple filterable clearable
+          collapse-tags collapse-tags-tooltip :loading="friendLoading" placeholder="选择好友创建群聊">
+          <el-option v-for="item in friendOptions" :key="item.userId" :label="item.label" :value="item.userId">
+            <span>{{ item.label }}（{{ item.meta }}）</span>
           </el-option>
         </el-select>
 
-        <div class="create-actions">
+        <!-- <div class="create-actions">
           <el-text class="create-tip" type="info">
             只能从已添加的好友中发起单聊或创建群聊。
-          </el-text>
-          <el-button
-            icon="ChatRound"
-            color="#111827"
-            :disabled="!canCreateConversation"
-            @click="emit('createConversation')"
-          >
-            创建
-          </el-button>
-        </div>
+          </el-text> -->
+        <el-button icon="ChatRound" color="#111827" :disabled="!canCreateConversation"
+          @click="emit('createConversation')">
+          创建
+        </el-button>
+        <!-- </div> -->
       </div>
     </div>
 
     <el-dialog v-model="friendRequestDialogVisible" title="好友申请" width="min(92vw, 640px)">
       <div class="friend-request-panel">
         <div class="friend-request-toolbar">
-          <el-button plain :loading="friendRequestLoading" @click="loadRequests">刷新</el-button>
+          <el-button plain :loading="friendRequestLoading || friendLoading" @click="refreshFriendData(true)">
+            刷新
+          </el-button>
         </div>
 
-        <el-empty
-          v-if="!friendRequestLoading && sortedFriendRequests.length === 0"
-          description="暂无好友申请"
-        />
+        <el-empty v-if="!friendRequestLoading && sortedFriendRequests.length === 0" description="暂无好友申请" />
 
         <el-scrollbar v-else max-height="420px">
-          <div
-            v-for="item in sortedFriendRequests"
-            :key="item.id"
-            class="friend-request-row"
-          >
+          <div v-for="item in sortedFriendRequests" :key="item.id" class="friend-request-row">
             <div class="friend-request-main">
               <div class="friend-request-title">
                 <strong>
@@ -475,25 +423,13 @@ onMounted(() => {
               <div class="friend-request-meta">申请时间：{{ formatChatTime(item.createdAt) }}</div>
             </div>
 
-            <div
-              v-if="item.direction === 'received' && item.requestStatus === 'pending'"
-              class="friend-request-ops"
-            >
-              <el-button
-                size="small"
-                type="primary"
-                :loading="handlingRequestId === item.id"
-                @click="handleAcceptRequest(item)"
-              >
+            <div v-if="item.direction === 'received' && item.requestStatus === 'pending'" class="friend-request-ops">
+              <el-button size="small" type="primary" :loading="handlingRequestId === item.id"
+                @click="handleAcceptRequest(item)">
                 通过
               </el-button>
-              <el-button
-                size="small"
-                type="danger"
-                plain
-                :loading="handlingRequestId === item.id"
-                @click="handleRejectRequest(item)"
-              >
+              <el-button size="small" type="danger" plain :loading="handlingRequestId === item.id"
+                @click="handleRejectRequest(item)">
                 拒绝
               </el-button>
             </div>
@@ -516,8 +452,8 @@ onMounted(() => {
 }
 
 .create-box-stack {
-  display: grid;
-  gap: 10px;
+  display: flex;
+  align-items: center;
 }
 
 .member-select {

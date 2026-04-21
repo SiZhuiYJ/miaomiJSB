@@ -21,6 +21,8 @@ interface PushOptions {
     readByUserId: number;
     readAt: string;
   }) => Promise<void>;
+  onFriendRequestsUpdated?: () => Promise<void> | void;
+  onFriendshipsUpdated?: () => Promise<void> | void;
   getAllConversationIds: () => number[];
 }
 
@@ -160,6 +162,18 @@ export function useChatPush(options: PushOptions) {
           readByUserId: payload.readByUserId,
           readAt: payload.readAt,
         });
+      }
+    });
+
+    connection.on("chat:friend-requests-updated", async () => {
+      if (options.onFriendRequestsUpdated) {
+        await options.onFriendRequestsUpdated();
+      }
+    });
+
+    connection.on("chat:friendships-updated", async () => {
+      if (options.onFriendshipsUpdated) {
+        await options.onFriendshipsUpdated();
       }
     });
 

@@ -15,6 +15,8 @@ import type {
 export function useChatCore() {
   const { user } = storeToRefs(useAuthStore());
   const meUserId = ref(useAuthStore().user?.userId);
+  const friendRequestVersion = ref(0);
+  const friendshipVersion = ref(0);
 
   watch(
     () => user.value?.userId,
@@ -65,6 +67,12 @@ export function useChatCore() {
     },
     onMessageRead: async (data) => {
       await readModule.loadMessageReadStatus(data.messageId);
+    },
+    onFriendRequestsUpdated: () => {
+      friendRequestVersion.value += 1;
+    },
+    onFriendshipsUpdated: () => {
+      friendshipVersion.value += 1;
     },
     getAllConversationIds: () =>
       conversationsModule.conversations.value.map((c) => c.id),
@@ -258,6 +266,8 @@ export function useChatCore() {
     createTitle,
     createMemberUserIds,
     composeText,
+    friendRequestVersion,
+    friendshipVersion,
     handleCreateConversation,
 
     // 已读状态辅助方法

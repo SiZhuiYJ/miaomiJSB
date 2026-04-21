@@ -1,8 +1,10 @@
 using api.Data;
+using api.Hubs;
 using api.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,9 +17,10 @@ namespace api.Controllers;
 [ApiController]
 [Route("mm/[controller]")]
 [Authorize]
-public class FriendsController(DailyCheckDbContext db) : ControllerBase
+public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubContext) : ControllerBase
 {
     readonly DailyCheckDbContext _db = db;
+    readonly IHubContext<ChatHub> _hubContext = hubContext;
 
     [HttpGet]
     public async Task<ActionResult<List<FriendshipDto>>> GetMyFriends()
@@ -147,6 +150,8 @@ public class FriendsController(DailyCheckDbContext db) : ControllerBase
                 acceptedAt);
 
             await _db.SaveChangesAsync();
+            await NotifyFriendRequestsUpdated(reversePending.RequesterUserId, reversePending.ReceiverUserId);
+            await NotifyFriendshipsUpdated(reversePending.RequesterUserId, reversePending.ReceiverUserId);
 
             var acceptedDto = await BuildFriendRequestDto(reversePending.Id, userId);
             return acceptedDto == null
@@ -170,6 +175,7 @@ public class FriendsController(DailyCheckDbContext db) : ControllerBase
 
         _db.UserFriendRequests.Add(friendRequest);
         await _db.SaveChangesAsync();
+        await NotifyFriendRequestsUpdated(friendRequest.RequesterUserId, friendRequest.ReceiverUserId);
 
         var detail = await BuildFriendRequestDto(friendRequest.Id, userId);
         return detail == null
@@ -207,6 +213,8 @@ public class FriendsController(DailyCheckDbContext db) : ControllerBase
             now);
 
         await _db.SaveChangesAsync();
+        await NotifyFriendRequestsUpdated(friendRequest.RequesterUserId, friendRequest.ReceiverUserId);
+        await NotifyFriendshipsUpdated(friendRequest.RequesterUserId, friendRequest.ReceiverUserId);
 
         var detail = await BuildFriendRequestDto(friendRequest.Id, userId);
         return detail == null
@@ -239,6 +247,7 @@ public class FriendsController(DailyCheckDbContext db) : ControllerBase
         friendRequest.UpdatedAt = now;
 
         await _db.SaveChangesAsync();
+        await NotifyFriendRequestsUpdated(friendRequest.RequesterUserId, friendRequest.ReceiverUserId);
 
         var detail = await BuildFriendRequestDto(friendRequest.Id, userId);
         return detail == null
@@ -399,6 +408,29 @@ public class FriendsController(DailyCheckDbContext db) : ControllerBase
             "system" => "system",
             _ => "account"
         };
+
+    Task NotifyFriendRequestsUpdated(params ulong[] userIds)
+        => NotifyUsers("chat:friend-requests-updated", userIds);
+
+    Task NotifyFriendshipsUpdated(params ulong[] userIds)
+        => NotifyUsers("chat:friendships-updated", userIds);
+
+    async Task NotifyUsers(string eventName, IEnumerable<ulong> userIds)
+    {
+        var groups = userIds
+            .Where(id => id != 0)
+            .Distinct()
+            .Select(ChatHub.UserGroupName)
+            .ToList();
+
+        if (groups.Count == 0)
+            return;
+
+        await _hubContext.Clients.Groups(groups).SendAsync(eventName, new
+        {
+            triggeredAt = DateTime.UtcNow
+        });
+    }
 
     ulong GetUserId()
     {

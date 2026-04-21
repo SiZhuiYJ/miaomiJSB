@@ -64,7 +64,10 @@ const readInfoMap = computed<Map<number, { readText: string; readColor: string }
         v-model:create-conversation-type="chat.createConversationType.value"
         v-model:create-title="chat.createTitle.value" v-model:create-member-user-ids="chat.createMemberUserIds.value"
         :selected-conversation-id="chat.selectedConversationId.value" :conversations="chat.conversations.value"
-        :is-mobile="isMobile" @create-conversation="chat.handleCreateConversation"
+        :is-mobile="isMobile"
+        :friend-request-version="chat.friendRequestVersion.value"
+        :friendship-version="chat.friendshipVersion.value"
+        @create-conversation="chat.handleCreateConversation"
         @select-conversation="handleSelectConversation" />
 
       <MessagePanel v-if="!isMobile || !showConversationList" v-model="chat.composeText.value"
@@ -77,7 +80,6 @@ const readInfoMap = computed<Map<number, { readText: string; readColor: string }
         @mark-read="chat.markRead" @back-to-list="handleBackToList"
         @reply-message="chat.setReplyingMessage" @clear-reply-message="chat.clearReplyingMessage"
         @update-conversation="chat.handleConversationDetailUpdate"
-        @update-member-role="({ memberUserId, memberRole }) => chat.updateConversationMemberRole(chat.currentConversation.value!.id, memberUserId, memberRole)"
         @load-message-read-status="chat.loadMessageReadStatus" />
     </div>
   </div>
