@@ -53,7 +53,7 @@ function handleFilesChange(event: Event) {
       <Cropper :img="imgSrc" @crop="onCropped" />
     </div>
 
-    <div v-if="cropped" style="margin-top: 16px">
+    <div v-if="cropped" style="margin: 16px">
       <div style="margin-bottom: 8px; font-weight: 600">裁剪结果预览</div>
       <img :src="cropped" alt="cropped" style="max-width: 320px; border: 1px solid #ddd" />
       <div style="margin-top: 8px">

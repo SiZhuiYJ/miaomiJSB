@@ -56,14 +56,8 @@ async function uploadImage() {
       </div>
 
       <div class="avatar-main">
-        <ProgressiveAvatar
-          class="avatar-preview"
-          :src="avatar.src"
-          :thumbnail-src="avatar.thumbnailSrc"
-          width="min(400px, 100%)"
-          height="min(400px, 60vw)"
-          shape="square"
-        >
+        <ProgressiveAvatar class="avatar-preview" :src="avatar.src" :thumbnail-src="avatar.thumbnailSrc" width="100%"
+          :height="0" shape="square">
           <span class="avatar-text-large">
             {{ getFallbackText() }}
           </span>
@@ -71,12 +65,7 @@ async function uploadImage() {
 
         <ImageUploader @crop="onCropped" />
 
-        <el-button
-          type="primary"
-          :disabled="isUploadDisabled"
-          :loading="loading"
-          @click="uploadImage"
-        >
+        <el-button type="primary" :disabled="isUploadDisabled" :loading="loading" @click="uploadImage">
           更新头像
         </el-button>
       </div>
@@ -122,6 +111,7 @@ async function uploadImage() {
 }
 
 .avatar-preview {
+  padding-bottom: 100%;
   border-radius: 16px;
 }
 

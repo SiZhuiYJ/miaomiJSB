@@ -80,7 +80,7 @@ export async function createAvatarUploadFormData(file: File): Promise<FormData> 
     file.name.replace(/\.[^.]+$/, "").trim() || "avatar";
 
   const avatarFile = (await convertToWebP(file, {
-    quality: 0.92,
+    quality: 1,
     maxWidth: AVATAR_PREVIEW_MAX_PIXELS,
     maxHeight: AVATAR_PREVIEW_MAX_PIXELS,
     output: "file",

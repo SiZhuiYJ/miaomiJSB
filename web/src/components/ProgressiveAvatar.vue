@@ -81,34 +81,15 @@ function handleThumbError() {
 </script>
 
 <template>
-  <div
-    class="progressive-avatar"
-    :class="[shape, { 'has-image': hasImage, 'full-ready': fullReady }]"
-    :style="rootStyle"
-  >
+  <div class="progressive-avatar" :class="[shape, { 'has-image': hasImage, 'full-ready': fullReady }]"
+    :style="rootStyle">
     <div class="avatar-fallback">
       <slot />
     </div>
-
-    <img
-      v-if="thumbSrc"
-      class="avatar-layer avatar-thumb"
-      :src="thumbSrc"
-      :alt="alt"
-      :style="mediaStyle"
-      loading="lazy"
-      @error="handleThumbError"
-    />
-    <img
-      v-if="showFullLayer"
-      class="avatar-layer avatar-full"
-      :src="src"
-      :alt="alt"
-      :style="mediaStyle"
-      loading="lazy"
-      @load="handleFullLoad"
-      @error="handleFullError"
-    />
+    <img v-if="thumbSrc" class="avatar-layer avatar-thumb" :src="thumbSrc" :alt="alt" :style="mediaStyle" loading="lazy"
+      @error="handleThumbError" />
+    <img v-if="src" class="avatar-layer avatar-full" :src="src" :alt="alt" :style="mediaStyle" loading="lazy"
+      @load="handleFullLoad" @error="handleFullError" />
   </div>
 </template>
 
@@ -127,7 +108,7 @@ function handleThumbError() {
   }
 
   &.square {
-    border-radius: 16px;
+    border-radius: 6px;
   }
 }
 
@@ -147,17 +128,14 @@ function handleThumbError() {
   background: inherit;
 }
 
-.avatar-thumb {
-  transform: scale(1.04);
-  filter: blur(10px);
-}
+// .avatar-thumb {
+//   filter: blur(10px);
+// }
 
-.avatar-full {
-  opacity: 0;
-  transition: opacity 220ms ease;
-}
+// .avatar-full {
+//   opacity: 0;
+// }
 
-.full-ready .avatar-full {
-  opacity: 1;
-}
-</style>
+// .full-ready .avatar-full {
+//   opacity: 1;
+// }</style>
