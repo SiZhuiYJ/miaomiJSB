@@ -4,82 +4,82 @@ using System.Collections.Generic;
 namespace api.Data;
 
 /// <summary>
-/// Friendships stored per user direction
+/// 好友关系表（按用户方向存储）
 /// </summary>
 public partial class UserFriendship
 {
     /// <summary>
-    /// Primary key
+    /// 主键
     /// </summary>
     public ulong Id { get; set; }
 
     /// <summary>
-    /// User id
+    /// 用户ID
     /// </summary>
     public ulong UserId { get; set; }
 
     /// <summary>
-    /// Friend user id
+    /// 好友用户ID
     /// </summary>
     public ulong FriendUserId { get; set; }
 
     /// <summary>
-    /// Source friend request id
+    /// 来源好友请求ID
     /// </summary>
     public ulong? SourceRequestId { get; set; }
 
     /// <summary>
-    /// Source group conversation id
+    /// 来源群组会话ID
     /// </summary>
     public ulong? SourceConversationId { get; set; }
 
     /// <summary>
-    /// Friendship status
+    /// 好友关系状态（active-活跃/deleted-已删除）
     /// </summary>
     public string Status { get; set; } = null!;
 
     /// <summary>
-    /// Friend remark
+    /// 好友备注
     /// </summary>
     public string? FriendRemark { get; set; }
 
     /// <summary>
-    /// Starred flag
+    /// 是否置顶（0-否/1-是）
     /// </summary>
     public bool IsStarred { get; set; }
 
     /// <summary>
-    /// Mute flag for this friend
+    /// 是否静音（0-否/1-是）
     /// </summary>
     public bool IsMuted { get; set; }
 
     /// <summary>
-    /// Accepted time
+    /// 接受时间
     /// </summary>
     public DateTime? AcceptedAt { get; set; }
 
     /// <summary>
-    /// Operator user id who created the relation
+    /// 创建关系的操作者用户ID
     /// </summary>
     public ulong? CreatedByUserId { get; set; }
 
     /// <summary>
-    /// Deleted time
+    /// 删除时间
     /// </summary>
     public DateTime? DeletedAt { get; set; }
 
     /// <summary>
-    /// Operator user id who deleted the relation
+    /// 删除关系的操作者用户ID
     /// </summary>
     public ulong? DeletedByUserId { get; set; }
 
     /// <summary>
-    /// Created time
+    /// 创建时间
     /// </summary>
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// Updated time
+    /// 更新时间
     /// </summary>
     public DateTime UpdatedAt { get; set; }
 

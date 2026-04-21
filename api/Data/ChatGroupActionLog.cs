@@ -4,52 +4,52 @@ using System.Collections.Generic;
 namespace api.Data;
 
 /// <summary>
-/// Group action logs
+/// 群操作日志表
 /// </summary>
 public partial class ChatGroupActionLog
 {
     /// <summary>
-    /// Primary key
+    /// 主键ID
     /// </summary>
     public ulong Id { get; set; }
 
     /// <summary>
-    /// Group conversation id
+    /// 群聊会话ID
     /// </summary>
     public ulong ConversationId { get; set; }
 
     /// <summary>
-    /// Group action type
+    /// 群操作类型
     /// </summary>
     public string ActionType { get; set; } = null!;
 
     /// <summary>
-    /// Operator user id
+    /// 操作者用户ID
     /// </summary>
     public ulong? OperatorUserId { get; set; }
 
     /// <summary>
-    /// Target user id
+    /// 目标用户ID
     /// </summary>
     public ulong? TargetUserId { get; set; }
 
     /// <summary>
-    /// Related system message id
+    /// 关联系统消息ID
     /// </summary>
     public ulong? RelatedMessageId { get; set; }
 
     /// <summary>
-    /// Action reason
+    /// 操作原因
     /// </summary>
     public string? ActionReason { get; set; }
 
     /// <summary>
-    /// Extra JSON payload
+    /// 额外JSON负载数据
     /// </summary>
     public string? ActionPayload { get; set; }
 
     /// <summary>
-    /// Created time
+    /// 创建时间
     /// </summary>
     public DateTime CreatedAt { get; set; }
 

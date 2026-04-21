@@ -81,11 +81,11 @@ public partial class DailyCheckDbContext : DbContext
                 .HasColumnName("id");
             entity.Property(e => e.AvatarKey)
                 .HasMaxLength(512)
-                .HasComment("会话头像")
+                .HasComment("会话头像存储标识")
                 .HasColumnName("avatar_key");
             entity.Property(e => e.ConversationStatus)
                 .HasDefaultValueSql("'active'")
-                .HasComment("Conversation status")
+                .HasComment("会话生命周期状态：active=正常活跃,disbanded=已解散,archived=已归档")
                 .HasColumnType("enum('active','disbanded','archived')")
                 .HasColumnName("conversation_status");
             entity.Property(e => e.ConversationType)
@@ -100,27 +100,27 @@ public partial class DailyCheckDbContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.DisbandReason)
                 .HasMaxLength(255)
-                .HasComment("Disband reason")
+                .HasComment("群解散原因说明")
                 .HasColumnName("disband_reason");
             entity.Property(e => e.DisbandedAt)
-                .HasComment("Disband time")
+                .HasComment("群解散时间")
                 .HasColumnType("datetime")
                 .HasColumnName("disbanded_at");
             entity.Property(e => e.DisbandedByUserId)
-                .HasComment("Disband operator user id")
+                .HasComment("解散操作人用户ID")
                 .HasColumnName("disbanded_by_user_id");
             entity.Property(e => e.IsActive)
                 .IsRequired()
                 .HasDefaultValueSql("'1'")
-                .HasComment("是否可用：1可用，0停用")
+                .HasComment("会话状态：1=可用，0=已停用")
                 .HasColumnName("is_active");
             entity.Property(e => e.LastMessageAt)
-                .HasComment("Last message time")
+                .HasComment("最后一条消息发送时间")
                 .HasColumnType("datetime")
                 .HasColumnName("last_message_at");
             entity.Property(e => e.MemberLimit)
                 .HasDefaultValueSql("'500'")
-                .HasComment("Group member limit")
+                .HasComment("群成员人数上限")
                 .HasColumnName("member_limit");
             entity.Property(e => e.OwnerUserId)
                 .HasComment("群主/创建者用户ID")
@@ -350,7 +350,7 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 
             entity
-                .ToTable("chat_group_action_logs", tb => tb.HasComment("Group action logs"))
+                .ToTable("chat_group_action_logs", tb => tb.HasComment("群操作日志表"))
                 .UseCollation("utf8mb4_unicode_ci");
 
             entity.HasIndex(e => e.ActionType, "idx_chat_group_logs_action_type");
@@ -364,36 +364,36 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasIndex(e => e.TargetUserId, "idx_chat_group_logs_target");
 
             entity.Property(e => e.Id)
-                .HasComment("Primary key")
+                .HasComment("主键ID")
                 .HasColumnName("id");
             entity.Property(e => e.ActionPayload)
-                .HasComment("Extra JSON payload")
+                .HasComment("额外JSON负载数据")
                 .HasColumnType("json")
                 .HasColumnName("action_payload");
             entity.Property(e => e.ActionReason)
                 .HasMaxLength(255)
-                .HasComment("Action reason")
+                .HasComment("操作原因")
                 .HasColumnName("action_reason");
             entity.Property(e => e.ActionType)
-                .HasComment("Group action type")
+                .HasComment("群操作类型")
                 .HasColumnType("enum('create','invite','join','kick','mute','unmute','disband','transfer_owner','set_admin','unset_admin','leave')")
                 .HasColumnName("action_type");
             entity.Property(e => e.ConversationId)
-                .HasComment("Group conversation id")
+                .HasComment("群聊会话ID")
                 .HasColumnName("conversation_id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasComment("Created time")
+                .HasComment("创建时间")
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
             entity.Property(e => e.OperatorUserId)
-                .HasComment("Operator user id")
+                .HasComment("操作者用户ID")
                 .HasColumnName("operator_user_id");
             entity.Property(e => e.RelatedMessageId)
-                .HasComment("Related system message id")
+                .HasComment("关联系统消息ID")
                 .HasColumnName("related_message_id");
             entity.Property(e => e.TargetUserId)
-                .HasComment("Target user id")
+                .HasComment("目标用户ID")
                 .HasColumnName("target_user_id");
 
             entity.HasOne(d => d.Conversation).WithMany(p => p.ChatGroupActionLogs)
@@ -971,7 +971,7 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 
             entity
-                .ToTable("user_friend_requests", tb => tb.HasComment("Friend requests"))
+                .ToTable("user_friend_requests", tb => tb.HasComment("好友请求表"))
                 .UseCollation("utf8mb4_unicode_ci");
 
             entity.HasIndex(e => e.HandledByUserId, "idx_friend_requests_handled_by");
@@ -987,55 +987,54 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasIndex(e => new { e.RequestStatus, e.ExpireAt }, "idx_friend_requests_status_expire");
 
             entity.Property(e => e.Id)
-                .HasComment("Primary key")
+                .HasComment("主键")
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasComment("Created time")
+                .HasComment("创建时间")
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
             entity.Property(e => e.ExpireAt)
-                .HasComment("Expire time")
+                .HasComment("过期时间")
                 .HasColumnType("datetime")
                 .HasColumnName("expire_at");
             entity.Property(e => e.HandledAt)
-                .HasComment("Handled time")
+                .HasComment("处理时间")
                 .HasColumnType("datetime")
                 .HasColumnName("handled_at");
             entity.Property(e => e.HandledByUserId)
-                .HasComment("Handler user id")
+                .HasComment("处理者用户ID")
                 .HasColumnName("handled_by_user_id");
             entity.Property(e => e.ReceiverUserId)
-                .HasComment("Receiver user id")
+                .HasComment("接收者用户ID")
                 .HasColumnName("receiver_user_id");
             entity.Property(e => e.RejectReason)
                 .HasMaxLength(255)
-                .HasComment("Reject reason")
+                .HasComment("拒绝原因")
                 .HasColumnName("reject_reason");
             entity.Property(e => e.RequestMessage)
                 .HasMaxLength(255)
-                .HasComment("Request message")
+                .HasComment("请求消息")
                 .HasColumnName("request_message");
             entity.Property(e => e.RequestSource)
                 .HasDefaultValueSql("'account'")
-                .HasComment("Request source")
+                .HasComment("请求来源（account-账号/group-群组/search-搜索/system-系统）")
                 .HasColumnType("enum('account','group','search','system')")
                 .HasColumnName("request_source");
             entity.Property(e => e.RequestStatus)
                 .HasDefaultValueSql("'pending'")
-                .HasComment("Request status")
+                .HasComment("请求状态（pending-待处理/accepted-已接受/rejected-已拒绝/cancelled-已取消/expired-已过期）")
                 .HasColumnType("enum('pending','accepted','rejected','cancelled','expired')")
                 .HasColumnName("request_status");
             entity.Property(e => e.RequesterUserId)
-                .HasComment("Requester user id")
+                .HasComment("请求者用户ID")
                 .HasColumnName("requester_user_id");
             entity.Property(e => e.SourceConversationId)
-                .HasComment("Source group conversation id")
+                .HasComment("来源群组会话ID")
                 .HasColumnName("source_conversation_id");
             entity.Property(e => e.UpdatedAt)
-                .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasComment("Updated time")
+                .HasComment("更新时间")
                 .HasColumnType("datetime")
                 .HasColumnName("updated_at");
 
@@ -1063,7 +1062,7 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 
             entity
-                .ToTable("user_friendships", tb => tb.HasComment("Friendships stored per user direction"))
+                .ToTable("user_friendships", tb => tb.HasComment("好友关系表（按用户方向存储）"))
                 .UseCollation("utf8mb4_unicode_ci");
 
             entity.HasIndex(e => e.CreatedByUserId, "idx_friendships_created_by");
@@ -1081,59 +1080,58 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasIndex(e => new { e.UserId, e.FriendUserId }, "ux_friendships_user_friend").IsUnique();
 
             entity.Property(e => e.Id)
-                .HasComment("Primary key")
+                .HasComment("主键")
                 .HasColumnName("id");
             entity.Property(e => e.AcceptedAt)
-                .HasComment("Accepted time")
+                .HasComment("接受时间")
                 .HasColumnType("datetime")
                 .HasColumnName("accepted_at");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasComment("Created time")
+                .HasComment("创建时间")
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
             entity.Property(e => e.CreatedByUserId)
-                .HasComment("Operator user id who created the relation")
+                .HasComment("创建关系的操作者用户ID")
                 .HasColumnName("created_by_user_id");
             entity.Property(e => e.DeletedAt)
-                .HasComment("Deleted time")
+                .HasComment("删除时间")
                 .HasColumnType("datetime")
                 .HasColumnName("deleted_at");
             entity.Property(e => e.DeletedByUserId)
-                .HasComment("Operator user id who deleted the relation")
+                .HasComment("删除关系的操作者用户ID")
                 .HasColumnName("deleted_by_user_id");
             entity.Property(e => e.FriendRemark)
                 .HasMaxLength(64)
-                .HasComment("Friend remark")
+                .HasComment("好友备注")
                 .HasColumnName("friend_remark");
             entity.Property(e => e.FriendUserId)
-                .HasComment("Friend user id")
+                .HasComment("好友用户ID")
                 .HasColumnName("friend_user_id");
             entity.Property(e => e.IsMuted)
-                .HasComment("Mute flag for this friend")
+                .HasComment("是否静音（0-否/1-是）")
                 .HasColumnName("is_muted");
             entity.Property(e => e.IsStarred)
-                .HasComment("Starred flag")
+                .HasComment("是否置顶（0-否/1-是）")
                 .HasColumnName("is_starred");
             entity.Property(e => e.SourceConversationId)
-                .HasComment("Source group conversation id")
+                .HasComment("来源群组会话ID")
                 .HasColumnName("source_conversation_id");
             entity.Property(e => e.SourceRequestId)
-                .HasComment("Source friend request id")
+                .HasComment("来源好友请求ID")
                 .HasColumnName("source_request_id");
             entity.Property(e => e.Status)
                 .HasDefaultValueSql("'active'")
-                .HasComment("Friendship status")
+                .HasComment("好友关系状态（active-活跃/deleted-已删除）")
                 .HasColumnType("enum('active','deleted')")
                 .HasColumnName("status");
             entity.Property(e => e.UpdatedAt)
-                .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasComment("Updated time")
+                .HasComment("更新时间")
                 .HasColumnType("datetime")
                 .HasColumnName("updated_at");
             entity.Property(e => e.UserId)
-                .HasComment("User id")
+                .HasComment("用户ID")
                 .HasColumnName("user_id");
 
             entity.HasOne(d => d.CreatedByUser).WithMany(p => p.UserFriendshipCreatedByUsers)

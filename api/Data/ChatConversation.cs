@@ -29,42 +29,42 @@ public partial class ChatConversation
     public ulong? OwnerUserId { get; set; }
 
     /// <summary>
-    /// 会话头像
+    /// 会话头像存储标识
     /// </summary>
     public string? AvatarKey { get; set; }
 
     /// <summary>
-    /// 是否可用：1可用，0停用
+    /// 会话状态：1=可用，0=已停用
     /// </summary>
     public bool? IsActive { get; set; }
 
     /// <summary>
-    /// Conversation status
+    /// 会话生命周期状态：active=正常活跃,disbanded=已解散,archived=已归档
     /// </summary>
     public string ConversationStatus { get; set; } = null!;
 
     /// <summary>
-    /// Group member limit
+    /// 群成员人数上限
     /// </summary>
     public uint MemberLimit { get; set; }
 
     /// <summary>
-    /// Last message time
+    /// 最后一条消息发送时间
     /// </summary>
     public DateTime? LastMessageAt { get; set; }
 
     /// <summary>
-    /// Disband time
+    /// 群解散时间
     /// </summary>
     public DateTime? DisbandedAt { get; set; }
 
     /// <summary>
-    /// Disband operator user id
+    /// 解散操作人用户ID
     /// </summary>
     public ulong? DisbandedByUserId { get; set; }
 
     /// <summary>
-    /// Disband reason
+    /// 群解散原因说明
     /// </summary>
     public string? DisbandReason { get; set; }
 

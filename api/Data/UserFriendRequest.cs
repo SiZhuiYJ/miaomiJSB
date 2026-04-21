@@ -4,72 +4,72 @@ using System.Collections.Generic;
 namespace api.Data;
 
 /// <summary>
-/// Friend requests
+/// 好友请求表
 /// </summary>
 public partial class UserFriendRequest
 {
     /// <summary>
-    /// Primary key
+    /// 主键
     /// </summary>
     public ulong Id { get; set; }
 
     /// <summary>
-    /// Requester user id
+    /// 请求者用户ID
     /// </summary>
     public ulong RequesterUserId { get; set; }
 
     /// <summary>
-    /// Receiver user id
+    /// 接收者用户ID
     /// </summary>
     public ulong ReceiverUserId { get; set; }
 
     /// <summary>
-    /// Source group conversation id
+    /// 来源群组会话ID
     /// </summary>
     public ulong? SourceConversationId { get; set; }
 
     /// <summary>
-    /// Request message
+    /// 请求消息
     /// </summary>
     public string? RequestMessage { get; set; }
 
     /// <summary>
-    /// Request source
+    /// 请求来源（account-账号/group-群组/search-搜索/system-系统）
     /// </summary>
     public string RequestSource { get; set; } = null!;
 
     /// <summary>
-    /// Request status
+    /// 请求状态（pending-待处理/accepted-已接受/rejected-已拒绝/cancelled-已取消/expired-已过期）
     /// </summary>
     public string RequestStatus { get; set; } = null!;
 
     /// <summary>
-    /// Handler user id
+    /// 处理者用户ID
     /// </summary>
     public ulong? HandledByUserId { get; set; }
 
     /// <summary>
-    /// Handled time
+    /// 处理时间
     /// </summary>
     public DateTime? HandledAt { get; set; }
 
     /// <summary>
-    /// Reject reason
+    /// 拒绝原因
     /// </summary>
     public string? RejectReason { get; set; }
 
     /// <summary>
-    /// Expire time
+    /// 过期时间
     /// </summary>
     public DateTime? ExpireAt { get; set; }
 
     /// <summary>
-    /// Created time
+    /// 创建时间
     /// </summary>
     public DateTime CreatedAt { get; set; }
 
     /// <summary>
-    /// Updated time
+    /// 更新时间
     /// </summary>
     public DateTime UpdatedAt { get; set; }
 

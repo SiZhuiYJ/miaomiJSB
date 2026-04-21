@@ -1473,42 +1473,42 @@
         </member>
         <member name="P:api.Data.ChatConversation.AvatarKey">
             <summary>
-            会话头像
+            会话头像存储标识
             </summary>
         </member>
         <member name="P:api.Data.ChatConversation.IsActive">
             <summary>
-            是否可用：1可用，0停用
+            会话状态：1=可用，0=已停用
             </summary>
         </member>
         <member name="P:api.Data.ChatConversation.ConversationStatus">
             <summary>
-            Conversation status
+            会话生命周期状态：active=正常活跃,disbanded=已解散,archived=已归档
             </summary>
         </member>
         <member name="P:api.Data.ChatConversation.MemberLimit">
             <summary>
-            Group member limit
+            群成员人数上限
             </summary>
         </member>
         <member name="P:api.Data.ChatConversation.LastMessageAt">
             <summary>
-            Last message time
+            最后一条消息发送时间
             </summary>
         </member>
         <member name="P:api.Data.ChatConversation.DisbandedAt">
             <summary>
-            Disband time
+            群解散时间
             </summary>
         </member>
         <member name="P:api.Data.ChatConversation.DisbandedByUserId">
             <summary>
-            Disband operator user id
+            解散操作人用户ID
             </summary>
         </member>
         <member name="P:api.Data.ChatConversation.DisbandReason">
             <summary>
-            Disband reason
+            群解散原因说明
             </summary>
         </member>
         <member name="P:api.Data.ChatConversation.CreatedAt">
@@ -1688,52 +1688,52 @@
         </member>
         <member name="T:api.Data.ChatGroupActionLog">
             <summary>
-            Group action logs
+            群操作日志表
             </summary>
         </member>
         <member name="P:api.Data.ChatGroupActionLog.Id">
             <summary>
-            Primary key
+            主键ID
             </summary>
         </member>
         <member name="P:api.Data.ChatGroupActionLog.ConversationId">
             <summary>
-            Group conversation id
+            群聊会话ID
             </summary>
         </member>
         <member name="P:api.Data.ChatGroupActionLog.ActionType">
             <summary>
-            Group action type
+            群操作类型
             </summary>
         </member>
         <member name="P:api.Data.ChatGroupActionLog.OperatorUserId">
             <summary>
-            Operator user id
+            操作者用户ID
             </summary>
         </member>
         <member name="P:api.Data.ChatGroupActionLog.TargetUserId">
             <summary>
-            Target user id
+            目标用户ID
             </summary>
         </member>
         <member name="P:api.Data.ChatGroupActionLog.RelatedMessageId">
             <summary>
-            Related system message id
+            关联系统消息ID
             </summary>
         </member>
         <member name="P:api.Data.ChatGroupActionLog.ActionReason">
             <summary>
-            Action reason
+            操作原因
             </summary>
         </member>
         <member name="P:api.Data.ChatGroupActionLog.ActionPayload">
             <summary>
-            Extra JSON payload
+            额外JSON负载数据
             </summary>
         </member>
         <member name="P:api.Data.ChatGroupActionLog.CreatedAt">
             <summary>
-            Created time
+            创建时间
             </summary>
         </member>
         <member name="T:api.Data.ChatMessage">
@@ -2208,152 +2208,152 @@
         </member>
         <member name="T:api.Data.UserFriendRequest">
             <summary>
-            Friend requests
+            好友请求表
             </summary>
         </member>
         <member name="P:api.Data.UserFriendRequest.Id">
             <summary>
-            Primary key
+            主键
             </summary>
         </member>
         <member name="P:api.Data.UserFriendRequest.RequesterUserId">
             <summary>
-            Requester user id
+            请求者用户ID
             </summary>
         </member>
         <member name="P:api.Data.UserFriendRequest.ReceiverUserId">
             <summary>
-            Receiver user id
+            接收者用户ID
             </summary>
         </member>
         <member name="P:api.Data.UserFriendRequest.SourceConversationId">
             <summary>
-            Source group conversation id
+            来源群组会话ID
             </summary>
         </member>
         <member name="P:api.Data.UserFriendRequest.RequestMessage">
             <summary>
-            Request message
+            请求消息
             </summary>
         </member>
         <member name="P:api.Data.UserFriendRequest.RequestSource">
             <summary>
-            Request source
+            请求来源（account-账号/group-群组/search-搜索/system-系统）
             </summary>
         </member>
         <member name="P:api.Data.UserFriendRequest.RequestStatus">
             <summary>
-            Request status
+            请求状态（pending-待处理/accepted-已接受/rejected-已拒绝/cancelled-已取消/expired-已过期）
             </summary>
         </member>
         <member name="P:api.Data.UserFriendRequest.HandledByUserId">
             <summary>
-            Handler user id
+            处理者用户ID
             </summary>
         </member>
         <member name="P:api.Data.UserFriendRequest.HandledAt">
             <summary>
-            Handled time
+            处理时间
             </summary>
         </member>
         <member name="P:api.Data.UserFriendRequest.RejectReason">
             <summary>
-            Reject reason
+            拒绝原因
             </summary>
         </member>
         <member name="P:api.Data.UserFriendRequest.ExpireAt">
             <summary>
-            Expire time
+            过期时间
             </summary>
         </member>
         <member name="P:api.Data.UserFriendRequest.CreatedAt">
             <summary>
-            Created time
+            创建时间
             </summary>
         </member>
         <member name="P:api.Data.UserFriendRequest.UpdatedAt">
             <summary>
-            Updated time
+            更新时间
             </summary>
         </member>
         <member name="T:api.Data.UserFriendship">
             <summary>
-            Friendships stored per user direction
+            好友关系表（按用户方向存储）
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.Id">
             <summary>
-            Primary key
+            主键
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.UserId">
             <summary>
-            User id
+            用户ID
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.FriendUserId">
             <summary>
-            Friend user id
+            好友用户ID
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.SourceRequestId">
             <summary>
-            Source friend request id
+            来源好友请求ID
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.SourceConversationId">
             <summary>
-            Source group conversation id
+            来源群组会话ID
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.Status">
             <summary>
-            Friendship status
+            好友关系状态（active-活跃/deleted-已删除）
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.FriendRemark">
             <summary>
-            Friend remark
+            好友备注
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.IsStarred">
             <summary>
-            Starred flag
+            是否置顶（0-否/1-是）
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.IsMuted">
             <summary>
-            Mute flag for this friend
+            是否静音（0-否/1-是）
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.AcceptedAt">
             <summary>
-            Accepted time
+            接受时间
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.CreatedByUserId">
             <summary>
-            Operator user id who created the relation
+            创建关系的操作者用户ID
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.DeletedAt">
             <summary>
-            Deleted time
+            删除时间
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.DeletedByUserId">
             <summary>
-            Operator user id who deleted the relation
+            删除关系的操作者用户ID
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.CreatedAt">
             <summary>
-            Created time
+            创建时间
             </summary>
         </member>
         <member name="P:api.Data.UserFriendship.UpdatedAt">
             <summary>
-            Updated time
+            更新时间
             </summary>
         </member>
         <member name="T:api.Data.UserOauthAccount">
