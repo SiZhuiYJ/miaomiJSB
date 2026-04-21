@@ -3,6 +3,8 @@ import type {
   ConversationDetail,
   ConversationSummary,
   CreateConversationPayload,
+  InviteConversationMembersPayload,
+  MuteConversationMemberPayload,
   UpdateConversation,
   UpdateConversationMemberRolePayload,
 } from "../types";
@@ -31,5 +33,50 @@ export async function updateConversationMemberRole(
   return await http.post<ConversationDetail>(
     `/mm/chat/conversations/${conversationId}/members/${memberUserId}/role`,
     payload,
+  );
+}
+
+export async function inviteConversationMembers(
+  conversationId: number,
+  payload: InviteConversationMembersPayload,
+) {
+  return await http.post<ConversationDetail>(
+    `/mm/chat/conversations/${conversationId}/members/invite`,
+    payload,
+  );
+}
+
+export async function kickConversationMember(
+  conversationId: number,
+  memberUserId: number,
+) {
+  return await http.post<ConversationDetail>(
+    `/mm/chat/conversations/${conversationId}/members/${memberUserId}/kick`,
+  );
+}
+
+export async function muteConversationMember(
+  conversationId: number,
+  memberUserId: number,
+  payload: MuteConversationMemberPayload,
+) {
+  return await http.post<ConversationDetail>(
+    `/mm/chat/conversations/${conversationId}/members/${memberUserId}/mute`,
+    payload,
+  );
+}
+
+export async function unmuteConversationMember(
+  conversationId: number,
+  memberUserId: number,
+) {
+  return await http.post<ConversationDetail>(
+    `/mm/chat/conversations/${conversationId}/members/${memberUserId}/unmute`,
+  );
+}
+
+export async function disbandConversation(conversationId: number) {
+  return await http.post<ConversationDetail>(
+    `/mm/chat/conversations/${conversationId}/disband`,
   );
 }

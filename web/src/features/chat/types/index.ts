@@ -71,6 +71,9 @@ export interface ConversationMember {
   memberRole: UserRole;
   joinedAt: string;
   lastReadMessageId?: number | null;
+  isMuted?: boolean;
+  mutedUntil?: string | null;
+  mutedMode?: GroupMuteMode | null;
 }
 
 export interface ConversationDetail {
@@ -118,6 +121,17 @@ export interface UpdateConversation {
 
 export interface UpdateConversationMemberRolePayload {
   memberRole: Extract<UserRole, "admin" | "member">;
+}
+
+export type GroupMuteMode = "temporary" | "permanent";
+
+export interface InviteConversationMembersPayload {
+  memberUserIds: number[];
+}
+
+export interface MuteConversationMemberPayload {
+  mode: GroupMuteMode;
+  durationMinutes?: number;
 }
 
 export interface ReadUser {
