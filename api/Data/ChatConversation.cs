@@ -84,6 +84,8 @@ public partial class ChatConversation
 
     public virtual ICollection<ChatGroupActionLog> ChatGroupActionLogs { get; set; } = new List<ChatGroupActionLog>();
 
+    public virtual ICollection<ChatGroupJoinRequest> ChatGroupJoinRequests { get; set; } = new List<ChatGroupJoinRequest>();
+
     public virtual ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();
 
     public virtual User? DisbandedByUser { get; set; }

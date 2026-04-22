@@ -25,6 +25,32 @@ public class DisbandConversationRequest
     public string? Reason { get; set; }
 }
 
+public class CreateGroupJoinRequestRequest
+{
+    public string? RequestMessage { get; set; }
+}
+
+public class RejectGroupJoinRequestRequest
+{
+    public string? RejectReason { get; set; }
+}
+
+public class GroupJoinRequestDto
+{
+    public ulong Id { get; set; }
+    public ulong ConversationId { get; set; }
+    public ulong RequesterUserId { get; set; }
+    public string? RequestMessage { get; set; }
+    public string RequestStatus { get; set; } = "pending";
+    public ulong? HandledByUserId { get; set; }
+    public DateTime? HandledAt { get; set; }
+    public string? RejectReason { get; set; }
+    public DateTime? ExpireAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public FriendUserDto Requester { get; set; } = new();
+}
+
 public class CreateFriendRequestRequest
 {
     public ulong? ReceiverUserId { get; set; }
@@ -45,6 +71,29 @@ public class FriendUserDto
     public string? UserAccount { get; set; }
     public string? NickName { get; set; }
     public string? AvatarKey { get; set; }
+}
+
+public class FriendSearchResultDto
+{
+    public ulong UserId { get; set; }
+    public string? UserAccount { get; set; }
+    public string? NickName { get; set; }
+    public string? AvatarKey { get; set; }
+    public bool IsFriend { get; set; }
+    public bool HasPendingSentRequest { get; set; }
+    public bool HasPendingReceivedRequest { get; set; }
+}
+
+public class GroupSearchResultDto
+{
+    public ulong Id { get; set; }
+    public string ConversationType { get; set; } = "group";
+    public string? Title { get; set; }
+    public string? AvatarKey { get; set; }
+    public ulong? OwnerUserId { get; set; }
+    public int MemberCount { get; set; }
+    public bool IsMember { get; set; }
+    public bool HasPendingJoinRequest { get; set; }
 }
 
 public class FriendshipDto

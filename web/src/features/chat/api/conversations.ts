@@ -2,9 +2,13 @@ import http from "@/libs/http";
 import type {
   ConversationDetail,
   ConversationSummary,
+  CreateGroupJoinRequestPayload,
   CreateConversationPayload,
+  GroupSearchResult,
+  GroupJoinRequest,
   InviteConversationMembersPayload,
   MuteConversationMemberPayload,
+  RejectGroupJoinRequestPayload,
   UpdateConversation,
   UpdateConversationMemberRolePayload,
 } from "../types";
@@ -43,6 +47,54 @@ export async function inviteConversationMembers(
   return await http.post<ConversationDetail>(
     `/mm/chat/conversations/${conversationId}/members/invite`,
     payload,
+  );
+}
+
+export async function createGroupJoinRequest(
+  conversationId: number,
+  payload?: CreateGroupJoinRequestPayload,
+) {
+  return await http.post<GroupJoinRequest>(
+    `/mm/chat/conversations/${conversationId}/join-requests`,
+    payload ?? {},
+  );
+}
+
+export async function searchGroupConversation(conversationId: number) {
+  return await http.get<GroupSearchResult | null>("/mm/chat/conversations/search", {
+    params: { conversationId },
+  });
+}
+
+export async function getConversationJoinRequests(
+  conversationId: number,
+  status = "pending",
+) {
+  return await http.get<GroupJoinRequest[]>(
+    `/mm/chat/conversations/${conversationId}/join-requests`,
+    {
+      params: { status },
+    },
+  );
+}
+
+export async function approveGroupJoinRequest(
+  conversationId: number,
+  requestId: number,
+) {
+  return await http.post<ConversationDetail>(
+    `/mm/chat/conversations/${conversationId}/join-requests/${requestId}/approve`,
+  );
+}
+
+export async function rejectGroupJoinRequest(
+  conversationId: number,
+  requestId: number,
+  payload?: RejectGroupJoinRequestPayload,
+) {
+  return await http.post<ConversationDetail>(
+    `/mm/chat/conversations/${conversationId}/join-requests/${requestId}/reject`,
+    payload ?? {},
   );
 }
 

@@ -243,6 +243,9 @@ public class ConversationSummaryDto
     /// </summary>
     public DateTime UpdatedAt { get; set; }
     /// <summary>
+    /// 待处理加群申请数量
+    /// </summary>
+    /// <summary>
     /// 未读数量
     /// </summary>
     public int UnreadCount { get; set; }
@@ -301,6 +304,10 @@ public class ConversationDetailDto
     /// 更新时间
     /// </summary>
     public DateTime UpdatedAt { get; set; }
+    /// <summary>
+    /// 待处理加群申请数量
+    /// </summary>
+    public int PendingJoinRequestCount { get; set; }
     /// <summary>
     /// 成员列表
     /// </summary>

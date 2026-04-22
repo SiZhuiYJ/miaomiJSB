@@ -11,14 +11,18 @@ import type {
   ConversationDetailUpdateOptions,
   ConversationMember,
   Friendship,
+  GroupJoinRequest,
   GroupMuteMode,
   UserRole,
 } from "../types";
 import {
+  approveGroupJoinRequest,
   disbandConversation,
+  getConversationJoinRequests,
   inviteConversationMembers,
   kickConversationMember,
   muteConversationMember,
+  rejectGroupJoinRequest,
   unmuteConversationMember,
   updateConversationMemberRole,
 } from "../api/conversations";
@@ -66,6 +70,10 @@ const inviting = ref(false);
 const inviteSelection = ref<number[]>([]);
 const friendLoading = ref(false);
 const friends = ref<Friendship[]>([]);
+const joinRequestDialogVisible = ref(false);
+const joinRequestLoading = ref(false);
+const joinRequestHandlingId = ref<number | null>(null);
+const joinRequests = ref<GroupJoinRequest[]>([]);
 
 const muteDialogVisible = ref(false);
 const pendingMuteMember = ref<ConversationMember | null>(null);
@@ -90,6 +98,12 @@ const canChangeGroupAvatar = computed(
 );
 const canManageMemberRoles = computed(
   () => isGroupConversation.value && currentMemberRole.value === "owner",
+);
+const canManageJoinRequests = computed(
+  () =>
+    isGroupConversation.value &&
+    props.conversation.isActive &&
+    ["owner", "admin"].includes(currentMemberRole.value || ""),
 );
 const canInviteMembers = computed(
   () => isGroupConversation.value && props.conversation.isActive && currentMember.value !== null,
@@ -205,6 +219,12 @@ function resetInviteDialog() {
   inviteSelection.value = [];
 }
 
+function resetJoinRequestDialog() {
+  joinRequestDialogVisible.value = false;
+  joinRequests.value = [];
+  joinRequestHandlingId.value = null;
+}
+
 function toggleMuted() {
   props.conversation.isMuted = !props.conversation.isMuted;
   emit("update:conversation", { persist: true });
@@ -292,6 +312,36 @@ async function openInviteDialog() {
   inviteDialogVisible.value = true;
 }
 
+function getJoinRequestName(item: GroupJoinRequest) {
+  return item.requester.nickName || item.requester.userAccount || String(item.requester.userId);
+}
+
+function getJoinRequestMeta(item: GroupJoinRequest) {
+  return item.requester.userAccount || `ID: ${item.requester.userId}`;
+}
+
+async function loadJoinRequests() {
+  if (!canManageJoinRequests.value) return;
+
+  joinRequestLoading.value = true;
+  try {
+    const { data } = await getConversationJoinRequests(props.conversation.id);
+    joinRequests.value = data;
+    props.conversation.pendingJoinRequestCount = data.length;
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, "加载加群申请失败"));
+  } finally {
+    joinRequestLoading.value = false;
+  }
+}
+
+async function openJoinRequestDialog() {
+  if (!canManageJoinRequests.value || joinRequestLoading.value) return;
+
+  await loadJoinRequests();
+  joinRequestDialogVisible.value = true;
+}
+
 async function submitInviteMembers() {
   if (!inviteSelection.value.length) {
     ElMessage.warning("请选择要邀请的好友");
@@ -311,6 +361,51 @@ async function submitInviteMembers() {
     ElMessage.error(getErrorMessage(error, "邀请成员失败"));
   } finally {
     inviting.value = false;
+  }
+}
+
+async function handleApproveJoinRequest(item: GroupJoinRequest) {
+  if (!canManageJoinRequests.value) return;
+
+  joinRequestHandlingId.value = item.id;
+  try {
+    const { data } = await approveGroupJoinRequest(props.conversation.id, item.id);
+    applyConversationDetail(data);
+    emit("update:conversation");
+    await loadJoinRequests();
+    ElMessage.success("已通过加群申请");
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, "通过加群申请失败"));
+  } finally {
+    joinRequestHandlingId.value = null;
+  }
+}
+
+async function handleRejectJoinRequest(item: GroupJoinRequest) {
+  if (!canManageJoinRequests.value) return;
+
+  try {
+    const result = await ElMessageBox.prompt("可填写拒绝原因", "拒绝加群申请", {
+      inputPlaceholder: "拒绝原因（可选）",
+      inputValidator: () => true,
+      confirmButtonText: "确认拒绝",
+      cancelButtonText: "取消",
+    });
+
+    joinRequestHandlingId.value = item.id;
+    const { data } = await rejectGroupJoinRequest(props.conversation.id, item.id, {
+      rejectReason: result.value?.trim() || undefined,
+    });
+    applyConversationDetail(data);
+    emit("update:conversation");
+    await loadJoinRequests();
+    ElMessage.success("已拒绝加群申请");
+  } catch (error) {
+    if (error !== "cancel") {
+      ElMessage.error(getErrorMessage(error, "拒绝加群申请失败"));
+    }
+  } finally {
+    joinRequestHandlingId.value = null;
   }
 }
 
@@ -428,6 +523,7 @@ watch(
 
     if (!value) {
       resetInviteDialog();
+      resetJoinRequestDialog();
       resetMuteDialog();
     }
   },
@@ -491,6 +587,17 @@ watch(
           <span class="section-tip">所有群成员都可以邀请自己的好友入群</span>
         </div>
         <div class="management-actions">
+          <el-badge :value="conversation.pendingJoinRequestCount" :show-zero="false" :offset="[-6, 4]">
+            <el-button
+              color="#111827"
+              plain
+              :disabled="!canManageJoinRequests"
+              :loading="joinRequestLoading"
+              @click="openJoinRequestDialog"
+            >
+              加群申请
+            </el-button>
+          </el-badge>
           <el-button color="#111827" plain :disabled="!canInviteMembers" :loading="inviting" @click="openInviteDialog">
             邀请成员
           </el-button>
@@ -641,6 +748,62 @@ watch(
         </el-button>
       </div>
     </template>
+  </el-dialog>
+
+  <el-dialog
+    v-model="joinRequestDialogVisible"
+    title="加群申请"
+    width="min(92vw, 560px)"
+    append-to-body
+    :close-on-click-modal="joinRequestHandlingId === null"
+    :close-on-press-escape="joinRequestHandlingId === null"
+    :show-close="joinRequestHandlingId === null"
+    @closed="resetJoinRequestDialog"
+  >
+    <div class="join-request-panel">
+      <div class="join-request-toolbar">
+        <el-button plain :loading="joinRequestLoading" @click="loadJoinRequests">刷新</el-button>
+      </div>
+
+      <el-empty
+        v-if="!joinRequestLoading && joinRequests.length === 0"
+        description="暂无待处理的加群申请"
+      />
+
+      <el-scrollbar v-else max-height="360px">
+        <div v-for="item in joinRequests" :key="item.id" class="join-request-row">
+          <div class="join-request-main">
+            <div class="join-request-title">
+              <strong>{{ getJoinRequestName(item) }}</strong>
+              <el-tag size="small" type="warning">待处理</el-tag>
+            </div>
+            <div class="join-request-meta">账号：{{ getJoinRequestMeta(item) }}</div>
+            <div v-if="item.requestMessage" class="join-request-meta">附言：{{ item.requestMessage }}</div>
+            <div class="join-request-meta">申请时间：{{ formatChatTime(item.createdAt) }}</div>
+          </div>
+
+          <div class="join-request-ops">
+            <el-button
+              size="small"
+              type="primary"
+              :loading="joinRequestHandlingId === item.id"
+              @click="handleApproveJoinRequest(item)"
+            >
+              通过
+            </el-button>
+            <el-button
+              size="small"
+              type="danger"
+              plain
+              :loading="joinRequestHandlingId === item.id"
+              @click="handleRejectJoinRequest(item)"
+            >
+              拒绝
+            </el-button>
+          </div>
+        </div>
+      </el-scrollbar>
+    </div>
   </el-dialog>
 
   <el-dialog
@@ -856,6 +1019,50 @@ watch(
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
+}
+
+.join-request-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.join-request-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.join-request-row {
+  display: grid;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.join-request-row:last-child {
+  border-bottom: none;
+}
+
+.join-request-main {
+  display: grid;
+  gap: 6px;
+}
+
+.join-request-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.join-request-meta {
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.join-request-ops {
+  display: flex;
   gap: 8px;
 }
 

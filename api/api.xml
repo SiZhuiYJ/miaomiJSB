@@ -1548,7 +1548,7 @@
         </member>
         <member name="P:api.Data.ChatConversationMember.MembershipStatus">
             <summary>
-            Membership status
+            成员状态（active：活跃，left：已离开，kicked：被踢出）
             </summary>
         </member>
         <member name="P:api.Data.ChatConversationMember.JoinedAt">
@@ -1558,12 +1558,12 @@
         </member>
         <member name="P:api.Data.ChatConversationMember.InvitedAt">
             <summary>
-            Invite time
+            邀请时间
             </summary>
         </member>
         <member name="P:api.Data.ChatConversationMember.InvitedByUserId">
             <summary>
-            Inviter user id
+            邀请人用户ID
             </summary>
         </member>
         <member name="P:api.Data.ChatConversationMember.LeftAt">
@@ -1573,12 +1573,12 @@
         </member>
         <member name="P:api.Data.ChatConversationMember.RemovedByUserId">
             <summary>
-            Removal operator user id
+            移除操作人用户ID
             </summary>
         </member>
         <member name="P:api.Data.ChatConversationMember.RemovedReason">
             <summary>
-            Leave or removal reason
+            离开或移除原因
             </summary>
         </member>
         <member name="P:api.Data.ChatConversationMember.MuteUntil">
@@ -1588,22 +1588,22 @@
         </member>
         <member name="P:api.Data.ChatConversationMember.MuteMode">
             <summary>
-            Mute mode
+            禁言模式（temporary：临时，permanent：永久）
             </summary>
         </member>
         <member name="P:api.Data.ChatConversationMember.MuteReason">
             <summary>
-            Mute reason
+            禁言原因
             </summary>
         </member>
         <member name="P:api.Data.ChatConversationMember.MutedAt">
             <summary>
-            Mute start time
+            禁言开始时间
             </summary>
         </member>
         <member name="P:api.Data.ChatConversationMember.MutedByUserId">
             <summary>
-            Mute operator user id
+            禁言操作人用户ID
             </summary>
         </member>
         <member name="P:api.Data.ChatConversationMember.IsPinned">
@@ -1734,6 +1734,66 @@
         <member name="P:api.Data.ChatGroupActionLog.CreatedAt">
             <summary>
             创建时间
+            </summary>
+        </member>
+        <member name="T:api.Data.ChatGroupJoinRequest">
+            <summary>
+            群聊加群申请记录表
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupJoinRequest.Id">
+            <summary>
+            主键ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupJoinRequest.ConversationId">
+            <summary>
+            群聊会话ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupJoinRequest.RequesterUserId">
+            <summary>
+            申请人用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupJoinRequest.RequestMessage">
+            <summary>
+            申请附言
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupJoinRequest.RequestStatus">
+            <summary>
+            申请状态：pending=待处理,approved=已通过,rejected=已拒绝,expired=已过期
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupJoinRequest.HandledByUserId">
+            <summary>
+            处理人用户ID
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupJoinRequest.HandledAt">
+            <summary>
+            处理时间
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupJoinRequest.RejectReason">
+            <summary>
+            拒绝原因
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupJoinRequest.ExpireAt">
+            <summary>
+            申请过期时间
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupJoinRequest.CreatedAt">
+            <summary>
+            创建时间
+            </summary>
+        </member>
+        <member name="P:api.Data.ChatGroupJoinRequest.UpdatedAt">
+            <summary>
+            更新时间
             </summary>
         </member>
         <member name="T:api.Data.ChatMessage">
@@ -3343,6 +3403,9 @@
         </member>
         <member name="P:api.Models.ConversationSummaryDto.UnreadCount">
             <summary>
+            待处理加群申请数量
+            </summary>
+            <summary>
             未读数量
             </summary>
         </member>
@@ -3409,6 +3472,11 @@
         <member name="P:api.Models.ConversationDetailDto.UpdatedAt">
             <summary>
             更新时间
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.PendingJoinRequestCount">
+            <summary>
+            待处理加群申请数量
             </summary>
         </member>
         <member name="P:api.Models.ConversationDetailDto.Members">

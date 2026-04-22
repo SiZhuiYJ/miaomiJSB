@@ -106,6 +106,10 @@ public partial class User
 
     public virtual ICollection<ChatGroupActionLog> ChatGroupActionLogTargetUsers { get; set; } = new List<ChatGroupActionLog>();
 
+    public virtual ICollection<ChatGroupJoinRequest> ChatGroupJoinRequestHandledByUsers { get; set; } = new List<ChatGroupJoinRequest>();
+
+    public virtual ICollection<ChatGroupJoinRequest> ChatGroupJoinRequestRequesterUsers { get; set; } = new List<ChatGroupJoinRequest>();
+
     public virtual ICollection<ChatMessageReceipt> ChatMessageReceipts { get; set; } = new List<ChatMessageReceipt>();
 
     public virtual ICollection<ChatMessage> ChatMessages { get; set; } = new List<ChatMessage>();

@@ -24,6 +24,8 @@ public partial class DailyCheckDbContext : DbContext
 
     public virtual DbSet<ChatGroupActionLog> ChatGroupActionLogs { get; set; }
 
+    public virtual DbSet<ChatGroupJoinRequest> ChatGroupJoinRequests { get; set; }
+
     public virtual DbSet<ChatMessage> ChatMessages { get; set; }
 
     public virtual DbSet<ChatMessageReceipt> ChatMessageReceipts { get; set; }
@@ -185,11 +187,11 @@ public partial class DailyCheckDbContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("created_at");
             entity.Property(e => e.InvitedAt)
-                .HasComment("Invite time")
+                .HasComment("邀请时间")
                 .HasColumnType("datetime")
                 .HasColumnName("invited_at");
             entity.Property(e => e.InvitedByUserId)
-                .HasComment("Inviter user id")
+                .HasComment("邀请人用户ID")
                 .HasColumnName("invited_by_user_id");
             entity.Property(e => e.IsMuted)
                 .HasComment("是否消息免打扰：1是，0否")
@@ -216,34 +218,34 @@ public partial class DailyCheckDbContext : DbContext
                 .HasColumnName("member_role");
             entity.Property(e => e.MembershipStatus)
                 .HasDefaultValueSql("'active'")
-                .HasComment("Membership status")
+                .HasComment("成员状态（active：活跃，left：已离开，kicked：被踢出）")
                 .HasColumnType("enum('active','left','kicked')")
                 .HasColumnName("membership_status");
             entity.Property(e => e.MuteMode)
-                .HasComment("Mute mode")
+                .HasComment("禁言模式（temporary：临时，permanent：永久）")
                 .HasColumnType("enum('temporary','permanent')")
                 .HasColumnName("mute_mode");
             entity.Property(e => e.MuteReason)
                 .HasMaxLength(255)
-                .HasComment("Mute reason")
+                .HasComment("禁言原因")
                 .HasColumnName("mute_reason");
             entity.Property(e => e.MuteUntil)
                 .HasComment("禁言截至时间（NULL表示不禁言）")
                 .HasColumnType("datetime")
                 .HasColumnName("mute_until");
             entity.Property(e => e.MutedAt)
-                .HasComment("Mute start time")
+                .HasComment("禁言开始时间")
                 .HasColumnType("datetime")
                 .HasColumnName("muted_at");
             entity.Property(e => e.MutedByUserId)
-                .HasComment("Mute operator user id")
+                .HasComment("禁言操作人用户ID")
                 .HasColumnName("muted_by_user_id");
             entity.Property(e => e.RemovedByUserId)
-                .HasComment("Removal operator user id")
+                .HasComment("移除操作人用户ID")
                 .HasColumnName("removed_by_user_id");
             entity.Property(e => e.RemovedReason)
                 .HasMaxLength(255)
-                .HasComment("Leave or removal reason")
+                .HasComment("离开或移除原因")
                 .HasColumnName("removed_reason");
             entity.Property(e => e.UpdatedAt)
                 .ValueGeneratedOnAddOrUpdate()
@@ -414,6 +416,83 @@ public partial class DailyCheckDbContext : DbContext
                 .HasForeignKey(d => d.TargetUserId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_chat_group_logs_target");
+        });
+
+        modelBuilder.Entity<ChatGroupJoinRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity
+                .ToTable("chat_group_join_requests", tb => tb.HasComment("群聊加群申请记录表"))
+                .UseCollation("utf8mb4_unicode_ci");
+
+            entity.HasIndex(e => new { e.ConversationId, e.RequestStatus, e.CreatedAt }, "idx_group_join_requests_conversation_status");
+
+            entity.HasIndex(e => e.HandledByUserId, "idx_group_join_requests_handled_by");
+
+            entity.HasIndex(e => new { e.ConversationId, e.RequesterUserId, e.RequestStatus }, "idx_group_join_requests_pair_status");
+
+            entity.HasIndex(e => new { e.RequesterUserId, e.RequestStatus, e.CreatedAt }, "idx_group_join_requests_requester_status");
+
+            entity.HasIndex(e => new { e.RequestStatus, e.ExpireAt }, "idx_group_join_requests_status_expire");
+
+            entity.Property(e => e.Id)
+                .HasComment("主键ID")
+                .HasColumnName("id");
+            entity.Property(e => e.ConversationId)
+                .HasComment("群聊会话ID")
+                .HasColumnName("conversation_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("创建时间")
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.ExpireAt)
+                .HasComment("申请过期时间")
+                .HasColumnType("datetime")
+                .HasColumnName("expire_at");
+            entity.Property(e => e.HandledAt)
+                .HasComment("处理时间")
+                .HasColumnType("datetime")
+                .HasColumnName("handled_at");
+            entity.Property(e => e.HandledByUserId)
+                .HasComment("处理人用户ID")
+                .HasColumnName("handled_by_user_id");
+            entity.Property(e => e.RejectReason)
+                .HasMaxLength(255)
+                .HasComment("拒绝原因")
+                .HasColumnName("reject_reason");
+            entity.Property(e => e.RequestMessage)
+                .HasMaxLength(255)
+                .HasComment("申请附言")
+                .HasColumnName("request_message");
+            entity.Property(e => e.RequestStatus)
+                .HasDefaultValueSql("'pending'")
+                .HasComment("申请状态：pending=待处理,approved=已通过,rejected=已拒绝,expired=已过期")
+                .HasColumnType("enum('pending','approved','rejected','expired')")
+                .HasColumnName("request_status");
+            entity.Property(e => e.RequesterUserId)
+                .HasComment("申请人用户ID")
+                .HasColumnName("requester_user_id");
+            entity.Property(e => e.UpdatedAt)
+                .ValueGeneratedOnAddOrUpdate()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasComment("更新时间")
+                .HasColumnType("datetime")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Conversation).WithMany(p => p.ChatGroupJoinRequests)
+                .HasForeignKey(d => d.ConversationId)
+                .HasConstraintName("fk_group_join_requests_conversation");
+
+            entity.HasOne(d => d.HandledByUser).WithMany(p => p.ChatGroupJoinRequestHandledByUsers)
+                .HasForeignKey(d => d.HandledByUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_group_join_requests_handled_by");
+
+            entity.HasOne(d => d.RequesterUser).WithMany(p => p.ChatGroupJoinRequestRequesterUsers)
+                .HasForeignKey(d => d.RequesterUserId)
+                .HasConstraintName("fk_group_join_requests_requester");
         });
 
         modelBuilder.Entity<ChatMessage>(entity =>

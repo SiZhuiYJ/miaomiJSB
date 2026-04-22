@@ -1,6 +1,7 @@
 import http from "@/libs/http";
 import type {
   CreateFriendRequestPayload,
+  FriendSearchResult,
   FriendRequest,
   Friendship,
   RejectFriendRequestPayload,
@@ -13,6 +14,12 @@ export async function getFriends() {
 export async function getFriendRequests(status?: string) {
   return await http.get<FriendRequest[]>("/mm/friends/requests", {
     params: status ? { status } : undefined,
+  });
+}
+
+export async function searchFriendUsers(keyword: string) {
+  return await http.get<FriendSearchResult[]>("/mm/friends/search", {
+    params: { keyword },
   });
 }
 

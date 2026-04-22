@@ -320,6 +320,307 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         return detail == null ? NotFound(new { message = "Conversation not found" }) : Ok(detail);
     }
 
+    [HttpPost("conversations/{conversationId:ulong}/join-requests")]
+    public async Task<ActionResult<GroupJoinRequestDto>> CreateGroupJoinRequest(
+        ulong conversationId,
+        [FromBody] CreateGroupJoinRequestRequest? request = null)
+    {
+        var userId = GetUserId();
+        await ExpirePendingGroupJoinRequests(conversationId);
+
+        var conversation = await _db.ChatConversations
+            .Include(c => c.ChatConversationMembers)
+            .FirstOrDefaultAsync(c => c.Id == conversationId && c.IsActive == true);
+
+        if (conversation == null || conversation.ConversationType != "group")
+            return NotFound(new { message = "Group conversation not found or not available" });
+
+        if (conversation.ChatConversationMembers.Any(m => m.UserId == userId && m.LeftAt == null))
+            return BadRequest(new { message = "You are already a member of this group" });
+
+        var existingPending = await _db.ChatGroupJoinRequests
+            .FirstOrDefaultAsync(r =>
+                r.ConversationId == conversationId &&
+                r.RequesterUserId == userId &&
+                r.RequestStatus == "pending" &&
+                (r.ExpireAt == null || r.ExpireAt > DateTime.UtcNow));
+
+        if (existingPending != null)
+        {
+            var existingDto = await BuildGroupJoinRequestDto(existingPending.Id);
+            return existingDto == null
+                ? BadRequest(new { message = "A pending join request already exists" })
+                : Ok(existingDto);
+        }
+
+        var now = DateTime.UtcNow;
+        var joinRequest = new ChatGroupJoinRequest
+        {
+            ConversationId = conversationId,
+            RequesterUserId = userId,
+            RequestMessage = NormalizeReason(request?.RequestMessage),
+            RequestStatus = "pending",
+            ExpireAt = now.AddDays(7),
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        _db.ChatGroupJoinRequests.Add(joinRequest);
+        await _db.SaveChangesAsync();
+
+        var detail = await BuildGroupJoinRequestDto(joinRequest.Id);
+        return detail == null
+            ? BadRequest(new { message = "Join request was created but could not be loaded" })
+            : Ok(detail);
+    }
+
+    [HttpGet("conversations/search")]
+    public async Task<ActionResult<GroupSearchResultDto?>> SearchGroupConversation([FromQuery] ulong conversationId)
+    {
+        if (conversationId == 0)
+            return BadRequest(new { message = "conversationId must be greater than 0" });
+
+        var userId = GetUserId();
+        await ExpirePendingGroupJoinRequests(conversationId);
+
+        var now = DateTime.UtcNow;
+        var result = await _db.ChatConversations
+            .AsNoTracking()
+            .Where(c =>
+                c.Id == conversationId &&
+                c.IsActive == true &&
+                c.ConversationType == "group")
+            .Select(c => new GroupSearchResultDto
+            {
+                Id = c.Id,
+                ConversationType = c.ConversationType,
+                Title = c.Title,
+                AvatarKey = c.AvatarKey,
+                OwnerUserId = c.OwnerUserId,
+                MemberCount = c.ChatConversationMembers.Count(m => m.LeftAt == null),
+                IsMember = c.ChatConversationMembers.Any(m => m.UserId == userId && m.LeftAt == null),
+                HasPendingJoinRequest = c.ChatGroupJoinRequests.Any(r =>
+                    r.RequesterUserId == userId &&
+                    r.RequestStatus == "pending" &&
+                    (r.ExpireAt == null || r.ExpireAt > now))
+            })
+            .SingleOrDefaultAsync();
+
+        return Ok(result);
+    }
+
+    [HttpGet("conversations/{conversationId:ulong}/join-requests")]
+    public async Task<ActionResult<List<GroupJoinRequestDto>>> GetGroupJoinRequests(
+        ulong conversationId,
+        [FromQuery] string? status = null)
+    {
+        var userId = GetUserId();
+        await ExpirePendingGroupJoinRequests(conversationId);
+
+        var context = await GetActiveConversationContext(conversationId, userId);
+        if (context == null)
+            return NotFound(new { message = "Conversation not found or access denied" });
+
+        var (conversation, currentMember) = context.Value;
+        if (conversation.ConversationType != "group")
+            return BadRequest(new { message = "Only group conversations support join requests" });
+
+        if (!CanManageJoinRequests(currentMember))
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Only the owner or an admin can view join requests" });
+
+        var normalizedStatus = NormalizeGroupJoinRequestStatus(status) ?? "pending";
+        var requests = await _db.ChatGroupJoinRequests
+            .AsNoTracking()
+            .Where(r => r.ConversationId == conversationId && r.RequestStatus == normalizedStatus)
+            .OrderByDescending(r => r.CreatedAt)
+            .Select(BuildGroupJoinRequestProjection())
+            .ToListAsync();
+
+        return Ok(requests);
+    }
+
+    [HttpPost("conversations/{conversationId:ulong}/join-requests/{requestId:ulong}/approve")]
+    public async Task<ActionResult<ConversationDetailDto>> ApproveGroupJoinRequest(
+        ulong conversationId,
+        ulong requestId)
+    {
+        var userId = GetUserId();
+        await ExpirePendingGroupJoinRequests(conversationId);
+
+        var context = await GetActiveConversationContext(conversationId, userId);
+        if (context == null)
+            return NotFound(new { message = "Conversation not found or access denied" });
+
+        var (conversation, currentMember) = context.Value;
+        if (conversation.ConversationType != "group")
+            return BadRequest(new { message = "Only group conversations support join requests" });
+
+        if (!CanManageJoinRequests(currentMember))
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Only the owner or an admin can approve join requests" });
+
+        var joinRequest = await _db.ChatGroupJoinRequests
+            .Include(r => r.RequesterUser)
+            .FirstOrDefaultAsync(r => r.Id == requestId && r.ConversationId == conversationId);
+
+        if (joinRequest == null)
+            return NotFound(new { message = "Join request not found" });
+
+        if (joinRequest.RequestStatus != "pending")
+            return BadRequest(new { message = "Only pending join requests can be approved" });
+
+        if (joinRequest.ExpireAt != null && joinRequest.ExpireAt <= DateTime.UtcNow)
+            return BadRequest(new { message = "This join request has expired" });
+
+        if (joinRequest.RequesterUser == null || joinRequest.RequesterUser.IsDeleted || joinRequest.RequesterUser.Status != true)
+            return BadRequest(new { message = "The requester account is no longer available" });
+
+        var targetMember = conversation.ChatConversationMembers
+            .FirstOrDefault(m => m.UserId == joinRequest.RequesterUserId);
+
+        if (targetMember?.LeftAt == null)
+        {
+            var now = DateTime.UtcNow;
+            joinRequest.RequestStatus = "approved";
+            joinRequest.HandledByUserId = userId;
+            joinRequest.HandledAt = now;
+            joinRequest.RejectReason = null;
+            joinRequest.UpdatedAt = now;
+
+            await _db.SaveChangesAsync();
+
+            var existingDetail = await BuildConversationDetail(conversationId, userId);
+            return existingDetail == null ? NotFound(new { message = "Conversation not found" }) : Ok(existingDetail);
+        }
+
+        var activeMemberCount = conversation.ChatConversationMembers.Count(m => m.LeftAt == null);
+        var memberLimit = conversation.MemberLimit == 0
+            ? int.MaxValue
+            : (int)Math.Min(conversation.MemberLimit, int.MaxValue);
+
+        if (activeMemberCount + 1 > memberLimit)
+            return BadRequest(new { message = "Approving this request would exceed the group member limit" });
+
+        var approvedAt = DateTime.UtcNow;
+        if (targetMember != null)
+        {
+            targetMember.MemberRole = "member";
+            targetMember.MembershipStatus = "active";
+            targetMember.JoinedAt = approvedAt;
+            targetMember.InvitedAt = approvedAt;
+            targetMember.InvitedByUserId = userId;
+            targetMember.LeftAt = null;
+            targetMember.RemovedByUserId = null;
+            targetMember.RemovedReason = null;
+            targetMember.MuteMode = null;
+            targetMember.MuteUntil = null;
+            targetMember.MuteReason = null;
+            targetMember.MutedAt = null;
+            targetMember.MutedByUserId = null;
+            targetMember.UpdatedAt = approvedAt;
+        }
+        else
+        {
+            conversation.ChatConversationMembers.Add(new ChatConversationMember
+            {
+                ConversationId = conversationId,
+                UserId = joinRequest.RequesterUserId,
+                MemberRole = "member",
+                MembershipStatus = "active",
+                JoinedAt = approvedAt,
+                InvitedAt = approvedAt,
+                InvitedByUserId = userId,
+                IsMuted = false,
+                IsPinned = false,
+                CreatedAt = approvedAt,
+                UpdatedAt = approvedAt
+            });
+        }
+
+        joinRequest.RequestStatus = "approved";
+        joinRequest.HandledByUserId = userId;
+        joinRequest.HandledAt = approvedAt;
+        joinRequest.RejectReason = null;
+        joinRequest.UpdatedAt = approvedAt;
+
+        conversation.UpdatedAt = approvedAt;
+        conversation.LastMessageAt = approvedAt;
+
+        var operatorName = GetUserDisplayName(currentMember.User?.NickName, currentMember.User?.UserAccount, currentMember.UserId);
+        var requesterName = GetUserDisplayName(
+            joinRequest.RequesterUser.NickName,
+            joinRequest.RequesterUser.UserAccount,
+            joinRequest.RequesterUserId);
+        var systemMessage = CreateSystemMessage(
+            conversationId,
+            userId,
+            $"{operatorName} 同意 {requesterName} 的加群申请，{requesterName} 已加入群聊",
+            approvedAt);
+
+        AddGroupActionLog(
+            conversationId,
+            "join",
+            userId,
+            joinRequest.RequesterUserId,
+            null,
+            new
+            {
+                source = "join_request",
+                requestId = joinRequest.Id
+            },
+            systemMessage);
+
+        await _db.SaveChangesAsync();
+        await BroadcastSystemMessage(systemMessage, approvedAt);
+
+        var detail = await BuildConversationDetail(conversationId, userId);
+        return detail == null ? NotFound(new { message = "Conversation not found" }) : Ok(detail);
+    }
+
+    [HttpPost("conversations/{conversationId:ulong}/join-requests/{requestId:ulong}/reject")]
+    public async Task<ActionResult<ConversationDetailDto>> RejectGroupJoinRequest(
+        ulong conversationId,
+        ulong requestId,
+        [FromBody] RejectGroupJoinRequestRequest? request = null)
+    {
+        var userId = GetUserId();
+        await ExpirePendingGroupJoinRequests(conversationId);
+
+        var context = await GetActiveConversationContext(conversationId, userId);
+        if (context == null)
+            return NotFound(new { message = "Conversation not found or access denied" });
+
+        var (conversation, currentMember) = context.Value;
+        if (conversation.ConversationType != "group")
+            return BadRequest(new { message = "Only group conversations support join requests" });
+
+        if (!CanManageJoinRequests(currentMember))
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "Only the owner or an admin can reject join requests" });
+
+        var joinRequest = await _db.ChatGroupJoinRequests
+            .FirstOrDefaultAsync(r => r.Id == requestId && r.ConversationId == conversationId);
+
+        if (joinRequest == null)
+            return NotFound(new { message = "Join request not found" });
+
+        if (joinRequest.RequestStatus != "pending")
+            return BadRequest(new { message = "Only pending join requests can be rejected" });
+
+        if (joinRequest.ExpireAt != null && joinRequest.ExpireAt <= DateTime.UtcNow)
+            return BadRequest(new { message = "This join request has expired" });
+
+        var now = DateTime.UtcNow;
+        joinRequest.RequestStatus = "rejected";
+        joinRequest.HandledByUserId = userId;
+        joinRequest.HandledAt = now;
+        joinRequest.RejectReason = NormalizeReason(request?.RejectReason);
+        joinRequest.UpdatedAt = now;
+
+        await _db.SaveChangesAsync();
+
+        var detail = await BuildConversationDetail(conversationId, userId);
+        return detail == null ? NotFound(new { message = "Conversation not found" }) : Ok(detail);
+    }
+
     [HttpPost("conversations/{conversationId:ulong}/members/{memberUserId:ulong}/kick")]
     public async Task<ActionResult<ConversationDetailDto>> KickConversationMember(
         ulong conversationId,
@@ -1198,6 +1499,63 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
             .SingleAsync();
     }
 
+    async Task ExpirePendingGroupJoinRequests(ulong? conversationId = null)
+    {
+        var now = DateTime.UtcNow;
+        var query = _db.ChatGroupJoinRequests
+            .Where(r => r.RequestStatus == "pending" && r.ExpireAt != null && r.ExpireAt <= now);
+
+        if (conversationId.HasValue)
+            query = query.Where(r => r.ConversationId == conversationId.Value);
+
+        var expiredRequests = await query.ToListAsync();
+        if (expiredRequests.Count == 0)
+            return;
+
+        foreach (var request in expiredRequests)
+        {
+            request.RequestStatus = "expired";
+            request.HandledAt ??= now;
+            request.UpdatedAt = now;
+        }
+
+        await _db.SaveChangesAsync();
+    }
+
+    async Task<GroupJoinRequestDto?> BuildGroupJoinRequestDto(ulong requestId)
+    {
+        return await _db.ChatGroupJoinRequests
+            .AsNoTracking()
+            .Where(r => r.Id == requestId)
+            .Select(BuildGroupJoinRequestProjection())
+            .SingleOrDefaultAsync();
+    }
+
+    static Expression<Func<ChatGroupJoinRequest, GroupJoinRequestDto>> BuildGroupJoinRequestProjection()
+    {
+        return r => new GroupJoinRequestDto
+        {
+            Id = r.Id,
+            ConversationId = r.ConversationId,
+            RequesterUserId = r.RequesterUserId,
+            RequestMessage = r.RequestMessage,
+            RequestStatus = r.RequestStatus,
+            HandledByUserId = r.HandledByUserId,
+            HandledAt = r.HandledAt,
+            RejectReason = r.RejectReason,
+            ExpireAt = r.ExpireAt,
+            CreatedAt = r.CreatedAt,
+            UpdatedAt = r.UpdatedAt,
+            Requester = new FriendUserDto
+            {
+                UserId = r.RequesterUserId,
+                UserAccount = r.RequesterUser.UserAccount,
+                NickName = r.RequesterUser.NickName,
+                AvatarKey = r.RequesterUser.AvatarKey
+            }
+        };
+    }
+
     /// <summary>
     /// 閺嬪嫬缂撴导姘崇樈鐠囷附鍎?
     /// </summary>
@@ -1244,6 +1602,15 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 OwnerUserId = c.OwnerUserId,
                 CreatedAt = c.CreatedAt,
                 UpdatedAt = c.UpdatedAt,
+                PendingJoinRequestCount = c.ConversationType == "group"
+                    && c.ChatConversationMembers.Any(m =>
+                        m.UserId == userId &&
+                        m.LeftAt == null &&
+                        (m.MemberRole == "owner" || m.MemberRole == "admin"))
+                    ? c.ChatGroupJoinRequests.Count(r =>
+                        r.RequestStatus == "pending" &&
+                        (r.ExpireAt == null || r.ExpireAt > now))
+                    : 0,
                 Members = c.ChatConversationMembers
                     .Where(m => m.LeftAt == null)
                     .OrderBy(m => m.JoinedAt)
@@ -1318,6 +1685,9 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     static bool IsOwner(ChatConversationMember member)
         => NormalizeValue(member.MemberRole) == "owner";
 
+    static bool CanManageJoinRequests(ChatConversationMember member)
+        => NormalizeValue(member.MemberRole) is "owner" or "admin";
+
     static bool CanModerateMember(ChatConversationMember currentMember, ChatConversationMember targetMember)
     {
         if (currentMember.UserId == targetMember.UserId)
@@ -1340,6 +1710,16 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         return muteMode == "permanent"
             || (muteMode == "temporary" && member.MuteUntil != null && member.MuteUntil > now);
     }
+
+    static string? NormalizeGroupJoinRequestStatus(string? value)
+        => NormalizeValue(value) switch
+        {
+            "pending" => "pending",
+            "approved" => "approved",
+            "rejected" => "rejected",
+            "expired" => "expired",
+            _ => null
+        };
 
     async Task<bool> AreUsersFriends(ulong userId, ulong peerUserId)
     {

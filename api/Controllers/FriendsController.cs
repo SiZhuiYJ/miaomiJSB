@@ -76,6 +76,54 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
         return Ok(requests);
     }
 
+    [HttpGet("search")]
+    public async Task<ActionResult<List<FriendSearchResultDto>>> SearchUsers([FromQuery] string? keyword)
+    {
+        var userId = GetUserId();
+        await ExpirePendingRequests();
+
+        var normalizedKeyword = NormalizeReason(keyword);
+        if (string.IsNullOrWhiteSpace(normalizedKeyword))
+            return BadRequest(new { message = "keyword is required" });
+
+        var now = DateTime.UtcNow;
+        var users = await _db.Users
+            .AsNoTracking()
+            .Where(u =>
+                u.Id != userId &&
+                !u.IsDeleted &&
+                u.Status == true &&
+                (u.UserAccount == normalizedKeyword ||
+                 (u.NickName != null && u.NickName.Contains(normalizedKeyword))))
+            .OrderByDescending(u => u.UserAccount == normalizedKeyword)
+            .ThenByDescending(u => u.NickName == normalizedKeyword)
+            .ThenBy(u => u.Id)
+            .Select(u => new FriendSearchResultDto
+            {
+                UserId = u.Id,
+                UserAccount = u.UserAccount,
+                NickName = u.NickName,
+                AvatarKey = u.AvatarKey,
+                IsFriend = _db.UserFriendships.Any(f =>
+                    f.UserId == userId &&
+                    f.FriendUserId == u.Id &&
+                    f.Status == "active"),
+                HasPendingSentRequest = _db.UserFriendRequests.Any(r =>
+                    r.RequesterUserId == userId &&
+                    r.ReceiverUserId == u.Id &&
+                    r.RequestStatus == "pending" &&
+                    (r.ExpireAt == null || r.ExpireAt > now)),
+                HasPendingReceivedRequest = _db.UserFriendRequests.Any(r =>
+                    r.RequesterUserId == u.Id &&
+                    r.ReceiverUserId == userId &&
+                    r.RequestStatus == "pending" &&
+                    (r.ExpireAt == null || r.ExpireAt > now))
+            })
+            .ToListAsync();
+
+        return Ok(users);
+    }
+
     [HttpPost("requests")]
     public async Task<ActionResult<FriendRequestDto>> CreateFriendRequest(CreateFriendRequestRequest request)
     {

@@ -29,7 +29,7 @@ public partial class ChatConversationMember
     public string MemberRole { get; set; } = null!;
 
     /// <summary>
-    /// Membership status
+    /// 成员状态（active：活跃，left：已离开，kicked：被踢出）
     /// </summary>
     public string MembershipStatus { get; set; } = null!;
 
@@ -39,12 +39,12 @@ public partial class ChatConversationMember
     public DateTime JoinedAt { get; set; }
 
     /// <summary>
-    /// Invite time
+    /// 邀请时间
     /// </summary>
     public DateTime? InvitedAt { get; set; }
 
     /// <summary>
-    /// Inviter user id
+    /// 邀请人用户ID
     /// </summary>
     public ulong? InvitedByUserId { get; set; }
 
@@ -54,12 +54,12 @@ public partial class ChatConversationMember
     public DateTime? LeftAt { get; set; }
 
     /// <summary>
-    /// Removal operator user id
+    /// 移除操作人用户ID
     /// </summary>
     public ulong? RemovedByUserId { get; set; }
 
     /// <summary>
-    /// Leave or removal reason
+    /// 离开或移除原因
     /// </summary>
     public string? RemovedReason { get; set; }
 
@@ -69,22 +69,22 @@ public partial class ChatConversationMember
     public DateTime? MuteUntil { get; set; }
 
     /// <summary>
-    /// Mute mode
+    /// 禁言模式（temporary：临时，permanent：永久）
     /// </summary>
     public string? MuteMode { get; set; }
 
     /// <summary>
-    /// Mute reason
+    /// 禁言原因
     /// </summary>
     public string? MuteReason { get; set; }
 
     /// <summary>
-    /// Mute start time
+    /// 禁言开始时间
     /// </summary>
     public DateTime? MutedAt { get; set; }
 
     /// <summary>
-    /// Mute operator user id
+    /// 禁言操作人用户ID
     /// </summary>
     public ulong? MutedByUserId { get; set; }
 

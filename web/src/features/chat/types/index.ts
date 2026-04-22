@@ -88,6 +88,7 @@ export interface ConversationDetail {
   ownerUserId?: number | null;
   createdAt: string;
   updatedAt: string;
+  pendingJoinRequestCount: number;
   members: ConversationMember[];
 }
 
@@ -129,6 +130,42 @@ export interface InviteConversationMembersPayload {
   memberUserIds: number[];
 }
 
+export type GroupJoinRequestStatus = "pending" | "approved" | "rejected" | "expired";
+
+export interface GroupJoinRequest {
+  id: number;
+  conversationId: number;
+  requesterUserId: number;
+  requestMessage?: string | null;
+  requestStatus: GroupJoinRequestStatus;
+  handledByUserId?: number | null;
+  handledAt?: string | null;
+  rejectReason?: string | null;
+  expireAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  requester: FriendUser;
+}
+
+export interface GroupSearchResult {
+  id: number;
+  conversationType: "group";
+  title?: string | null;
+  avatarKey?: string | null;
+  ownerUserId?: number | null;
+  memberCount: number;
+  isMember: boolean;
+  hasPendingJoinRequest: boolean;
+}
+
+export interface CreateGroupJoinRequestPayload {
+  requestMessage?: string;
+}
+
+export interface RejectGroupJoinRequestPayload {
+  rejectReason?: string;
+}
+
 export interface MuteConversationMemberPayload {
   mode: GroupMuteMode;
   durationMinutes?: number;
@@ -155,6 +192,12 @@ export interface FriendUser {
   userAccount?: string | null;
   nickName?: string | null;
   avatarKey?: string | null;
+}
+
+export interface FriendSearchResult extends FriendUser {
+  isFriend: boolean;
+  hasPendingSentRequest: boolean;
+  hasPendingReceivedRequest: boolean;
 }
 
 export interface Friendship {
