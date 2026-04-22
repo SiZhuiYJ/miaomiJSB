@@ -94,7 +94,7 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
                 !u.IsDeleted &&
                 u.Status == true &&
                 (u.UserAccount == normalizedKeyword ||
-                 (u.NickName != null && u.NickName.Contains(normalizedKeyword))))
+                 (u.NickName != null && EF.Functions.Like(u.NickName, $"%{normalizedKeyword}%"))))
             .OrderByDescending(u => u.UserAccount == normalizedKeyword)
             .ThenByDescending(u => u.NickName == normalizedKeyword)
             .ThenBy(u => u.Id)

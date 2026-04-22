@@ -532,53 +532,36 @@ watch(
 </script>
 
 <template>
-  <el-dialog
-    :model-value="modelValue"
-    title="会话详情"
-    width="min(92vw, 700px)"
-    @update:model-value="emit('update:modelValue', $event)"
-  >
+  <el-dialog :model-value="modelValue" title="会话详情" width="min(92vw, 700px)"
+    @update:model-value="emit('update:modelValue', $event)">
     <div class="conversation-detail-dialog">
-      <div class="avatar-section">
-        <ProgressiveAvatar
-          class="avatar-preview"
-          :src="avatarSources.src"
-          :thumbnail-src="avatarSources.thumbnailSrc"
-          :size="96"
-          shape="square"
-        >
-          {{ getConversationAvatarText(conversation) }}
-        </ProgressiveAvatar>
 
-        <div v-if="isGroupConversation" class="avatar-actions">
-          <el-button
-            color="#111827"
-            plain
-            :loading="uploadingAvatar"
-            :disabled="!canChangeGroupAvatar"
-            @click="openAvatarPicker"
-          >
-            更换群头像
-          </el-button>
-          <span class="avatar-tip">
-            {{ canChangeGroupAvatar ? "支持上传常见图片格式" : "仅群主或管理员可更换群头像" }}
-          </span>
+      <div class="avatar-container">
+        <div class="avatar-section">
+          <ProgressiveAvatar class="avatar-preview" :src="avatarSources.src" :thumbnail-src="avatarSources.thumbnailSrc"
+            :size="96" shape="square">
+            {{ getConversationAvatarText(conversation) }}
+          </ProgressiveAvatar>
+
+          <div v-if="isGroupConversation" class="avatar-actions">
+            <el-button color="#111827" plain :loading="uploadingAvatar" :disabled="!canChangeGroupAvatar"
+              @click="openAvatarPicker">
+              更换群头像
+            </el-button>
+            <span class="avatar-tip">
+              {{ canChangeGroupAvatar ? "支持上传常见图片格式" : "仅群主或管理员可更换群头像" }}
+            </span>
+          </div>
+          <input ref="avatarInputRef" class="hidden-input" type="file" accept="image/*" @change="handleAvatarChange">
         </div>
-        <input
-          ref="avatarInputRef"
-          class="hidden-input"
-          type="file"
-          accept="image/*"
-          @change="handleAvatarChange"
-        >
-      </div>
 
-      <div class="detail-meta">
-        <p class="meta-item">会话标题：{{ title }}</p>
-        <p class="meta-item">会话类型：{{ conversation.conversationType === "group" ? "群聊" : "单聊" }}</p>
-        <p class="meta-item">会话 ID：{{ conversation.id }}</p>
-        <p class="meta-item">创建时间：{{ formatChatTime(conversation.createdAt) }}</p>
-        <p class="meta-item">更新时间：{{ formatChatTime(conversation.updatedAt) }}</p>
+        <div class="detail-meta">
+          <p class="meta-item">会话标题：{{ title }}</p>
+          <p class="meta-item">会话类型：{{ conversation.conversationType === "group" ? "群聊" : "单聊" }}</p>
+          <p class="meta-item">会话 ID：{{ conversation.id }}</p>
+          <p class="meta-item">创建时间：{{ formatChatTime(conversation.createdAt) }}</p>
+          <p class="meta-item">更新时间：{{ formatChatTime(conversation.updatedAt) }}</p>
+        </div>
       </div>
 
       <div v-if="isGroupConversation" class="group-management-section">
@@ -588,26 +571,16 @@ watch(
         </div>
         <div class="management-actions">
           <el-badge :value="conversation.pendingJoinRequestCount" :show-zero="false" :offset="[-6, 4]">
-            <el-button
-              color="#111827"
-              plain
-              :disabled="!canManageJoinRequests"
-              :loading="joinRequestLoading"
-              @click="openJoinRequestDialog"
-            >
+            <el-button color="#111827" plain :disabled="!canManageJoinRequests" :loading="joinRequestLoading"
+              @click="openJoinRequestDialog">
               加群申请
             </el-button>
           </el-badge>
           <el-button color="#111827" plain :disabled="!canInviteMembers" :loading="inviting" @click="openInviteDialog">
             邀请成员
           </el-button>
-          <el-button
-            color="#dc2626"
-            plain
-            :disabled="!canDisbandConversation"
-            :loading="disbanding"
-            @click="handleDisbandConversation"
-          >
+          <el-button color="#dc2626" plain :disabled="!canDisbandConversation" :loading="disbanding"
+            @click="handleDisbandConversation">
             解散群聊
           </el-button>
         </div>
@@ -622,22 +595,15 @@ watch(
         <div class="member-list">
           <div v-for="item in sortedMembers" :key="item.userId" class="member-row">
             <div class="member-main">
-              <ProgressiveAvatar
-                class="conversation-avatar"
-                :src="getMemberAvatarUrl(item)"
-                :thumbnail-src="getMemberAvatarSources(item).thumbnailSrc"
-                :size="48"
-                shape="square"
-              >
+              <ProgressiveAvatar class="conversation-avatar" :src="getMemberAvatarUrl(item)"
+                :thumbnail-src="getMemberAvatarSources(item).thumbnailSrc" :size="48" shape="square">
                 {{ (item.nickName || item.userAccount || String(item.userId)).slice(0, 1) }}
               </ProgressiveAvatar>
               <div class="member-text">
                 <div class="member-name-row">
                   <span class="member-name">{{ getMemberName(item) }}</span>
-                  <el-tag
-                    size="small"
-                    :type="item.memberRole === 'owner' ? 'danger' : item.memberRole === 'admin' ? 'warning' : 'info'"
-                  >
+                  <el-tag size="small"
+                    :type="item.memberRole === 'owner' ? 'danger' : item.memberRole === 'admin' ? 'warning' : 'info'">
                     {{ groupRoleMap[item.memberRole] || item.memberRole }}
                   </el-tag>
                   <el-tag v-if="isMemberMuted(item)" size="small" type="danger">
@@ -650,36 +616,20 @@ watch(
             </div>
 
             <div class="member-ops">
-              <el-button
-                v-if="canManageMemberRoles && item.memberRole !== 'owner' && item.userId !== user?.userId"
-                size="small"
-                color="#111827"
-                plain
-                :loading="roleUpdatingUserId === item.userId"
-                @click="handleToggleMemberRole(item)"
-              >
+              <el-button v-if="canManageMemberRoles && item.memberRole !== 'owner' && item.userId !== user?.userId"
+                size="small" color="#111827" plain :loading="roleUpdatingUserId === item.userId"
+                @click="handleToggleMemberRole(item)">
                 {{ item.memberRole === "admin" ? "设为普通成员" : "设为管理员" }}
               </el-button>
 
-              <el-button
-                v-if="canModerateMember(item)"
-                size="small"
-                type="warning"
-                plain
+              <el-button v-if="canModerateMember(item)" size="small" type="warning" plain
                 :loading="mutingUserId === item.userId"
-                @click="isMemberMuted(item) ? handleUnmuteMember(item) : handleMuteMember(item)"
-              >
+                @click="isMemberMuted(item) ? handleUnmuteMember(item) : handleMuteMember(item)">
                 {{ isMemberMuted(item) ? "解除禁言" : "禁言" }}
               </el-button>
 
-              <el-button
-                v-if="canModerateMember(item)"
-                size="small"
-                type="danger"
-                plain
-                :loading="kickingUserId === item.userId"
-                @click="handleKickMember(item)"
-              >
+              <el-button v-if="canModerateMember(item)" size="small" type="danger" plain
+                :loading="kickingUserId === item.userId" @click="handleKickMember(item)">
                 移出群聊
               </el-button>
             </div>
@@ -693,51 +643,26 @@ watch(
           <Bell v-else />
         </el-icon>
         <IsPin v-model:is-pinned="conversation.isPinned" @toggle-pinned="togglePinned" />
+        <el-button color="#111827" class="load-more" @click="emit('load-more')">加载更早消息</el-button>
       </div>
-
-      <el-button color="#111827" class="load-more" @click="emit('load-more')">加载更早消息</el-button>
     </div>
   </el-dialog>
 
-  <el-dialog
-    v-model="inviteDialogVisible"
-    title="邀请好友入群"
-    width="min(92vw, 460px)"
-    append-to-body
-    :close-on-click-modal="!inviting"
-    :close-on-press-escape="!inviting"
-    :show-close="!inviting"
-    @closed="resetInviteDialog"
-  >
+  <el-dialog v-model="inviteDialogVisible" title="邀请好友入群" width="min(92vw, 460px)" append-to-body
+    :close-on-click-modal="!inviting" :close-on-press-escape="!inviting" :show-close="!inviting"
+    @closed="resetInviteDialog">
     <div class="invite-dialog-body">
       <p class="invite-dialog-text">只能邀请你自己的好友入群。</p>
-      <el-select
-        v-model="inviteSelection"
-        class="invite-select"
-        multiple
-        filterable
-        clearable
-        collapse-tags
-        collapse-tags-tooltip
-        :loading="friendLoading"
-        placeholder="选择要邀请的好友"
-      >
-        <el-option
-          v-for="item in inviteOptions"
-          :key="item.userId"
-          :label="item.label"
-          :value="item.userId"
-        >
+      <el-select v-model="inviteSelection" class="invite-select" multiple filterable clearable collapse-tags
+        collapse-tags-tooltip :loading="friendLoading" placeholder="选择要邀请的好友">
+        <el-option v-for="item in inviteOptions" :key="item.userId" :label="item.label" :value="item.userId">
           <div class="friend-option">
             <span>{{ item.label }}</span>
             <span class="friend-option-meta">{{ item.meta }}</span>
           </div>
         </el-option>
       </el-select>
-      <el-empty
-        v-if="!friendLoading && inviteableFriends.length === 0"
-        description="暂无可邀请的好友"
-      />
+      <el-empty v-if="!friendLoading && inviteableFriends.length === 0" description="暂无可邀请的好友" />
     </div>
 
     <template #footer>
@@ -750,25 +675,15 @@ watch(
     </template>
   </el-dialog>
 
-  <el-dialog
-    v-model="joinRequestDialogVisible"
-    title="加群申请"
-    width="min(92vw, 560px)"
-    append-to-body
-    :close-on-click-modal="joinRequestHandlingId === null"
-    :close-on-press-escape="joinRequestHandlingId === null"
-    :show-close="joinRequestHandlingId === null"
-    @closed="resetJoinRequestDialog"
-  >
+  <el-dialog v-model="joinRequestDialogVisible" title="加群申请" width="min(92vw, 560px)" append-to-body
+    :close-on-click-modal="joinRequestHandlingId === null" :close-on-press-escape="joinRequestHandlingId === null"
+    :show-close="joinRequestHandlingId === null" @closed="resetJoinRequestDialog">
     <div class="join-request-panel">
       <div class="join-request-toolbar">
         <el-button plain :loading="joinRequestLoading" @click="loadJoinRequests">刷新</el-button>
       </div>
 
-      <el-empty
-        v-if="!joinRequestLoading && joinRequests.length === 0"
-        description="暂无待处理的加群申请"
-      />
+      <el-empty v-if="!joinRequestLoading && joinRequests.length === 0" description="暂无待处理的加群申请" />
 
       <el-scrollbar v-else max-height="360px">
         <div v-for="item in joinRequests" :key="item.id" class="join-request-row">
@@ -783,21 +698,12 @@ watch(
           </div>
 
           <div class="join-request-ops">
-            <el-button
-              size="small"
-              type="primary"
-              :loading="joinRequestHandlingId === item.id"
-              @click="handleApproveJoinRequest(item)"
-            >
+            <el-button size="small" type="primary" :loading="joinRequestHandlingId === item.id"
+              @click="handleApproveJoinRequest(item)">
               通过
             </el-button>
-            <el-button
-              size="small"
-              type="danger"
-              plain
-              :loading="joinRequestHandlingId === item.id"
-              @click="handleRejectJoinRequest(item)"
-            >
+            <el-button size="small" type="danger" plain :loading="joinRequestHandlingId === item.id"
+              @click="handleRejectJoinRequest(item)">
               拒绝
             </el-button>
           </div>
@@ -806,41 +712,21 @@ watch(
     </div>
   </el-dialog>
 
-  <el-dialog
-    v-model="muteDialogVisible"
-    title="设置禁言"
-    width="min(92vw, 420px)"
-    append-to-body
-    :close-on-click-modal="!muteConfirmLoading"
-    :close-on-press-escape="!muteConfirmLoading"
-    :show-close="!muteConfirmLoading"
-    @closed="resetMuteDialog"
-  >
+  <el-dialog v-model="muteDialogVisible" title="设置禁言" width="min(92vw, 420px)" append-to-body
+    :close-on-click-modal="!muteConfirmLoading" :close-on-press-escape="!muteConfirmLoading"
+    :show-close="!muteConfirmLoading" @closed="resetMuteDialog">
     <div class="mute-dialog-body">
       <p class="mute-dialog-text">选择对“{{ muteTargetName }}”的禁言时长</p>
-      <el-select
-        v-model="selectedMuteOptionValue"
-        placeholder="请选择禁言时长"
-        class="mute-select"
-      >
-        <el-option
-          v-for="item in muteOptions"
-          :key="item.value"
-          :label="item.label"
-          :value="item.value"
-        />
+      <el-select v-model="selectedMuteOptionValue" placeholder="请选择禁言时长" class="mute-select">
+        <el-option v-for="item in muteOptions" :key="item.value" :label="item.label" :value="item.value" />
       </el-select>
     </div>
 
     <template #footer>
       <div class="dialog-footer">
         <el-button :disabled="muteConfirmLoading" @click="resetMuteDialog">取消</el-button>
-        <el-button
-          color="#111827"
-          :loading="muteConfirmLoading"
-          :disabled="!selectedMuteOptionValue"
-          @click="confirmMuteMember"
-        >
+        <el-button color="#111827" :loading="muteConfirmLoading" :disabled="!selectedMuteOptionValue"
+          @click="confirmMuteMember">
           确认禁言
         </el-button>
       </div>
@@ -852,6 +738,12 @@ watch(
 .conversation-detail-dialog {
   display: grid;
   gap: 20px;
+}
+
+.avatar-container {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: max-content 1fr;
 }
 
 .avatar-section {
