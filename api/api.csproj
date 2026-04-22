@@ -28,9 +28,14 @@
     <PackageReference Include="StackExchange.Redis" Version="2.10.1" />
   </ItemGroup>
 
-  <ItemGroup>
+    <ItemGroup>
     <Content Include="Resources\**">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    
+    <Content Include="uploads\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
 
@@ -40,16 +45,19 @@
     <Compile Remove=".vs\**\*.cs" />
     <Compile Remove="obj_build\**\*.cs" />
     <Compile Remove="obj_restore\**\*.cs" />
+    <Compile Remove="bin_verify\**\*.cs" />
     <EmbeddedResource Remove="obj\**\*" />
     <EmbeddedResource Remove="bin\**\*" />
     <EmbeddedResource Remove=".vs\**\*" />
     <EmbeddedResource Remove="obj_build\**\*" />
     <EmbeddedResource Remove="obj_restore\**\*" />
+    <EmbeddedResource Remove="bin_verify\**\*" />
     <None Remove="obj\**\*" />
     <None Remove="bin\**\*" />
     <None Remove=".vs\**\*" />
     <None Remove="obj_build\**\*" />
     <None Remove="obj_restore\**\*" />
+    <None Remove="bin_verify\**\*" />
   </ItemGroup>
 
   <ItemGroup>
@@ -81,6 +89,24 @@
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </Content>
     <None Update=".vs\**">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+    <Content Update="bin_verify\**">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+    <None Update="bin_verify\**">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+    <Content Update="errorLog\**">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+    <None Update="errorLog\**">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+    <Content Update="Migrations\**">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+    <None Update="Migrations\**">
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
   </ItemGroup>
