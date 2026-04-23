@@ -86,10 +86,10 @@ function handleThumbError() {
     <div class="avatar-fallback">
       <slot />
     </div>
-    <img v-if="thumbSrc" class="avatar-layer avatar-thumb" :src="thumbSrc" :alt="alt" :style="mediaStyle" loading="lazy"
-      @error="handleThumbError" />
-    <img v-if="src" class="avatar-layer avatar-full" :src="src" :alt="alt" :style="mediaStyle" loading="lazy"
-      @load="handleFullLoad" @error="handleFullError" />
+    <img v-if="thumbSrc && !thumbFailed" class="avatar-layer avatar-thumb" :src="thumbSrc" :alt="alt"
+      :style="mediaStyle" loading="lazy" @error="handleThumbError" />
+    <img v-if="src && !fullFailed" class="avatar-layer avatar-full" :src="src" :alt="alt" :style="mediaStyle"
+      loading="lazy" @load="handleFullLoad" @error="handleFullError" />
   </div>
 </template>
 

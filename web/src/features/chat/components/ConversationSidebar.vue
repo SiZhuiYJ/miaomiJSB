@@ -605,8 +605,46 @@ watch(
     </el-scrollbar>
 
     <div class="create-box">
-      <div class="create-box-item create-box-header">
+      <!-- <div class="create-box-item create-box-header">
 
+        <el-dropdown placement="bottom-end" trigger="click" @command="handleActionCommand">
+          <span class="social-dropdown-trigger">
+            <el-badge :value="pendingFriendRequestCount" :show-zero="false" :max="99" :offset="[-6, 6]">
+              <el-button color="#111827">
+                社交操作
+                <el-icon class="el-icon--right">
+                  <ArrowDown />
+                </el-icon>
+              </el-button>
+            </el-badge>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item :disabled="friendSearchSubmittingId !== null" command="addFriend">
+                添加好友
+              </el-dropdown-item>
+              <el-dropdown-item :disabled="groupJoinSubmitting" command="groupJoin">
+                申请加群
+              </el-dropdown-item>
+              <el-dropdown-item command="friendRequest">
+                <div class="social-dropdown-item">
+                  <span>好友申请</span>
+                  <el-badge :value="pendingFriendRequestCount" :show-zero="false" :max="99" />
+                </div>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+
+      </div> -->
+
+      <div class="create-box-item">
+        <!-- <el-select v-model="createConversationType" placeholder="会话类型" class="conversation-type-select">
+          <el-option v-for="item in createConversationTypeOptions" :key="item.value" :label="item.label"
+            :value="item.value" />
+        </el-select> -->
+        <el-input v-model="createTitle" clearable placeholder="群聊标题，可选"
+          :disabled="createConversationType === 'direct'" />
         <el-dropdown placement="bottom-end" trigger="click" @command="handleActionCommand">
           <span class="social-dropdown-trigger">
             <el-badge :value="pendingFriendRequestCount" :show-zero="false" :max="99" :offset="[-6, 6]">
@@ -637,17 +675,8 @@ watch(
         </el-dropdown>
       </div>
 
-      <div class="create-box-item">
-        <el-select v-model="createConversationType" placeholder="会话类型" class="conversation-type-select">
-          <el-option v-for="item in createConversationTypeOptions" :key="item.value" :label="item.label"
-            :value="item.value" />
-        </el-select>
-        <el-input v-model="createTitle" clearable placeholder="群聊标题，可选"
-          :disabled="createConversationType === 'direct'" />
-      </div>
-
       <div class="create-box-item create-box-stack">
-        <el-select v-if="createConversationType === 'direct'" v-model="directMemberUserId" class="member-select"
+        <!-- <el-select v-if="createConversationType === 'direct'" v-model="directMemberUserId" class="member-select"
           filterable clearable :loading="friendLoading" placeholder="选择一位好友发起单聊">
           <el-option v-for="item in friendOptions" :key="item.userId" :label="item.label" :value="item.userId">
             <span>{{ item.label }}（{{ item.meta }}）</span>
@@ -657,6 +686,17 @@ watch(
         <el-select v-else v-model="createMemberUserIds" class="member-select" multiple filterable clearable
           collapse-tags collapse-tags-tooltip :loading="friendLoading" placeholder="选择好友创建群聊">
           <el-option v-for="item in friendOptions" :key="item.userId" :label="item.label" :value="item.userId">
+            <span>{{ item.label }}（{{ item.meta }}）</span>
+          </el-option>
+        </el-select> -->
+
+        <el-select v-model="createMemberUserIds" class="member-select" multiple filterable clearable collapse-tags
+          collapse-tags-tooltip :loading="friendLoading" placeholder="选择好友发起了聊天">
+          <el-option v-for="item in friendOptions" :key="item.userId" :label="item.label" :value="item.userId">
+            <!-- <ProgressiveAvatar class="conversation-avatar" :src="getConversationAvatarUrl(item)"
+              :thumbnail-src="getConversationAvatarSources(item).thumbnailSrc" :size="60" shape="square">
+              {{ getConversationAvatarText(item) }}
+            </ProgressiveAvatar> -->
             <span>{{ item.label }}（{{ item.meta }}）</span>
           </el-option>
         </el-select>
@@ -673,63 +713,36 @@ watch(
       </div>
     </div>
 
-    <el-dialog
-      v-model="friendSearchDialogVisible"
-      title="搜索好友"
-      width="min(92vw, 560px)"
+    <el-dialog v-model="friendSearchDialogVisible" title="搜索好友" width="min(92vw, 560px)"
       :close-on-click-modal="friendSearchSubmittingId === null"
-      :close-on-press-escape="friendSearchSubmittingId === null"
-      :show-close="friendSearchSubmittingId === null"
-      @closed="resetFriendSearchDialog"
-    >
+      :close-on-press-escape="friendSearchSubmittingId === null" :show-close="friendSearchSubmittingId === null"
+      @closed="resetFriendSearchDialog">
       <div class="friend-search-panel">
         <div class="search-toolbar">
-          <el-input
-            v-model="friendSearchKeyword"
-            clearable
-            placeholder="输入昵称或账号搜索用户"
-            :disabled="friendSearchLoading || friendSearchSubmittingId !== null"
-            @keyup.enter="handleSearchFriend"
-          >
+          <el-input v-model="friendSearchKeyword" clearable placeholder="输入昵称或账号搜索用户"
+            :disabled="friendSearchLoading || friendSearchSubmittingId !== null" @keyup.enter="handleSearchFriend">
             <template #append>
-              <el-button
-                :loading="friendSearchLoading"
-                :disabled="!canSearchFriend || friendSearchSubmittingId !== null"
-                @click="handleSearchFriend"
-              >
+              <el-button :loading="friendSearchLoading"
+                :disabled="!canSearchFriend || friendSearchSubmittingId !== null" @click="handleSearchFriend">
                 搜索
               </el-button>
             </template>
           </el-input>
         </div>
 
-        <el-input
-          v-model="friendSearchRequestMessage"
-          type="textarea"
-          :rows="3"
-          maxlength="255"
-          show-word-limit
-          placeholder="好友申请附言（可选）"
-          :disabled="friendSearchSubmittingId !== null"
-        />
+        <el-input v-model="friendSearchRequestMessage" type="textarea" :rows="3" maxlength="255" show-word-limit
+          placeholder="好友申请附言（可选）" :disabled="friendSearchSubmittingId !== null" />
 
         <p class="search-tip">账号需完全匹配，昵称支持包含搜索，命中部分会高亮显示。</p>
 
-        <el-empty
-          v-if="friendSearchSearched && !friendSearchLoading && friendSearchResults.length === 0"
-          description="未找到匹配的用户"
-        />
+        <el-empty v-if="friendSearchSearched && !friendSearchLoading && friendSearchResults.length === 0"
+          description="未找到匹配的用户" />
 
         <el-scrollbar v-else-if="friendSearchResults.length > 0" max-height="320px">
           <div v-for="item in friendSearchResults" :key="item.userId" class="search-result-row">
             <div class="search-result-main">
-              <ProgressiveAvatar
-                class="search-result-avatar"
-                :src="getFriendSearchAvatar(item).src"
-                :thumbnail-src="getFriendSearchAvatar(item).thumbnailSrc"
-                :size="44"
-                shape="square"
-              >
+              <ProgressiveAvatar class="search-result-avatar" :src="getFriendSearchAvatar(item).src"
+                :thumbnail-src="getFriendSearchAvatar(item).thumbnailSrc" :size="44" shape="square">
                 {{ getFriendSearchName(item).slice(0, 1) }}
               </ProgressiveAvatar>
               <div class="search-result-text">
@@ -747,13 +760,8 @@ watch(
             </div>
 
             <div class="search-result-ops">
-              <el-button
-                size="small"
-                color="#111827"
-                :loading="friendSearchSubmittingId === item.userId"
-                :disabled="item.isFriend || item.hasPendingSentRequest"
-                @click="handleSendFriendRequest(item)"
-              >
+              <el-button size="small" color="#111827" :loading="friendSearchSubmittingId === item.userId"
+                :disabled="item.isFriend || item.hasPendingSentRequest" @click="handleSendFriendRequest(item)">
                 {{ getFriendSearchActionText(item) }}
               </el-button>
             </div>
@@ -817,19 +825,11 @@ watch(
       :show-close="!groupJoinSubmitting" @closed="resetGroupJoinDialog">
       <div class="group-join-panel">
         <div class="search-toolbar">
-          <el-input
-            v-model="groupJoinConversationIdInput"
-            placeholder="输入群聊 ID，精确搜索"
-            clearable
-            :disabled="groupJoinSubmitting || groupSearchLoading"
-            @keyup.enter="handleSearchGroup"
-          >
+          <el-input v-model="groupJoinConversationIdInput" placeholder="输入群聊 ID，精确搜索" clearable
+            :disabled="groupJoinSubmitting || groupSearchLoading" @keyup.enter="handleSearchGroup">
             <template #append>
-              <el-button
-                :loading="groupSearchLoading"
-                :disabled="!canSearchGroup || groupJoinSubmitting"
-                @click="handleSearchGroup"
-              >
+              <el-button :loading="groupSearchLoading" :disabled="!canSearchGroup || groupJoinSubmitting"
+                @click="handleSearchGroup">
                 搜索
               </el-button>
             </template>
@@ -838,20 +838,12 @@ watch(
 
         <p class="group-join-tip">仅支持按群聊 ID 完全匹配搜索。</p>
 
-        <el-empty
-          v-if="groupSearchSearched && !groupSearchLoading && !groupSearchResult"
-          description="未找到匹配的群聊"
-        />
+        <el-empty v-if="groupSearchSearched && !groupSearchLoading && !groupSearchResult" description="未找到匹配的群聊" />
 
         <div v-else-if="groupSearchResult" class="group-search-card">
           <div class="search-result-main">
-            <ProgressiveAvatar
-              class="search-result-avatar"
-              :src="getGroupSearchAvatar(groupSearchResult).src"
-              :thumbnail-src="getGroupSearchAvatar(groupSearchResult).thumbnailSrc"
-              :size="48"
-              shape="square"
-            >
+            <ProgressiveAvatar class="search-result-avatar" :src="getGroupSearchAvatar(groupSearchResult).src"
+              :thumbnail-src="getGroupSearchAvatar(groupSearchResult).thumbnailSrc" :size="48" shape="square">
               {{ getGroupSearchTitle(groupSearchResult).slice(0, 1) }}
             </ProgressiveAvatar>
             <div class="search-result-text">

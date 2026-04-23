@@ -5,7 +5,7 @@ import type { AxiosRequestConfig } from "axios";
 
 const defaultConfig: AxiosRequestConfig = {
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 60000,
 };
 
 const http = new Http(defaultConfig);
