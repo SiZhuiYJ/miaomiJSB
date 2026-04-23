@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ProgressiveAvatar from "@/components/ProgressiveAvatar.vue";
+import ProgressiveAvatar from "@/components/ProgressiveAvatar/index.vue";
 import { createAvatarUploadFormData } from "@/utils/avatar";
 import { computed, ref, watch } from "vue";
 import { ElMessageBox } from "element-plus";

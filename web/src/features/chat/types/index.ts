@@ -202,6 +202,7 @@ export interface FriendSearchResult extends FriendUser {
 
 export interface Friendship {
   id: number;
+  avatarKey?: string;
   status: "active" | "deleted";
   friendRemark?: string | null;
   isStarred: boolean;

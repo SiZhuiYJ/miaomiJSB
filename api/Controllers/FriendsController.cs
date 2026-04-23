@@ -35,6 +35,7 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
             {
                 Id = f.Id,
                 Status = f.Status,
+                AvatarKey = f.FriendUser.AvatarKey,
                 FriendRemark = f.FriendRemark,
                 IsStarred = f.IsStarred,
                 IsMuted = f.IsMuted,

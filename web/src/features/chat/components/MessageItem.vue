@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ProgressiveAvatar from '@/components/ProgressiveAvatar.vue';
+import ProgressiveAvatar from '@/components/ProgressiveAvatar/index.vue';
 import { computed } from 'vue';
 import type { MessageReference, MessageSummary, PendingUpload } from '../types';
 import {

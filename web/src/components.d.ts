@@ -49,7 +49,7 @@ declare module 'vue' {
     MusicPlayer: typeof import('./components/MiniAudioPlayer/components/music-player.vue')['default']
     NotificationSystem: typeof import('./components/NotificationSystem/index.vue')['default']
     ProgressBar: typeof import('./components/ProgressBar/index.vue')['default']
-    ProgressiveAvatar: typeof import('./components/ProgressiveAvatar.vue')['default']
+    ProgressiveAvatar: typeof import('./components/ProgressiveAvatar/index.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SettingsMenu: typeof import('./components/Menu/SettingsMenu.vue')['default']

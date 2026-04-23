@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ProgressiveAvatar from '@/components/ProgressiveAvatar.vue';
+import ProgressiveAvatar from '@/components/ProgressiveAvatar/index.vue';
 import nickname from '@/features/auth/components/Settings/nickname.vue';
 import router from "@/routers";
 import { useAuthStore } from '@/stores';

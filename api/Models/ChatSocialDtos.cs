@@ -99,6 +99,7 @@ public class GroupSearchResultDto
 public class FriendshipDto
 {
     public ulong Id { get; set; }
+    public string? AvatarKey { get; set; }
     public string Status { get; set; } = "active";
     public string? FriendRemark { get; set; }
     public bool IsStarred { get; set; }

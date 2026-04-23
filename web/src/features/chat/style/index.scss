@@ -1,7 +1,7 @@
 // ==============================================
 // 全局重置
 // ==============================================
-.el-button + .el-button {
+.el-button+.el-button {
   margin-left: 0 !important;
 }
 
@@ -70,7 +70,7 @@
   flex: 1;
   min-height: 0;
 
-  > * {
+  >* {
     min-width: 0;
   }
 }
@@ -157,7 +157,7 @@
   display: grid;
   gap: 12px;
   margin: 0;
-  padding: 144px 12px 12px;
+  padding: 100px 12px 12px;
   list-style: none;
 
   li {
@@ -402,6 +402,7 @@
     grid-template-columns: 1fr;
 
     &.mobile {
+
       .left-panel,
       .main-panel {
         border-radius: 4px;

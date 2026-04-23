@@ -125,7 +125,6 @@ export function useChatCore() {
   };
 
   // 创建会话的表单状态
-  const createConversationType = ref<"direct" | "group">("direct");
   const createTitle = ref("");
   const createMemberUserIds = ref<number[]>([]);
   const composeText = ref("");
@@ -158,8 +157,9 @@ export function useChatCore() {
     const memberUserIds = createMemberUserIds.value
       .filter((x) => Number.isFinite(x) && x > 0)
       .filter((value, index, array) => array.indexOf(value) === index);
+    const conversationType = memberUserIds.length > 1 ? "group" : "direct";
     const detail = await conversationsModule.createConversation({
-      conversationType: createConversationType.value,
+      conversationType,
       title: createTitle.value || undefined,
       memberUserIds,
     });
@@ -262,7 +262,6 @@ export function useChatCore() {
     togglePush,
 
     // 表单
-    createConversationType,
     createTitle,
     createMemberUserIds,
     composeText,

@@ -61,7 +61,6 @@ const readInfoMap = computed<Map<number, { readText: string; readColor: string }
 
     <div class="layout" :class="{ mobile: isMobile }">
       <ConversationSidebar v-show="showConversationList"
-        v-model:create-conversation-type="chat.createConversationType.value"
         v-model:create-title="chat.createTitle.value" v-model:create-member-user-ids="chat.createMemberUserIds.value"
         :selected-conversation-id="chat.selectedConversationId.value" :conversations="chat.conversations.value"
         :is-mobile="isMobile"

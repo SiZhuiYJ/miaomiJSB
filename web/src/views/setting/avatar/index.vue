@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from "pinia";
-import ProgressiveAvatar from "@/components/ProgressiveAvatar.vue";
+import ProgressiveAvatar from "@/components/ProgressiveAvatar/index.vue";
 import ImageUploader from "@/features/file/components/ImageUploader.vue";
 import { uploadFile, dataURLToFile } from "@/features/setting/composables/useImage";
 import { useAuthStore } from "@/stores";

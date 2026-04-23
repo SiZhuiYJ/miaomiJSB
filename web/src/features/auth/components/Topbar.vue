@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-import ProgressiveAvatar from "@/components/ProgressiveAvatar.vue";
+import ProgressiveAvatar from "@/components/ProgressiveAvatar/index.vue";
 import { useAuthStore } from "@/features/auth/stores";
 import { authApi } from "@/features/auth/api/index";
 import type { PasswordPayload } from "@/features/auth/types";
