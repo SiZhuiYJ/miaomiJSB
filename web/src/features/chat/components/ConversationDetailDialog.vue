@@ -1196,7 +1196,6 @@ watch(
 
   .member-row {
     align-items: flex-start;
-    flex-direction: column;
   }
 
   .member-ops {

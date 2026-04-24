@@ -2,6 +2,7 @@
 import SettingsMenu from "@/components/Menu/SettingsMenu.vue";
 import SettingsMenuItem from "@/components/Menu/SettingsMenuItem.vue";
 import router from "@/routers/index";
+import { computed, ref } from "vue";
 
 const menuList = ref([
     { name: "个人信息", path: "/setting/profile" },
@@ -12,7 +13,11 @@ const menuList = ref([
     { name: "平台绑定", path: "/setting/bind" },
 ]);
 // 默认显示第一个菜单名称
-const menuName = ref(menuList.value[0]?.name ?? "");
+const menuName = computed(() => {
+    const currentPath = router.currentRoute.value.path;
+    const currentMenu = menuList.value.find(menu => menu.path === currentPath);
+    return currentMenu ? currentMenu.name : menuList.value[0].name;
+});
 </script>
 
 <template>

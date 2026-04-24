@@ -56,8 +56,8 @@ async function uploadImage() {
       </div>
 
       <div class="avatar-main">
-        <ProgressiveAvatar class="avatar-preview" :src="avatar.src" :thumbnail-src="avatar.thumbnailSrc" width="100%"
-          :height="0" shape="square">
+        <ProgressiveAvatar class="avatar-preview" :src="avatar.src" :thumbnail-src="avatar.thumbnailSrc"
+          :is-preview="true" width="100%" :height="0" shape="square">
           <span class="avatar-text-large">
             {{ getFallbackText() }}
           </span>

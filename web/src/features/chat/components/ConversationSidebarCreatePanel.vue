@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ArrowDown, ChatRound } from "@element-plus/icons-vue";
 import ProgressiveAvatar from "@/components/ProgressiveAvatar/index.vue";
-import { getUserAvatarUrl } from "@/utils/avatar";
+import { getUserAvatarUrl, getUserAvatarSources } from "@/utils/avatar";
 import { useConversationCreateForm } from "../composables/useConversationCreateForm";
 import { useConversationSidebarSocial } from "../composables/useConversationSidebarSocial";
 
@@ -182,7 +182,8 @@ const {
             <div v-for="item in friendSearchResults" :key="item.userId" class="search-result-row">
               <div class="search-result-main">
                 <ProgressiveAvatar class="search-result-avatar" :src="getFriendSearchAvatar(item).src"
-                  :thumbnail-src="getFriendSearchAvatar(item).thumbnailSrc" :size="44" shape="square">
+                  :thumbnail-src="getFriendSearchAvatar(item).thumbnailSrc" :is-preview="true" :size="60"
+                  shape="square">
                   {{ getFriendSearchName(item).slice(0, 1) }}
                 </ProgressiveAvatar>
                 <div class="search-result-text">
@@ -238,15 +239,27 @@ const {
                   </el-tag>
                 </div>
 
-                <div class="friend-request-meta">账号：{{ getFriendMeta(item) }}</div>
-                <div v-if="item.requestMessage" class="friend-request-meta">
-                  附言：{{ item.requestMessage }}
-                </div>
-                <div v-if="item.rejectReason" class="friend-request-meta">
-                  拒绝原因：{{ item.rejectReason }}
-                </div>
-                <div class="friend-request-meta">
-                  申请时间：{{ formatFriendRequestTime(item.createdAt) }}
+                <div class="friend-request-Subject">
+
+                  <ProgressiveAvatar class="conversation-avatar"
+                    :src="getUserAvatarSources(item.receiver.userId, item.receiver.avatarKey).src"
+                    :thumbnail-src="getUserAvatarSources(item.receiver.userId, item.receiver.avatarKey).thumbnailSrc"
+                    :is-preview="true" :size="60" shape="square">
+                    {{ getFriendLabel(item).slice(0, 1) }}
+                  </ProgressiveAvatar>
+
+                  <div class="friend-request-text">
+                    <div class="friend-request-meta">账号：{{ getFriendMeta(item) }}</div>
+                    <div v-if="item.requestMessage" class="friend-request-meta">
+                      附言：{{ item.requestMessage }}
+                    </div>
+                    <div v-if="item.rejectReason" class="friend-request-meta">
+                      拒绝原因：{{ item.rejectReason }}
+                    </div>
+                    <div class="friend-request-meta">
+                      申请时间：{{ formatFriendRequestTime(item.createdAt) }}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -288,7 +301,8 @@ const {
           <div v-else-if="groupSearchResult" class="group-search-card">
             <div class="search-result-main">
               <ProgressiveAvatar class="search-result-avatar" :src="getGroupSearchAvatar(groupSearchResult).src"
-                :thumbnail-src="getGroupSearchAvatar(groupSearchResult).thumbnailSrc" :size="48" shape="square">
+                :thumbnail-src="getGroupSearchAvatar(groupSearchResult).thumbnailSrc" :is-preview="true" :size="60"
+                shape="square">
                 {{ getGroupSearchTitle(groupSearchResult).slice(0, 1) }}
               </ProgressiveAvatar>
               <div class="search-result-text">
@@ -465,6 +479,20 @@ const {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.friend-request-Subject {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.friend-request-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  height: 100%;
+  gap: 4px;
 }
 
 .friend-request-meta {

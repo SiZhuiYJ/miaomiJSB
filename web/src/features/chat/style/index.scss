@@ -101,6 +101,8 @@
   @extend %flex-center;
   @extend %gap-12;
   margin-bottom: 0;
+
+  @media max-width {}
 }
 
 .push-status {
@@ -392,6 +394,12 @@
     gap: 6px;
   }
 
+  .chat-header-main,
+  .create-box-item,
+  .toolbar {
+    gap: 6px;
+  }
+
   .push-status {
     grid-column: 1 / -1;
     order: -1;
@@ -423,12 +431,14 @@
 
     li {
       padding: 6px;
+      gap: 6px;
     }
   }
 
   .chat-header,
   .composer {
     padding: 6px;
+    gap: 6px;
   }
 
   .chat-header {
@@ -437,10 +447,6 @@
     h3 {
       padding-left: 0;
     }
-  }
-
-  .composer {
-    gap: 6px;
   }
 
   .message-list {
