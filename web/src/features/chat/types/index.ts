@@ -89,6 +89,8 @@ export interface ConversationDetail {
   createdAt: string;
   updatedAt: string;
   pendingJoinRequestCount: number;
+  friendRemark?: string | null;
+  isFriend: boolean;
   members: ConversationMember[];
 }
 
@@ -242,6 +244,10 @@ export interface CreateFriendRequestPayload {
 
 export interface RejectFriendRequestPayload {
   rejectReason?: string;
+}
+
+export interface UpdateFriendRemarkPayload {
+  friendRemark?: string | null;
 }
 
 export interface ReadUser {

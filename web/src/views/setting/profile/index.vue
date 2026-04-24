@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CloseBold, EditPen } from "@element-plus/icons-vue";
 import ProgressiveAvatar from '@/components/ProgressiveAvatar/index.vue';
 import nickname from '@/features/auth/components/Settings/nickname.vue';
 import router from "@/routers";
@@ -48,10 +49,10 @@ watch(
                 <el-button type="primary" plain @click="router.push('/setting/avatar')">
                     更换头像
                 </el-button>
-                <el-input v-model="inputEmail" :disabled="emailDisabled" clearable clear-icon="CloseBold" placeholder="邮箱地址"
+                <el-input v-model="inputEmail" :disabled="emailDisabled" clearable :clear-icon="CloseBold" placeholder="邮箱地址"
                     style="width: min(420px, 100%)">
                     <template #prepend>
-                        <el-button icon="EditPen" @click="emailDisabled = !emailDisabled" />
+                        <el-button :icon="EditPen" @click="emailDisabled = !emailDisabled" />
                     </template>
                     <template #append>
                         <el-select v-model="select" placeholder="Select" :disabled="emailDisabled" style="width: 150px">

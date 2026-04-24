@@ -12,7 +12,6 @@ import "element-plus/dist/index.css";
 import "element-plus/theme-chalk/dark/css-vars.css";
 
 // element-plus icon导入
-import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 
 const app = createApp(App);
 
@@ -49,9 +48,5 @@ window.addEventListener("unhandledrejection", (event) => {
 window.addEventListener("error", (event) => {
   console.error("全局脚本错误:", event.error || event.message);
 });
-
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component);
-}
 
 app.mount("#app");

@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, provide, ref, useTemplateRef, watch } from 'vue';
+import {
+  computed,
+  defineAsyncComponent,
+  nextTick,
+  onBeforeUnmount,
+  provide,
+  ref,
+  useTemplateRef,
+  watch,
+} from 'vue';
 import { storeToRefs } from 'pinia';
 import { Document, UploadFilled } from '@element-plus/icons-vue';
-import FilePreview from '@/components/FilePreview/index.vue';
 import { useAuthStore } from '@/stores';
 import MessageItem from './MessageItem.vue';
 import FileMessage from './FileMessage.vue';
@@ -99,6 +107,7 @@ const emit = defineEmits<{
 }>();
 
 const { user } = storeToRefs(useAuthStore());
+const FilePreview = defineAsyncComponent(() => import('@/components/FilePreview/index.vue'));
 const scrollbarRef = useTemplateRef('scrollbarRef');
 const isChatDetail = ref(false);
 const pendingAutoScroll = ref(true);
@@ -874,7 +883,7 @@ onBeforeUnmount(() => {
           </el-button>
           <h3>{{ conversationHeaderTitle }}</h3>
         </div>
-        <el-button color="#111827" class="open-detail" icon="Document" @click="isChatDetail = true">
+        <el-button color="#111827" class="open-detail" :icon="Document" @click="isChatDetail = true">
           详情
         </el-button>
       </div>
@@ -908,7 +917,8 @@ onBeforeUnmount(() => {
         @update:conversation="emit('updateConversation', $event)"
         @load-more="emit('loadMore')" />
 
-      <FilePreview v-model="galleryVisible" :file-list="galleryFileList" v-model:current-index="galleryIndex" />
+      <FilePreview v-if="galleryVisible" v-model="galleryVisible" :file-list="galleryFileList"
+        v-model:current-index="galleryIndex" />
 
       <el-dialog v-model="dropUploadDialogVisible" title="确认上传文件" width="560px" :close-on-click-modal="!dropUploadBusy"
         :close-on-press-escape="!dropUploadBusy" :show-close="!dropUploadBusy" @closed="clearDroppedFiles">

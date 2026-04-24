@@ -3477,6 +3477,16 @@
             待处理加群申请数量
             </summary>
         </member>
+        <member name="P:api.Models.ConversationDetailDto.FriendRemark">
+            <summary>
+            好友备注，仅单聊会话可能返回
+            </summary>
+        </member>
+        <member name="P:api.Models.ConversationDetailDto.IsFriend">
+            <summary>
+            当前单聊对方是否仍是好友
+            </summary>
+        </member>
         <member name="P:api.Models.ConversationDetailDto.Members">
             <summary>
             成员列表

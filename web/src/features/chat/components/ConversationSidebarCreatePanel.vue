@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowDown, ChatRound } from "@element-plus/icons-vue";
 import ProgressiveAvatar from "@/components/ProgressiveAvatar/index.vue";
 import { getUserAvatarUrl } from "@/utils/avatar";
 import { useConversationCreateForm } from "../composables/useConversationCreateForm";
@@ -143,7 +144,7 @@ const {
         </template>
       </el-select>
 
-      <el-button icon="ChatRound" color="#111827" :disabled="!canCreateConversation"
+      <el-button :icon="ChatRound" color="#111827" :disabled="!canCreateConversation"
         @click="emit('createConversation')">
         {{ isGroupConversation ? "创建群聊" : "发起聊天" }}
       </el-button>

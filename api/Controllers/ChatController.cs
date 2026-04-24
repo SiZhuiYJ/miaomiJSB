@@ -1301,10 +1301,18 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         }
 
         var previousLastRead = membership.LastReadMessageId ?? 0;
+        if (targetMessageId.HasValue && targetMessageId.Value < previousLastRead)
+        {
+            targetMessageId = previousLastRead;
+        }
+
+        var now = DateTime.UtcNow;
+        var readStateChanged = membership.LastReadMessageId != targetMessageId;
         membership.LastReadMessageId = targetMessageId;
-        membership.UpdatedAt = DateTime.UtcNow;
+        membership.UpdatedAt = now;
         await _db.SaveChangesAsync();
 
+        var newReceiptMessageIds = new List<ulong>();
         if (targetMessageId.HasValue && targetMessageId.Value > previousLastRead)
         {
             var readIds = await _db.ChatMessages
@@ -1322,7 +1330,6 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                     .Select(r => r.MessageId)
                     .ToListAsync();
 
-                var now = DateTime.UtcNow;
                 var newReceipts = readIds
                     .Except(existingReceiptMessageIds)
                     .Select(messageId => new ChatMessageReceipt
@@ -1337,9 +1344,27 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                 {
                     _db.ChatMessageReceipts.AddRange(newReceipts);
                     await _db.SaveChangesAsync();
+                    newReceiptMessageIds = newReceipts
+                        .Select(r => r.MessageId)
+                        .OrderBy(id => id)
+                        .ToList();
                 }
             }
         }
+
+        foreach (var messageId in newReceiptMessageIds)
+        {
+            await _hubContext.Clients.Group(ChatHub.GroupName(conversationId)).SendAsync("chat:message-read", new
+            {
+                messageId,
+                conversationId,
+                readByUserId = userId,
+                readAt = now
+            });
+        }
+
+        if (readStateChanged || newReceiptMessageIds.Count > 0)
+            await NotifyConversationInboxUpdated(conversationId);
 
         return Ok(new { lastReadMessageId = membership.LastReadMessageId });
     }
@@ -1554,7 +1579,7 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     async Task<ConversationDetailDto?> BuildConversationDetail(ulong conversationId, ulong userId)
     {
         var now = DateTime.UtcNow;
-        return await _db.ChatConversations
+        var detail = await _db.ChatConversations
             .AsNoTracking()
             .Where(c => c.Id == conversationId)
             .Select(c => new ConversationDetailDto
@@ -1600,6 +1625,8 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                         r.RequestStatus == "pending" &&
                         (r.ExpireAt == null || r.ExpireAt > now))
                     : 0,
+                FriendRemark = null,
+                IsFriend = c.ConversationType != "direct",
                 Members = c.ChatConversationMembers
                     .Where(m => m.LeftAt == null)
                     .OrderBy(m => m.JoinedAt)
@@ -1620,6 +1647,39 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                     .ToList()
             })
             .SingleOrDefaultAsync();
+
+        if (detail == null || detail.ConversationType != "direct")
+            return detail;
+
+        var peerUserId = detail.Members
+            .FirstOrDefault(m => m.UserId != userId)
+            ?.UserId;
+
+        if (!peerUserId.HasValue)
+        {
+            detail.IsFriend = false;
+            return detail;
+        }
+
+        var friendship = await _db.UserFriendships
+            .AsNoTracking()
+            .Where(f =>
+                f.UserId == userId &&
+                f.FriendUserId == peerUserId.Value &&
+                f.Status == "active")
+            .Select(f => new
+            {
+                f.FriendRemark
+            })
+            .SingleOrDefaultAsync();
+
+        detail.IsFriend = friendship != null;
+        detail.FriendRemark = friendship?.FriendRemark;
+
+        if (!string.IsNullOrWhiteSpace(detail.FriendRemark))
+            detail.Title = detail.FriendRemark;
+
+        return detail;
     }
 
     async Task<(ChatConversation Conversation, ChatConversationMember CurrentMember)?> GetActiveConversationContext(ulong conversationId, ulong userId)

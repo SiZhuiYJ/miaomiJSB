@@ -1,5 +1,6 @@
 <script setup lang="ts">
 
+import { ArrowDown } from "@element-plus/icons-vue";
 import ProgressiveAvatar from "@/components/ProgressiveAvatar/index.vue";
 import { useAuthStore } from "@/features/auth/stores";
 import { authApi } from "@/features/auth/api/index";
@@ -265,7 +266,7 @@ async function handleDeactivateConfirm(): Promise<void> {
               </ProgressiveAvatar>
               <Txet :text="`${maskEmail(user.email)}${user.nickName ? `(${maskString(user.nickName!)})` : ''}`"
                 :width="150" :speed="10" mode="bounce" shrinkWhenShort />
-              <el-icon class="dropdown-arrow"><arrow-down /></el-icon>
+              <el-icon class="dropdown-arrow"><ArrowDown /></el-icon>
             </template>
           </el-skeleton>
         </div>

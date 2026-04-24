@@ -30,8 +30,9 @@ export function useMessageRead(
 
   async function markRead(lastMessageId?: number) {
     const convId = conversationId();
-    if (!convId) return;
-    await markReadApi(convId, lastMessageId);
+    if (!convId) return null;
+    const response = await markReadApi(convId, lastMessageId);
+    return response.data;
   }
 
   // 获取某条消息的已读显示文本（用于 MessageItem）

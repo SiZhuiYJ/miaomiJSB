@@ -40,6 +40,9 @@ export function useConversations() {
   }
 
   function getDirectPeerDisplayName(detail: ConversationDetail) {
+    if (detail.friendRemark?.trim()) {
+      return detail.friendRemark.trim();
+    }
     const currentUserId = user.value?.userId;
     const peer = detail.members.find((m) => m.userId !== currentUserId);
     return getMemberDisplayName(peer);

@@ -25,6 +25,35 @@ function getNodeModulePackageName(id: string) {
   return parts[0];
 }
 
+const manualChunkGroups: Record<string, ReadonlySet<string>> = {
+  "vendor-office-docx": new Set(["@vue-office/docx"]),
+  "vendor-office-excel": new Set(["@vue-office/excel"]),
+  "vendor-office-pdf": new Set(["@vue-office/pdf"]),
+  "vendor-office-pptx": new Set(["@vue-office/pptx"]),
+  "vendor-ffmpeg": new Set([
+    "@ffmpeg/ffmpeg",
+    "@ffmpeg/util",
+    "@ffmpeg/core",
+    "@ffmpeg/core-mt",
+  ]),
+  "vendor-markdown": new Set(["@kangc/v-md-editor", "prismjs"]),
+  "vendor-codemirror": new Set(["codemirror"]),
+  "vendor-gsap": new Set(["gsap"]),
+  "vendor-signalr": new Set(["@microsoft/signalr"]),
+  "vendor-media": new Set(["mediainfo.js", "webcodecs-encoder"]),
+};
+
+function getManualChunkName(id: string) {
+  if (!id.includes("node_modules")) return;
+
+  const pkgName = getNodeModulePackageName(id);
+  for (const [chunkName, packages] of Object.entries(manualChunkGroups)) {
+    if (packages.has(pkgName)) {
+      return chunkName;
+    }
+  }
+}
+
 import prismjs from "vite-plugin-prismjs";
 
 // 定义路径别名函数（简化配置，避免重复书写）
@@ -146,8 +175,8 @@ export default defineConfig(({ mode }) => {
           assetFileNames: "[ext]/[name]-[hash].[ext]", // 资源文件像 字体，图片等
 
           manualChunks(id) {
-            if (!id.includes("node_modules")) return;
             const pkgName = getNodeModulePackageName(id);
+            return getManualChunkName(id);
 
             // 1. UI 组件库核心（Element Plus 主包及内部依赖）
             if (

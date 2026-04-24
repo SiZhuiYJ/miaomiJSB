@@ -153,8 +153,6 @@ export function useChatPush(options: PushOptions) {
     });
 
     connection.on("chat:message-read", async (payload: any) => {
-      await options.fetchConversations();
-
       if (options.onMessageRead) {
         await options.onMessageRead({
           messageId: payload.messageId,

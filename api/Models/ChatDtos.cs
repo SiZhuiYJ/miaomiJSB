@@ -309,6 +309,14 @@ public class ConversationDetailDto
     /// </summary>
     public int PendingJoinRequestCount { get; set; }
     /// <summary>
+    /// 好友备注，仅单聊会话可能返回
+    /// </summary>
+    public string? FriendRemark { get; set; }
+    /// <summary>
+    /// 当前单聊对方是否仍是好友
+    /// </summary>
+    public bool IsFriend { get; set; }
+    /// <summary>
     /// 成员列表
     /// </summary>
     public List<ConversationMemberDto> Members { get; set; } = new();

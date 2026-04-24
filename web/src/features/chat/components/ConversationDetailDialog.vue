@@ -1,5 +1,6 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import ProgressiveAvatar from "@/components/ProgressiveAvatar/index.vue";
+import { Bell, MuteNotification } from "@element-plus/icons-vue";
 import { createAvatarUploadFormData } from "@/utils/avatar";
 import { computed, ref, watch } from "vue";
 import { ElMessageBox } from "element-plus";
@@ -26,13 +27,18 @@ import {
   unmuteConversationMember,
   updateConversationMemberRole,
 } from "../api/conversations";
-import { getFriends } from "../api/friends";
+import {
+  deleteFriend as deleteFriendApi,
+  getFriends,
+  updateFriendRemark as updateFriendRemarkApi,
+} from "../api/friends";
 import { uploadConversationAvatar as uploadConversationAvatarApi } from "../api/files";
 import {
   formatChatTime,
   getConversationAvatarSources,
   getConversationAvatarText,
   getConversationDisplayTitle,
+  getDirectPeer,
   getMemberAvatarSources,
   getMemberAvatarUrl,
   groupRoleMap,
@@ -78,6 +84,9 @@ const joinRequests = ref<GroupJoinRequest[]>([]);
 const muteDialogVisible = ref(false);
 const pendingMuteMember = ref<ConversationMember | null>(null);
 const selectedMuteOptionValue = ref("");
+const friendRemarkInput = ref("");
+const savingFriendRemark = ref(false);
+const deletingFriend = ref(false);
 
 const muteOptions: MuteOption[] = [
   { value: "temporary-10", label: "10 分钟", mode: "temporary", durationMinutes: 10 },
@@ -89,6 +98,14 @@ const muteOptions: MuteOption[] = [
 const title = computed(() => getConversationDisplayTitle(props.conversation, user.value?.userId));
 const avatarSources = computed(() => getConversationAvatarSources(props.conversation));
 const isGroupConversation = computed(() => props.conversation.conversationType === "group");
+const directPeer = computed(
+  () =>
+  (!isGroupConversation.value
+    ? getDirectPeer(props.conversation, user.value?.userId) ??
+    props.conversation.members.find((item) => item.userId !== user.value?.userId) ??
+    null
+    : null),
+);
 const currentMember = computed(
   () => props.conversation.members.find((item) => item.userId === user.value?.userId) ?? null,
 );
@@ -110,6 +127,22 @@ const canInviteMembers = computed(
 );
 const canDisbandConversation = computed(
   () => isGroupConversation.value && currentMemberRole.value === "owner",
+);
+const isDirectFriend = computed(
+  () => !isGroupConversation.value && props.conversation.isFriend,
+);
+const friendRemarkValue = computed(() => friendRemarkInput.value.trim());
+const friendRemarkDirty = computed(
+  () => friendRemarkValue.value !== (props.conversation.friendRemark?.trim() ?? ""),
+);
+const canSaveFriendRemark = computed(
+  () =>
+    !isGroupConversation.value &&
+    directPeer.value !== null &&
+    isDirectFriend.value &&
+    friendRemarkDirty.value &&
+    !savingFriendRemark.value &&
+    !deletingFriend.value,
 );
 const muteTargetName = computed(() =>
   pendingMuteMember.value ? getMemberName(pendingMuteMember.value) : "",
@@ -179,6 +212,66 @@ function applyConversationDetail(detail: ConversationDetail) {
 
 function getMemberName(member: ConversationMember) {
   return member.nickName || member.userAccount || String(member.userId);
+}
+
+function resetFriendRemarkEditor() {
+  friendRemarkInput.value = props.conversation.friendRemark?.trim() ?? "";
+}
+
+async function handleSaveFriendRemark() {
+  if (!canSaveFriendRemark.value || !directPeer.value) return;
+
+  savingFriendRemark.value = true;
+  try {
+    const { data } = await updateFriendRemarkApi(directPeer.value.userId, {
+      friendRemark: friendRemarkValue.value || undefined,
+    });
+
+    props.conversation.friendRemark = data.friendRemark ?? null;
+    props.conversation.title =
+      data.friendRemark?.trim() || getMemberName(directPeer.value);
+
+    resetFriendRemarkEditor();
+    emit("update:conversation");
+    ElMessage.success(friendRemarkValue.value ? "Remark updated" : "Remark cleared");
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, "Failed to update remark"));
+  } finally {
+    savingFriendRemark.value = false;
+  }
+}
+
+async function handleDeleteFriend() {
+  if (!directPeer.value || deletingFriend.value || !isDirectFriend.value) return;
+
+  try {
+    await ElMessageBox.confirm(
+      `Delete friend "${getMemberName(directPeer.value)}"? You can still view message history, but you will no longer be able to start a new direct chat via the friendship.`,
+      "Delete Friend",
+      {
+        type: "warning",
+        confirmButtonText: "Delete",
+        cancelButtonText: "Cancel",
+      },
+    );
+
+    deletingFriend.value = true;
+    await deleteFriendApi(directPeer.value.userId);
+
+    props.conversation.isFriend = false;
+    props.conversation.friendRemark = null;
+    props.conversation.title = getMemberName(directPeer.value);
+
+    resetFriendRemarkEditor();
+    emit("update:conversation");
+    ElMessage.success("Friend deleted");
+  } catch (error) {
+    if (error !== "cancel") {
+      ElMessage.error(getErrorMessage(error, "Failed to delete friend"));
+    }
+  } finally {
+    deletingFriend.value = false;
+  }
 }
 
 function canModerateMember(member: ConversationMember) {
@@ -514,6 +607,14 @@ async function handleDisbandConversation() {
 }
 
 watch(
+  () => [props.conversation.id, props.conversation.friendRemark],
+  () => {
+    resetFriendRemarkEditor();
+  },
+  { immediate: true },
+);
+
+watch(
   () => props.modelValue,
   (value) => {
     if (value && isGroupConversation.value) {
@@ -525,6 +626,7 @@ watch(
       resetInviteDialog();
       resetJoinRequestDialog();
       resetMuteDialog();
+      resetFriendRemarkEditor();
     }
   },
   { immediate: true },
@@ -539,7 +641,7 @@ watch(
       <div class="avatar-container">
         <div class="avatar-section">
           <ProgressiveAvatar class="avatar-preview" :src="avatarSources.src" :thumbnail-src="avatarSources.thumbnailSrc"
-            :size="96" shape="square">
+            :size="96" :is-preview=true shape="square">
             {{ getConversationAvatarText(conversation) }}
           </ProgressiveAvatar>
 
@@ -586,7 +688,56 @@ watch(
         </div>
       </div>
 
-      <div class="members-section">
+      <div v-else-if="directPeer" class="direct-friend-section">
+        <div class="section-header">
+          <span>好友信息</span>
+          <el-tag size="small" :type="isDirectFriend ? 'success' : 'info'">
+            {{ isDirectFriend ? "好友" : "已删除" }}
+          </el-tag>
+        </div>
+
+        <div class="direct-friend-card">
+          <div class="direct-friend-main">
+            <ProgressiveAvatar class="direct-friend-avatar" :src="getMemberAvatarUrl(directPeer)" :is-preview=true
+              :thumbnail-src="getMemberAvatarSources(directPeer).thumbnailSrc" :size="56" shape="square">
+              {{ getMemberName(directPeer).slice(0, 1) }}
+            </ProgressiveAvatar>
+            <div class="direct-friend-text">
+              <div class="direct-friend-name-row">
+                <strong class="direct-friend-name">{{ getMemberName(directPeer) }}</strong>
+                <el-tag v-if="conversation.friendRemark" size="small" type="warning">
+                  备注: {{ conversation.friendRemark }}
+                </el-tag>
+              </div>
+              <div v-if="directPeer.userAccount" class="direct-friend-meta">
+                账号: {{ directPeer.userAccount }}
+              </div>
+              <div class="direct-friend-meta">用户 ID: {{ directPeer.userId }}</div>
+            </div>
+          </div>
+
+          <div class="direct-friend-editor">
+            <el-input v-model="friendRemarkInput" maxlength="64" show-word-limit clearable placeholder="添加备注"
+              :disabled="savingFriendRemark || deletingFriend || !isDirectFriend"
+              @keyup.enter="handleSaveFriendRemark" />
+            <div class="direct-friend-actions">
+              <el-button color="#111827" plain :loading="savingFriendRemark" :disabled="!canSaveFriendRemark"
+                @click="handleSaveFriendRemark">
+                保存备注
+              </el-button>
+              <el-button color="#dc2626" plain :loading="deletingFriend" :disabled="!isDirectFriend"
+                @click="handleDeleteFriend">
+                删除好友
+              </el-button>
+            </div>
+            <p class="direct-friend-tip">
+              删除会保留当前的消息记录，但您将无法通过该好友关系开始新的直接聊天。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="isGroupConversation" class="members-section">
         <div class="section-header">
           <span>成员列表</span>
           <span v-if="canManageMemberRoles" class="section-tip">群主可切换管理员和普通成员</span>
@@ -595,7 +746,7 @@ watch(
         <div class="member-list">
           <div v-for="item in sortedMembers" :key="item.userId" class="member-row">
             <div class="member-main">
-              <ProgressiveAvatar class="conversation-avatar" :src="getMemberAvatarUrl(item)"
+              <ProgressiveAvatar class="conversation-avatar" :src="getMemberAvatarUrl(item)" :is-preview=true
                 :thumbnail-src="getMemberAvatarSources(item).thumbnailSrc" :size="48" shape="square">
                 {{ (item.nickName || item.userAccount || String(item.userId)).slice(0, 1) }}
               </ProgressiveAvatar>
@@ -796,6 +947,70 @@ watch(
   flex-wrap: wrap;
 }
 
+.direct-friend-section {
+  display: grid;
+  gap: 12px;
+}
+
+.direct-friend-card {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.direct-friend-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+}
+
+.direct-friend-avatar {
+  flex-shrink: 0;
+}
+
+.direct-friend-text,
+.direct-friend-editor {
+  display: grid;
+  gap: 8px;
+}
+
+.direct-friend-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.direct-friend-name {
+  color: #111827;
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.direct-friend-meta {
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 18px;
+  word-break: break-all;
+}
+
+.direct-friend-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.direct-friend-tip {
+  margin: 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .members-section {
   display: grid;
   gap: 12px;
@@ -971,6 +1186,14 @@ watch(
 }
 
 @media (max-width: 768px) {
+  .direct-friend-main {
+    grid-template-columns: 1fr;
+  }
+
+  .direct-friend-actions {
+    width: 100%;
+  }
+
   .member-row {
     align-items: flex-start;
     flex-direction: column;

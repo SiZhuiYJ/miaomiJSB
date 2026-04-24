@@ -45,6 +45,39 @@ export function useChatCore() {
     () => meUserId.value,
   );
 
+  function applyLocalReadState(lastReadMessageId?: number | null) {
+    const conversationId = conversationsModule.selectedConversationId.value;
+    if (!conversationId) return;
+
+    const conversationSummary = conversationsModule.conversations.value.find(
+      (item) => item.id === conversationId,
+    );
+    if (conversationSummary) {
+      conversationSummary.unreadCount = 0;
+    }
+
+    const currentConversation = conversationsModule.currentConversation.value;
+    if (!currentConversation || currentConversation.id !== conversationId) return;
+
+    const selfUserId = meUserId.value;
+    if (!selfUserId) return;
+
+    const selfMember = currentConversation.members.find(
+      (member) => member.userId === selfUserId,
+    );
+    if (selfMember) {
+      selfMember.lastReadMessageId =
+        lastReadMessageId ?? selfMember.lastReadMessageId ?? null;
+    }
+  }
+
+  async function markCurrentConversationRead() {
+    const lastMsg =
+      messagesModule.messages.value[messagesModule.messages.value.length - 1];
+    const result = await readModule.markRead(lastMsg?.id);
+    applyLocalReadState(result?.lastReadMessageId ?? lastMsg?.id);
+  }
+
   // 组合 loading / error
   const loading = computed(
     () => conversationsModule.loading.value || messagesModule.loading.value,
@@ -53,11 +86,7 @@ export function useChatCore() {
   const pushModule = useChatPush({
     fetchConversations: conversationsModule.loadConversations,
     syncCurrentMessages: messagesModule.refreshLoadedMessages,
-    markRead: async () => {
-      const lastMsg =
-        messagesModule.messages.value[messagesModule.messages.value.length - 1];
-      await readModule.markRead(lastMsg?.id);
-    },
+    markRead: markCurrentConversationRead,
     hasConversation: () => !!conversationsModule.currentConversation.value,
     getConversationId: () => conversationsModule.selectedConversationId.value,
     getToken: () => useAuthStore().accessToken || "",
@@ -87,10 +116,7 @@ export function useChatCore() {
     const detail = await originalSelectConversation(item);
     if (detail) {
       await messagesModule.loadMessages();
-      await readModule.markRead(
-        messagesModule.messages.value[messagesModule.messages.value.length - 1]
-          ?.id,
-      );
+      await markCurrentConversationRead();
       await pushModule.subscribeConversation(detail.id);
       // 加载自己发送的消息的已读状态
       const myMsgIds = messagesModule.messages.value
@@ -246,11 +272,7 @@ export function useChatCore() {
     sendTextMessage: handleSendText,
     sendMessage: messagesModule.sendMessage,
     recallMessage: handleRecallMessage,
-    markRead: () =>
-      readModule.markRead(
-        messagesModule.messages.value[messagesModule.messages.value.length - 1]
-          ?.id,
-      ),
+    markRead: markCurrentConversationRead,
     pullLatestMessages: messagesModule.pullLatestMessages,
     setReplyingMessage,
     clearReplyingMessage,

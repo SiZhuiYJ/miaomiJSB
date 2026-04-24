@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ProgressiveAvatar from '@/components/ProgressiveAvatar/index.vue';
 import { computed } from 'vue';
+import { CircleCheck } from '@element-plus/icons-vue';
 import type { MessageReference, MessageSummary, PendingUpload } from '../types';
 import {
   formatSystemMessageText,
@@ -97,18 +98,13 @@ function handleRecall() {
 </script>
 
 <template>
-  <div
-    v-if="hasMessage && props.message?.isRecalled"
-    :class="['msg-item', 'system-notice-item', { highlighted: props.highlighted }]"
-  >
+  <div v-if="hasMessage && props.message?.isRecalled"
+    :class="['msg-item', 'system-notice-item', { highlighted: props.highlighted }]">
     <div class="recalled-message system-notice-text">
       {{ recalledText }}
     </div>
   </div>
-  <div
-    v-else-if="isSystemMessage"
-    :class="['msg-item', 'system-notice-item', { highlighted: props.highlighted }]"
-  >
+  <div v-else-if="isSystemMessage" :class="['msg-item', 'system-notice-item', { highlighted: props.highlighted }]">
     <div class="system-notice-body">
       <div class="system-notice-text">
         {{ formatSystemMessageText(props.message?.content) }}
@@ -117,13 +113,8 @@ function handleRecall() {
     </div>
   </div>
   <div v-else :class="['msg-item', { mine: props.isMine, highlighted: props.highlighted }]">
-    <ProgressiveAvatar
-      class="message-avatar"
-      :src="props.src || undefined"
-      :thumbnail-src="props.thumbnailSrc || props.src || undefined"
-      :size="40"
-      shape="square"
-    >
+    <ProgressiveAvatar class="message-avatar" :src="props.src || undefined"
+      :thumbnail-src="props.thumbnailSrc || props.src || undefined" :size="40" shape="square">
       {{ senderName.slice(0, 1) }}
     </ProgressiveAvatar>
     <div class="content">
@@ -141,12 +132,8 @@ function handleRecall() {
         </div>
       </div>
 
-      <button
-        v-if="props.replyTarget || props.replyTargetId"
-        class="reply-card"
-        type="button"
-        @click="handleJumpToReply"
-      >
+      <button v-if="props.replyTarget || props.replyTargetId" class="reply-card" type="button"
+        @click="handleJumpToReply">
         <div class="reply-card-sender">
           {{ props.replyTarget ? getMessageSenderName(props.replyTarget) : `消息 #${props.replyTargetId}` }}
         </div>
@@ -157,14 +144,8 @@ function handleRecall() {
 
       <div class="bubble-wrap">
         <template v-if="['image', 'video', 'audio', 'file'].includes(messageType)">
-          <FileMessage
-            :message="props.message"
-            :pending-upload="props.pendingUpload"
-            :show-download="true"
-            :src
-            :allow-inline-media-load="props.allowInlineMediaLoad"
-            @media-settled="emit('mediaSettled', $event)"
-          />
+          <FileMessage :message="props.message" :pending-upload="props.pendingUpload" :show-download="true" :src
+            :allow-inline-media-load="props.allowInlineMediaLoad" @media-settled="emit('mediaSettled', $event)" />
         </template>
 
         <div v-else-if="props.message?.messageType === 'text'" class="bubble">
@@ -223,7 +204,7 @@ function handleRecall() {
   padding: 0;
 }
 
-.reply-action + .reply-action {
+.reply-action+.reply-action {
   margin-left: 8px;
 }
 

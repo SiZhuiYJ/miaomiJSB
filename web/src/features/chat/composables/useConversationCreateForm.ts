@@ -37,7 +37,7 @@ export function useConversationCreateForm(options: {
           item.friend.nickName?.trim() ||
           item.friend.userAccount?.trim() ||
           String(item.friend.userId),
-        meta: item.friend.userAccount?.trim() || `ID: ${item.friend.userId}`,
+        meta: item.friendRemark || item.friend.userAccount?.trim() || `ID: ${item.friend.userId}`,
         avatarKey: item.friend.avatarKey,
       }))
       .sort((left, right) => left.label.localeCompare(right.label, "zh-CN")),

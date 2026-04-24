@@ -173,6 +173,9 @@ export function getConversationDisplayTitle(
   if (item.conversationType === "direct") {
     // 对于详情，优先使用已有 title 或计算对方昵称
     if ("members" in item) {
+      const explicitTitle = item.friendRemark?.trim() || item.title?.trim();
+      if (explicitTitle) return explicitTitle;
+
       const peer = getDirectPeer(item, currentUserId);
       return peer ? getMemberDisplayName(peer) : `单聊 #${item.id}`;
     }

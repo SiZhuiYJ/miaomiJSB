@@ -5,6 +5,7 @@ import type {
   FriendRequest,
   Friendship,
   RejectFriendRequestPayload,
+  UpdateFriendRemarkPayload,
 } from "../types";
 
 export async function getFriends() {
@@ -39,4 +40,18 @@ export async function rejectFriendRequest(
     `/mm/friends/requests/${requestId}/reject`,
     payload ?? {},
   );
+}
+
+export async function updateFriendRemark(
+  friendUserId: number,
+  payload?: UpdateFriendRemarkPayload,
+) {
+  return await http.post<Friendship>(
+    `/mm/friends/${friendUserId}/remark`,
+    payload ?? {},
+  );
+}
+
+export async function deleteFriend(friendUserId: number) {
+  return await http.delete(`/mm/friends/${friendUserId}`);
 }

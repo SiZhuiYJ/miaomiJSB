@@ -94,6 +94,8 @@ public class ChatHub(DailyCheckDbContext db) : Hub
             readByUserId = userId,
             readAt = now
         });
+
+        await NotifyConversationInboxUpdated(conversationId, now);
     }
 
     /// <summary>
@@ -152,6 +154,25 @@ public class ChatHub(DailyCheckDbContext db) : Hub
     public static string GroupName(ulong conversationId) => $"conversation-{conversationId}";
 
     public static string UserGroupName(ulong userId) => $"user-{userId}";
+
+    async Task NotifyConversationInboxUpdated(ulong conversationId, DateTime updatedAt)
+    {
+        var memberUserIds = await _db.ChatConversationMembers
+            .AsNoTracking()
+            .Where(m => m.ConversationId == conversationId && m.LeftAt == null)
+            .Select(m => m.UserId)
+            .Distinct()
+            .ToListAsync();
+
+        if (memberUserIds.Count == 0)
+            return;
+
+        await Clients.Groups(memberUserIds.Select(UserGroupName).ToList()).SendAsync("chat:inbox-updated", new
+        {
+            conversationId,
+            updatedAt
+        });
+    }
 
     /// <summary>
     /// 获取当前用户 ID。

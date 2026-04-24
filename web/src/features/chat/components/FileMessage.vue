@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, ref, watch } from 'vue';
+import { CircleCloseFilled, Loading, WarningFilled } from '@element-plus/icons-vue';
 import SvgIcon from '@/components/SvgIcon/index.vue';
+import { Download } from "@element-plus/icons-vue"
 import { notifyError } from '@/utils/notification';
 import { useFileDownloader } from '../composables/useFileDownloader';
 import type { FileExtra, MessageSummary, PendingUpload } from '../types';
@@ -322,20 +324,18 @@ function formatDuration(seconds: number): string {
     <template v-if="fileExtra">
       <div class="file-item-wrap">
         <div v-if="category === 'image'" class="image-message">
-          <img
-            v-if="imageDisplayUrl && !hasError"
-            :src="imageDisplayUrl"
-            :alt="fileExtra.fileName"
-            :style="imageStyle"
-            @error="handleImageError"
-            loading="lazy"
-          />
+          <img v-if="imageDisplayUrl && !hasError" :src="imageDisplayUrl" :alt="fileExtra.fileName" :style="imageStyle"
+            @error="handleImageError" loading="lazy" />
           <div v-else-if="previewLoading" class="image-loading">
-            <el-icon class="is-loading"><Loading /></el-icon>
+            <el-icon class="is-loading">
+              <Loading />
+            </el-icon>
             <span>加载中...</span>
           </div>
           <div v-else-if="hasError" class="image-error-placeholder">
-            <el-icon><WarningFilled /></el-icon>
+            <el-icon>
+              <WarningFilled />
+            </el-icon>
             <span>图片加载失败</span>
           </div>
           <div v-else class="image-placeholder">
@@ -350,7 +350,9 @@ function formatDuration(seconds: number): string {
 
           <div v-else-if="showDownload && previewUrl && !hasError" class="image-overlay">
             <el-button size="small" circle @click.stop="handleDownload">
-              <el-icon><Download /></el-icon>
+              <el-icon>
+                <Download />
+              </el-icon>
             </el-button>
           </div>
         </div>
@@ -362,21 +364,29 @@ function formatDuration(seconds: number): string {
               <div class="upload-progress-badge">{{ uploadProgress }}%</div>
             </div>
             <div v-else class="video-cover-overlay">
-              <el-icon v-if="previewLoading" class="is-loading" :size="28"><Loading /></el-icon>
+              <el-icon v-if="previewLoading" class="is-loading" :size="28">
+                <Loading />
+              </el-icon>
               <svg-icon v-else icon-class="general-play" size="32px" />
             </div>
           </div>
           <div v-else-if="isUploading" class="media-loading uploading-placeholder">
-            <el-icon class="is-loading"><Loading /></el-icon>
+            <el-icon class="is-loading">
+              <Loading />
+            </el-icon>
             <span>提取封面中 {{ uploadProgress }}%</span>
             <div class="upload-progress-badge">{{ uploadProgress }}%</div>
           </div>
           <div v-else-if="thumbnailLoading" class="media-loading">
-            <el-icon class="is-loading"><Loading /></el-icon>
+            <el-icon class="is-loading">
+              <Loading />
+            </el-icon>
             <span>加载封面中...</span>
           </div>
           <div v-else-if="hasError" class="media-error-placeholder">
-            <el-icon><WarningFilled /></el-icon>
+            <el-icon>
+              <WarningFilled />
+            </el-icon>
             <span>视频加载失败</span>
           </div>
           <div v-else class="media-placeholder">
@@ -390,11 +400,8 @@ function formatDuration(seconds: number): string {
               <span v-if="fileExtra.duration">{{ formatDuration(fileExtra.duration) }}</span>
               <span v-if="isUploading" class="status-text uploading">上传 {{ uploadProgress }}%</span>
               <span v-else-if="isFailed" class="status-text error">上传失败</span>
-              <span
-                v-else-if="loadStatus !== 'idle' || isPrepared"
-                class="status-text"
-                :class="{ ready: isPrepared, error: loadStatus === 'error' }"
-              >
+              <span v-else-if="loadStatus !== 'idle' || isPrepared" class="status-text"
+                :class="{ ready: isPrepared, error: loadStatus === 'error' }">
                 {{ isPrepared ? '可预览' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
               </span>
             </div>
@@ -403,8 +410,12 @@ function formatDuration(seconds: number): string {
 
         <div v-else-if="category === 'audio'" class="audio-message">
           <div class="audio-icon">
-            <el-icon v-if="previewLoading || isUploading" class="is-loading" :size="24"><Loading /></el-icon>
-            <el-icon v-else-if="hasError || isFailed" :size="24"><WarningFilled /></el-icon>
+            <el-icon v-if="previewLoading || isUploading" class="is-loading" :size="24">
+              <Loading />
+            </el-icon>
+            <el-icon v-else-if="hasError || isFailed" :size="24">
+              <WarningFilled />
+            </el-icon>
             <svg-icon v-else icon-class="document-voice" size="48px" />
           </div>
           <div class="audio-content">
@@ -414,18 +425,18 @@ function formatDuration(seconds: number): string {
               <span v-if="fileExtra.duration">{{ formatDuration(fileExtra.duration) }}</span>
               <span v-if="isUploading" class="status-text uploading">上传 {{ uploadProgress }}%</span>
               <span v-else-if="isFailed" class="status-text error">上传失败</span>
-              <span
-                v-else-if="loadStatus !== 'idle' || isPrepared"
-                class="status-text"
-                :class="{ ready: isPrepared, error: loadStatus === 'error' }"
-              >
+              <span v-else-if="loadStatus !== 'idle' || isPrepared" class="status-text"
+                :class="{ ready: isPrepared, error: loadStatus === 'error' }">
                 {{ isPrepared ? '可预览' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
               </span>
             </div>
           </div>
 
-          <el-button v-if="showDownload && !isUploading" size="small" circle class="download-btn" @click.stop="handleDownload">
-            <el-icon><Download /></el-icon>
+          <el-button v-if="showDownload && !isUploading" size="small" circle class="download-btn"
+            @click.stop="handleDownload">
+            <el-icon>
+              <Download />
+            </el-icon>
           </el-button>
         </div>
 
@@ -440,11 +451,8 @@ function formatDuration(seconds: number): string {
               <span class="file-type">{{ displayType }}</span>
               <span v-if="isUploading" class="status-text uploading">上传 {{ uploadProgress }}%</span>
               <span v-else-if="isFailed" class="status-text error">上传失败</span>
-              <span
-                v-else-if="loadStatus !== 'idle' || isPrepared"
-                class="status-text"
-                :class="{ ready: isPrepared, error: loadStatus === 'error' }"
-              >
+              <span v-else-if="loadStatus !== 'idle' || isPrepared" class="status-text"
+                :class="{ ready: isPrepared, error: loadStatus === 'error' }">
                 {{ isPrepared ? '已就绪' : loadStatus === 'error' ? '加载失败' : `加载中 ${loadProgress}%` }}
               </span>
             </div>
@@ -452,37 +460,38 @@ function formatDuration(seconds: number): string {
               <div class="document-upload-progress-bar" :style="documentProgressStyle"></div>
             </div>
           </div>
-          <el-button v-if="showDownload && !isUploading" size="small" circle class="download-btn" @click.stop="handleDownload">
-            <el-icon><Download /></el-icon>
+          <el-button v-if="showDownload && !isUploading" size="small" circle class="download-btn"
+            @click.stop="handleDownload">
+            <el-icon>
+              <Download />
+            </el-icon>
           </el-button>
         </div>
 
         <transition name="status-fade">
-          <div
-            v-if="!isUploading && !props.pendingUpload && (loadStatus === 'loading' || loadStatus === 'error')"
-            class="file-load-status"
-            :class="{ loading: loadStatus === 'loading', error: loadStatus === 'error' }"
-          >
-            <el-icon v-if="loadStatus === 'loading'" class="status-icon is-loading"><Loading /></el-icon>
-            <el-icon v-else class="status-icon"><CircleCloseFilled /></el-icon>
+          <div v-if="!isUploading && !props.pendingUpload && (loadStatus === 'loading' || loadStatus === 'error')"
+            class="file-load-status" :class="{ loading: loadStatus === 'loading', error: loadStatus === 'error' }">
+            <el-icon v-if="loadStatus === 'loading'" class="status-icon is-loading">
+              <Loading />
+            </el-icon>
+            <el-icon v-else class="status-icon">
+              <CircleCloseFilled />
+            </el-icon>
 
             <div class="status-text">
               {{ loadStatus === 'loading' ? `正在加载 ${Math.round(loadProgress)}%` : '加载失败，请重试' }}
             </div>
-            <el-progress
-              v-if="loadStatus === 'loading'"
-              :percentage="loadProgress"
-              :stroke-width="6"
-              :show-text="false"
-              color="#409eff"
-            />
+            <el-progress v-if="loadStatus === 'loading'" :percentage="loadProgress" :stroke-width="6" :show-text="false"
+              color="#409eff" />
           </div>
         </transition>
       </div>
     </template>
 
     <div v-else class="file-error">
-      <el-icon :size="24"><WarningFilled /></el-icon>
+      <el-icon :size="24">
+        <WarningFilled />
+      </el-icon>
       <span>文件信息无效</span>
     </div>
   </div>
@@ -633,18 +642,14 @@ function formatDuration(seconds: number): string {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.82);
-    -webkit-mask-image: radial-gradient(
-      circle at center,
-      transparent 0,
-      transparent var(--upload-progress),
-      #000 calc(var(--upload-progress) + 1%)
-    );
-    mask-image: radial-gradient(
-      circle at center,
-      transparent 0,
-      transparent var(--upload-progress),
-      #000 calc(var(--upload-progress) + 1%)
-    );
+    -webkit-mask-image: radial-gradient(circle at center,
+        transparent 0,
+        transparent var(--upload-progress),
+        #000 calc(var(--upload-progress) + 1%));
+    mask-image: radial-gradient(circle at center,
+        transparent 0,
+        transparent var(--upload-progress),
+        #000 calc(var(--upload-progress) + 1%));
   }
 }
 

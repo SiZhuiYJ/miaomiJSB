@@ -11,6 +11,7 @@ const props = withDefaults(
     size?: SizeValue;
     width?: SizeValue;
     height?: SizeValue;
+    isPreview?: boolean;
     shape?: "circle" | "square";
     fit?: "cover" | "contain";
   }>(),
@@ -29,6 +30,8 @@ const props = withDefaults(
 const fullReady = ref(false);
 const fullFailed = ref(false);
 const thumbFailed = ref(false);
+
+const showPreview = ref(false);
 
 watch(
   () => [props.src, props.thumbnailSrc],
@@ -78,6 +81,10 @@ function handleFullError() {
 function handleThumbError() {
   thumbFailed.value = true;
 }
+function toggleImagePreview() {
+  if (props.src && !fullFailed.value && props.isPreview)
+    showPreview.value = !showPreview.value;
+}
 </script>
 
 <template>
@@ -89,7 +96,11 @@ function handleThumbError() {
     <img v-if="thumbSrc && !thumbFailed" class="avatar-layer avatar-thumb" :src="thumbSrc" :alt="alt"
       :style="mediaStyle" loading="lazy" @error="handleThumbError" />
     <img v-if="src && !fullFailed" class="avatar-layer avatar-full" :src="src" :alt="alt" :style="mediaStyle"
-      loading="lazy" @load="handleFullLoad" @error="handleFullError" />
+      loading="lazy" @load="handleFullLoad" @error="handleFullError" @click="toggleImagePreview" />
+    <Teleport to="body">
+      <el-image-viewer v-if="showPreview && isPreview" :url-list="[src]" show-progress :initial-index="0"
+        @close="showPreview = false" />
+    </Teleport>
   </div>
 </template>
 

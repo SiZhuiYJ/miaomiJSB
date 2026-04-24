@@ -65,6 +65,11 @@ public class RejectFriendRequestRequest
     public string? RejectReason { get; set; }
 }
 
+public class UpdateFriendRemarkRequest
+{
+    public string? FriendRemark { get; set; }
+}
+
 public class FriendUserDto
 {
     public ulong UserId { get; set; }

@@ -31,28 +31,79 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
             .Where(f => f.UserId == userId && f.Status == "active")
             .OrderByDescending(f => f.IsStarred)
             .ThenByDescending(f => f.AcceptedAt ?? f.CreatedAt)
-            .Select(f => new FriendshipDto
-            {
-                Id = f.Id,
-                Status = f.Status,
-                AvatarKey = f.FriendUser.AvatarKey,
-                FriendRemark = f.FriendRemark,
-                IsStarred = f.IsStarred,
-                IsMuted = f.IsMuted,
-                AcceptedAt = f.AcceptedAt,
-                CreatedAt = f.CreatedAt,
-                UpdatedAt = f.UpdatedAt,
-                Friend = new FriendUserDto
-                {
-                    UserId = f.FriendUserId,
-                    UserAccount = f.FriendUser.UserAccount,
-                    NickName = f.FriendUser.NickName,
-                    AvatarKey = f.FriendUser.AvatarKey
-                }
-            })
+            .Select(BuildFriendshipProjection())
             .ToListAsync();
 
         return Ok(friendships);
+    }
+
+    [HttpPost("{friendUserId:ulong}/remark")]
+    public async Task<ActionResult<FriendshipDto>> UpdateFriendRemark(
+        ulong friendUserId,
+        [FromBody] UpdateFriendRemarkRequest? request = null)
+    {
+        var userId = GetUserId();
+        var normalizedRemark = NormalizeFriendRemark(request?.FriendRemark);
+        if (normalizedRemark != null && normalizedRemark.Length > 64)
+            return BadRequest(new { message = "Friend remark must be 64 characters or fewer" });
+
+        var friendship = await _db.UserFriendships
+            .FirstOrDefaultAsync(f =>
+                f.UserId == userId &&
+                f.FriendUserId == friendUserId &&
+                f.Status == "active");
+
+        if (friendship == null)
+            return NotFound(new { message = "Friendship not found" });
+
+        if (friendship.FriendRemark == normalizedRemark)
+        {
+            var unchangedDetail = await BuildFriendshipDto(friendship.Id);
+            return unchangedDetail == null
+                ? NotFound(new { message = "Friendship not found" })
+                : Ok(unchangedDetail);
+        }
+
+        friendship.FriendRemark = normalizedRemark;
+        friendship.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+        await NotifyFriendshipsUpdated(userId, friendUserId);
+        await NotifyUsers("chat:inbox-updated", new[] { userId });
+
+        var detail = await BuildFriendshipDto(friendship.Id);
+        return detail == null
+            ? NotFound(new { message = "Friendship not found" })
+            : Ok(detail);
+    }
+
+    [HttpDelete("{friendUserId:ulong}")]
+    public async Task<IActionResult> DeleteFriend(ulong friendUserId)
+    {
+        var userId = GetUserId();
+        var pair = await _db.UserFriendships
+            .Where(f =>
+                ((f.UserId == userId && f.FriendUserId == friendUserId) ||
+                 (f.UserId == friendUserId && f.FriendUserId == userId)) &&
+                f.Status == "active")
+            .ToListAsync();
+
+        if (pair.Count == 0)
+            return NotFound(new { message = "Friendship not found" });
+
+        var now = DateTime.UtcNow;
+        foreach (var friendship in pair)
+        {
+            friendship.Status = "deleted";
+            friendship.DeletedAt = now;
+            friendship.DeletedByUserId = userId;
+            friendship.UpdatedAt = now;
+        }
+
+        await _db.SaveChangesAsync();
+        await NotifyFriendshipsUpdated(userId, friendUserId);
+        await NotifyUsers("chat:inbox-updated", new[] { userId, friendUserId });
+        return NoContent();
     }
 
     [HttpGet("requests")]
@@ -408,6 +459,38 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
             .SingleOrDefaultAsync();
     }
 
+    async Task<FriendshipDto?> BuildFriendshipDto(ulong friendshipId)
+    {
+        return await _db.UserFriendships
+            .AsNoTracking()
+            .Where(f => f.Id == friendshipId)
+            .Select(BuildFriendshipProjection())
+            .SingleOrDefaultAsync();
+    }
+
+    static Expression<Func<UserFriendship, FriendshipDto>> BuildFriendshipProjection()
+    {
+        return f => new FriendshipDto
+        {
+            Id = f.Id,
+            Status = f.Status,
+            AvatarKey = f.FriendUser.AvatarKey,
+            FriendRemark = f.FriendRemark,
+            IsStarred = f.IsStarred,
+            IsMuted = f.IsMuted,
+            AcceptedAt = f.AcceptedAt,
+            CreatedAt = f.CreatedAt,
+            UpdatedAt = f.UpdatedAt,
+            Friend = new FriendUserDto
+            {
+                UserId = f.FriendUserId,
+                UserAccount = f.FriendUser.UserAccount,
+                NickName = f.FriendUser.NickName,
+                AvatarKey = f.FriendUser.AvatarKey
+            }
+        };
+    }
+
     static Expression<Func<UserFriendRequest, FriendRequestDto>> BuildFriendRequestProjection(ulong userId)
     {
         return r => new FriendRequestDto
@@ -447,6 +530,9 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
         => (value ?? string.Empty).Trim().ToLowerInvariant();
 
     static string? NormalizeReason(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    static string? NormalizeFriendRemark(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     static string NormalizeRequestSource(string? value)

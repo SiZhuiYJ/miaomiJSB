@@ -1,18 +1,17 @@
 <script setup lang="ts">
 // web/src/components/FilePreview/index.vue
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { defineAsyncComponent, ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { ComponentPublicInstance } from 'vue'
 import type { CarouselInstance } from 'element-plus'
+import { ArrowDown, ArrowUp } from '@element-plus/icons-vue'
 import { MiniAudioPlayer } from '../MiniAudioPlayer/index'
 import SvgIcon from '@/components/SvgIcon/index.vue';
-import VueOfficeDocx from '@vue-office/docx';
-import VueOfficePptx from '@vue-office/pptx';
-import VueOfficeExcel from '@vue-office/excel';
-import VueOfficePdf from '@vue-office/pdf';
-import { VMdPreview } from '@/components/MDPreview';
 
-import '@vue-office/docx/lib/index.css';
-import '@vue-office/excel/lib/index.css';
+const OfficeDocxPreview = defineAsyncComponent(() => import('./renderers/officeDocx'))
+const OfficePptxPreview = defineAsyncComponent(() => import('./renderers/officePptx'))
+const OfficeExcelPreview = defineAsyncComponent(() => import('./renderers/officeExcel'))
+const OfficePdfPreview = defineAsyncComponent(() => import('./renderers/officePdf'))
+const MarkdownPreview = defineAsyncComponent(() => import('@/components/MDPreview/preview'))
 
 interface FileItem {
   name: string
@@ -674,17 +673,17 @@ onUnmounted(() => {
               </div>
 
               <div v-else-if="getFileType(file) === 'word' && file?.url" class="document-preview">
-                <vue-office-docx :src="file.url" class="docx-class" @rendered="() => { console.log('渲染完成') }"
+                <OfficeDocxPreview :src="file.url" class="docx-class" @rendered="() => { console.log('渲染完成') }"
                   @error="handleOfficeError" />
               </div>
 
               <div v-else-if="getFileType(file) === 'excel' && file?.url" class="document-preview">
-                <vue-office-excel :src="file.url" class="xlsx-class" @rendered="() => { console.log('渲染完成') }"
+                <OfficeExcelPreview :src="file.url" class="xlsx-class" @rendered="() => { console.log('渲染完成') }"
                   @error="handleOfficeError" />
               </div>
 
               <div v-else-if="getFileType(file) === 'pptx' && file?.url" class="document-preview">
-                <vue-office-pptx :src="file.url" class="pptx-class" @rendered="() => { console.log('渲染完成') }"
+                <OfficePptxPreview :src="file.url" class="pptx-class" @rendered="() => { console.log('渲染完成') }"
                   @error="handleOfficeError" style="height: 100%;" />
               </div>
 
@@ -692,7 +691,7 @@ onUnmounted(() => {
                 <object :data="file.url" type="application/pdf" width="100%" height="100%"
                   @load="handleNativePdfLoaded(file)">
                   <div class="vue-pdf">
-                    <vue-office-pdf :src="file.url" class="pdf-class" @rendered="handlePdfRendered(file)"
+                    <OfficePdfPreview :src="file.url" class="pdf-class" @rendered="handlePdfRendered(file)"
                       @error="handleOfficeError" />
                   </div>
                 </object>
@@ -704,7 +703,7 @@ onUnmounted(() => {
 
               <div v-else-if="getFileType(file) === 'md'" class="markdown-preview">
                 <el-scrollbar>
-                  <v-md-preview v-if="index === currentIndex && content" :text="content" />
+                  <MarkdownPreview v-if="index === currentIndex && content" :text="content" />
                 </el-scrollbar>
               </div>
 
