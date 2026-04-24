@@ -41,9 +41,18 @@ CREATE TABLE `chat_conversation_members` (
   `conversation_id` bigint unsigned NOT NULL COMMENT '会话ID',
   `user_id` bigint unsigned NOT NULL COMMENT '用户ID',
   `member_role` enum('owner','admin','member') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'member' COMMENT '成员角色',
+  `membership_status` enum('active','left','kicked') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active' COMMENT '成员状态（active：活跃，left：已离开，kicked：被踢出）',
   `joined_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '加入时间',
+  `invited_at` datetime DEFAULT NULL COMMENT '邀请时间',
+  `invited_by_user_id` bigint unsigned DEFAULT NULL COMMENT '邀请人用户ID',
   `left_at` datetime DEFAULT NULL COMMENT '离开时间（NULL表示仍在会话中）',
+  `removed_by_user_id` bigint unsigned DEFAULT NULL COMMENT '移除操作人用户ID',
+  `removed_reason` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '离开或移除原因',
   `mute_until` datetime DEFAULT NULL COMMENT '禁言截至时间（NULL表示不禁言）',
+  `mute_mode` enum('temporary','permanent') COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '禁言模式（temporary：临时，permanent：永久）',
+  `mute_reason` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '禁言原因',
+  `muted_at` datetime DEFAULT NULL COMMENT '禁言开始时间',
+  `muted_by_user_id` bigint unsigned DEFAULT NULL COMMENT '禁言操作人用户ID',
   `is_pinned` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否置顶会话：1是，0否',
   `is_muted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否消息免打扰：1是，0否',
   `last_read_message_id` bigint unsigned DEFAULT NULL COMMENT '最后已读消息ID（逻辑引用）',
@@ -53,9 +62,18 @@ CREATE TABLE `chat_conversation_members` (
   UNIQUE KEY `ux_chat_members_conversation_user` (`conversation_id`,`user_id`),
   KEY `idx_chat_members_user` (`user_id`),
   KEY `idx_chat_members_conversation` (`conversation_id`),
+  KEY `idx_chat_members_status` (`membership_status`),
+  KEY `idx_chat_members_conversation_active` (`conversation_id`,`left_at`),
+  KEY `idx_chat_members_user_active` (`user_id`,`left_at`),
+  KEY `idx_chat_members_invited_by` (`invited_by_user_id`),
+  KEY `idx_chat_members_removed_by` (`removed_by_user_id`),
+  KEY `idx_chat_members_muted_by` (`muted_by_user_id`),
   CONSTRAINT `fk_chat_members_conversation` FOREIGN KEY (`conversation_id`) REFERENCES `chat_conversations` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_chat_members_invited_by` FOREIGN KEY (`invited_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_chat_members_muted_by` FOREIGN KEY (`muted_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_chat_members_removed_by` FOREIGN KEY (`removed_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_chat_members_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会话成员关系表';
+) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='会话成员关系表（支持邀请、踢出、禁言）';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -70,16 +88,26 @@ CREATE TABLE `chat_conversations` (
   `conversation_type` enum('direct','group') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'group' COMMENT '会话类型：direct=双人，group=多人/群聊',
   `title` varchar(128) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '会话标题（群聊可配置）',
   `owner_user_id` bigint unsigned DEFAULT NULL COMMENT '群主/创建者用户ID',
-  `avatar_key` varchar(512) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '会话头像',
-  `is_active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '是否可用：1可用，0停用',
+  `avatar_key` varchar(512) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '会话头像存储标识',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1' COMMENT '会话状态：1=可用，0=已停用',
+  `conversation_status` enum('active','disbanded','archived') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active' COMMENT '会话生命周期状态：active=正常活跃,disbanded=已解散,archived=已归档',
+  `member_limit` int unsigned NOT NULL DEFAULT '500' COMMENT '群成员人数上限',
+  `last_message_at` datetime DEFAULT NULL COMMENT '最后一条消息发送时间',
+  `disbanded_at` datetime DEFAULT NULL COMMENT '群解散时间',
+  `disbanded_by_user_id` bigint unsigned DEFAULT NULL COMMENT '解散操作人用户ID',
+  `disband_reason` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '群解散原因说明',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
   KEY `idx_chat_conversations_owner` (`owner_user_id`),
   KEY `idx_chat_conversations_type` (`conversation_type`),
   KEY `idx_chat_conversations_active` (`is_active`),
+  KEY `idx_chat_conversations_status` (`conversation_status`),
+  KEY `idx_chat_conversations_last_message_at` (`last_message_at`),
+  KEY `idx_chat_conversations_disbanded_by` (`disbanded_by_user_id`),
+  CONSTRAINT `fk_chat_conversations_disbanded_by` FOREIGN KEY (`disbanded_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_chat_conversations_owner` FOREIGN KEY (`owner_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天会话主表';
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天会话主表（支持群管理扩展）';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -112,6 +140,67 @@ CREATE TABLE `chat_file_records` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `chat_group_action_logs`
+--
+
+DROP TABLE IF EXISTS `chat_group_action_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `chat_group_action_logs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `conversation_id` bigint unsigned NOT NULL COMMENT '群聊会话ID',
+  `action_type` enum('create','invite','join','kick','mute','unmute','disband','transfer_owner','set_admin','unset_admin','leave') COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '群操作类型',
+  `operator_user_id` bigint unsigned DEFAULT NULL COMMENT '操作者用户ID',
+  `target_user_id` bigint unsigned DEFAULT NULL COMMENT '目标用户ID',
+  `related_message_id` bigint unsigned DEFAULT NULL COMMENT '关联系统消息ID',
+  `action_reason` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '操作原因',
+  `action_payload` json DEFAULT NULL COMMENT '额外JSON负载数据',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_chat_group_logs_conversation_created` (`conversation_id`,`created_at`),
+  KEY `idx_chat_group_logs_action_type` (`action_type`),
+  KEY `idx_chat_group_logs_operator` (`operator_user_id`),
+  KEY `idx_chat_group_logs_target` (`target_user_id`),
+  KEY `idx_chat_group_logs_message` (`related_message_id`),
+  CONSTRAINT `fk_chat_group_logs_conversation` FOREIGN KEY (`conversation_id`) REFERENCES `chat_conversations` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_chat_group_logs_message` FOREIGN KEY (`related_message_id`) REFERENCES `chat_messages` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_chat_group_logs_operator` FOREIGN KEY (`operator_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_chat_group_logs_target` FOREIGN KEY (`target_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='群操作日志表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `chat_group_join_requests`
+--
+
+DROP TABLE IF EXISTS `chat_group_join_requests`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `chat_group_join_requests` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `conversation_id` bigint unsigned NOT NULL COMMENT '群聊会话ID',
+  `requester_user_id` bigint unsigned NOT NULL COMMENT '申请人用户ID',
+  `request_message` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '申请附言',
+  `request_status` enum('pending','approved','rejected','expired') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending' COMMENT '申请状态：pending=待处理,approved=已通过,rejected=已拒绝,expired=已过期',
+  `handled_by_user_id` bigint unsigned DEFAULT NULL COMMENT '处理人用户ID',
+  `handled_at` datetime DEFAULT NULL COMMENT '处理时间',
+  `reject_reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '拒绝原因',
+  `expire_at` datetime DEFAULT NULL COMMENT '申请过期时间',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_group_join_requests_conversation_status` (`conversation_id`,`request_status`,`created_at`),
+  KEY `idx_group_join_requests_requester_status` (`requester_user_id`,`request_status`,`created_at`),
+  KEY `idx_group_join_requests_pair_status` (`conversation_id`,`requester_user_id`,`request_status`),
+  KEY `idx_group_join_requests_status_expire` (`request_status`,`expire_at`),
+  KEY `idx_group_join_requests_handled_by` (`handled_by_user_id`),
+  CONSTRAINT `fk_group_join_requests_conversation` FOREIGN KEY (`conversation_id`) REFERENCES `chat_conversations` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_group_join_requests_handled_by` FOREIGN KEY (`handled_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_group_join_requests_requester` FOREIGN KEY (`requester_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='群聊加群申请记录表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `chat_message_receipts`
 --
 
@@ -129,7 +218,7 @@ CREATE TABLE `chat_message_receipts` (
   KEY `idx_chat_receipts_read_at` (`read_at`),
   CONSTRAINT `fk_chat_receipts_message` FOREIGN KEY (`message_id`) REFERENCES `chat_messages` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_chat_receipts_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=190 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='消息已读回执表';
+) ENGINE=InnoDB AUTO_INCREMENT=199 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='消息已读回执表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -155,10 +244,11 @@ CREATE TABLE `chat_messages` (
   KEY `idx_chat_messages_conversation_time` (`conversation_id`,`created_at`),
   KEY `idx_chat_messages_sender` (`sender_user_id`),
   KEY `idx_chat_messages_reply` (`reply_to_message_id`),
+  KEY `idx_chat_messages_conversation_seq` (`conversation_id`,`id`),
   CONSTRAINT `fk_chat_messages_conversation` FOREIGN KEY (`conversation_id`) REFERENCES `chat_conversations` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_chat_messages_reply` FOREIGN KEY (`reply_to_message_id`) REFERENCES `chat_messages` (`id`) ON DELETE SET NULL,
   CONSTRAINT `fk_chat_messages_sender` FOREIGN KEY (`sender_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=189 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天消息表';
+) ENGINE=InnoDB AUTO_INCREMENT=202 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='聊天消息表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -314,6 +404,83 @@ CREATE TABLE `user_blacklist_records` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
+-- Table structure for table `user_friend_requests`
+--
+
+DROP TABLE IF EXISTS `user_friend_requests`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user_friend_requests` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `requester_user_id` bigint unsigned NOT NULL COMMENT '请求者用户ID',
+  `receiver_user_id` bigint unsigned NOT NULL COMMENT '接收者用户ID',
+  `source_conversation_id` bigint unsigned DEFAULT NULL COMMENT '来源群组会话ID',
+  `request_message` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '请求消息',
+  `request_source` enum('account','group','search','system') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'account' COMMENT '请求来源（account-账号/group-群组/search-搜索/system-系统）',
+  `request_status` enum('pending','accepted','rejected','cancelled','expired') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending' COMMENT '请求状态（pending-待处理/accepted-已接受/rejected-已拒绝/cancelled-已取消/expired-已过期）',
+  `handled_by_user_id` bigint unsigned DEFAULT NULL COMMENT '处理者用户ID',
+  `handled_at` datetime DEFAULT NULL COMMENT '处理时间',
+  `reject_reason` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '拒绝原因',
+  `expire_at` datetime DEFAULT NULL COMMENT '过期时间',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_friend_requests_requester_status` (`requester_user_id`,`request_status`,`created_at`),
+  KEY `idx_friend_requests_receiver_status` (`receiver_user_id`,`request_status`,`created_at`),
+  KEY `idx_friend_requests_pair_status` (`requester_user_id`,`receiver_user_id`,`request_status`),
+  KEY `idx_friend_requests_status_expire` (`request_status`,`expire_at`),
+  KEY `idx_friend_requests_source_conversation` (`source_conversation_id`),
+  KEY `idx_friend_requests_handled_by` (`handled_by_user_id`),
+  CONSTRAINT `fk_friend_requests_handled_by` FOREIGN KEY (`handled_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_friend_requests_receiver` FOREIGN KEY (`receiver_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_friend_requests_requester` FOREIGN KEY (`requester_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_friend_requests_source_conversation` FOREIGN KEY (`source_conversation_id`) REFERENCES `chat_conversations` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `chk_friend_requests_not_self` CHECK ((`requester_user_id` <> `receiver_user_id`))
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='好友请求表';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `user_friendships`
+--
+
+DROP TABLE IF EXISTS `user_friendships`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `user_friendships` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `user_id` bigint unsigned NOT NULL COMMENT '用户ID',
+  `friend_user_id` bigint unsigned NOT NULL COMMENT '好友用户ID',
+  `source_request_id` bigint unsigned DEFAULT NULL COMMENT '来源好友请求ID',
+  `source_conversation_id` bigint unsigned DEFAULT NULL COMMENT '来源群组会话ID',
+  `status` enum('active','deleted') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active' COMMENT '好友关系状态（active-活跃/deleted-已删除）',
+  `friend_remark` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '好友备注',
+  `is_starred` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否置顶（0-否/1-是）',
+  `is_muted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否静音（0-否/1-是）',
+  `accepted_at` datetime DEFAULT NULL COMMENT '接受时间',
+  `created_by_user_id` bigint unsigned DEFAULT NULL COMMENT '创建关系的操作者用户ID',
+  `deleted_at` datetime DEFAULT NULL COMMENT '删除时间',
+  `deleted_by_user_id` bigint unsigned DEFAULT NULL COMMENT '删除关系的操作者用户ID',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ux_friendships_user_friend` (`user_id`,`friend_user_id`),
+  KEY `idx_friendships_user_status` (`user_id`,`status`),
+  KEY `idx_friendships_friend_status` (`friend_user_id`,`status`),
+  KEY `idx_friendships_source_request` (`source_request_id`),
+  KEY `idx_friendships_source_conversation` (`source_conversation_id`),
+  KEY `idx_friendships_created_by` (`created_by_user_id`),
+  KEY `idx_friendships_deleted_by` (`deleted_by_user_id`),
+  CONSTRAINT `fk_friendships_created_by` FOREIGN KEY (`created_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_friendships_deleted_by` FOREIGN KEY (`deleted_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_friendships_friend` FOREIGN KEY (`friend_user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_friendships_source_conversation` FOREIGN KEY (`source_conversation_id`) REFERENCES `chat_conversations` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_friendships_source_request` FOREIGN KEY (`source_request_id`) REFERENCES `user_friend_requests` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_friendships_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `chk_friendships_not_self` CHECK ((`user_id` <> `friend_user_id`))
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='好友关系表（按用户方向存储）';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `user_oauth_accounts`
 --
 
@@ -334,7 +501,7 @@ CREATE TABLE `user_oauth_accounts` (
   KEY `idx_oauth_user` (`user_id`),
   KEY `idx_oauth_union_id` (`union_id`),
   CONSTRAINT `fk_oauth_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户第三方登录账号绑定表';
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户第三方登录账号绑定表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -385,4 +552,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-21 20:29:24
+-- Dump completed on 2026-04-23 23:36:08

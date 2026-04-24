@@ -137,12 +137,12 @@ builder.Services.AddScoped<IFileService, LocalFileService>();
 
 #region 数据库上下文注册
 var connectionString = builder.Configuration.GetConnectionString("Default");
-builder.Services.AddDbContext<DailyCheckDbContext>(options =>
+builder.Services.AddDbContextPool<DailyCheckDbContext>(options =>
 {
     if (string.IsNullOrWhiteSpace(connectionString))
         throw new InvalidOperationException("ConnectionStrings:Default is not configured");
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
-});
+}, poolSize: 32);
 #endregion
 
 #region AutoMapper配置

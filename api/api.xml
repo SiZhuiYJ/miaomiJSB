@@ -2458,54 +2458,52 @@
         </member>
         <member name="T:api.Hubs.ChatHub">
             <summary>
-            聊天Hub，处理实时通信功能
+            聊天 Hub，处理实时通信功能。
             </summary>
         </member>
         <member name="M:api.Hubs.ChatHub.#ctor(api.Data.DailyCheckDbContext)">
             <summary>
-            聊天Hub，处理实时通信功能
+            聊天 Hub，处理实时通信功能。
             </summary>
         </member>
         <member name="M:api.Hubs.ChatHub.SubscribeConversation(System.UInt64)">
             <summary>
-            订阅指定的会话以接收实时消息
+            订阅指定的会话以接收实时消息。
             </summary>
-            <param name="conversationId">会话ID</param>
-            <exception cref="T:Microsoft.AspNetCore.SignalR.HubException">当用户不是会话成员时抛出</exception>
+            <param name="conversationId">会话 ID。</param>
         </member>
         <member name="M:api.Hubs.ChatHub.UnsubscribeConversation(System.UInt64)">
             <summary>
-            取消订阅指定的会话
+            取消订阅指定的会话。
             </summary>
-            <param name="conversationId">会话ID</param>
+            <param name="conversationId">会话 ID。</param>
         </member>
         <member name="M:api.Hubs.ChatHub.MarkMessageRead(System.UInt64,System.UInt64)">
             <summary>
-            标记消息为已读并广播给发送者
+            标记消息为已读并广播给会话成员。
             </summary>
-            <param name="conversationId">会话ID</param>
-            <param name="messageId">消息ID</param>
+            <param name="conversationId">会话 ID。</param>
+            <param name="messageId">消息 ID。</param>
         </member>
         <member name="M:api.Hubs.ChatHub.GetMessageReadDetail(System.UInt64)">
             <summary>
-            获取消息的已读详情
+            获取消息的已读详情。
             </summary>
-            <param name="messageId">消息ID</param>
-            <returns>消息已读详情</returns>
+            <param name="messageId">消息 ID。</param>
+            <returns>消息已读详情。</returns>
         </member>
         <member name="M:api.Hubs.ChatHub.GroupName(System.UInt64)">
             <summary>
-            生成会话群组名称
+            生成会话群组名称。
             </summary>
-            <param name="conversationId">会话ID</param>
-            <returns>群组名称</returns>
+            <param name="conversationId">会话 ID。</param>
+            <returns>群组名称。</returns>
         </member>
         <member name="M:api.Hubs.ChatHub.GetUserId">
             <summary>
-            获取当前用户ID
+            获取当前用户 ID。
             </summary>
-            <returns>用户ID</returns>
-            <exception cref="T:Microsoft.AspNetCore.SignalR.HubException">当无法从令牌中获取用户ID时抛出</exception>
+            <returns>用户 ID。</returns>
         </member>
         <member name="T:api.Infrastructure.IEmailService">
             <summary>

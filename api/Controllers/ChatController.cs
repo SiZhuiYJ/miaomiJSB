@@ -1450,17 +1450,6 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
                     Content = m.IsRecalled ? null : m.Content,
                     Extra = m.IsRecalled ? null : m.Extra,
                     ReplyToMessageId = m.ReplyToMessageId,
-                    ReplyToMessage = m.ReplyToMessage == null ? null : new MessageReferenceDto
-                    {
-                        Id = m.ReplyToMessage.Id,
-                        SenderUserId = m.ReplyToMessage.MessageType == "system" ? 0UL : m.ReplyToMessage.SenderUserId,
-                        SenderNickName = m.ReplyToMessage.MessageType == "system" ? "系统" : m.ReplyToMessage.SenderUser.NickName,
-                        MessageType = m.ReplyToMessage.MessageType,
-                        Content = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Content,
-                        Extra = m.ReplyToMessage.IsRecalled ? null : m.ReplyToMessage.Extra,
-                        IsRecalled = m.ReplyToMessage.IsRecalled,
-                        CreatedAt = m.ReplyToMessage.CreatedAt
-                    },
                     IsRecalled = m.IsRecalled,
                     CreatedAt = m.CreatedAt
                 })

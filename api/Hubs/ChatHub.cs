@@ -1,4 +1,3 @@
-
 using System.Security.Claims;
 using api.Data;
 using api.Models;
@@ -9,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace api.Hubs;
 
 /// <summary>
-/// 聊天Hub，处理实时通信功能
+/// 聊天 Hub，处理实时通信功能。
 /// </summary>
 [Authorize]
 public class ChatHub(DailyCheckDbContext db) : Hub
@@ -23,10 +22,9 @@ public class ChatHub(DailyCheckDbContext db) : Hub
     }
 
     /// <summary>
-    /// 订阅指定的会话以接收实时消息
+    /// 订阅指定的会话以接收实时消息。
     /// </summary>
-    /// <param name="conversationId">会话ID</param>
-    /// <exception cref="HubException">当用户不是会话成员时抛出</exception>
+    /// <param name="conversationId">会话 ID。</param>
     public async Task SubscribeConversation(ulong conversationId)
     {
         var userId = GetUserId();
@@ -39,78 +37,70 @@ public class ChatHub(DailyCheckDbContext db) : Hub
     }
 
     /// <summary>
-    /// 取消订阅指定的会话
+    /// 取消订阅指定的会话。
     /// </summary>
-    /// <param name="conversationId">会话ID</param>
+    /// <param name="conversationId">会话 ID。</param>
     public async Task UnsubscribeConversation(ulong conversationId)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupName(conversationId));
     }
 
     /// <summary>
-    /// 标记消息为已读并广播给发送者
+    /// 标记消息为已读并广播给会话成员。
     /// </summary>
-    /// <param name="conversationId">会话ID</param>
-    /// <param name="messageId">消息ID</param>
+    /// <param name="conversationId">会话 ID。</param>
+    /// <param name="messageId">消息 ID。</param>
     public async Task MarkMessageRead(ulong conversationId, ulong messageId)
     {
         var userId = GetUserId();
+        var now = DateTime.UtcNow;
 
-        // 验证权限
-        var isMember = await _db.ChatConversationMembers
-            .AnyAsync(m => m.ConversationId == conversationId
-                        && m.UserId == userId
-                        && m.LeftAt == null);
-        if (!isMember)
+        var membership = await _db.ChatConversationMembers
+            .SingleOrDefaultAsync(m => m.ConversationId == conversationId
+                                    && m.UserId == userId
+                                    && m.LeftAt == null);
+        if (membership == null)
             throw new HubException("无权限操作");
 
-        // 验证消息存在
         var message = await _db.ChatMessages
             .FirstOrDefaultAsync(m => m.Id == messageId && m.ConversationId == conversationId);
         if (message == null || message.SenderUserId == userId)
-            return; // 不处理自己发送的消息
+            return;
 
-        // 检查是否已有回执
         var existing = await _db.ChatMessageReceipts
             .AnyAsync(r => r.MessageId == messageId && r.UserId == userId);
         if (existing)
             return;
 
-        // 创建回执记录
-        var receipt = new ChatMessageReceipt
+        _db.ChatMessageReceipts.Add(new ChatMessageReceipt
         {
             MessageId = messageId,
             UserId = userId,
-            ReadAt = DateTime.UtcNow
-        };
-        _db.ChatMessageReceipts.Add(receipt);
-        await _db.SaveChangesAsync();
+            ReadAt = now
+        });
 
-        // 更新会话成员的 LastReadMessageId（如果是最新消息）
-        var membership = await _db.ChatConversationMembers
-            .FirstOrDefaultAsync(m => m.ConversationId == conversationId && m.UserId == userId);
-        if (membership != null && messageId > (membership.LastReadMessageId ?? 0))
+        if (messageId > (membership.LastReadMessageId ?? 0))
         {
             membership.LastReadMessageId = messageId;
-            membership.UpdatedAt = DateTime.UtcNow;
-            await _db.SaveChangesAsync();
+            membership.UpdatedAt = now;
         }
 
-        // 广播给会话所有成员：更新已读状态
-        await Clients.Group(ChatHub.GroupName(conversationId)).SendAsync("chat:message-read", new
+        await _db.SaveChangesAsync();
+
+        await Clients.Group(GroupName(conversationId)).SendAsync("chat:message-read", new
         {
             messageId,
             conversationId,
             readByUserId = userId,
-            readAt = DateTime.UtcNow
+            readAt = now
         });
     }
 
     /// <summary>
-    /// 获取消息的已读详情
+    /// 获取消息的已读详情。
     /// </summary>
-    /// <param name="messageId">消息ID</param>
-    /// <returns>消息已读详情</returns>
+    /// <param name="messageId">消息 ID。</param>
+    /// <returns>消息已读详情。</returns>
     public async Task<MessageReadDetailDto> GetMessageReadDetail(ulong messageId)
     {
         var userId = GetUserId();
@@ -121,7 +111,6 @@ public class ChatHub(DailyCheckDbContext db) : Hub
         if (message == null)
             throw new HubException("消息不存在");
 
-        // 验证权限
         var isMember = await _db.ChatConversationMembers
             .AnyAsync(m => m.ConversationId == message.ConversationId
                         && m.UserId == userId
@@ -129,19 +118,18 @@ public class ChatHub(DailyCheckDbContext db) : Hub
         if (!isMember)
             throw new HubException("无权限查看");
 
-        // 查询已读用户列表
         var readUsers = await _db.ChatMessageReceipts
             .Where(r => r.MessageId == messageId)
             .Join(_db.Users,
-                  r => r.UserId,
-                  u => u.Id,
-                  (r, u) => new ReadUserDto
-                  {
-                      UserId = u.Id,
-                      NickName = u.NickName,
-                      AvatarKey = u.AvatarKey,
-                      ReadAt = r.ReadAt
-                  })
+                r => r.UserId,
+                u => u.Id,
+                (r, u) => new ReadUserDto
+                {
+                    UserId = u.Id,
+                    NickName = u.NickName ?? u.UserAccount ?? string.Empty,
+                    AvatarKey = u.AvatarKey,
+                    ReadAt = r.ReadAt
+                })
             .ToListAsync();
 
         return new MessageReadDetailDto
@@ -157,19 +145,18 @@ public class ChatHub(DailyCheckDbContext db) : Hub
     }
 
     /// <summary>
-    /// 生成会话群组名称
+    /// 生成会话群组名称。
     /// </summary>
-    /// <param name="conversationId">会话ID</param>
-    /// <returns>群组名称</returns>
+    /// <param name="conversationId">会话 ID。</param>
+    /// <returns>群组名称。</returns>
     public static string GroupName(ulong conversationId) => $"conversation-{conversationId}";
 
     public static string UserGroupName(ulong userId) => $"user-{userId}";
 
     /// <summary>
-    /// 获取当前用户ID
+    /// 获取当前用户 ID。
     /// </summary>
-    /// <returns>用户ID</returns>
-    /// <exception cref="HubException">当无法从令牌中获取用户ID时抛出</exception>
+    /// <returns>用户 ID。</returns>
     ulong GetUserId()
     {
         var candidateTypes = new[] { ClaimTypes.NameIdentifier, "sub", "nameid", "user_id", "id" };
@@ -182,10 +169,10 @@ public class ChatHub(DailyCheckDbContext db) : Hub
                 if (ulong.TryParse(val, out var id))
                     return id;
 
-                throw new HubException($"无法解析用户ID：claim '{type}' 的值为 '{val}'，不是有效的 ulong。");
+                throw new HubException($"无法解析用户 ID：claim '{type}' 的值为 '{val}'，不是有效的 ulong。");
             }
         }
 
-        throw new HubException("在令牌中未找到用户ID。");
+        throw new HubException("在令牌中未找到用户 ID。");
     }
 }

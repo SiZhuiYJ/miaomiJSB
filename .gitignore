@@ -406,10 +406,13 @@ temp/
 # 项目根级别的配置和构建目录
 .github/
 api/obj_build/
+api/obj_build_verify/
 api/obj/
 api/bin/
+api/bin_verify/
 api/.vs/
 api/.config/
+api/obj_restore/
 web/.vscode/
 web/.vite/
 api.Release/

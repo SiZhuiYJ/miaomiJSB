@@ -44,18 +44,21 @@
     <Compile Remove="bin\**\*.cs" />
     <Compile Remove=".vs\**\*.cs" />
     <Compile Remove="obj_build\**\*.cs" />
+    <Compile Remove="obj_build_verify\**\*.cs" />
     <Compile Remove="obj_restore\**\*.cs" />
     <Compile Remove="bin_verify\**\*.cs" />
     <EmbeddedResource Remove="obj\**\*" />
     <EmbeddedResource Remove="bin\**\*" />
     <EmbeddedResource Remove=".vs\**\*" />
     <EmbeddedResource Remove="obj_build\**\*" />
+    <EmbeddedResource Remove="obj_build_verify\**\*" />
     <EmbeddedResource Remove="obj_restore\**\*" />
     <EmbeddedResource Remove="bin_verify\**\*" />
     <None Remove="obj\**\*" />
     <None Remove="bin\**\*" />
     <None Remove=".vs\**\*" />
     <None Remove="obj_build\**\*" />
+    <None Remove="obj_build_verify\**\*" />
     <None Remove="obj_restore\**\*" />
     <None Remove="bin_verify\**\*" />
   </ItemGroup>
@@ -65,6 +68,12 @@
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </Content>
     <None Update="obj_build\**">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </None>
+    <Content Update="obj_build_verify\**">
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+    <None Update="obj_build_verify\**">
       <CopyToPublishDirectory>Never</CopyToPublishDirectory>
     </None>
     <Content Update="bin\**">
