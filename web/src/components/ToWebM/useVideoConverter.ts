@@ -31,7 +31,7 @@ function getPublicAssetUrl(path: string): string {
 
 function configureWebCodecsWorker(): void {
     if (typeof window === 'undefined') return;
-    (window as WebCodecsWindow).__WEBCODECS_WORKER_URL__ = getPublicAssetUrl('webcodecs-worker.js');
+    (window as WebCodecsWindow).__WEBCODECS_WORKER_URL__ = getPublicAssetUrl('webcodecs/webcodecs-worker.js');
 }
 
 function toVideoFile(file: File): VideoFile {
