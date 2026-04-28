@@ -295,12 +295,20 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
     /// <response code="400">文件为空、格式不支持或超过大小限制</response>
     /// <response code="403">不是会话成员，无权上传</response>
     /// <response code="404">会话不存在</response>
+    /// <summary>
+    /// 上传群聊头像接口。
+    /// 仅群主或管理员有权修改群头像，上传成功后自动更新会话信息。
+    /// </summary>
+    /// <param name="conversationId">群聊会话ID。</param>
+    /// <param name="file">待上传的头像文件。</param>
+    /// <param name="thumbnail">可选的缩略图文件。</param>
+    /// <returns>上传成功后的文件Key。</returns>
     [HttpPost("chat/{conversationId:ulong}/avatar")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<ActionResult> UploadConversationAvatar(ulong conversationId, IFormFile file, IFormFile? thumbnail)
     {
         if (file == null || file.Length == 0)
-            return BadRequest(new { message = "鏂囦欢涓嶈兘涓虹┖" });
+            return BadRequest(new { message = "文件不能为空" });
 
         var userId = GetUserId();
         var membership = await _db.ChatConversationMembers
@@ -308,7 +316,7 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
             .SingleOrDefaultAsync(m => m.ConversationId == conversationId && m.UserId == userId && m.LeftAt == null);
 
         if (membership == null || membership.Conversation.IsActive != true)
-            return NotFound(new { message = "浼氳瘽涓嶅瓨鍦ㄦ垨鏃犳潈闄?" });
+            return NotFound(new { message = "会话不存在或无权限" });
 
         if (membership.Conversation.ConversationType != "group")
             return BadRequest(new { message = "仅群聊支持上传会话头像" });
@@ -331,6 +339,14 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
         }
     }
 
+    /// <summary>
+    /// 获取群聊头像接口。
+    /// 提供公开访问的群头像读取服务，支持缩略图模式。
+    /// </summary>
+    /// <param name="conversationId">群聊会话ID。</param>
+    /// <param name="key">文件Key。</param>
+    /// <param name="thumbnail">是否请求缩略图。</param>
+    /// <returns>图片二进制流。</returns>
     [HttpGet("chat/{conversationId:ulong}/avatars/{key}")]
     [AllowAnonymous]
     public async Task<IActionResult> GetConversationAvatar(
@@ -341,11 +357,18 @@ public class FilesController(IFileService fileService, DailyCheckDbContext db) :
         var result = await _fileService.GetPublicConversationAvatarAsync(conversationId, key, ParseBooleanQuery(thumbnail));
 
         if (result == null)
-            return NotFound("澶村儚鏂囦欢涓嶅瓨鍦ㄦ垨鏃犺闂潈闄?");
+            return NotFound("头像文件不存在或无访问权限");
 
         return File(result.Value.Stream, result.Value.ContentType);
     }
 
+    /// <summary>
+    /// 上传聊天文件接口。
+    /// 支持视频、音频、文档等多种类型，文件按会话隔离存储。
+    /// </summary>
+    /// <param name="conversationId">目标会话ID。</param>
+    /// <param name="file">待上传的文件。</param>
+    /// <returns>文件信息（Key、名称、大小等）。</returns>
     [HttpPost("chat/{conversationId:ulong}/upload")]
     [RequestSizeLimit(100 * 1024 * 1024)] // 100MB
     public async Task<ActionResult> UploadChatFile(ulong conversationId, IFormFile file)

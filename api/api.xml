@@ -638,55 +638,131 @@
         </member>
         <member name="T:api.Controllers.ChatController">
             <summary>
-            閼卞﹤銇夐幒褍鍩楅崳顭掔礉婢跺嫮鎮婃导姘崇樈閸掓稑缂撻妴浣圭Х閹垰褰傞柅浣碘偓浣筋嚢閸欐牜鐡戦惄绋垮彠閸旂喕鍏?
+            聊天会话与消息管理接口。
+            提供创建会话、发送消息、获取历史记录、成员管理（邀请、踢人、禁言）、群申请处理等功能。
+            支持单聊和群聊两种模式，集成 SignalR 实现实时消息推送。
             </summary>
         </member>
         <member name="M:api.Controllers.ChatController.#ctor(api.Data.DailyCheckDbContext,Microsoft.AspNetCore.SignalR.IHubContext{api.Hubs.ChatHub})">
             <summary>
-            閼卞﹤銇夐幒褍鍩楅崳顭掔礉婢跺嫮鎮婃导姘崇樈閸掓稑缂撻妴浣圭Х閹垰褰傞柅浣碘偓浣筋嚢閸欐牜鐡戦惄绋垮彠閸旂喕鍏?
+            聊天会话与消息管理接口。
+            提供创建会话、发送消息、获取历史记录、成员管理（邀请、踢人、禁言）、群申请处理等功能。
+            支持单聊和群聊两种模式，集成 SignalR 实现实时消息推送。
             </summary>
         </member>
-        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.CreateConversation(api.Models.CreateConversationRequest)" -->
+        <member name="M:api.Controllers.ChatController.CreateConversation(api.Models.CreateConversationRequest)">
+            <summary>
+            创建新的聊天会话（单聊或群聊）。
+            单聊需确保双方已是好友关系；群聊需确保所有初始成员均为发起人的好友。
+            若已存在活跃的单聊会话，则直接返回该会话详情。
+            </summary>
+            <param name="request">创建会话请求参数，包含会话类型、标题、头像及成员列表。</param>
+            <returns>创建成功的会话详细信息。</returns>
+        </member>
         <member name="M:api.Controllers.ChatController.UpdateConversationMemberRole(System.UInt64,System.UInt64,api.Models.UpdateConversationMemberRoleRequest)">
             <summary>
             鏇存柊缇ゆ垚鍛樿鑹?
             </summary>
         </member>
-        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.GetMyConversations" -->
-        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.UpdateConversation(System.UInt64,api.Models.UpdateConversationRequest)" -->
+        <member name="M:api.Controllers.ChatController.GetMyConversations">
+            <summary>
+            获取当前用户的会话列表（收件箱）。
+            按置顶状态和最后消息时间排序，并计算每个会话的未读消息数。
+            </summary>
+            <returns>会话概要列表，包含最后一条消息预览和未读数。</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.UpdateConversation(System.UInt64,api.Models.UpdateConversationRequest)">
+            <summary>
+            更新会话信息或成员个人设置（如置顶、免打扰）。
+            群聊的基础信息（标题、头像）仅群主或管理员可修改。
+            </summary>
+            <param name="conversationId">会话ID。</param>
+            <param name="request">更新请求参数，包含标题、头像、置顶状态等。</param>
+            <returns>更新后的会话详细信息。</returns>
+        </member>
         <member name="M:api.Controllers.ChatController.GetConversationById(System.UInt64)">
             <summary>
-            閺嶈宓両D閼惧嘲褰囨导姘崇樈鐠囷附鍎?
+            根据ID获取会话详细信息。
+            包含成员列表、最后消息、未读数及个人设置（置顶、免打扰）。
+            仅会话成员有权访问。
             </summary>
-            <param name="conversationId">娴兼俺鐦絀D</param>
-            <returns>娴兼俺鐦界拠锔藉剰</returns>
+            <param name="conversationId">会话ID。</param>
+            <returns>会话详细信息。</returns>
         </member>
-        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.SendMessage(System.UInt64,api.Models.SendMessageRequest)" -->
+        <member name="M:api.Controllers.ChatController.SendMessage(System.UInt64,api.Models.SendMessageRequest)">
+            <summary>
+            在指定会话中发送消息。
+            支持文本、图片、视频、音频、文件及系统消息。
+            发送成功后通过 SignalR 实时推送给会话内其他在线成员。
+            </summary>
+            <param name="conversationId">目标会话ID。</param>
+            <param name="request">发送消息请求，包含内容、类型及回复引用。</param>
+            <returns>发送成功的消息概要信息。</returns>
+        </member>
         <member name="M:api.Controllers.ChatController.RecallMessage(System.UInt64)">
             <summary>
-            閹俱倕娲栧☉鍫熶紖
+            撤回已发送的消息。
+            仅消息发送者可在发送后5分钟内撤回。
+            撤回后消息内容将被清空，并标记为已撤回状态。
             </summary>
-            <param name="messageId">濞戝牊浼匢D</param>
-            <returns>閹俱倕娲栭崥搴ｆ畱濞戝牊浼呴幗妯款洣</returns>
+            <param name="messageId">要撤回的消息ID。</param>
+            <returns>撤回后的消息概要信息。</returns>
         </member>
-        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.GetMessages(System.UInt64,System.Nullable{System.UInt64},System.Int32)" -->
-        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.GetMessageDelta(System.UInt64,System.Nullable{System.UInt64},System.Int32)" -->
-        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.MarkConversationRead(System.UInt64,api.Models.ReadConversationRequest)" -->
-        <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.GetMessageReadStatus(System.UInt64)" -->
+        <member name="M:api.Controllers.ChatController.GetMessages(System.UInt64,System.Nullable{System.UInt64},System.Int32)">
+            <summary>
+            分页获取会话的历史消息记录。
+            采用倒序加载（从最新往旧加载），支持指定最后一条消息ID作为游标。
+            </summary>
+            <param name="conversationId">会话ID。</param>
+            <param name="beforeMessageId">获取此ID之前的消息（不包含此ID）。</param>
+            <param name="pageSize">每页数量，默认20，最大100。</param>
+            <returns>消息概要列表，按时间正序排列。</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.GetMessageDelta(System.UInt64,System.Nullable{System.UInt64},System.Int32)">
+            <summary>
+            增量获取会话消息（用于同步新消息）。
+            获取指定ID之后的最新消息，适用于前端轮询或长连接断开后的数据补全。
+            </summary>
+            <param name="conversationId">会话ID。</param>
+            <param name="afterMessageId">获取此ID之后的消息。</param>
+            <param name="pageSize">每页数量，默认50，最大100。</param>
+            <returns>包含最新消息ID和消息列表的增量数据包。</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.MarkConversationRead(System.UInt64,api.Models.ReadConversationRequest)">
+            <summary>
+            标记会话为已读。
+            更新用户的最后阅读消息ID，并为相关消息创建已读回执。
+            通过 SignalR 通知其他成员消息已被阅读。
+            </summary>
+            <param name="conversationId">会话ID。</param>
+            <param name="request">已读请求，可选指定最后阅读的消息ID。</param>
+            <returns>操作结果，包含更新后的最后阅读消息ID。</returns>
+        </member>
+        <member name="M:api.Controllers.ChatController.GetMessageReadStatus(System.UInt64)">
+            <summary>
+            获取指定消息的已读状态详情。
+            返回已读用户列表及总阅读人数。
+            仅会话成员有权查看。
+            </summary>
+            <param name="messageId">消息ID。</param>
+            <returns>消息已读详情，包含已读用户列表。</returns>
+        </member>
         <!-- Badly formed XML comment ignored for member "M:api.Controllers.ChatController.BuildConversationSummaryProjection(System.UInt64)" -->
         <member name="M:api.Controllers.ChatController.BuildConversationDetail(System.UInt64,System.UInt64)">
             <summary>
-            閺嬪嫬缂撴导姘崇樈鐠囷附鍎?
+            构建会话详情DTO。
+            包含完整的成员信息、群申请计数及好友备注处理。
             </summary>
-            <param name="conversationId">娴兼俺鐦絀D</param>
-            <param name="userId">閻劍鍩汭D</param>
-            <returns>娴兼俺鐦界拠锔藉剰</returns>
+            <param name="conversationId">会话ID。</param>
+            <param name="userId">当前用户ID。</param>
+            <returns>会话详情对象，若不存在或无权限则返回null。</returns>
         </member>
         <member name="M:api.Controllers.ChatController.GetUserId">
             <summary>
-            閼惧嘲褰囪ぐ鎾冲閻劍鍩汭D
+            从JWT令牌中提取当前登录用户的ID。
+            支持多种Claim类型以确保兼容性。
             </summary>
-            <returns>閻劍鍩汭D</returns>
+            <returns>用户唯一标识符（ulong）。</returns>
         </member>
         <member name="T:api.Controllers.CheckinsController">
             <summary>
@@ -1163,6 +1239,33 @@
             <response code="400">文件为空、格式不支持或超过大小限制</response>
             <response code="403">不是会话成员，无权上传</response>
             <response code="404">会话不存在</response>
+            <summary>
+            上传群聊头像接口。
+            仅群主或管理员有权修改群头像，上传成功后自动更新会话信息。
+            </summary>
+            <param name="conversationId">群聊会话ID。</param>
+            <param name="file">待上传的头像文件。</param>
+            <param name="thumbnail">可选的缩略图文件。</param>
+            <returns>上传成功后的文件Key。</returns>
+        </member>
+        <member name="M:api.Controllers.FilesController.GetConversationAvatar(System.UInt64,System.String,System.String)">
+            <summary>
+            获取群聊头像接口。
+            提供公开访问的群头像读取服务，支持缩略图模式。
+            </summary>
+            <param name="conversationId">群聊会话ID。</param>
+            <param name="key">文件Key。</param>
+            <param name="thumbnail">是否请求缩略图。</param>
+            <returns>图片二进制流。</returns>
+        </member>
+        <member name="M:api.Controllers.FilesController.UploadChatFile(System.UInt64,Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            上传聊天文件接口。
+            支持视频、音频、文档等多种类型，文件按会话隔离存储。
+            </summary>
+            <param name="conversationId">目标会话ID。</param>
+            <param name="file">待上传的文件。</param>
+            <returns>文件信息（Key、名称、大小等）。</returns>
         </member>
         <member name="M:api.Controllers.FilesController.GetChatFile(System.String)">
             <summary>
@@ -1209,6 +1312,85 @@
             从当前访问令牌中解析用户 ID。
             </summary>
             <returns>当前登录用户的 ID。</returns>
+        </member>
+        <member name="T:api.Controllers.FriendsController">
+            <summary>
+            好友管理接口，提供完整的好友关系维护功能。
+            支持好友搜索、添加、删除、备注修改以及好友申请的处理。
+            集成 SignalR 实现好友状态和申请的实时通知。
+            </summary>
+        </member>
+        <member name="M:api.Controllers.FriendsController.#ctor(api.Data.DailyCheckDbContext,Microsoft.AspNetCore.SignalR.IHubContext{api.Hubs.ChatHub})">
+            <summary>
+            好友管理接口，提供完整的好友关系维护功能。
+            支持好友搜索、添加、删除、备注修改以及好友申请的处理。
+            集成 SignalR 实现好友状态和申请的实时通知。
+            </summary>
+        </member>
+        <member name="M:api.Controllers.FriendsController.GetMyFriends">
+            <summary>
+            获取当前用户的好友列表。
+            按星标置顶和添加时间排序，返回好友详细信息及备注。
+            </summary>
+            <returns>好友关系列表。</returns>
+        </member>
+        <member name="M:api.Controllers.FriendsController.UpdateFriendRemark(System.UInt64,api.Models.UpdateFriendRemarkRequest)">
+            <summary>
+            更新好友备注。
+            仅当前用户可以修改自己对某位好友的备注信息。
+            </summary>
+            <param name="friendUserId">好友ID。</param>
+            <param name="request">包含新备注的请求对象。</param>
+            <returns>更新后的好友关系详情。</returns>
+        </member>
+        <member name="M:api.Controllers.FriendsController.DeleteFriend(System.UInt64)">
+            <summary>
+            删除好友关系。
+            采用双向软删除机制，确保双方均不再显示该好友关系。
+            </summary>
+            <param name="friendUserId">要删除的好友ID。</param>
+            <returns>操作结果。</returns>
+        </member>
+        <member name="M:api.Controllers.FriendsController.GetMyFriendRequests(System.String)">
+            <summary>
+            获取我的好友申请列表。
+            支持按状态（pending, accepted, rejected等）筛选，并自动清理过期的申请。
+            </summary>
+            <param name="status">可选的状态筛选条件。</param>
+            <returns>好友申请列表。</returns>
+        </member>
+        <member name="M:api.Controllers.FriendsController.SearchUsers(System.String)">
+            <summary>
+            搜索用户。
+            支持通过账号名或昵称模糊搜索，并返回与当前用户的关系状态（是否好友、是否有待处理申请）。
+            </summary>
+            <param name="keyword">搜索关键词。</param>
+            <returns>用户搜索结果列表。</returns>
+        </member>
+        <member name="M:api.Controllers.FriendsController.CreateFriendRequest(api.Models.CreateFriendRequestRequest)">
+            <summary>
+            发送好友申请。
+            若对方已向我发送申请，则直接接受并建立好友关系；否则创建新的待处理申请。
+            </summary>
+            <param name="request">好友申请请求参数。</param>
+            <returns>申请详情或已建立的好友关系。</returns>
+        </member>
+        <member name="M:api.Controllers.FriendsController.AcceptFriendRequest(System.UInt64)">
+            <summary>
+            接受好友申请。
+            接受后将建立双向好友关系，并通过 SignalR 通知双方。
+            </summary>
+            <param name="requestId">申请ID。</param>
+            <returns>处理后的申请详情。</returns>
+        </member>
+        <member name="M:api.Controllers.FriendsController.RejectFriendRequest(System.UInt64,api.Models.RejectFriendRequestRequest)">
+            <summary>
+            拒绝好友申请。
+            拒绝后申请状态变更为 rejected，并可填写拒绝原因。
+            </summary>
+            <param name="requestId">申请ID。</param>
+            <param name="request">包含拒绝原因的请求对象。</param>
+            <returns>处理后的申请详情。</returns>
         </member>
         <member name="T:api.Controllers.PlansController">
             <summary>

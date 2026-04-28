@@ -14,6 +14,11 @@ using System.Threading.Tasks;
 
 namespace api.Controllers;
 
+/// <summary>
+/// 好友管理接口，提供完整的好友关系维护功能。
+/// 支持好友搜索、添加、删除、备注修改以及好友申请的处理。
+/// 集成 SignalR 实现好友状态和申请的实时通知。
+/// </summary>
 [ApiController]
 [Route("mm/[controller]")]
 [Authorize]
@@ -22,6 +27,11 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
     readonly DailyCheckDbContext _db = db;
     readonly IHubContext<ChatHub> _hubContext = hubContext;
 
+    /// <summary>
+    /// 获取当前用户的好友列表。
+    /// 按星标置顶和添加时间排序，返回好友详细信息及备注。
+    /// </summary>
+    /// <returns>好友关系列表。</returns>
     [HttpGet]
     public async Task<ActionResult<List<FriendshipDto>>> GetMyFriends()
     {
@@ -37,6 +47,13 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
         return Ok(friendships);
     }
 
+    /// <summary>
+    /// 更新好友备注。
+    /// 仅当前用户可以修改自己对某位好友的备注信息。
+    /// </summary>
+    /// <param name="friendUserId">好友ID。</param>
+    /// <param name="request">包含新备注的请求对象。</param>
+    /// <returns>更新后的好友关系详情。</returns>
     [HttpPost("{friendUserId:ulong}/remark")]
     public async Task<ActionResult<FriendshipDto>> UpdateFriendRemark(
         ulong friendUserId,
@@ -77,6 +94,12 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
             : Ok(detail);
     }
 
+    /// <summary>
+    /// 删除好友关系。
+    /// 采用双向软删除机制，确保双方均不再显示该好友关系。
+    /// </summary>
+    /// <param name="friendUserId">要删除的好友ID。</param>
+    /// <returns>操作结果。</returns>
     [HttpDelete("{friendUserId:ulong}")]
     public async Task<IActionResult> DeleteFriend(ulong friendUserId)
     {
@@ -106,6 +129,12 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
         return NoContent();
     }
 
+    /// <summary>
+    /// 获取我的好友申请列表。
+    /// 支持按状态（pending, accepted, rejected等）筛选，并自动清理过期的申请。
+    /// </summary>
+    /// <param name="status">可选的状态筛选条件。</param>
+    /// <returns>好友申请列表。</returns>
     [HttpGet("requests")]
     public async Task<ActionResult<List<FriendRequestDto>>> GetMyFriendRequests([FromQuery] string? status = null)
     {
@@ -128,6 +157,12 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
         return Ok(requests);
     }
 
+    /// <summary>
+    /// 搜索用户。
+    /// 支持通过账号名或昵称模糊搜索，并返回与当前用户的关系状态（是否好友、是否有待处理申请）。
+    /// </summary>
+    /// <param name="keyword">搜索关键词。</param>
+    /// <returns>用户搜索结果列表。</returns>
     [HttpGet("search")]
     public async Task<ActionResult<List<FriendSearchResultDto>>> SearchUsers([FromQuery] string? keyword)
     {
@@ -176,6 +211,12 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
         return Ok(users);
     }
 
+    /// <summary>
+    /// 发送好友申请。
+    /// 若对方已向我发送申请，则直接接受并建立好友关系；否则创建新的待处理申请。
+    /// </summary>
+    /// <param name="request">好友申请请求参数。</param>
+    /// <returns>申请详情或已建立的好友关系。</returns>
     [HttpPost("requests")]
     public async Task<ActionResult<FriendRequestDto>> CreateFriendRequest(CreateFriendRequestRequest request)
     {
@@ -283,6 +324,12 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
             : Ok(detail);
     }
 
+    /// <summary>
+    /// 接受好友申请。
+    /// 接受后将建立双向好友关系，并通过 SignalR 通知双方。
+    /// </summary>
+    /// <param name="requestId">申请ID。</param>
+    /// <returns>处理后的申请详情。</returns>
     [HttpPost("requests/{requestId:ulong}/accept")]
     public async Task<ActionResult<FriendRequestDto>> AcceptFriendRequest(ulong requestId)
     {
@@ -322,6 +369,13 @@ public class FriendsController(DailyCheckDbContext db, IHubContext<ChatHub> hubC
             : Ok(detail);
     }
 
+    /// <summary>
+    /// 拒绝好友申请。
+    /// 拒绝后申请状态变更为 rejected，并可填写拒绝原因。
+    /// </summary>
+    /// <param name="requestId">申请ID。</param>
+    /// <param name="request">包含拒绝原因的请求对象。</param>
+    /// <returns>处理后的申请详情。</returns>
     [HttpPost("requests/{requestId:ulong}/reject")]
     public async Task<ActionResult<FriendRequestDto>> RejectFriendRequest(
         ulong requestId,

@@ -971,7 +971,19 @@ public class AuthController(
     public async Task<ActionResult<UserBasicResponse>> GetCurrentUser(CancellationToken cancellationToken)
     {
         var userId = GetUserId();
-        var user = await _db.Users.SingleOrDefaultAsync(x => x.Id == userId && !x.IsDeleted, cancellationToken);
+        var user = await _db.Users
+            .AsNoTracking()
+            .Where(x => x.Id == userId && !x.IsDeleted)
+            .Select(x => new
+            {
+                x.Id,
+                x.Email,
+                x.NickName,
+                x.UserAccount,
+                x.AvatarKey,
+                x.Status
+            })
+            .SingleOrDefaultAsync(cancellationToken);
         if (user == null)
             return NotFound();
 

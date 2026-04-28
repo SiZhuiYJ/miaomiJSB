@@ -18,7 +18,9 @@ using System.Threading.Tasks;
 namespace api.Controllers;
 
 /// <summary>
-/// 閼卞﹤銇夐幒褍鍩楅崳顭掔礉婢跺嫮鎮婃导姘崇樈閸掓稑缂撻妴浣圭Х閹垰褰傞柅浣碘偓浣筋嚢閸欐牜鐡戦惄绋垮彠閸旂喕鍏?
+/// 聊天会话与消息管理接口。
+/// 提供创建会话、发送消息、获取历史记录、成员管理（邀请、踢人、禁言）、群申请处理等功能。
+/// 支持单聊和群聊两种模式，集成 SignalR 实现实时消息推送。
 /// </summary>
 [ApiController]
 [Route("mm/[controller]")]
@@ -30,10 +32,12 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     static readonly HashSet<string> AllowedMessageTypes = new(["text", "image", "video", "audio", "file", "system"]);
 
     /// <summary>
-    /// 閸掓稑缂撴稉鈧稉顏呮煀閻ㄥ嫯浜版径鈺€绱扮拠?
+    /// 创建新的聊天会话（单聊或群聊）。
+    /// 单聊需确保双方已是好友关系；群聊需确保所有初始成员均为发起人的好友。
+    /// 若已存在活跃的单聊会话，则直接返回该会话详情。
     /// </summary>
-    /// <param name="request">閸掓稑缂撴导姘崇樈閻ㄥ嫯顕Ч鍌氬棘閺?/param>
-    /// <returns>閸掓稑缂撻幋鎰閻ㄥ嫪绱扮拠婵婎嚊閹?/returns>
+    /// <param name="request">创建会话请求参数，包含会话类型、标题、头像及成员列表。</param>
+    /// <returns>创建成功的会话详细信息。</returns>
     [HttpPost("conversations")]
     public async Task<ActionResult<ConversationDetailDto>> CreateConversation(CreateConversationRequest request)
     {
@@ -857,9 +861,10 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     }
 
     /// <summary>
-    /// 閼惧嘲褰囪ぐ鎾冲閻劍鍩涢惃鍕窗鐠囨繂鍨悰?
+    /// 获取当前用户的会话列表（收件箱）。
+    /// 按置顶状态和最后消息时间排序，并计算每个会话的未读消息数。
     /// </summary>
-    /// <returns>娴兼俺鐦介幗妯款洣閸掓銆?/returns>
+    /// <returns>会话概要列表，包含最后一条消息预览和未读数。</returns>
     [HttpGet("conversations")]
     public async Task<ActionResult<List<ConversationSummaryDto>>> GetMyConversations()
     {
@@ -920,11 +925,12 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     }
 
     /// <summary>
-    /// 閺囧瓨鏌婃导姘崇樈娣団剝浼?
+    /// 更新会话信息或成员个人设置（如置顶、免打扰）。
+    /// 群聊的基础信息（标题、头像）仅群主或管理员可修改。
     /// </summary>
-    /// <param name="conversationId">娴兼俺鐦絀D</param>
-    /// <param name="request">閺囧瓨鏌婃导姘崇樈閻ㄥ嫯顕Ч鍌氬棘閺?/param>
-    /// <returns>閺囧瓨鏌婇崥搴ｆ畱娴兼俺鐦界拠锔藉剰</returns>
+    /// <param name="conversationId">会话ID。</param>
+    /// <param name="request">更新请求参数，包含标题、头像、置顶状态等。</param>
+    /// <returns>更新后的会话详细信息。</returns>
     [HttpPost("conversations/{conversationId:ulong}")]
     public async Task<ActionResult<ConversationDetailDto>> UpdateConversation(ulong conversationId, UpdateConversationRequest request)
     {
@@ -977,10 +983,12 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     }
 
     /// <summary>
-    /// 閺嶈宓両D閼惧嘲褰囨导姘崇樈鐠囷附鍎?
+    /// 根据ID获取会话详细信息。
+    /// 包含成员列表、最后消息、未读数及个人设置（置顶、免打扰）。
+    /// 仅会话成员有权访问。
     /// </summary>
-    /// <param name="conversationId">娴兼俺鐦絀D</param>
-    /// <returns>娴兼俺鐦界拠锔藉剰</returns>
+    /// <param name="conversationId">会话ID。</param>
+    /// <returns>会话详细信息。</returns>
     [HttpGet("conversations/{conversationId:ulong}")]
     public async Task<ActionResult<ConversationDetailDto>> GetConversationById(ulong conversationId)
     {
@@ -997,11 +1005,13 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     }
 
     /// <summary>
-    /// 閸︺劍瀵氱€规矮绱扮拠婵呰厬閸欐垿鈧焦绉烽幁?
+    /// 在指定会话中发送消息。
+    /// 支持文本、图片、视频、音频、文件及系统消息。
+    /// 发送成功后通过 SignalR 实时推送给会话内其他在线成员。
     /// </summary>
-    /// <param name="conversationId">娴兼俺鐦絀D</param>
-    /// <param name="request">閸欐垿鈧焦绉烽幁顖滄畱鐠囬攱鐪伴崣鍌涙殶</param>
-    /// <returns>閸欐垿鈧胶娈戝☉鍫熶紖鐠囷附鍎?/returns>
+    /// <param name="conversationId">目标会话ID。</param>
+    /// <param name="request">发送消息请求，包含内容、类型及回复引用。</param>
+    /// <returns>发送成功的消息概要信息。</returns>
     [HttpPost("conversations/{conversationId:ulong}/messages")]
     public async Task<ActionResult<MessageSummaryDto>> SendMessage(ulong conversationId, SendMessageRequest request)
     {
@@ -1084,10 +1094,12 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     }
 
     /// <summary>
-    /// 閹俱倕娲栧☉鍫熶紖
+    /// 撤回已发送的消息。
+    /// 仅消息发送者可在发送后5分钟内撤回。
+    /// 撤回后消息内容将被清空，并标记为已撤回状态。
     /// </summary>
-    /// <param name="messageId">濞戝牊浼匢D</param>
-    /// <returns>閹俱倕娲栭崥搴ｆ畱濞戝牊浼呴幗妯款洣</returns>
+    /// <param name="messageId">要撤回的消息ID。</param>
+    /// <returns>撤回后的消息概要信息。</returns>
     [HttpPost("messages/{messageId:ulong}/recall")]
     public async Task<ActionResult<MessageSummaryDto>> RecallMessage(ulong messageId)
     {
@@ -1142,12 +1154,13 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     }
 
     /// <summary>
-    /// 閼惧嘲褰囨导姘崇樈娑擃厾娈戝☉鍫熶紖閸掓銆?
+    /// 分页获取会话的历史消息记录。
+    /// 采用倒序加载（从最新往旧加载），支持指定最后一条消息ID作为游标。
     /// </summary>
-    /// <param name="conversationId">娴兼俺鐦絀D</param>
-    /// <param name="beforeMessageId">閼惧嘲褰囧銈嗙Х閹枠D娑斿澧犻惃鍕Х閹?/param>
-    /// <param name="pageSize">濮ｅ繘銆夋径褍鐨敍宀勭帛鐠併倓璐?0</param>
-    /// <returns>濞戝牊浼呴幗妯款洣閸掓銆?/returns>
+    /// <param name="conversationId">会话ID。</param>
+    /// <param name="beforeMessageId">获取此ID之前的消息（不包含此ID）。</param>
+    /// <param name="pageSize">每页数量，默认20，最大100。</param>
+    /// <returns>消息概要列表，按时间正序排列。</returns>
     [HttpGet("conversations/{conversationId:ulong}/messages")]
     public async Task<ActionResult<List<MessageSummaryDto>>> GetMessages(ulong conversationId, [FromQuery] ulong? beforeMessageId, [FromQuery] int pageSize = 20)
     {
@@ -1199,12 +1212,13 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     }
 
     /// <summary>
-    /// 閼惧嘲褰囨导姘崇樈娑擃厾娈戝☉鍫熶紖婢х偤鍣?
+    /// 增量获取会话消息（用于同步新消息）。
+    /// 获取指定ID之后的最新消息，适用于前端轮询或长连接断开后的数据补全。
     /// </summary>
-    /// <param name="conversationId">娴兼俺鐦絀D</param>
-    /// <param name="afterMessageId">閼惧嘲褰囧銈嗙Х閹枠D娑斿鎮楅惃鍕Х閹?/param>
-    /// <param name="pageSize">濮ｅ繘銆夋径褍鐨敍宀勭帛鐠併倓璐?0</param>
-    /// <returns>濞戝牊浼呮晶鐐哄櫤閺佺増宓?/returns>
+    /// <param name="conversationId">会话ID。</param>
+    /// <param name="afterMessageId">获取此ID之后的消息。</param>
+    /// <param name="pageSize">每页数量，默认50，最大100。</param>
+    /// <returns>包含最新消息ID和消息列表的增量数据包。</returns>
     [HttpGet("conversations/{conversationId:ulong}/messages/delta")]
     public async Task<ActionResult<MessageDeltaDto>> GetMessageDelta(ulong conversationId, [FromQuery] ulong? afterMessageId, [FromQuery] int pageSize = 50)
     {
@@ -1267,11 +1281,13 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     }
 
     /// <summary>
-    /// 閺嶅洩顔囨导姘崇樈娑撳搫鍑＄拠?
+    /// 标记会话为已读。
+    /// 更新用户的最后阅读消息ID，并为相关消息创建已读回执。
+    /// 通过 SignalR 通知其他成员消息已被阅读。
     /// </summary>
-    /// <param name="conversationId">娴兼俺鐦絀D</param>
-    /// <param name="request">閺嶅洩顔囧鑼额嚢閻ㄥ嫯顕Ч鍌氬棘閺?/param>
-    /// <returns>閹垮秳缍旂紒鎾寸亯</returns>
+    /// <param name="conversationId">会话ID。</param>
+    /// <param name="request">已读请求，可选指定最后阅读的消息ID。</param>
+    /// <returns>操作结果，包含更新后的最后阅读消息ID。</returns>
     [HttpPost("conversations/{conversationId:ulong}/read")]
     public async Task<ActionResult> MarkConversationRead(ulong conversationId, ReadConversationRequest request)
     {
@@ -1370,10 +1386,12 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     }
 
     /// <summary>
-    /// 閼惧嘲褰囧☉鍫熶紖閻ㄥ嫬鍑＄拠鏄忣嚊閹?
+    /// 获取指定消息的已读状态详情。
+    /// 返回已读用户列表及总阅读人数。
+    /// 仅会话成员有权查看。
     /// </summary>
-    /// <param name="messageId">濞戝牊浼匢D</param>
-    /// <returns>濞戝牊浼呭鑼额嚢鐠囷附鍎?/returns>
+    /// <param name="messageId">消息ID。</param>
+    /// <returns>消息已读详情，包含已读用户列表。</returns>
     [HttpGet("messages/{messageId:ulong}/read-status")]
     public async Task<ActionResult<MessageReadDetailDto>> GetMessageReadStatus(ulong messageId)
     {
@@ -1571,11 +1589,12 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     }
 
     /// <summary>
-    /// 閺嬪嫬缂撴导姘崇樈鐠囷附鍎?
+    /// 构建会话详情DTO。
+    /// 包含完整的成员信息、群申请计数及好友备注处理。
     /// </summary>
-    /// <param name="conversationId">娴兼俺鐦絀D</param>
-    /// <param name="userId">閻劍鍩汭D</param>
-    /// <returns>娴兼俺鐦界拠锔藉剰</returns>
+    /// <param name="conversationId">会话ID。</param>
+    /// <param name="userId">当前用户ID。</param>
+    /// <returns>会话详情对象，若不存在或无权限则返回null。</returns>
     async Task<ConversationDetailDto?> BuildConversationDetail(ulong conversationId, ulong userId)
     {
         var now = DateTime.UtcNow;
@@ -1876,9 +1895,10 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
     }
 
     /// <summary>
-    /// 閼惧嘲褰囪ぐ鎾冲閻劍鍩汭D
+    /// 从JWT令牌中提取当前登录用户的ID。
+    /// 支持多种Claim类型以确保兼容性。
     /// </summary>
-    /// <returns>閻劍鍩汭D</returns>
+    /// <returns>用户唯一标识符（ulong）。</returns>
     ulong GetUserId()
     {
         var candidateTypes = new[] { ClaimTypes.NameIdentifier, "sub", "nameid", "user_id", "id" };

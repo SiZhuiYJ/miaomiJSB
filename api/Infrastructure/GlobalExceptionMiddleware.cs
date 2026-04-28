@@ -12,6 +12,8 @@ namespace api.Infrastructure;
 /// </summary>
 public class GlobalExceptionMiddleware
 {
+    private const int ClientClosedRequestStatusCode = 499;
+
     private readonly RequestDelegate _next;
     private readonly ILogger<GlobalExceptionMiddleware> _logger;
     private readonly string _logDirectory;
@@ -33,6 +35,13 @@ public class GlobalExceptionMiddleware
         {
             await _next(context);
         }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            if (!context.Response.HasStarted)
+            {
+                context.Response.StatusCode = ClientClosedRequestStatusCode;
+            }
+        }
         catch (Exception ex)
         {
             await HandleExceptionAsync(context, ex);
@@ -42,6 +51,11 @@ public class GlobalExceptionMiddleware
     private async Task HandleExceptionAsync(HttpContext context, Exception ex)
     {
         _logger.LogError(ex, "An unhandled exception occurred.");
+
+        if (context.Response.HasStarted)
+        {
+            return;
+        }
 
         // 记录到文件
         try
