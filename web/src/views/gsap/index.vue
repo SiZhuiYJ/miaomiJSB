@@ -46,7 +46,7 @@ onMounted(() => {
             trigger: '.box-c',
             pin: true,
             start: 'center center',
-            end: '+=200',
+            end: '+=600',
             markers: true,
         });
     }, mainRef.value);

@@ -18,6 +18,10 @@ const menuName = computed(() => {
     const currentMenu = menuList.value.find(menu => menu.path === currentPath);
     return currentMenu ? currentMenu.name : menuList.value[0].name;
 });
+
+const handleMenuClick = (path) => {
+    router.push(path);
+};
 </script>
 
 <template>
@@ -25,7 +29,7 @@ const menuName = computed(() => {
         <template #title>{{ menuName }}</template>
         <template #default="{ isOpen }">
             <SettingsMenuItem v-for="(value, index) in menuList" :key="value.path" :index="index" :isOpen="isOpen"
-                @click="(router.push(value.path), (menuName = value.name))">
+                @click="handleMenuClick(value.path)">
                 {{ value.name }}
             </SettingsMenuItem>
         </template>

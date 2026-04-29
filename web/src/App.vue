@@ -30,7 +30,40 @@ function initTheme(): void {
   }
 }
 
+// import gsap from 'gsap';
+
+// import { useTransitionComposable } from '@/composables/transition-composable';
+
+// const { toggleTransitionComplete } = useTransitionComposable();
+
+// // Transition Hooks
+// const onEnter = (el: Element, done: () => void) => {
+//   gsap.set(el, { autoAlpha: 0, scale: 0.8, xPercent: -100 });
+//   gsap
+//     .timeline({
+//       paused: true,
+//       onComplete() {
+//         toggleTransitionComplete(true);
+//         done();
+//       },
+//     })
+//     .to(el, { autoAlpha: 1, xPercent: 0, duration: 0.25 })
+//     .to(el, { scale: 1, duration: 0.25 })
+//     .play();
+// };
+
+// const onLeave = (el: Element, done: () => void) => {
+//   toggleTransitionComplete(false);
+//   gsap
+//     .timeline({ paused: true, onComplete: done })
+//     .to(el, { scale: 0.8, duration: 0.2 })
+//     .to(el, { xPercent: 100, autoAlpha: 0, duration: 0.2 })
+//     .play();
+// };
+
 onMounted(async () => {
+  //   toggleTransitionComplete(true);
+
   setNotificationInstance(notificationSystemRef.value);
   initTheme();
 
@@ -196,7 +229,12 @@ const globalConfig = computed<GlobalConfig>(() => {
   <!-- Element Plus全局配置组件 -->
   <el-config-provider :locale="zhCn" :dialog="globalConfig">
     <!-- 路由视图容器 -->
-    <router-view></router-view>
+    <router-view />
+    <!-- <router-view v-slot="{ Component, route }">
+      <Transition @enter="onEnter" @leave="onLeave" name="routes" mode="out-in">
+        <component :is="Component" :key="route.fullPath" />
+      </Transition>
+    </router-view> -->
     <NotificationSystem ref="notificationSystemRef" />
   </el-config-provider>
 </template>

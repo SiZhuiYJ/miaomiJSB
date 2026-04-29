@@ -15,31 +15,79 @@ const scrollToTop = () => {
     }
   }
 };
+
+import gsap from 'gsap';
+
+import { useTransitionComposable } from '@/composables/transition-composable';
+
+const { toggleTransitionComplete } = useTransitionComposable();
+
+// Transition Hooks
+const onEnter = (el: Element, done: () => void) => {
+  gsap.set(el, { autoAlpha: 0, scale: 0.8, xPercent: -100 });
+  gsap
+    .timeline({
+      paused: true,
+      onComplete() {
+        toggleTransitionComplete(true);
+        done();
+      },
+    })
+    .to(el, { autoAlpha: 1, xPercent: 0, duration: 0.25 })
+    .to(el, { scale: 1, duration: 0.25 })
+    .play();
+};
+
+const onLeave = (el: Element, done: () => void) => {
+  toggleTransitionComplete(false);
+  gsap
+    .timeline({ paused: true, onComplete: done })
+    .to(el, { scale: 0.8, duration: 0.2 })
+    .to(el, { xPercent: 100, autoAlpha: 0, duration: 0.2 })
+    .play();
+};
+
+onMounted(async () => {
+  toggleTransitionComplete(true);
+});
 </script>
 
 <template>
-  <header class="topbar">
-    <div class="topbar-left" @click="router.push('/home')">
-      <el-icon>
-        <CaretLeft />
-      </el-icon>
-      返回
-    </div>
+  <div class="setting">
+    <header class="topbar">
+      <div class="topbar-left" @click="router.push('/home')">
+        <el-icon>
+          <CaretLeft />
+        </el-icon>
+        返回
+      </div>
 
-    <SettingsMenu />
-  </header>
-  <el-scrollbar ref="scrollbarRef" wrap-style="max-height: calc(100vh - var(--header-h));" view-class="">
-    <div class="open">
-      <router-view></router-view>
-    </div>
-    <el-button @click="scrollToTop" type="primary" style="margin-top: 20px">
-      平滑滚动到顶部
-    </el-button>
-  </el-scrollbar>
+      <SettingsMenu />
+    </header>
+    <el-scrollbar ref="scrollbarRef" wrap-style="max-height: calc(100vh - var(--header-h));" view-class="">
+      <div class="open">
+        <router-view v-slot="{ Component, route }">
+          <Transition @enter="onEnter" @leave="onLeave" name="routes" mode="out-in">
+            <component :is="Component" :key="route.fullPath" />
+          </Transition>
+        </router-view>
+      </div>
+      <el-button @click="scrollToTop" type="primary" style="position: fixed; right: 20px; bottom: 20px;">
+        <svg-icon icon-class="general-pg-up" size="20px" />
+      </el-button>
+    </el-scrollbar>
+  </div>
 </template>
 
 <style scoped lang="scss">
+.setting {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
 .topbar {
+  position: relative;
   height: var(--header-h);
   width: 100%;
   z-index: 1;

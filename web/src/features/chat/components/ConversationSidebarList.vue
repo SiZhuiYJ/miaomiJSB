@@ -34,9 +34,7 @@ const emit = defineEmits<{
           :color="item.isMuted ? '#f5f7fa' : ''" class="item">
           <div class="title-row">
             <strong>{{ getConversationDisplayTitle(item) }}</strong>
-            <el-icon v-if="item.isPinned" class="pinned-icon">
-              <Top />
-            </el-icon>
+            <svg-icon v-if="item.isPinned" class="pinned-icon" icon-class="general-pg-up" size="16px" />
             <el-icon v-if="item.isMuted" class="muted-icon">
               <MuteNotification />
             </el-icon>
