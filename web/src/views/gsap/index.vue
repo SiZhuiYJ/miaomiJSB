@@ -3,8 +3,9 @@ import { onMounted, onUnmounted, useTemplateRef } from 'vue';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ScrollSmoother } from 'gsap/ScrollSmoother';
+import { SplitText } from 'gsap/SplitText';
 
-gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
+gsap.registerPlugin(ScrollTrigger, ScrollSmoother, SplitText);
 
 type DemoTarget = {
     key: string;
@@ -26,6 +27,8 @@ const demoTargets: DemoTarget[] = [
 
 let smoother: ScrollSmoother | null = null;
 let ctx: gsap.Context | null = null;
+let startTitle: SplitText | null = null;
+let endTitle: SplitText | null = null;
 
 const scrollTo = (selector: string, position: string = 'center center') => {
     if (!smoother)
@@ -43,6 +46,7 @@ onMounted(() => {
             smooth: 2, // seconds it takes to "catch up" to native scroll position
             effects: true, // look for data-speed and data-lag attributes on elements and animate accordingly
         });
+
         ScrollTrigger.create({
             trigger: '.box-a',
             start: 'top top',
@@ -77,33 +81,100 @@ onMounted(() => {
                 .to('.text-2', { top: '40%', opacity: 0 })
         });
 
+        const imgList = main.value?.querySelector<HTMLElement>('.img-list');
+        const imgItems = gsap.utils.toArray<HTMLImageElement>('.img-list img');
+        const imgGap = 40;
+        const imgTimeline = gsap.timeline({ defaults: { ease: 'none' } });
+
+        if (imgList && imgItems.length) {
+            imgList.style.setProperty('--img-gap', `${imgGap}px`);
+
+            const viewportWidth = window.innerWidth;
+            const startX = viewportWidth;
+            const endX = -imgList.scrollWidth;
+            const moveDistance = startX - endX;
+
+            gsap.set(imgList, { x: startX });
+            gsap.set(imgItems, { scale: 0.5, transformOrigin: 'center center' });
+
+            imgTimeline.fromTo(imgList, { x: startX }, { x: endX, duration: 1 }, 0);
+
+            imgItems.forEach((item) => {
+                const itemCenter = item.offsetLeft + item.offsetWidth / 2;
+                const centerProgress = gsap.utils.clamp(
+                    0,
+                    1,
+                    (startX + itemCenter - viewportWidth / 2) / moveDistance,
+                );
+                const scaleDuration = gsap.utils.clamp(
+                    0.08,
+                    0.18,
+                    ((item.offsetWidth + imgGap) / moveDistance) * 1.4,
+                );
+                const scaleInStart = Math.max(0, centerProgress - scaleDuration);
+                const scaleOutEnd = Math.min(1, centerProgress + scaleDuration);
+
+                imgTimeline
+                    .fromTo(
+                        item,
+                        { scale: 0.5 },
+                        { scale: 1, duration: centerProgress - scaleInStart },
+                        scaleInStart,
+                    )
+                    .to(
+                        item,
+                        { scale: 0.5, duration: scaleOutEnd - centerProgress },
+                        centerProgress,
+                    );
+            });
+        }
+
         ScrollTrigger.create({
             trigger: '.box-c',
             pin: true,
             start: 'top top',
-            end: '+=2000',
-            markers: true,
-        });
-
-        const imgItems = gsap.utils.toArray<HTMLImageElement>('.img-list img');
-        const imgTimeline = gsap.timeline();
-
-        imgTimeline.fromTo('.img-list', { xPercent: 100 }, { xPercent: -50, ease: 'none', duration: 1 }, 0);
-
-        imgItems.forEach((item, index) => {
-            const offset = index * 0.12;
-            imgTimeline
-                .fromTo(item, { scale: 0.5 }, { scale: 1, ease: 'none', duration: 0.24 }, offset)
-                .to(item, { scale: 0.5, ease: 'none', duration: 0.24 }, offset + 0.24);
-        });
-
-        ScrollTrigger.create({
-            trigger: '.img-list',
-            start: 'top+=300 top',
-            end: '+=1800',
+            end: () => `+=${Math.max(400, imgItems.length * 450)}`,
             scrub: true,
             markers: true,
-            animation: imgTimeline,
+            animation: imgTimeline
+        });
+
+        startTitle = SplitText.create(".start-title", { type: "chars" });
+
+        ScrollTrigger.create({
+            trigger: '.start-title',
+            start: 'top-=800 top',
+            end: '+=800',
+            scrub: true,
+            markers: true,
+            animation: gsap.timeline()
+                .from(startTitle?.chars, {
+                    rotationX: -100,
+                    transformOrigin: "50% 50% -160px",
+                    opacity: 0,
+                    duration: 0.8,
+                    ease: "power3",
+                    stagger: 0.25
+                })
+                .fromTo('.start-title', { opacity: 1 }, { opacity: 0, duration: 0.5 }),
+        });
+
+        endTitle = SplitText.create(".end-title", { type: "chars" });
+
+        ScrollTrigger.create({
+            trigger: '.end-title',
+            start: `top+=${Math.max(imgItems.length * 450 - 800)} top`,
+            end: '+=800',
+            scrub: true,
+            markers: true,
+            animation: gsap.timeline()
+                .from(endTitle?.chars, {
+                    x: 150,
+                    opacity: 0,
+                    duration: 0.7,
+                    ease: "power4",
+                    stagger: 0.04
+                }),
         });
 
         ScrollTrigger.create({
@@ -118,7 +189,11 @@ onMounted(() => {
 
 onUnmounted(() => {
     ctx?.revert();
+    startTitle?.revert();
+    endTitle?.revert();
     ctx = null;
+    startTitle = null;
+    endTitle = null;
     smoother = null;
 });
 </script>
@@ -156,13 +231,12 @@ onUnmounted(() => {
                 </div>
             </div>
             <div class="box box-c gradient-orange">
+                <p class="start-title">一大波美图来袭~</p>
                 <div class="img-list">
-                    <img src="/gsap/cyy/8.jpg" class="image-8" alt="">
-                    <img src="/gsap/cyy/2.jpg" class="image-2" alt="">
-                    <img src="/gsap/cyy/4.jpg" class="image-4" alt="">
-                    <img src="/gsap/cyy/5.jpg" class="image-5" alt="">
-                    <img src="/gsap/cyy/7.jpg" class="image-7" alt="">
+                    <img v-for="value in 17" :key="`cyy-${value}`" :src="`/gsap/cyy/${value}.jpg`"
+                        :class="`image-${value}`" alt="" />
                 </div>
+                <p class="end-title">沉迷于美色之中了吧</p>
             </div>
             <div class="box box-d gradient-red">
                 <div class="box-content">d</div>
@@ -211,7 +285,7 @@ onUnmounted(() => {
 
 #smooth-content {
     overflow: visible;
-    height: 10000px;
+    height: 20000px;
 }
 
 .box {
@@ -219,8 +293,9 @@ onUnmounted(() => {
     width: 100%;
     display: flex;
     justify-content: center;
+}
 
-
+.box-a {
     .box-img {
         display: flex;
         justify-content: center;
@@ -233,7 +308,9 @@ onUnmounted(() => {
             object-fit: cover;
         }
     }
+}
 
+.box-b {
     .box-video {
         display: flex;
         justify-content: center;
@@ -265,28 +342,51 @@ onUnmounted(() => {
             color: #fff;
         }
     }
+}
+
+.box-c {
+    justify-content: flex-start;
+    overflow: hidden;
+
+    .start-title {
+        font-size: 4rem;
+        color: #fff;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
 
     .img-list {
+        --img-gap: 40px;
+        --img-width: clamp(260px, 42vw, 520px);
         display: flex;
         align-items: center;
         height: 100vh;
-        width: 100%;
+        width: max-content;
+        gap: var(--img-gap);
         position: relative;
-        left: 100%;
+        will-change: transform;
 
         img {
-            height: 80%;
+            flex: 0 0 var(--img-width);
+            width: var(--img-width);
+            height: 90%;
             object-fit: cover;
-            scale: .5;
+            transform: scale(.5);
             transform-origin: center center;
         }
     }
 
+    .end-title {
+        font-size: 4rem;
+        color: #fff;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
 }
-
-.box-a {}
-
-.box-b {}
 
 .gradient-green {
     background: var(--gradient-macha);
