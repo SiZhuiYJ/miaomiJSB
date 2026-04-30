@@ -85,20 +85,25 @@ onMounted(() => {
             markers: true,
         });
 
+        const imgItems = gsap.utils.toArray<HTMLImageElement>('.img-list img');
+        const imgTimeline = gsap.timeline();
+
+        imgTimeline.fromTo('.img-list', { xPercent: 100 }, { xPercent: -50, ease: 'none', duration: 1 }, 0);
+
+        imgItems.forEach((item, index) => {
+            const offset = index * 0.12;
+            imgTimeline
+                .fromTo(item, { scale: 0.5 }, { scale: 1, ease: 'none', duration: 0.24 }, offset)
+                .to(item, { scale: 0.5, ease: 'none', duration: 0.24 }, offset + 0.24);
+        });
+
         ScrollTrigger.create({
             trigger: '.img-list',
             start: 'top+=300 top',
-            end: '+=600',
+            end: '+=1800',
             scrub: true,
             markers: true,
-            animation:
-                gsap.timeline()
-                    .fromTo('.img-list', { left: '100%', }, { left: '50%', })
-                    .fromTo('.image-8', { scale: 1, }, { scale: .5, }, '<')
-                    .fromTo('.image-2', { scale: 1, }, { scale: .6, }, '<')
-                    .fromTo('.image-4', { scale: 1, }, { scale: .7, }, '<')
-                    .fromTo('.image-5', { scale: 1, }, { scale: .8, }, '<')
-                    .fromTo('.image-7', { scale: 1, }, { scale: .9, }, '<')
+            animation: imgTimeline,
         });
 
         ScrollTrigger.create({
@@ -272,10 +277,8 @@ onUnmounted(() => {
         img {
             height: 80%;
             object-fit: cover;
-        }
-
-        .image-8 {
             scale: .5;
+            transform-origin: center center;
         }
     }
 
