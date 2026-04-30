@@ -45,9 +45,9 @@ onMounted(() => {
         });
         ScrollTrigger.create({
             trigger: '.box-a',
-            start: 'center center',
+            start: 'top top',
             end: '+=600',
-            scrub: true,
+            scrub: true, markers: true,
             animation:
                 gsap.timeline()
                     .fromTo('.box-img', { scale: 1 }, { scale: 0.8 })
@@ -56,10 +56,10 @@ onMounted(() => {
 
         ScrollTrigger.create({
             trigger: '.box-b',
-            start: 'center center',
+            start: 'top top',
             end: '+=5000',
             scrub: true,
-            pin: true,
+            pin: true, markers: true,
             onUpdate(self) {
                 const video = video18.value;
                 if (!video) return;
@@ -80,15 +80,31 @@ onMounted(() => {
         ScrollTrigger.create({
             trigger: '.box-c',
             pin: true,
-            start: 'center center',
-            end: '+=600',
+            start: 'top top',
+            end: '+=2000',
             markers: true,
+        });
+
+        ScrollTrigger.create({
+            trigger: '.img-list',
+            start: 'top+=300 top',
+            end: '+=600',
+            scrub: true,
+            markers: true,
+            animation:
+                gsap.timeline()
+                    .fromTo('.img-list', { left: '100%', }, { left: '50%', })
+                    .fromTo('.image-8', { scale: 1, }, { scale: .5, }, '<')
+                    .fromTo('.image-2', { scale: 1, }, { scale: .6, }, '<')
+                    .fromTo('.image-4', { scale: 1, }, { scale: .7, }, '<')
+                    .fromTo('.image-5', { scale: 1, }, { scale: .8, }, '<')
+                    .fromTo('.image-7', { scale: 1, }, { scale: .9, }, '<')
         });
 
         ScrollTrigger.create({
             trigger: '.box-d',
             pin: true,
-            start: 'center center',
+            start: 'top top',
             end: '+=600',
             markers: true,
         });
@@ -135,7 +151,13 @@ onUnmounted(() => {
                 </div>
             </div>
             <div class="box box-c gradient-orange">
-                <div class="box-content">c</div>
+                <div class="img-list">
+                    <img src="/gsap/cyy/8.jpg" class="image-8" alt="">
+                    <img src="/gsap/cyy/2.jpg" class="image-2" alt="">
+                    <img src="/gsap/cyy/4.jpg" class="image-4" alt="">
+                    <img src="/gsap/cyy/5.jpg" class="image-5" alt="">
+                    <img src="/gsap/cyy/7.jpg" class="image-7" alt="">
+                </div>
             </div>
             <div class="box box-d gradient-red">
                 <div class="box-content">d</div>
@@ -236,6 +258,24 @@ onUnmounted(() => {
             opacity: 0;
             font-size: 8rem;
             color: #fff;
+        }
+    }
+
+    .img-list {
+        display: flex;
+        align-items: center;
+        height: 100vh;
+        width: 100%;
+        position: relative;
+        left: 100%;
+
+        img {
+            height: 80%;
+            object-fit: cover;
+        }
+
+        .image-8 {
+            scale: .5;
         }
     }
 

@@ -75,15 +75,15 @@ onMounted(async () => {
   });
 
   // 延迟测试不同类型的通知
-  setTimeout(() => {
-    notifySuccess("登录成功！");
-  }, 2000);
-  setTimeout(() => {
-    notifyWarning("请注意打卡时间");
-  }, 4000);
-  setTimeout(() => {
-    notifyError("网络连接异常");
-  }, 6000);
+  // setTimeout(() => {
+  //   notifySuccess("登录成功！");
+  // }, 2000);
+  // setTimeout(() => {
+  //   notifyWarning("请注意打卡时间");
+  // }, 4000);
+  // setTimeout(() => {
+  //   notifyError("网络连接异常");
+  // }, 6000);
 });
 
 import type { ButtonInstance, DialogTransition } from "element-plus";
