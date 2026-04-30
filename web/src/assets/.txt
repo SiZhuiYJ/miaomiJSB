@@ -1,0 +1,11 @@
+onUpdate(self) {
+        const video = video18.value;
+            if (!video) return;
+                const dur = video.duration;
+                    if (isFinite(dur) && dur > 0) {
+                                let target = self.progress * dur;
+                                        target = Math.min(Math.max(target, 0), dur);
+                                                video.currentTime = target;
+                    }
+}
+          
