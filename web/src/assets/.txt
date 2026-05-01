@@ -1,11 +1,14 @@
-onUpdate(self) {
-        const video = video18.value;
-            if (!video) return;
-                const dur = video.duration;
-                    if (isFinite(dur) && dur > 0) {
-                                let target = self.progress * dur;
-                                        target = Math.min(Math.max(target, 0), dur);
-                                                video.currentTime = target;
-                    }
-}
-          
+            ScrollTrigger.create({
+                trigger: `.see-${value}`,
+                start: 'cover cover',
+                scrub: true,
+                markers: true,
+                animation:
+                    gsap.timeline()
+                        .fromTo(`.image-${value}`, {
+                            transformOrigin: "50% 50%",
+                            transform: `translateY(-${window.innerHeight * 0.5}px)`
+                        }, {
+                            transform: `translateY(${window.innerHeight * 0.5}px)`
+                        })
+            });
