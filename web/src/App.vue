@@ -230,11 +230,6 @@ const globalConfig = computed<GlobalConfig>(() => {
   <el-config-provider :locale="zhCn" :dialog="globalConfig">
     <!-- 路由视图容器 -->
     <router-view />
-    <!-- <router-view v-slot="{ Component, route }">
-      <Transition @enter="onEnter" @leave="onLeave" name="routes" mode="out-in">
-        <component :is="Component" :key="route.fullPath" />
-      </Transition>
-    </router-view> -->
     <NotificationSystem ref="notificationSystemRef" />
   </el-config-provider>
 </template>

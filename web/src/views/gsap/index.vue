@@ -16,8 +16,6 @@ type DemoTarget = {
 
 const main = useTemplateRef('mainRef');
 
-
-
 const demoTargets: DemoTarget[] = [
     { key: 'top', label: '回到顶部', selector: '#smooth-content', position: 'top top' },
     { key: 'a', label: '跳转到 A', selector: '.box-a', position: 'top top' },
@@ -64,7 +62,7 @@ onMounted(() => {
             start: 'top top',
             end: '+=600',
             scrub: true,
-            markers: true,
+            // markers: true,
             animation:
                 gsap.timeline()
                     .fromTo('.box-img', { scale: 1 }, { scale: 0.8 })
@@ -77,7 +75,7 @@ onMounted(() => {
             end: '+=5000',
             scrub: true,
             pin: true,
-            markers: true,
+            // markers: true,
             onUpdate(self) {
                 const video = video4.value;
                 if (!video) return;
@@ -150,7 +148,7 @@ onMounted(() => {
             start: 'top top',
             end: () => `+=${Math.max(400, imgItems.length * 450)}`,
             scrub: true,
-            markers: true,
+            // markers: true,
             animation: imgTimeline
         });
 
@@ -161,7 +159,7 @@ onMounted(() => {
             start: `top-=${window.innerHeight * 1.2} top`,
             end: '+=1000',
             scrub: true,
-            markers: true,
+            // markers: true,
             animation:
                 gsap.timeline()
                     .from(startTitle?.chars, {
@@ -182,7 +180,7 @@ onMounted(() => {
             start: `top+=${Math.max(imgItems.length * 450 - 800)} top`,
             end: '+=800',
             scrub: true,
-            markers: true,
+            // markers: true,
             animation:
                 gsap.timeline()
                     .from(endTitle?.chars, {
@@ -204,7 +202,7 @@ onMounted(() => {
             start: 'top top',
             end: '+=2000',
             scrub: true,
-            markers: true,
+            // markers: true,
             animation:
                 gsap.timeline()
                     .fromTo('.parallel-text', { opacity: 1 }, { opacity: 0 })
@@ -270,7 +268,7 @@ onMounted(() => {
             start: 'top top',
             end: '+=800',
             scrub: true,
-            markers: true,
+            // markers: true,
             animation:
                 gsap.timeline()
                     .fromTo('.cos-7', { scale: 0.4, zIndex: 1, left: "50%" }, { scale: 0.6, left: "8%" })
@@ -287,7 +285,7 @@ onMounted(() => {
             start: 'top top',
             end: '+=600',
             scrub: true,
-            markers: true,
+            // markers: true,
             animation:
                 gsap.timeline()
                     .to(cosTitle?.chars, {
@@ -303,16 +301,20 @@ onMounted(() => {
         [24, 25, 26, 27, 28].forEach(value => {
             ScrollTrigger.create({
                 trigger: `.see-${value}`,
-                start: 'cover cover',
+                start: 'top bottom',
+                end: 'bottom top',
                 scrub: true,
                 markers: true,
+                invalidateOnRefresh: true,
                 animation:
                     gsap.timeline()
-                        .fromTo(`.image-${value}`, {
+                        .fromTo(`.show-${value}`, {
                             transformOrigin: "50% 50%",
-                            transform: `translateY(-${window.innerHeight * 0.5}px)`
+                            // transform: `translateY(-${window.innerHeight * 0.5}px)`
+                            y: () => -window.innerHeight * 0.5
                         }, {
-                            transform: `translateY(${window.innerHeight * 0.5}px)`
+                            y: () => window.innerHeight * 0.5
+                            // transform: `translateY(${window.innerHeight * 0.5}px)`
                         })
             });
         });
@@ -419,7 +421,7 @@ onUnmounted(() => {
                 </div>
             </div>
             <div v-for="item in [24, 25, 26, 27, 28]" :key="`see-${item}`" :class="`see-${item}`" class="see-item">
-                <img :src="`/gsap/cyy/${item}.jpg`" :class="`image-${item}`" alt="" />
+                <img :src="`/gsap/cyy/${item}.jpg`" :class="`show-${item}`" alt="" />
             </div>
         </div>
     </div>
@@ -751,13 +753,9 @@ onUnmounted(() => {
 .see-item {
     height: 100vh;
     width: 100%;
-    position: relative;
     overflow: hidden;
 
     img {
-        position: absolute;
-        top: 0;
-        left: 0;
         height: 100%;
         width: 100%;
         object-fit: cover;

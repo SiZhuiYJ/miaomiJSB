@@ -1,14 +1,1 @@
-            ScrollTrigger.create({
-                trigger: `.see-${value}`,
-                start: 'cover cover',
-                scrub: true,
-                markers: true,
-                animation:
-                    gsap.timeline()
-                        .fromTo(`.image-${value}`, {
-                            transformOrigin: "50% 50%",
-                            transform: `translateY(-${window.innerHeight * 0.5}px)`
-                        }, {
-                            transform: `translateY(${window.innerHeight * 0.5}px)`
-                        })
-            });
+transform: translate3d(0px, 116.237px, 0px);
