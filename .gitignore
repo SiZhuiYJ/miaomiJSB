@@ -8,6 +8,9 @@ node_modules/
 *.zip
 /stats.html
 
+# 临时文件
+web/public/gsap/yunnan
+
 # 日志文件
 logs/
 *.log

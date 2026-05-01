@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ProgressiveAvatar from "@/components/ProgressiveAvatar/index.vue";
 import type { ConversationSummary } from "../types";
-import { MuteNotification, Top, Message } from "@element-plus/icons-vue";
+import { MuteNotification, Message } from "@element-plus/icons-vue";
 import {
   getConversationAvatarSources,
   getConversationAvatarText,

@@ -25,6 +25,14 @@ const demoTargets: DemoTarget[] = [
     { key: 'e', label: '跳转到 E', selector: '.box-e', position: 'top top' },
 ];
 
+const seeList = [
+    { key: '24', label: '黎就是富婆', },
+    { key: '25', label: '黎最好看', },
+    { key: '26', label: '黎最腻害', },
+    { key: '27', label: '黎嘎嘎乱杀', },
+    { key: '28', label: '黎铲啦', },
+]
+
 let smoother: ScrollSmoother | null = null;
 let ctx: gsap.Context | null = null;
 
@@ -35,7 +43,6 @@ const video1 = useTemplateRef('video1Ref');
 
 let startTitle: SplitText | null = null;
 let endTitle: SplitText | null = null;
-let cosTitle: SplitText | null = null;
 let page1Text: SplitText | null = null;
 let page2Text: SplitText | null = null;
 let page3Text: SplitText | null = null;
@@ -261,7 +268,7 @@ onMounted(() => {
                     }, '>')
         });
 
-        cosTitle = SplitText.create(".cos-title", { type: "chars" });
+
         ScrollTrigger.create({
             trigger: '.box-e',
             pin: true,
@@ -288,9 +295,9 @@ onMounted(() => {
             // markers: true,
             animation:
                 gsap.timeline()
-                    .to(cosTitle?.chars, {
+                    .to(".cos-title", {
                         rotationX: 100,
-                        transformOrigin: "50% 50% -260px",
+                        transformOrigin: `50% 50% -${window.innerHeight * 0.5}`,
                         opacity: 0,
                         duration: 0.8,
                         ease: "power3",
@@ -298,25 +305,25 @@ onMounted(() => {
                     })
         });
 
-        [24, 25, 26, 27, 28].forEach(value => {
+        seeList.forEach(value => {
             const getParallaxDistance = () => window.innerHeight * 0.5;
             ScrollTrigger.create({
-                trigger: `.see-${value}`,
+                trigger: `.see-${value.key}`,
                 start: 'top bottom',
                 end: 'bottom top',
                 scrub: true,
-                markers: true,
+                // markers: true,
                 invalidateOnRefresh: true,
                 animation:
                     gsap.timeline({ defaults: { ease: 'none' } })
-                        .fromTo(`.show-${value}`, {
+                        .fromTo(`.show-${value.key}`, {
                             transformOrigin: "50% 50%",
                             y: () => -getParallaxDistance()
                         }, {
                             y: () => 0,
                             duration: 0.5
                         })
-                        .to(`.show-${value}`, {
+                        .to(`.show-${value.key}`, {
                             y: () => getParallaxDistance(),
                             duration: 0.5
                         })
@@ -329,13 +336,11 @@ onUnmounted(() => {
     ctx?.revert();
     startTitle?.revert();
     endTitle?.revert();
-    cosTitle?.revert();
     page1Text?.revert();
     page2Text?.revert();
     ctx = null;
     startTitle = null;
     endTitle = null;
-    cosTitle = null;
     page1Text = null;
     page2Text = null;
     smoother = null;
@@ -345,7 +350,7 @@ onUnmounted(() => {
 <template>
     <div id="smooth-wrapper" ref="mainRef">
         <div id="smooth-content">
-            <header class="header">
+            <header class="header" style="display: none;">
                 <h1 class="title">GreenSock ScrollSmoother on a Vue3 App</h1>
                 <div class="button-group">
                     <button v-for="item in demoTargets" :key="item.key" class="button"
@@ -384,10 +389,11 @@ onUnmounted(() => {
             </div>
             <div class="box box-d">
                 <div class="parallel">
-                    <p class="parallel-text">
-                        善舞
-                    </p>
+
                     <div class="page1 gradient-orange">
+                        <p class="parallel-text">
+                            善舞
+                        </p>
                         <video src="/gsap/cyy/1.mp4" ref="video1Ref" class="video-1">
                             您的浏览器不支持视频播放
                         </video>
@@ -424,8 +430,11 @@ onUnmounted(() => {
                     </p>
                 </div>
             </div>
-            <div v-for="item in [24, 25, 26, 27, 28]" :key="`see-${item}`" :class="`see-${item}`" class="see-item">
-                <img :src="`/gsap/cyy/${item}.jpg`" :class="`show-${item}`" alt="" />
+            <div v-for="item in seeList" :key="`see-${item.key}`" :class="`see-${item.key}`" class="see-item">
+                <img :src="`/gsap/cyy/${item.key}.jpg`" :class="`show-${item.key}`" alt="" />
+                <p class="see-text">
+                    {{ item.label }}
+                </p>
             </div>
         </div>
     </div>
@@ -536,8 +545,9 @@ onUnmounted(() => {
 }
 
 #smooth-content {
+    background-color: #fff;
     overflow: visible;
-    height: 20000px;
+    height: 25000px;
 }
 
 .box {
@@ -602,7 +612,7 @@ onUnmounted(() => {
 
     .start-title {
         font-size: 4rem;
-        color: #fff;
+        color: #000;
         position: absolute;
         top: 50%;
         left: 0;
@@ -636,7 +646,7 @@ onUnmounted(() => {
 
     .end-title {
         font-size: 4rem;
-        color: #fff;
+        color: #000;
         position: absolute;
         top: 50%;
         left: 0;
@@ -658,7 +668,10 @@ onUnmounted(() => {
 
         .parallel-text {
             font-size: 20vw;
-            color: #fff;
+            background: linear-gradient(to right, yellow, lime, aqua);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             position: absolute;
             top: 50%;
             left: 0;
@@ -679,7 +692,7 @@ onUnmounted(() => {
 
             p {
                 font-size: 4rem;
-                color: #fff;
+                color: #000;
                 position: absolute;
                 top: 50%;
                 left: 40%;
@@ -688,6 +701,7 @@ onUnmounted(() => {
                 margin-inline: auto;
                 width: fit-content;
                 max-width: 60%;
+                font-family: serif;
             }
         }
 
@@ -724,7 +738,10 @@ onUnmounted(() => {
 
         .cos-title {
             font-size: 15vw;
-            color: #fff;
+            background: linear-gradient(to right, yellow, lime, aqua);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             position: absolute;
             top: 50%;
             left: 0;
@@ -758,11 +775,25 @@ onUnmounted(() => {
     height: 100vh;
     width: 100%;
     overflow: hidden;
+    position: relative;
 
     img {
         height: 100%;
         width: 100%;
         object-fit: cover;
+    }
+
+    .see-text {
+        font-size: 10vw;
+        color: #fff;
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        transform: translateY(-50%);
+        margin-inline: auto;
+        width: fit-content;
+        max-width: 100%;
     }
 }
 
