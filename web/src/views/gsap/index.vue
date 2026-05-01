@@ -299,6 +299,7 @@ onMounted(() => {
         });
 
         [24, 25, 26, 27, 28].forEach(value => {
+            const getParallaxDistance = () => window.innerHeight * 0.5;
             ScrollTrigger.create({
                 trigger: `.see-${value}`,
                 start: 'top bottom',
@@ -307,14 +308,17 @@ onMounted(() => {
                 markers: true,
                 invalidateOnRefresh: true,
                 animation:
-                    gsap.timeline()
+                    gsap.timeline({ defaults: { ease: 'none' } })
                         .fromTo(`.show-${value}`, {
                             transformOrigin: "50% 50%",
-                            // transform: `translateY(-${window.innerHeight * 0.5}px)`
-                            y: () => -window.innerHeight * 0.5
+                            y: () => -getParallaxDistance()
                         }, {
-                            y: () => window.innerHeight * 0.5
-                            // transform: `translateY(${window.innerHeight * 0.5}px)`
+                            y: () => 0,
+                            duration: 0.5
+                        })
+                        .to(`.show-${value}`, {
+                            y: () => getParallaxDistance(),
+                            duration: 0.5
                         })
             });
         });
