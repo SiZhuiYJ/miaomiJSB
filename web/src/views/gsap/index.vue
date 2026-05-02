@@ -25,13 +25,18 @@ const demoTargets: DemoTarget[] = [
     { key: 'e', label: '跳转到 E', selector: '.box-e', position: 'top top' },
 ];
 
+const heroImages = Array.from({ length: 100 }, (_, index) => index + 1);
+
+const galleryImages = heroImages.slice(0, 30);
+const mountainImages = heroImages.slice(30, 37);
+
 const seeList = [
-    { key: '24', label: '黎就是富婆', },
-    { key: '25', label: '黎最好看', },
-    { key: '26', label: '黎最腻害', },
-    { key: '27', label: '黎嘎嘎乱杀', },
-    { key: '28', label: '黎铲啦', },
-]
+    { key: '48', label: '清晨的大理洱海', },
+    { key: '57', label: '玉龙雪山的云海', },
+    { key: '66', label: '香格里拉草原', },
+    { key: '75', label: '雨后的丽江古城', },
+    { key: '84', label: '西双版纳夜色', },
+];
 
 let smoother: ScrollSmoother | null = null;
 let ctx: gsap.Context | null = null;
@@ -83,7 +88,7 @@ onMounted(() => {
             scrub: true,
             pin: true,
             markers: true,
-            onUpdate(self) {
+            onUpdate() {
                 // const video = video4.value;
                 // if (!video) return;
                 // const dur = video.duration;
@@ -278,13 +283,13 @@ onMounted(() => {
             markers: true,
             animation:
                 gsap.timeline()
-                    .fromTo('.cos-7', { scale: 0.4, zIndex: 1, left: "50%" }, { scale: 0.6, left: "8%" })
-                    .fromTo('.cos-21', { scale: 0.6, zIndex: 2, left: "50%" }, { scale: 0.7, left: "22%" }, '<')
-                    .fromTo('.cos-5', { scale: 0.8, zIndex: 3, left: "50%" }, { scale: 0.8, left: "36%" }, '<')
-                    .fromTo('.cos-18', { scale: 1, zIndex: 4, }, { scale: 0.9, }, '<')
-                    .fromTo('.cos-6', { scale: 0.8, zIndex: 3, left: "50%" }, { scale: 0.8, left: "64%" }, '<')
-                    .fromTo('.cos-22', { scale: 0.6, zIndex: 2, left: "50%" }, { scale: 0.7, left: "78%" }, '<')
-                    .fromTo('.cos-23', { scale: 0.4, zIndex: 1, left: "50%" }, { scale: 0.6, left: "92%" }, '<')
+                    .fromTo('.cos-31', { scale: 0.4, zIndex: 1, left: "50%" }, { scale: 0.6, left: "8%" })
+                    .fromTo('.cos-32', { scale: 0.6, zIndex: 2, left: "50%" }, { scale: 0.7, left: "22%" }, '<')
+                    .fromTo('.cos-33', { scale: 0.8, zIndex: 3, left: "50%" }, { scale: 0.8, left: "36%" }, '<')
+                    .fromTo('.cos-34', { scale: 1, zIndex: 4, }, { scale: 0.9, }, '<')
+                    .fromTo('.cos-35', { scale: 0.8, zIndex: 3, left: "50%" }, { scale: 0.8, left: "64%" }, '<')
+                    .fromTo('.cos-36', { scale: 0.6, zIndex: 2, left: "50%" }, { scale: 0.7, left: "78%" }, '<')
+                    .fromTo('.cos-37', { scale: 0.4, zIndex: 1, left: "50%" }, { scale: 0.6, left: "92%" }, '<')
         });
 
         ScrollTrigger.create({
@@ -372,34 +377,34 @@ onUnmounted(() => {
                         您的浏览器不支持视频播放
                     </video> -->
                     <p class="text-1">
-                        怎么看！<br>
-                        怎么萌~
+                        云南不只有风景，<br>
+                        还有每一张旅途里的笑脸。
                     </p>
                     <p class="text-2">
-                        绝世萌妹~
+                        从昆明出发，一路向南。
                     </p>
                 </div>
             </div>
             <div class="box box-c gradient-green-2">
-                <p class="start-title">一大波美图来袭~</p>
+                <p class="start-title">云南100张旅拍，开始滚动放映</p>
                 <div class="img-list">
-                    <img v-for="value in [1, 2, 3, 4, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]" :key="`yunnan-${value}`"
-                        :src="`/gsap/yunnan/${value}.jpg`" :class="`image-${value}`" alt="" />
+                    <img v-for="value in galleryImages" :key="`yunnan-gallery-${value}`"
+                        :src="`/gsap/yunnan/${value}.jpg`" :class="`image-${value}`" alt="云南旅拍" />
                 </div>
-                <p class="end-title">沉迷于美色之中了吧</p>
+                <p class="end-title">下一站：把风景走成故事</p>
             </div>
             <div class="box box-d">
                 <div class="parallel">
 
                     <div class="page1 gradient-orange">
                         <p class="parallel-text">
-                            善舞
+                            民族风情
                         </p>
                         <!-- <video src="/gsap/yunnan/1.mp4" ref="video1Ref" class="video-1">
                             您的浏览器不支持视频播放
                         </video> -->
                         <p class="page1-text">
-                            优美舞姿
+                            丽江古城 · 夜色与歌
                         </p>
                     </div>
                     <div class="page2 gradient-blue-2">
@@ -407,7 +412,7 @@ onUnmounted(() => {
                             您的浏览器不支持视频播放
                         </video> -->
                         <p class="page2-text">
-                            纵享丝滑
+                            大理洱海 · 风与自由
                         </p>
                     </div>
                     <div class="page3 gradient-blue">
@@ -415,7 +420,7 @@ onUnmounted(() => {
                             您的浏览器不支持视频播放
                         </video> -->
                         <p class="page3-text">
-                            放荡不羁
+                            香格里拉 · 云上牧歌
                         </p>
                     </div>
                 </div>
@@ -423,16 +428,16 @@ onUnmounted(() => {
             <div class="box box-e gradient-red">
                 <div class="cos">
                     <div class="cos-list">
-                        <img v-for="value in [7, 21, 5, 18, 6, 22, 23]" :key="`yunnan-cos-${value}`"
-                            :src="`/gsap/yunnan/${value}.jpg`" :class="`cos-${value}`" alt="" />
+                        <img v-for="value in mountainImages" :key="`yunnan-cos-${value}`"
+                            :src="`/gsap/yunnan/${value}.jpg`" :class="`cos-${value}`" alt="云南风景" />
                     </div>
                     <p class="cos-title">
-                        美少女COS
+                        雪山与峡谷
                     </p>
                 </div>
             </div>
             <div v-for="item in seeList" :key="`see-${item.key}`" :class="`see-${item.key}`" class="see-item">
-                <img :src="`/gsap/yunnan/${item.key}.jpg`" :class="`show-${item.key}`" alt="" />
+                <img :src="`/gsap/yunnan/${item.key}.jpg`" :class="`show-${item.key}`" alt="云南风景" />
                 <p class="see-text">
                     {{ item.label }}
                 </p>
