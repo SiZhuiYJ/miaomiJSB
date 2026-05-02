@@ -363,12 +363,12 @@ onUnmounted(() => {
             </header>
             <div class="box box-a gradient-purple">
                 <div class="box-img">
-                    <img src="/gsap/yunnan/20.jpg" class="image-20" alt="">
+                    <img src="/gsap/yunnan/love/20.jpg" class="image-20" alt="">
                 </div>
             </div>
             <div class="box box-b gradient-green">
                 <div class="box-video">
-                    <!-- <video src="/gsap/yunnan/4.mp4" ref="video4Ref" class="video-4">
+                    <!-- <video src="/gsap/yunnan/love/4.mp4" ref="video4Ref" class="video-4">
                         您的浏览器不支持视频播放
                     </video> -->
                     <p class="text-1">
@@ -384,7 +384,7 @@ onUnmounted(() => {
                 <p class="start-title">云南100张旅拍，开始滚动放映</p>
                 <div class="img-list">
                     <img v-for="value in galleryImages" :key="`yunnan-gallery-${value}`"
-                        :src="`/gsap/yunnan/${value}.jpg`" :class="`image-${value}`" alt="云南旅拍" />
+                        :src="`/gsap/yunnan/love/${value}.jpg`" :class="`image-${value}`" alt="云南旅拍" />
                 </div>
                 <p class="end-title">下一站：把风景走成故事</p>
             </div>
@@ -395,7 +395,7 @@ onUnmounted(() => {
                         <p class="parallel-text">
                             民族风情
                         </p>
-                        <!-- <video src="/gsap/yunnan/1.mp4" ref="video1Ref" class="video-1">
+                        <!-- <video src="/gsap/yunnan/love/1.mp4" ref="video1Ref" class="video-1">
                             您的浏览器不支持视频播放
                         </video> -->
                         <p class="page1-text">
@@ -403,7 +403,7 @@ onUnmounted(() => {
                         </p>
                     </div>
                     <div class="page2 gradient-blue-2">
-                        <!-- <video src="/gsap/yunnan/2.mp4" ref="video2Ref" class="video-2">
+                        <!-- <video src="/gsap/yunnan/love/2.mp4" ref="video2Ref" class="video-2">
                             您的浏览器不支持视频播放
                         </video> -->
                         <p class="page2-text">
@@ -411,7 +411,7 @@ onUnmounted(() => {
                         </p>
                     </div>
                     <div class="page3 gradient-blue">
-                        <!-- <video src="/gsap/yunnan/3.mp4" ref="video3Ref" class="video-3">
+                        <!-- <video src="/gsap/yunnan/love/3.mp4" ref="video3Ref" class="video-3">
                             您的浏览器不支持视频播放
                         </video> -->
                         <p class="page3-text">
@@ -424,7 +424,7 @@ onUnmounted(() => {
                 <div class="cos">
                     <div class="cos-list">
                         <img v-for="value in mountainImages" :key="`yunnan-cos-${value}`"
-                            :src="`/gsap/yunnan/${value}.jpg`" :class="`cos-${value}`" alt="云南风景" />
+                            :src="`/gsap/yunnan/love/${value}.jpg`" :class="`cos-${value}`" alt="云南风景" />
                     </div>
                     <p class="cos-title">
                         雪山与峡谷
@@ -432,7 +432,7 @@ onUnmounted(() => {
                 </div>
             </div>
             <div v-for="item in seeList" :key="`see-${item.key}`" :class="`see-${item.key}`" class="see-item">
-                <img :src="`/gsap/yunnan/${item.key}.jpg`" :class="`show-${item.key}`" alt="云南风景" />
+                <img :src="`/gsap/yunnan/love/${item.key}.jpg`" :class="`show-${item.key}`" alt="云南风景" />
                 <p class="see-text">
                     {{ item.label }}
                 </p>
