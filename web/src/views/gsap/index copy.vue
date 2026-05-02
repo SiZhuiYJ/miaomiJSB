@@ -36,10 +36,10 @@ const seeList = [
 let smoother: ScrollSmoother | null = null;
 let ctx: gsap.Context | null = null;
 
-// const video4 = useTemplateRef('video4Ref');
-// const video3 = useTemplateRef('video3Ref');
-// const video2 = useTemplateRef('video2Ref');
-// const video1 = useTemplateRef('video1Ref');
+const video4 = useTemplateRef('video4Ref');
+const video3 = useTemplateRef('video3Ref');
+const video2 = useTemplateRef('video2Ref');
+const video1 = useTemplateRef('video1Ref');
 
 let startTitle: SplitText | null = null;
 let endTitle: SplitText | null = null;
@@ -84,14 +84,14 @@ onMounted(() => {
             pin: true,
             markers: true,
             onUpdate(self) {
-                // const video = video4.value;
-                // if (!video) return;
-                // const dur = video.duration;
-                // if (isFinite(dur) && dur > 0) {
-                //     let target = self.progress * dur;
-                //     target = Math.min(Math.max(target, 0), dur);
-                //     video.currentTime = target;
-                // }
+                const video = video4.value;
+                if (!video) return;
+                const dur = video.duration;
+                if (isFinite(dur) && dur > 0) {
+                    let target = self.progress * dur;
+                    target = Math.min(Math.max(target, 0), dur);
+                    video.currentTime = target;
+                }
             },
             animation:
                 gsap.timeline()
@@ -213,16 +213,16 @@ onMounted(() => {
             animation:
                 gsap.timeline()
                     .fromTo('.parallel-text', { opacity: 1 }, { opacity: 0 })
-                    // .fromTo('.video-1', { marginTop: '100vh' }, {
-                    //     marginTop: 0,
-                    //     onStart() {
-                    // if (video1.value) {
-                    //     video1.value.currentTime = 0
-                    //     video1.value.muted = true
-                    //     video1.value.play()
-                    // }
-                    //     }
-                    // }, '<')
+                    .fromTo('.video-1', { marginTop: '100vh' }, {
+                        marginTop: 0,
+                        onStart() {
+                            if (video1.value) {
+                                video1.value.currentTime = 0
+                                video1.value.muted = true
+                                video1.value.play()
+                            }
+                        }
+                    }, '<')
                     .from(page1Text?.lines, {
                         rotationX: -100,
                         transformOrigin: "50% 50% -160px",
@@ -234,11 +234,11 @@ onMounted(() => {
                     .fromTo('.page1', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
                     .fromTo('.page2', { duration: 0.8, left: '100vw' }, {
                         left: 0, onStart() {
-                            // if (video2.value) {
-                            //     video2.value.currentTime = 0
-                            //     video2.value.muted = true
-                            //     video2.value.play()
-                            // }
+                            if (video2.value) {
+                                video2.value.currentTime = 0
+                                video2.value.muted = true
+                                video2.value.play()
+                            }
                         }
                     }, '<')
                     .from(page2Text?.chars, {
@@ -251,11 +251,11 @@ onMounted(() => {
                     .fromTo('.page2', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
                     .fromTo('.page3', { duration: 0.8, left: '100vw' }, {
                         left: 0, onStart() {
-                            // if (video3.value) {
-                            //     video3.value.currentTime = 0
-                            //     video3.value.muted = true
-                            //     video3.value.play()
-                            // }
+                            if (video3.value) {
+                                video3.value.currentTime = 0
+                                video3.value.muted = true
+                                video3.value.play()
+                            }
                         }
                     }, '<')
                     .from(page3Text?.chars, {
@@ -350,8 +350,7 @@ onUnmounted(() => {
 <template>
     <div id="smooth-wrapper" ref="mainRef">
         <div id="smooth-content">
-            <!-- style="display: none;" -->
-            <header class="header">
+            <header class="header" style="display: none;">
                 <h1 class="title">GreenSock ScrollSmoother on a Vue3 App</h1>
                 <div class="button-group">
                     <button v-for="item in demoTargets" :key="item.key" class="button"
@@ -368,9 +367,9 @@ onUnmounted(() => {
             </div>
             <div class="box box-b gradient-green">
                 <div class="box-video">
-                    <!-- <video src="/gsap/yunnan/4.mp4" ref="video4Ref" class="video-4">
+                    <video src="/gsap/yunnan/4.mp4" ref="video4Ref" class="video-4">
                         您的浏览器不支持视频播放
-                    </video> -->
+                    </video>
                     <p class="text-1">
                         怎么看！<br>
                         怎么萌~
@@ -395,25 +394,25 @@ onUnmounted(() => {
                         <p class="parallel-text">
                             善舞
                         </p>
-                        <!-- <video src="/gsap/yunnan/1.mp4" ref="video1Ref" class="video-1">
+                        <video src="/gsap/yunnan/1.mp4" ref="video1Ref" class="video-1">
                             您的浏览器不支持视频播放
-                        </video> -->
+                        </video>
                         <p class="page1-text">
                             优美舞姿
                         </p>
                     </div>
                     <div class="page2 gradient-blue-2">
-                        <!-- <video src="/gsap/yunnan/2.mp4" ref="video2Ref" class="video-2">
+                        <video src="/gsap/yunnan/2.mp4" ref="video2Ref" class="video-2">
                             您的浏览器不支持视频播放
-                        </video> -->
+                        </video>
                         <p class="page2-text">
                             纵享丝滑
                         </p>
                     </div>
                     <div class="page3 gradient-blue">
-                        <!-- <video src="/gsap/yunnan/3.mp4" ref="video3Ref" class="video-3">
+                        <video src="/gsap/yunnan/3.mp4" ref="video3Ref" class="video-3">
                             您的浏览器不支持视频播放
-                        </video> -->
+                        </video>
                         <p class="page3-text">
                             放荡不羁
                         </p>
