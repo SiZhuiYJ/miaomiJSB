@@ -41,11 +41,6 @@ const seeList = [
 let smoother: ScrollSmoother | null = null;
 let ctx: gsap.Context | null = null;
 
-// const video4 = useTemplateRef('video4Ref');
-// const video3 = useTemplateRef('video3Ref');
-// const video2 = useTemplateRef('video2Ref');
-// const video1 = useTemplateRef('video1Ref');
-
 let startTitle: SplitText | null = null;
 let endTitle: SplitText | null = null;
 let page1Text: SplitText | null = null;
@@ -553,7 +548,7 @@ onUnmounted(() => {
 #smooth-content {
     background-color: #fff;
     overflow: visible;
-    height: 25000px;
+    height: 50000px;
 }
 
 .box {
