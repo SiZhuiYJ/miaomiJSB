@@ -27,16 +27,29 @@ const demoTargets: DemoTarget[] = [
 
 const heroImages = Array.from({ length: 100 }, (_, index) => index + 1);
 
-const galleryImages = heroImages.slice(0, 30);
-const mountainImages = heroImages.slice(30, 37);
+const galleryImages = heroImages.slice(0, 20);
+
+const mountainImages = [31, 32, 33, 34, 35, 36, 37];
+
+const video1 = useTemplateRef('video1Ref');
+const video2 = useTemplateRef('video2Ref');
+const video3 = useTemplateRef('video3Ref');
+const video4 = useTemplateRef('video4Ref');
+
+const videoList = ref([16, 44, 54, 56, 57, 114, 114, 116, 177, 179, 180, 181, 334, 335, 337, 341, 342, 344, 350, 365, 371,])
 
 const seeList = [
     { key: '48', label: '清晨的大理洱海', },
-    { key: '57', label: '玉龙雪山的云海', },
+    { key: '58', label: '玉龙雪山的云海', },
     { key: '66', label: '香格里拉草原', },
     { key: '75', label: '雨后的丽江古城', },
     { key: '84', label: '西双版纳夜色', },
 ];
+
+const seeVideoList = [
+    { key: 53, label: '渡海缆车' },
+    { key: 55, label: '出发啦~' }
+]
 
 let smoother: ScrollSmoother | null = null;
 let ctx: gsap.Context | null = null;
@@ -83,15 +96,15 @@ onMounted(() => {
             scrub: true,
             pin: true,
             markers: true,
-            onUpdate() {
-                // const video = video4.value;
-                // if (!video) return;
-                // const dur = video.duration;
-                // if (isFinite(dur) && dur > 0) {
-                //     let target = self.progress * dur;
-                //     target = Math.min(Math.max(target, 0), dur);
-                //     video.currentTime = target;
-                // }
+            onUpdate(self) {
+                const video = video1.value;
+                if (!video) return;
+                const dur = video.duration;
+                if (isFinite(dur) && dur > 0) {
+                    let target: number = self.progress * dur;
+                    target = Math.min(Math.max(target, 0), dur);
+                    video.currentTime = target;
+                }
             },
             animation:
                 gsap.timeline()
@@ -213,16 +226,16 @@ onMounted(() => {
             animation:
                 gsap.timeline()
                     .fromTo('.parallel-text', { opacity: 1 }, { opacity: 0 })
-                    // .fromTo('.video-1', { marginTop: '100vh' }, {
-                    //     marginTop: 0,
-                    //     onStart() {
-                    // if (video1.value) {
-                    //     video1.value.currentTime = 0
-                    //     video1.value.muted = true
-                    //     video1.value.play()
-                    // }
-                    //     }
-                    // }, '<')
+                    .fromTo(`.video-${videoList.value[0]}`, { marginTop: '100vh' }, {
+                        marginTop: 0,
+                        onStart() {
+                            if (video2.value) {
+                                video2.value.currentTime = 0
+                                video2.value.muted = true
+                                video2.value.play()
+                            }
+                        }
+                    }, '<')
                     .from(page1Text?.lines, {
                         rotationX: -100,
                         transformOrigin: "50% 50% -160px",
@@ -234,11 +247,11 @@ onMounted(() => {
                     .fromTo('.page1', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
                     .fromTo('.page2', { duration: 0.8, left: '100vw' }, {
                         left: 0, onStart() {
-                            // if (video2.value) {
-                            //     video2.value.currentTime = 0
-                            //     video2.value.muted = true
-                            //     video2.value.play()
-                            // }
+                            if (video3.value) {
+                                video3.value.currentTime = 0
+                                video3.value.muted = true
+                                video3.value.play()
+                            }
                         }
                     }, '<')
                     .from(page2Text?.chars, {
@@ -250,12 +263,13 @@ onMounted(() => {
                     }, '>')
                     .fromTo('.page2', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
                     .fromTo('.page3', { duration: 0.8, left: '100vw' }, {
-                        left: 0, onStart() {
-                            // if (video3.value) {
-                            //     video3.value.currentTime = 0
-                            //     video3.value.muted = true
-                            //     video3.value.play()
-                            // }
+                        left: 0,
+                        onStart() {
+                            if (video4.value) {
+                                video4.value.currentTime = 0
+                                video4.value.muted = true
+                                video4.value.play()
+                            }
                         }
                     }, '<')
                     .from(page3Text?.chars, {
@@ -316,19 +330,53 @@ onMounted(() => {
                 invalidateOnRefresh: true,
                 animation:
                     gsap.timeline({ defaults: { ease: 'none' } })
-                        .fromTo(`.show-${value.key}`, {
+                        .fromTo(`.show-img-${value.key}`, {
                             transformOrigin: "50% 50%",
                             y: () => -getParallaxDistance()
                         }, {
                             y: () => 0,
                             duration: 0.5
                         })
-                        .to(`.show-${value.key}`, {
+                        .to(`.show-img-${value.key}`, {
                             y: () => getParallaxDistance(),
                             duration: 0.5
                         })
             });
         });
+
+        seeVideoList.forEach(value => {
+            const getParallaxDistance = () => window.innerHeight * 0.5;
+            ScrollTrigger.create({
+                trigger: `.see-${value.key}`,
+                start: 'top bottom',
+                end: 'bottom top',
+                scrub: true,
+                markers: true,
+                invalidateOnRefresh: true,
+                animation:
+                    gsap.timeline({ defaults: { ease: 'none' } })
+                        .fromTo(`.show-video-${value.key}`, {
+                            transformOrigin: "50% 50%",
+
+                            y: () => -getParallaxDistance()
+                        }, {
+                            onStart() {
+                                const videoContext = main.value?.querySelector<HTMLVideoElement>(`.show-video-${value.key}`);
+                                if (videoContext) {
+                                    videoContext.muted = true
+                                    videoContext.play()
+                                }
+                            },
+                            y: () => 0,
+                            duration: 0.5
+                        })
+                        .to(`.show-video-${value.key}`, {
+                            y: () => getParallaxDistance(),
+                            duration: 0.5
+                        })
+            });
+        });
+
     }, main.value);
 });
 
@@ -363,14 +411,15 @@ onUnmounted(() => {
             </header>
             <div class="box box-a gradient-purple">
                 <div class="box-img">
-                    <img src="/gsap/yunnan/love/20.jpg" class="image-20" alt="">
+                    <img src="/gsap/yunnan/tourism/t-1.jpg" class="image-1" alt="">
                 </div>
             </div>
             <div class="box box-b gradient-green">
                 <div class="box-video">
-                    <!-- <video src="/gsap/yunnan/love/4.mp4" ref="video4Ref" class="video-4">
+                    <video :src="`/gsap/yunnan/tourism/t-${videoList[2]}.mp4`" ref="video1Ref"
+                        :class="`video-${videoList[2]}`">
                         您的浏览器不支持视频播放
-                    </video> -->
+                    </video>
                     <p class="text-1">
                         云南不只有风景，<br>
                         还有每一张旅途里的笑脸。
@@ -384,7 +433,7 @@ onUnmounted(() => {
                 <p class="start-title">云南100张旅拍，开始滚动放映</p>
                 <div class="img-list">
                     <img v-for="value in galleryImages" :key="`yunnan-gallery-${value}`"
-                        :src="`/gsap/yunnan/love/${value}.jpg`" :class="`image-${value}`" alt="云南旅拍" />
+                        :src="`/gsap/yunnan/tourism/t-${value}.jpg`" :class="`image-${value}`" alt="云南旅拍" />
                 </div>
                 <p class="end-title">下一站：把风景走成故事</p>
             </div>
@@ -395,7 +444,11 @@ onUnmounted(() => {
                         <p class="parallel-text">
                             民族风情
                         </p>
-                        <!-- <video src="/gsap/yunnan/love/1.mp4" ref="video1Ref" class="video-1">
+                        <video :src="`/gsap/yunnan/tourism/t-${videoList[0]}.mp4`" ref="video2Ref"
+                            :class="`video-${videoList[0]}`">
+                            您的浏览器不支持视频播放
+                        </video>
+                        <!-- <video src="/gsap/yunnan/tourism/t-1.mp4" ref="video1Ref" class="video-1">
                             您的浏览器不支持视频播放
                         </video> -->
                         <p class="page1-text">
@@ -403,7 +456,11 @@ onUnmounted(() => {
                         </p>
                     </div>
                     <div class="page2 gradient-blue-2">
-                        <!-- <video src="/gsap/yunnan/love/2.mp4" ref="video2Ref" class="video-2">
+                        <video :src="`/gsap/yunnan/tourism/t-${videoList[1]}.mp4`" ref="video3Ref"
+                            :class="`video-${videoList[1]}`">
+                            您的浏览器不支持视频播放
+                        </video>
+                        <!-- <video src="/gsap/yunnan/tourism/t-2.mp4" ref="video2Ref" class="video-2">
                             您的浏览器不支持视频播放
                         </video> -->
                         <p class="page2-text">
@@ -411,7 +468,11 @@ onUnmounted(() => {
                         </p>
                     </div>
                     <div class="page3 gradient-blue">
-                        <!-- <video src="/gsap/yunnan/love/3.mp4" ref="video3Ref" class="video-3">
+                        <video :src="`/gsap/yunnan/tourism/t-${videoList[3]}.mp4`" ref="video4Ref"
+                            :class="`video-${videoList[3]}`">
+                            您的浏览器不支持视频播放
+                        </video>
+                        <!-- <video src="/gsap/yunnan/tourism/t-3.mp4" ref="video3Ref" class="video-3">
                             您的浏览器不支持视频播放
                         </video> -->
                         <p class="page3-text">
@@ -424,7 +485,7 @@ onUnmounted(() => {
                 <div class="cos">
                     <div class="cos-list">
                         <img v-for="value in mountainImages" :key="`yunnan-cos-${value}`"
-                            :src="`/gsap/yunnan/love/${value}.jpg`" :class="`cos-${value}`" alt="云南风景" />
+                            :src="`/gsap/yunnan/tourism/t-${value}.jpg`" :class="`cos-${value}`" alt="云南风景" />
                     </div>
                     <p class="cos-title">
                         雪山与峡谷
@@ -432,7 +493,13 @@ onUnmounted(() => {
                 </div>
             </div>
             <div v-for="item in seeList" :key="`see-${item.key}`" :class="`see-${item.key}`" class="see-item">
-                <img :src="`/gsap/yunnan/love/${item.key}.jpg`" :class="`show-${item.key}`" alt="云南风景" />
+                <img :src="`/gsap/yunnan/tourism/t-${item.key}.jpg`" :class="`show-img-${item.key}`" alt="云南风景" />
+                <p class="see-text">
+                    {{ item.label }}
+                </p>
+            </div>
+            <div v-for="item in seeVideoList" :key="`see-${item.key}`" :class="`see-${item.key}`" class="see-item">
+                <video :src="`/gsap/yunnan/tourism/t-${item.key}.mp4`" :class="`show-video-${item.key}`" alt="云南风景" />
                 <p class="see-text">
                     {{ item.label }}
                 </p>
@@ -778,7 +845,8 @@ onUnmounted(() => {
     overflow: hidden;
     position: relative;
 
-    img {
+    img,
+    video {
         height: 100%;
         width: 100%;
         object-fit: cover;
@@ -796,6 +864,7 @@ onUnmounted(() => {
         width: fit-content;
         max-width: 100%;
     }
+
 }
 
 .gradient-green {
