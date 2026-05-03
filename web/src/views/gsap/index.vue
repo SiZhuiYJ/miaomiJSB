@@ -4,7 +4,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ScrollSmoother } from 'gsap/ScrollSmoother';
 import { SplitText } from 'gsap/SplitText';
-import { buildGalleryTimeline, buildCosTimeline } from './utils';
+import { buildStoryTimeline, buildGalleryTimeline, buildCosTimeline } from './utils';
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother, SplitText);
 
@@ -14,6 +14,15 @@ type DemoTarget = {
     selector: string;
     position?: string;
 };
+
+interface StoryPages {
+    id: number;
+    videoIndex: number;
+    headline: string;
+    text: string;
+    gradientClass: string;
+    textAnimType: 'lines' | 'chars';
+}
 
 const main = useTemplateRef('mainRef');
 
@@ -27,10 +36,40 @@ const demoTargets: DemoTarget[] = [
     { key: 'e', label: '跳转到 E', selector: '.mountain-reveal', position: 'top top' },
 ];
 
+// 故事页面数据：每页的视频编号、标题文本、背景渐变类、文字动画类型等
+const storyPages = ref<StoryPages[]>([
+    {
+        id: 0,
+        videoIndex: 16,          // 对应 videoList[0] 实际是16
+        headline: '民族风情',
+        text: '丽江古城 · 夜色与歌',
+        gradientClass: 'gradient-orange',
+        textAnimType: 'lines',   // SplitText 类型：lines 或 chars
+    },
+    {
+        id: 1,
+        videoIndex: 44,          // videoList[1]
+        headline: '',
+        text: '大理洱海 · 风与自由',
+        gradientClass: 'gradient-blue-2',
+        textAnimType: 'chars',
+    },
+    {
+        id: 2,
+        videoIndex: 54,          // videoList[3] 实际是54
+        headline: '',
+        text: '香格里拉 · 云上牧歌',
+        gradientClass: 'gradient-blue',
+        textAnimType: 'chars',
+    },
+]);
+
+const videoRefs = ref<(HTMLVideoElement | null)[]>([]);
+
 const video1 = useTemplateRef('video1Ref');
-const video2 = useTemplateRef('video2Ref');
-const video3 = useTemplateRef('video3Ref');
-const video4 = useTemplateRef('video4Ref');
+// const video2 = useTemplateRef('video2Ref');
+// const video3 = useTemplateRef('video3Ref');
+// const video4 = useTemplateRef('video4Ref');
 
 // 创建画廊的 SplitText 实例
 const galleryImages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20];
@@ -183,76 +222,93 @@ onMounted(() => {
                 }),
         });
 
-        // 第三个区块：分页故事
-        page1Text = SplitText.create(".story-text-first", { type: "lines" });
-        page2Text = SplitText.create(".story-text-second", { type: "chars" });
-        page3Text = SplitText.create(".story-text-third", { type: "chars" });
 
-        ScrollTrigger.create({
-            trigger: '.story-carousel',
-            pin: true,
-            start: 'top top',
-            end: '+=2000',
-            scrub: true,
-            markers: true,
-            animation: gsap.timeline()
-                .fromTo('.carousel-headline', { opacity: 1 }, { opacity: 0 })
-                .fromTo(`.video-${videoList.value[0]}`, { marginTop: '100vh' }, {
-                    marginTop: 0,
-                    onStart() {
-                        if (video2.value) {
-                            video2.value.currentTime = 0;
-                            video2.value.muted = true;
-                            video2.value.play();
-                        }
-                    }
-                }, '<')
-                .from(page1Text?.lines, {
-                    rotationX: -100,
-                    transformOrigin: "50% 50% -160px",
-                    opacity: 0,
-                    duration: 0.8,
-                    ease: "power3",
-                    stagger: 0.25
-                }, '>')
-                .fromTo('.story-page-1', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
-                .fromTo('.story-page-2', { duration: 0.8, left: '100vw' }, {
-                    left: 0,
-                    onStart() {
-                        if (video3.value) {
-                            video3.value.currentTime = 0;
-                            video3.value.muted = true;
-                            video3.value.play();
-                        }
-                    }
-                }, '<')
-                .from(page2Text?.chars, {
-                    x: 150,
-                    opacity: 0,
-                    duration: 0.7,
-                    ease: "power4",
-                    stagger: 0.04
-                }, '>')
-                .fromTo('.story-page-2', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
-                .fromTo('.story-page-3', { duration: 0.8, left: '100vw' }, {
-                    left: 0,
-                    onStart() {
-                        if (video4.value) {
-                            video4.value.currentTime = 0;
-                            video4.value.muted = true;
-                            video4.value.play();
-                        }
-                    }
-                }, '<')
-                .from(page3Text?.chars, {
-                    rotationX: -100,
-                    transformOrigin: "50% 50% -160px",
-                    opacity: 0,
-                    duration: 0.8,
-                    ease: "power3",
-                    stagger: 0.25
-                }, '>')
-        });
+
+        // 分页故事轮播
+        const storyContainer = main.value?.querySelector<HTMLElement>('.multipage-story');
+        if (storyContainer && storyPages.value.length) {
+            const storyTimeline = buildStoryTimeline(storyContainer, storyPages.value);
+            ScrollTrigger.create({
+                trigger: '.story-carousel',
+                pin: true,
+                start: 'top top',
+                end: '+=2000',
+                scrub: true,
+                markers: true,
+                animation: storyTimeline,
+            });
+        }
+
+        // 第三个区块：分页故事
+        // page1Text = SplitText.create(".story-text-first", { type: "lines" });
+        // page2Text = SplitText.create(".story-text-second", { type: "chars" });
+        // page3Text = SplitText.create(".story-text-third", { type: "chars" });
+
+        // ScrollTrigger.create({
+        //     trigger: '.story-carousel',
+        //     pin: true,
+        //     start: 'top top',
+        //     end: '+=2000',
+        //     scrub: true,
+        //     markers: true,
+        //     animation: gsap.timeline()
+        //         .fromTo('.carousel-headline', { opacity: 1 }, { opacity: 0 })
+        //         .fromTo(`.video-${videoList.value[0]}`, { marginTop: '100vh' }, {
+        //             marginTop: 0,
+        //             onStart() {
+        //                 if (video2.value) {
+        //                     video2.value.currentTime = 0;
+        //                     video2.value.muted = true;
+        //                     video2.value.play();
+        //                 }
+        //             }
+        //         }, '<')
+        //         .from(page1Text?.lines, {
+        //             rotationX: -100,
+        //             transformOrigin: "50% 50% -160px",
+        //             opacity: 0,
+        //             duration: 0.8,
+        //             ease: "power3",
+        //             stagger: 0.25
+        //         }, '>')
+        //         .fromTo('.story-page-1', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
+        //         .fromTo('.story-page-2', { duration: 0.8, left: '100vw' }, {
+        //             left: 0,
+        //             onStart() {
+        //                 if (video3.value) {
+        //                     video3.value.currentTime = 0;
+        //                     video3.value.muted = true;
+        //                     video3.value.play();
+        //                 }
+        //             }
+        //         }, '<')
+        //         .from(page2Text?.chars, {
+        //             x: 150,
+        //             opacity: 0,
+        //             duration: 0.7,
+        //             ease: "power4",
+        //             stagger: 0.04
+        //         }, '>')
+        //         .fromTo('.story-page-2', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
+        //         .fromTo('.story-page-3', { duration: 0.8, left: '100vw' }, {
+        //             left: 0,
+        //             onStart() {
+        //                 if (video4.value) {
+        //                     video4.value.currentTime = 0;
+        //                     video4.value.muted = true;
+        //                     video4.value.play();
+        //                 }
+        //             }
+        //         }, '<')
+        //         .from(page3Text?.chars, {
+        //             rotationX: -100,
+        //             transformOrigin: "50% 50% -160px",
+        //             opacity: 0,
+        //             duration: 0.8,
+        //             ease: "power3",
+        //             stagger: 0.25
+        //         }, '>')
+        // });
 
         // 第五区块：雪山与峡谷
         const cosTimeline = buildCosTimeline(mountainImages);
@@ -405,8 +461,21 @@ onUnmounted(() => {
                 <p class="gallery-title-end">下一站：把风景走成故事</p>
             </div>
 
-            <!-- 区块 D：分页故事 -->
             <div class="story-carousel">
+                <div class="multipage-story">
+                    <div v-for="(page, idx) in storyPages" :key="page.id"
+                        :class="['story-page', `story-page-${idx}`, page.gradientClass]" :data-index="idx">
+                        <p v-if="page.headline" class="carousel-headline">{{ page.headline }}</p>
+                        <video :src="`/gsap/yunnan/tourism/t-${page.videoIndex}.mp4`"
+                            :ref="el => { if (el) videoRefs[idx] = el as HTMLVideoElement }"
+                            :class="`story-video-${idx}`" muted playsinline />
+                        <p :class="`story-text-${idx}`">{{ page.text }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 区块 D：分页故事 -->
+            <!-- <div class="story-carousel">
                 <div class="multipage-story">
                     <div class="story-page-1 gradient-orange">
                         <p class="carousel-headline">民族风情</p>
@@ -431,7 +500,7 @@ onUnmounted(() => {
                         <p class="story-text-third">香格里拉 · 云上牧歌</p>
                     </div>
                 </div>
-            </div>
+            </div> -->
 
             <!-- 区块 E：雪山与峡谷（叠加图） -->
             <div class="mountain-reveal gradient-red">
@@ -637,42 +706,26 @@ onUnmounted(() => {
 // 区块 D
 .story-carousel {
     .multipage-story {
-        height: 100%;
-        width: 200%;
         position: relative;
-        overflow: hidden;
-        box-sizing: border-box;
+        width: 100%;
+        height: 100%;
+        overflow: hidden; // 保证超出部分不可见
 
-        .carousel-headline {
-            font-size: 20vw;
-            background: linear-gradient(to right, yellow, lime, aqua);
-            background-clip: text;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            transform: translateY(-50%);
-            margin-inline: auto;
-            width: fit-content;
-            max-width: 100%;
-            z-index: 2;
-        }
-
-        .story-page-1,
-        .story-page-2,
-        .story-page-3 {
+        .story-page {
             position: absolute;
             top: 0;
-            height: 100%;
+            left: 0; // 所有页面初始位置都是 0
             width: 100%;
+            height: 100%;
+            transition: none; // 动画由 GSAP 控制 left 值
+            will-change: left;
 
             video {
                 height: 80%;
                 position: absolute;
                 top: 10%;
                 left: 10%;
+                object-fit: cover;
             }
 
             p {
@@ -687,16 +740,26 @@ onUnmounted(() => {
                 width: fit-content;
                 max-width: 60%;
                 font-family: serif;
+                z-index: 2;
             }
-        }
 
-        .story-page-1 {
-            left: 0;
-        }
-
-        .story-page-2,
-        .story-page-3 {
-            left: 100vw;
+            // 大标题（仅第一页有）
+            .carousel-headline {
+                font-size: 20vw;
+                background: linear-gradient(to right, yellow, lime, aqua);
+                background-clip: text;
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                position: absolute;
+                top: 50%;
+                left: 0;
+                right: 0;
+                transform: translateY(-50%);
+                margin-inline: auto;
+                width: fit-content;
+                max-width: 100%;
+                text-align: center;
+            }
         }
     }
 }
