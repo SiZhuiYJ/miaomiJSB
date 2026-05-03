@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, useTemplateRef } from 'vue';
+import { onMounted, onUnmounted, useTemplateRef, ref } from 'vue';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ScrollSmoother } from 'gsap/ScrollSmoother';
 import { SplitText } from 'gsap/SplitText';
+import { buildGalleryTimeline, buildCosTimeline } from './utils';
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother, SplitText);
 
@@ -16,83 +17,93 @@ type DemoTarget = {
 
 const main = useTemplateRef('mainRef');
 
+// 创建分页故事的 SplitText 实例
 const demoTargets: DemoTarget[] = [
     { key: 'top', label: '回到顶部', selector: '#smooth-content', position: 'top top' },
-    { key: 'a', label: '跳转到 A', selector: '.box-a', position: 'top top' },
-    { key: 'b', label: '跳转到 B', selector: '.box-b', position: 'top top' },
-    { key: 'c', label: '跳转到 C', selector: '.box-c', position: 'top top' },
-    { key: 'd', label: '跳转到 D', selector: '.box-d', position: 'top top' },
-    { key: 'e', label: '跳转到 E', selector: '.box-e', position: 'top top' },
+    { key: 'a', label: '跳转到 A', selector: '.hero-block', position: 'top top' },
+    { key: 'b', label: '跳转到 B', selector: '.video-narrative', position: 'top top' },
+    { key: 'c', label: '跳转到 C', selector: '.scrolling-gallery', position: 'top top' },
+    { key: 'd', label: '跳转到 D', selector: '.story-carousel', position: 'top top' },
+    { key: 'e', label: '跳转到 E', selector: '.mountain-reveal', position: 'top top' },
 ];
-
-const heroImages = Array.from({ length: 100 }, (_, index) => index + 1);
-
-const galleryImages = heroImages.slice(0, 20);
-
-const mountainImages = [31, 32, 33, 34, 35, 36, 37];
 
 const video1 = useTemplateRef('video1Ref');
 const video2 = useTemplateRef('video2Ref');
 const video3 = useTemplateRef('video3Ref');
 const video4 = useTemplateRef('video4Ref');
 
-const videoList = ref([16, 44, 54, 56, 57, 114, 114, 116, 177, 179, 180, 181, 334, 335, 337, 341, 342, 344, 350, 365, 371,])
+// 创建画廊的 SplitText 实例
+const galleryImages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20];
 
+// 创建山峰的 SplitText 实例
+const mountainImages = [31, 32, 33, 34, 35, 36, 37];
+
+// 视频列表，包含需要在分页故事中使用的视频编号
+const videoList = ref([16, 44, 54, 56, 57, 114, 114, 116, 177, 179, 180, 181, 334, 335, 337, 341, 342, 344, 350, 365, 371]);
+
+// 创建查看的 SplitText 实例
 const seeList = [
-    { key: '48', label: '清晨的大理洱海', },
-    { key: '58', label: '玉龙雪山的云海', },
-    { key: '66', label: '香格里拉草原', },
-    { key: '75', label: '雨后的丽江古城', },
-    { key: '84', label: '西双版纳夜色', },
+    { key: '48', label: '清晨的大理洱海' },
+    { key: '58', label: '玉龙雪山的云海' },
+    { key: '66', label: '香格里拉草原' },
+    { key: '75', label: '雨后的丽江古城' },
+    { key: '84', label: '西双版纳夜色' },
 ];
 
+// 创建视频的 SplitText 实例
 const seeVideoList = [
     { key: 53, label: '渡海缆车' },
     { key: 55, label: '出发啦~' }
-]
+];
 
+// 创建 ScrollSmoother 实例
 let smoother: ScrollSmoother | null = null;
+
+// 创建 GSAP 上下文，以便在组件卸载时正确清理动画和 ScrollTrigger 实例
 let ctx: gsap.Context | null = null;
 
+// 画廊标题和分页故事的 SplitText 实例
 let startTitle: SplitText | null = null;
 let endTitle: SplitText | null = null;
+
+// 画廊文字动画的 SplitText 实例
 let page1Text: SplitText | null = null;
 let page2Text: SplitText | null = null;
 let page3Text: SplitText | null = null;
 
+// 创建动画的 SplitText 实例
 const scrollTo = (selector: string, position: string = 'center center') => {
-    if (!smoother)
-        return;
+    if (!smoother) return;
     smoother.scrollTo(selector, true, position);
 };
 
 onMounted(() => {
-    if (!main.value)
-        return;
+    if (!main.value) return;
 
     ctx = gsap.context(() => {
-        // create the smooth scroller FIRST!
+        // 创建 ScrollSmoother 实例
         smoother = ScrollSmoother.create({
-            smooth: 2, // seconds it takes to "catch up" to native scroll position
-            effects: true, // look for data-speed and data-lag attributes on elements and animate accordingly
+            smooth: 2,// 平滑滚动的时间（秒）
+            effects: true, // 是否启用 GSAP 效果
         });
 
+        // 第一个区块：图片缩放
         ScrollTrigger.create({
-            trigger: '.box-a',
+            trigger: '.hero-block',
             start: 'top top',
             end: '+=600',
             scrub: true,
             markers: true,
-            animation:
-                gsap.timeline()
-                    .fromTo('.box-img', { scale: 1 }, { scale: 0.8 })
-                    .fromTo('.box-video', { width: '80%', height: '80vh', }, { width: '100%', height: '100vh', }, '<')
+            animation: gsap.timeline()
+                .fromTo('.hero-image', { scale: 1 }, { scale: 0.8 })
+                .fromTo('.video-player', { width: '80%', height: '80vh' }, { width: '100%', height: '100vh' }, '<')
         });
 
+        // 第二个区块：视频+文字动画
         ScrollTrigger.create({
-            trigger: '.box-b',
+            trigger: '.video-narrative',
             start: 'top top',
-            end: '+=5000',
+            end: '+=1500',
             scrub: true,
             pin: true,
             markers: true,
@@ -101,279 +112,233 @@ onMounted(() => {
                 if (!video) return;
                 const dur = video.duration;
                 if (isFinite(dur) && dur > 0) {
-                    let target: number = self.progress * dur;
+                    let target = self.progress * dur;
                     target = Math.min(Math.max(target, 0), dur);
                     video.currentTime = target;
                 }
             },
-            animation:
-                gsap.timeline()
-                    .to('.text-1', { top: '50%', opacity: 1 })
-                    .to('.text-1', { top: '0', opacity: 0 })
-                    .to('.text-2', { top: '60%', opacity: 1 })
-                    .to('.text-2', { top: '40%', opacity: 0 })
+            animation: gsap.timeline()
+                .to('.narrative-text-first', { top: '50%', opacity: 1 })
+                .to('.narrative-text-first', { top: '0', opacity: 0 })
+                .to('.narrative-text-second', { top: '60%', opacity: 1 })
+                .to('.narrative-text-second', { top: '40%', opacity: 0 })
         });
 
-        const imgList = main.value?.querySelector<HTMLElement>('.img-list');
-        const imgItems = gsap.utils.toArray<HTMLImageElement>('.img-list img');
-        const imgGap = 40;
-        const imgTimeline = gsap.timeline({ defaults: { ease: 'none' } });
+        // 第三个区块：横向滚动画廊
+        const galleryTrack = main.value?.querySelector<HTMLElement>('.gallery-track');
+        if (galleryTrack) {
+            const galleryTimeline = buildGalleryTimeline(galleryTrack, 40);
+            const galleryImagesCount = galleryTrack.querySelectorAll('img').length; // 获取图片数量
 
-        if (imgList && imgItems.length) {
-            imgList.style.setProperty('--img-gap', `${imgGap}px`);
-
-            const viewportWidth = window.innerWidth + 200;
-            const startX = viewportWidth;
-            const endX = -imgList.scrollWidth;
-            const moveDistance = startX - endX;
-
-            gsap.set(imgList, { x: startX });
-            gsap.set(imgItems, { scale: 0.5, transformOrigin: 'center center' });
-
-            imgTimeline.fromTo(imgList, { x: startX }, { x: endX, duration: 1 }, 0);
-
-            imgItems.forEach((item) => {
-                const itemCenter = item.offsetLeft + item.offsetWidth / 2;
-                const centerProgress = gsap.utils.clamp(
-                    0,
-                    1,
-                    (startX + itemCenter - viewportWidth / 2) / moveDistance,
-                );
-                const scaleDuration = gsap.utils.clamp(
-                    0.08,
-                    0.18,
-                    ((item.offsetWidth + imgGap) / moveDistance) * 1.4,
-                );
-                const scaleInStart = Math.max(0, centerProgress - scaleDuration);
-                const scaleOutEnd = Math.min(1, centerProgress + scaleDuration);
-
-                imgTimeline
-                    .fromTo(
-                        item,
-                        { scale: 1.3 },
-                        { scale: 1, duration: centerProgress - scaleInStart },
-                        scaleInStart,
-                    )
-                    .to(
-                        item,
-                        { scale: 0.7, duration: scaleOutEnd - centerProgress },
-                        centerProgress,
-                    );
+            ScrollTrigger.create({
+                trigger: '.scrolling-gallery',
+                pin: true,
+                start: 'top top',
+                end: () => `+=${Math.max(400, galleryImagesCount * 450)}`, // 使用 galleryImagesCount
+                scrub: true,
+                markers: true,
+                animation: galleryTimeline,
             });
         }
 
-        ScrollTrigger.create({
-            trigger: '.box-c',
-            pin: true,
-            start: 'top top',
-            end: () => `+=${Math.max(400, imgItems.length * 450)}`,
-            scrub: true,
-            markers: true,
-            animation: imgTimeline
-        });
 
-        startTitle = SplitText.create(".start-title", { type: "chars" });
-
+        // 画廊开始标题动画
+        startTitle = SplitText.create(".gallery-title-start", { type: "chars" });
         ScrollTrigger.create({
-            trigger: '.start-title',
+            trigger: '.gallery-title-start',
             start: `top-=${window.innerHeight * 1.2} top`,
             end: '+=1000',
             scrub: true,
             markers: true,
-            animation:
-                gsap.timeline()
-                    .from(startTitle?.chars, {
-                        rotationX: -100,
-                        transformOrigin: "50% 50% -160px",
-                        opacity: 0,
-                        duration: 0.8,
-                        ease: "power3",
-                        stagger: 0.25
-                    })
-                    .fromTo('.start-title', { opacity: 1 }, { opacity: 0, duration: 0.5 }),
+            animation: gsap.timeline()
+                .from(startTitle?.chars, {
+                    rotationX: -100,
+                    transformOrigin: "50% 50% -160px",
+                    opacity: 0,
+                    duration: 0.8,
+                    ease: "power3",
+                    stagger: 0.25
+                })
+                .fromTo('.gallery-title-start', { opacity: 1 }, { opacity: 0, duration: 0.5 }),
         });
 
-        endTitle = SplitText.create(".end-title", { type: "chars" });
+        const totalImages = main.value?.querySelectorAll('.gallery-track img')?.length || 0; // 再次获取或复用上面的变量
 
+        // 画廊结束标题动画
+        endTitle = SplitText.create(".gallery-title-end", { type: "chars" });
         ScrollTrigger.create({
-            trigger: '.end-title',
-            start: `top+=${Math.max(imgItems.length * 450 - 800)} top`,
+            trigger: '.gallery-title-end',
+            // start: `top+=${Math.max(galleryItems.length * 450 - 800)} top`,
+            start: `top+=${Math.max(totalImages * 450 - 800, 0)} top`,
             end: '+=800',
             scrub: true,
             markers: true,
-            animation:
-                gsap.timeline()
-                    .from(endTitle?.chars, {
-                        x: 150,
-                        opacity: 0,
-                        duration: 0.7,
-                        ease: "power4",
-                        stagger: 0.04
-                    }),
+            animation: gsap.timeline()
+                .from(endTitle?.chars, {
+                    x: 150,
+                    opacity: 0,
+                    duration: 0.7,
+                    ease: "power4",
+                    stagger: 0.04
+                }),
         });
 
-        page1Text = SplitText.create(".page1-text", { type: "lines" });
-        page2Text = SplitText.create(".page2-text", { type: "chars" });
-        page3Text = SplitText.create(".page3-text", { type: "chars" });
+        // 第三个区块：分页故事
+        page1Text = SplitText.create(".story-text-first", { type: "lines" });
+        page2Text = SplitText.create(".story-text-second", { type: "chars" });
+        page3Text = SplitText.create(".story-text-third", { type: "chars" });
 
         ScrollTrigger.create({
-            trigger: '.box-d',
+            trigger: '.story-carousel',
             pin: true,
             start: 'top top',
             end: '+=2000',
             scrub: true,
             markers: true,
-            animation:
-                gsap.timeline()
-                    .fromTo('.parallel-text', { opacity: 1 }, { opacity: 0 })
-                    .fromTo(`.video-${videoList.value[0]}`, { marginTop: '100vh' }, {
-                        marginTop: 0,
-                        onStart() {
-                            if (video2.value) {
-                                video2.value.currentTime = 0
-                                video2.value.muted = true
-                                video2.value.play()
-                            }
+            animation: gsap.timeline()
+                .fromTo('.carousel-headline', { opacity: 1 }, { opacity: 0 })
+                .fromTo(`.video-${videoList.value[0]}`, { marginTop: '100vh' }, {
+                    marginTop: 0,
+                    onStart() {
+                        if (video2.value) {
+                            video2.value.currentTime = 0;
+                            video2.value.muted = true;
+                            video2.value.play();
                         }
-                    }, '<')
-                    .from(page1Text?.lines, {
-                        rotationX: -100,
-                        transformOrigin: "50% 50% -160px",
-                        opacity: 0,
-                        duration: 0.8,
-                        ease: "power3",
-                        stagger: 0.25
-                    }, '>')
-                    .fromTo('.page1', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
-                    .fromTo('.page2', { duration: 0.8, left: '100vw' }, {
-                        left: 0, onStart() {
-                            if (video3.value) {
-                                video3.value.currentTime = 0
-                                video3.value.muted = true
-                                video3.value.play()
-                            }
+                    }
+                }, '<')
+                .from(page1Text?.lines, {
+                    rotationX: -100,
+                    transformOrigin: "50% 50% -160px",
+                    opacity: 0,
+                    duration: 0.8,
+                    ease: "power3",
+                    stagger: 0.25
+                }, '>')
+                .fromTo('.story-page-1', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
+                .fromTo('.story-page-2', { duration: 0.8, left: '100vw' }, {
+                    left: 0,
+                    onStart() {
+                        if (video3.value) {
+                            video3.value.currentTime = 0;
+                            video3.value.muted = true;
+                            video3.value.play();
                         }
-                    }, '<')
-                    .from(page2Text?.chars, {
-                        x: 150,
-                        opacity: 0,
-                        duration: 0.7,
-                        ease: "power4",
-                        stagger: 0.04
-                    }, '>')
-                    .fromTo('.page2', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
-                    .fromTo('.page3', { duration: 0.8, left: '100vw' }, {
-                        left: 0,
-                        onStart() {
-                            if (video4.value) {
-                                video4.value.currentTime = 0
-                                video4.value.muted = true
-                                video4.value.play()
-                            }
+                    }
+                }, '<')
+                .from(page2Text?.chars, {
+                    x: 150,
+                    opacity: 0,
+                    duration: 0.7,
+                    ease: "power4",
+                    stagger: 0.04
+                }, '>')
+                .fromTo('.story-page-2', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
+                .fromTo('.story-page-3', { duration: 0.8, left: '100vw' }, {
+                    left: 0,
+                    onStart() {
+                        if (video4.value) {
+                            video4.value.currentTime = 0;
+                            video4.value.muted = true;
+                            video4.value.play();
                         }
-                    }, '<')
-                    .from(page3Text?.chars, {
-                        rotationX: -100,
-                        transformOrigin: "50% 50% -160px",
-                        opacity: 0,
-                        duration: 0.8,
-                        ease: "power3",
-                        stagger: 0.25
-                    }, '>')
+                    }
+                }, '<')
+                .from(page3Text?.chars, {
+                    rotationX: -100,
+                    transformOrigin: "50% 50% -160px",
+                    opacity: 0,
+                    duration: 0.8,
+                    ease: "power3",
+                    stagger: 0.25
+                }, '>')
         });
 
+        // 第五区块：雪山与峡谷
+        const cosTimeline = buildCosTimeline(mountainImages);
 
         ScrollTrigger.create({
-            trigger: '.box-e',
+            trigger: '.mountain-reveal',
             pin: true,
             start: 'top top',
             end: '+=800',
             scrub: true,
             markers: true,
-            animation:
-                gsap.timeline()
-                    .fromTo('.cos-31', { scale: 0.4, zIndex: 1, left: "50%" }, { scale: 0.6, left: "8%" })
-                    .fromTo('.cos-32', { scale: 0.6, zIndex: 2, left: "50%" }, { scale: 0.7, left: "22%" }, '<')
-                    .fromTo('.cos-33', { scale: 0.8, zIndex: 3, left: "50%" }, { scale: 0.8, left: "36%" }, '<')
-                    .fromTo('.cos-34', { scale: 1, zIndex: 4, }, { scale: 0.9, }, '<')
-                    .fromTo('.cos-35', { scale: 0.8, zIndex: 3, left: "50%" }, { scale: 0.8, left: "64%" }, '<')
-                    .fromTo('.cos-36', { scale: 0.6, zIndex: 2, left: "50%" }, { scale: 0.7, left: "78%" }, '<')
-                    .fromTo('.cos-37', { scale: 0.4, zIndex: 1, left: "50%" }, { scale: 0.6, left: "92%" }, '<')
+            animation: cosTimeline
         });
 
+        // 雪山标题动画
         ScrollTrigger.create({
-            trigger: '.cos',
+            trigger: '.mountain-reveal',
             start: 'top top',
             end: '+=600',
             scrub: true,
             markers: true,
-            animation:
-                gsap.timeline()
-                    .to(".cos-title", {
-                        rotationX: 100,
-                        transformOrigin: `50% 50% -${window.innerHeight * 0.5}`,
-                        opacity: 0,
-                        duration: 0.8,
-                        ease: "power3",
-                        stagger: 0.25
-                    })
+            animation: gsap.timeline()
+                .to(".mountain-headline", {
+                    rotationX: 100,
+                    transformOrigin: `50% 50% -${window.innerHeight * 0.5}`,
+                    opacity: 0,
+                    duration: 0.8,
+                    ease: "power3",
+                    stagger: 0.25
+                })
         });
 
+        // 视差滚动区块（图片）
         seeList.forEach(value => {
             const getParallaxDistance = () => window.innerHeight * 0.5;
             ScrollTrigger.create({
-                trigger: `.see-${value.key}`,
+                trigger: `.scenery-block-${value.key}`,
                 start: 'top bottom',
                 end: 'bottom top',
                 scrub: true,
                 markers: true,
                 invalidateOnRefresh: true,
-                animation:
-                    gsap.timeline({ defaults: { ease: 'none' } })
-                        .fromTo(`.show-img-${value.key}`, {
-                            transformOrigin: "50% 50%",
-                            y: () => -getParallaxDistance()
-                        }, {
-                            y: () => 0,
-                            duration: 0.5
-                        })
-                        .to(`.show-img-${value.key}`, {
-                            y: () => getParallaxDistance(),
-                            duration: 0.5
-                        })
+                animation: gsap.timeline({ defaults: { ease: 'none' } })
+                    .fromTo(`.scenery-img-${value.key}`, {
+                        transformOrigin: "50% 50%",
+                        y: () => -getParallaxDistance()
+                    }, {
+                        y: () => 0,
+                        duration: 0.5
+                    })
+                    .to(`.scenery-img-${value.key}`, {
+                        y: () => getParallaxDistance(),
+                        duration: 0.5
+                    })
             });
         });
 
+        // 视差滚动区块（视频）
         seeVideoList.forEach(value => {
             const getParallaxDistance = () => window.innerHeight * 0.5;
             ScrollTrigger.create({
-                trigger: `.see-${value.key}`,
+                trigger: `.scenery-block-${value.key}`,
                 start: 'top bottom',
                 end: 'bottom top',
                 scrub: true,
                 markers: true,
                 invalidateOnRefresh: true,
-                animation:
-                    gsap.timeline({ defaults: { ease: 'none' } })
-                        .fromTo(`.show-video-${value.key}`, {
-                            transformOrigin: "50% 50%",
-
-                            y: () => -getParallaxDistance()
-                        }, {
-                            onStart() {
-                                const videoContext = main.value?.querySelector<HTMLVideoElement>(`.show-video-${value.key}`);
-                                if (videoContext) {
-                                    videoContext.muted = true
-                                    videoContext.play()
-                                }
-                            },
-                            y: () => 0,
-                            duration: 0.5
-                        })
-                        .to(`.show-video-${value.key}`, {
-                            y: () => getParallaxDistance(),
-                            duration: 0.5
-                        })
+                animation: gsap.timeline({ defaults: { ease: 'none' } })
+                    .fromTo(`.scenery-video-${value.key}`, {
+                        transformOrigin: "50% 50%",
+                        y: () => -getParallaxDistance()
+                    }, {
+                        onStart() {
+                            const videoContext = main.value?.querySelector<HTMLVideoElement>(`.scenery-video-${value.key}`);
+                            if (videoContext) {
+                                videoContext.muted = true;
+                                videoContext.play();
+                            }
+                        },
+                        y: () => 0,
+                        duration: 0.5
+                    })
+                    .to(`.scenery-video-${value.key}`, {
+                        y: () => getParallaxDistance(),
+                        duration: 0.5
+                    })
             });
         });
 
@@ -386,11 +351,13 @@ onUnmounted(() => {
     endTitle?.revert();
     page1Text?.revert();
     page2Text?.revert();
+    page3Text?.revert();
     ctx = null;
     startTitle = null;
     endTitle = null;
     page1Text = null;
     page2Text = null;
+    page3Text = null;
     smoother = null;
 });
 </script>
@@ -398,7 +365,6 @@ onUnmounted(() => {
 <template>
     <div id="smooth-wrapper" ref="mainRef">
         <div id="smooth-content">
-            <!-- style="display: none;" -->
             <header class="header">
                 <h1 class="title">GreenSock ScrollSmoother on a Vue3 App</h1>
                 <div class="button-group">
@@ -409,104 +375,93 @@ onUnmounted(() => {
                 </div>
                 <p>示例：点击上面的按钮体验「锚点跳转 + 平滑滚动 + ScrollTrigger 固定动画」。</p>
             </header>
-            <div class="box box-a gradient-purple">
-                <div class="box-img">
-                    <img src="/gsap/yunnan/tourism/t-1.jpg" class="image-1" alt="">
+
+            <!-- 区块 A：图片缩放 -->
+            <div class="hero-block gradient-purple">
+                <div class="hero-image">
+                    <img src="/gsap/yunnan/tourism/t-1.jpg" class="hero-img" alt="">
                 </div>
             </div>
-            <div class="box box-b gradient-green">
-                <div class="box-video">
-                    <video :src="`/gsap/yunnan/tourism/t-${videoList[2]}.mp4`" ref="video1Ref"
-                        :class="`video-${videoList[2]}`">
+
+            <!-- 区块 B：视频叙述 -->
+            <div class="video-narrative gradient-green">
+                <div class="video-player">
+                    <video :src="`/gsap/yunnan/tourism/t-350.mp4`" ref="video1Ref" class="narrative-video"
+                        preload="auto" muted playsinline>
                         您的浏览器不支持视频播放
                     </video>
-                    <p class="text-1">
-                        云南不只有风景，<br>
-                        还有每一张旅途里的笑脸。
-                    </p>
-                    <p class="text-2">
-                        从昆明出发，一路向南。
-                    </p>
+                    <p class="narrative-text-first">云南不只有风景，<br>还有每一张旅途里的笑脸。</p>
+                    <p class="narrative-text-second">从昆明出发，一路向南。</p>
                 </div>
             </div>
-            <div class="box box-c gradient-green-2">
-                <p class="start-title">云南100张旅拍，开始滚动放映</p>
-                <div class="img-list">
-                    <img v-for="value in galleryImages" :key="`yunnan-gallery-${value}`"
-                        :src="`/gsap/yunnan/tourism/t-${value}.jpg`" :class="`image-${value}`" alt="云南旅拍" />
-                </div>
-                <p class="end-title">下一站：把风景走成故事</p>
-            </div>
-            <div class="box box-d">
-                <div class="parallel">
 
-                    <div class="page1 gradient-orange">
-                        <p class="parallel-text">
-                            民族风情
-                        </p>
+            <!-- 区块 C：横向滚动画廊 -->
+            <div class="scrolling-gallery gradient-green-2">
+                <p class="gallery-title-start">云南100张旅拍，开始滚动放映</p>
+                <div class="gallery-track">
+                    <img v-for="value in galleryImages" :key="`yunnan-gallery-${value}`"
+                        :src="`/gsap/yunnan/tourism/t-${value}.jpg`" :class="`gallery-img-${value}`" alt="云南旅拍" />
+                </div>
+                <p class="gallery-title-end">下一站：把风景走成故事</p>
+            </div>
+
+            <!-- 区块 D：分页故事 -->
+            <div class="story-carousel">
+                <div class="multipage-story">
+                    <div class="story-page-1 gradient-orange">
+                        <p class="carousel-headline">民族风情</p>
                         <video :src="`/gsap/yunnan/tourism/t-${videoList[0]}.mp4`" ref="video2Ref"
                             :class="`video-${videoList[0]}`">
                             您的浏览器不支持视频播放
                         </video>
-                        <!-- <video src="/gsap/yunnan/tourism/t-1.mp4" ref="video1Ref" class="video-1">
-                            您的浏览器不支持视频播放
-                        </video> -->
-                        <p class="page1-text">
-                            丽江古城 · 夜色与歌
-                        </p>
+                        <p class="story-text-first">丽江古城 · 夜色与歌</p>
                     </div>
-                    <div class="page2 gradient-blue-2">
+                    <div class="story-page-2 gradient-blue-2">
                         <video :src="`/gsap/yunnan/tourism/t-${videoList[1]}.mp4`" ref="video3Ref"
                             :class="`video-${videoList[1]}`">
                             您的浏览器不支持视频播放
                         </video>
-                        <!-- <video src="/gsap/yunnan/tourism/t-2.mp4" ref="video2Ref" class="video-2">
-                            您的浏览器不支持视频播放
-                        </video> -->
-                        <p class="page2-text">
-                            大理洱海 · 风与自由
-                        </p>
+                        <p class="story-text-second">大理洱海 · 风与自由</p>
                     </div>
-                    <div class="page3 gradient-blue">
+                    <div class="story-page-3 gradient-blue">
                         <video :src="`/gsap/yunnan/tourism/t-${videoList[3]}.mp4`" ref="video4Ref"
                             :class="`video-${videoList[3]}`">
                             您的浏览器不支持视频播放
                         </video>
-                        <!-- <video src="/gsap/yunnan/tourism/t-3.mp4" ref="video3Ref" class="video-3">
-                            您的浏览器不支持视频播放
-                        </video> -->
-                        <p class="page3-text">
-                            香格里拉 · 云上牧歌
-                        </p>
+                        <p class="story-text-third">香格里拉 · 云上牧歌</p>
                     </div>
                 </div>
             </div>
-            <div class="box box-e gradient-red">
-                <div class="cos">
-                    <div class="cos-list">
+
+            <!-- 区块 E：雪山与峡谷（叠加图） -->
+            <div class="mountain-reveal gradient-red">
+                <div class="mountain-stack">
+                    <div class="mountain-images-stack">
                         <img v-for="value in mountainImages" :key="`yunnan-cos-${value}`"
-                            :src="`/gsap/yunnan/tourism/t-${value}.jpg`" :class="`cos-${value}`" alt="云南风景" />
+                            :src="`/gsap/yunnan/tourism/t-${value}.jpg`" :class="`mountain-img-${value}`" alt="云南风景" />
                     </div>
-                    <p class="cos-title">
-                        雪山与峡谷
-                    </p>
+                    <p class="mountain-headline">雪山与峡谷</p>
                 </div>
             </div>
-            <div v-for="item in seeList" :key="`see-${item.key}`" :class="`see-${item.key}`" class="see-item">
-                <img :src="`/gsap/yunnan/tourism/t-${item.key}.jpg`" :class="`show-img-${item.key}`" alt="云南风景" />
-                <p class="see-text">
-                    {{ item.label }}
-                </p>
+
+            <!-- 视差图片区块 -->
+            <div v-for="item in seeList" :key="`see-${item.key}`" :class="`scenery-block-${item.key}`"
+                class="scenery-item">
+                <img :src="`/gsap/yunnan/tourism/t-${item.key}.jpg`" :class="`scenery-img-${item.key}`" alt="云南风景" />
+                <p class="scenery-caption">{{ item.label }}</p>
             </div>
-            <div v-for="item in seeVideoList" :key="`see-${item.key}`" :class="`see-${item.key}`" class="see-item">
-                <video :src="`/gsap/yunnan/tourism/t-${item.key}.mp4`" :class="`show-video-${item.key}`" alt="云南风景" />
-                <p class="see-text">
-                    {{ item.label }}
-                </p>
+
+            <!-- 视差视频区块 -->
+            <div v-for="item in seeVideoList" :key="`see-${item.key}`" :class="`scenery-block-${item.key}`"
+                class="scenery-item">
+                <video :src="`/gsap/yunnan/tourism/t-${item.key}.mp4`" :class="`scenery-video-${item.key}`" muted loop
+                    playsinline alt="云南风景" />
+                <p class="scenery-caption">{{ item.label }}</p>
             </div>
         </div>
     </div>
 </template>
+
 <style scoped lang="scss">
 #smooth-wrapper {
     --color-shockingly-green: #0ae448;
@@ -522,89 +477,37 @@ onUnmounted(() => {
     --color-surface75: #bbbaa6;
     --color-surface50: #7c7c6f;
     --color-surface25: #42433d;
-    --gradient-macha: linear-gradient(114.41deg,
-            var(--color-shockingly-green) 20.74%,
-            var(--color-lt-green) 65.5%);
-    --gradient-orange-crush: linear-gradient(111.45deg,
-            var(--color-orangey) 19.42%,
-            #f7bdf8 73.08%);
-    --gradient-lipstick: linear-gradient(165.72deg,
-            #f7bdf8 21.15%,
-            #cd237f 81.93%);
-    --gradient-purple-haze: linear-gradient(153.58deg,
-            #f7bdf8 32.25%,
-            #2f3cc0 92.68%);
-    --gradient-skyfall: linear-gradient(131.77deg,
-            #0a157a 30.82%,
-            #15bfe4 81.82%);
-    --gradient-emerald-city: linear-gradient(166.9deg,
-            var(--color-shockingly-green) 53.19%,
-            #0085d0 107.69%);
-    --gradient-summer-fair: linear-gradient(144.02deg,
-            var(--color-blue) 4.56%,
-            var(--color-pink) 72.98%);
+    --gradient-macha: linear-gradient(114.41deg, var(--color-shockingly-green) 20.74%, var(--color-lt-green) 65.5%);
+    --gradient-orange-crush: linear-gradient(111.45deg, var(--color-orangey) 19.42%, #f7bdf8 73.08%);
+    --gradient-lipstick: linear-gradient(165.72deg, #f7bdf8 21.15%, #cd237f 81.93%);
+    --gradient-purple-haze: linear-gradient(153.58deg, #f7bdf8 32.25%, #2f3cc0 92.68%);
+    --gradient-skyfall: linear-gradient(131.77deg, #0a157a 30.82%, #15bfe4 81.82%);
+    --gradient-emerald-city: linear-gradient(166.9deg, var(--color-shockingly-green) 53.19%, #0085d0 107.69%);
+    --gradient-summer-fair: linear-gradient(144.02deg, var(--color-blue) 4.56%, var(--color-pink) 72.98%);
     --color-core-green: #dfffd1;
     --color-core-green-lt: #f3ffee;
-    --color-core-gradient: radial-gradient(89.08% 84.62% at 16.54% 78.46%,
-            #fbfefa 0%,
-            #c9f6b4 39.58%,
-            #abff84 77.6%,
-            #2fee65 100%);
-    --color-core-button-gradient: linear-gradient(114.41deg,
-            #0ae448 20.74%,
-            #abff84 65.5%);
-    --color-core-heading-gradient: linear-gradient(180deg,
-            #d6ffc3 0%,
-            rgba(214, 255, 195, 0) 100%),
-        #f3ffee;
-    --color-core-intro-gradient: linear-gradient(144.5deg,
-            #e8ffdd 65.09%,
-            #7dea7b 122.73%),
-        linear-gradient(311.31deg, #7ef89e 36.08%, #e5ffd9 106.98%);
+    --color-core-gradient: radial-gradient(89.08% 84.62% at 16.54% 78.46%, #fbfefa 0%, #c9f6b4 39.58%, #abff84 77.6%, #2fee65 100%);
+    --color-core-button-gradient: linear-gradient(114.41deg, #0ae448 20.74%, #abff84 65.5%);
+    --color-core-heading-gradient: linear-gradient(180deg, #d6ffc3 0%, rgba(214, 255, 195, 0) 100%), #f3ffee;
+    --color-core-intro-gradient: linear-gradient(144.5deg, #e8ffdd 65.09%, #7dea7b 122.73%), linear-gradient(311.31deg, #7ef89e 36.08%, #e5ffd9 106.98%);
     --color-text-purple: #d2ceff;
     --color-text-purple-lt: #dfdcff;
-    --color-text-gradient: radial-gradient(129.03% 100% at 120.97% 81.45%,
-            #dfdcff 27.08%,
-            #a69eff 100%);
+    --color-text-gradient: radial-gradient(129.03% 100% at 120.97% 81.45%, #dfdcff 27.08%, #a69eff 100%);
     --color-svg-tangerine: #ffe3c7;
     --color-svg-tangerine-lt: #fff0e0;
-    --color-svg-gradient: radial-gradient(70.77% 70.77% at 0% 70.77%,
-            #ffd9b0 0%,
-            #fd9f3b 80.73%,
-            #ff8709 100%);
-    --color-svg-heading-gradient: linear-gradient(180deg,
-            #ffbd77 0%,
-            rgba(254, 197, 251, 0) 100%),
-        #ffe4c7;
+    --color-svg-gradient: radial-gradient(70.77% 70.77% at 0% 70.77%, #ffd9b0 0%, #fd9f3b 80.73%, #ff8709 100%);
+    --color-svg-heading-gradient: linear-gradient(180deg, #ffbd77 0%, rgba(254, 197, 251, 0) 100%), #ffe4c7;
     --color-ui-blue: #bef3fe;
     --color-ui-blue-lt: #e1faff;
     --color-ui-blue-codeblk: #f6feff;
-    --color-ui-text-gradient: linear-gradient(168.89deg,
-            #fec5fb -21.3%,
-            #00bae2 89.88%);
-    --color-ui-code-blocktext-gradient: linear-gradient(142.91deg,
-            #cef6ff 18.75%,
-            #a6efff 54.93%);
-    --color-ui-gradient: radial-gradient(78.77% 78.77% at 71.71% 30.77%,
-            #f0fcff 0%,
-            #9bedff 67.21%,
-            #98ecff 76.04%,
-            #5be1ff 84.9%,
-            #00bae2 94.79%);
-    --color-ui-gradient-background: linear-gradient(137.1deg,
-            #ecfcff 27.5%,
-            #a6efff 94.09%);
-    --color-ui-gradient-flip-background: radial-gradient(140% 190% at 117.54% 131.12%,
-            #f0fcff 0%,
-            #9bedff 25.52%,
-            #98ecff 42.71%,
-            #5be1ff 60.94%,
-            #00bae2 94.79%);
+    --color-ui-text-gradient: linear-gradient(168.89deg, #fec5fb -21.3%, #00bae2 89.88%);
+    --color-ui-code-blocktext-gradient: linear-gradient(142.91deg, #cef6ff 18.75%, #a6efff 54.93%);
+    --color-ui-gradient: radial-gradient(78.77% 78.77% at 71.71% 30.77%, #f0fcff 0%, #9bedff 67.21%, #98ecff 76.04%, #5be1ff 84.9%, #00bae2 94.79%);
+    --color-ui-gradient-background: linear-gradient(137.1deg, #ecfcff 27.5%, #a6efff 94.09%);
+    --color-ui-gradient-flip-background: radial-gradient(140% 190% at 117.54% 131.12%, #f0fcff 0%, #9bedff 25.52%, #98ecff 42.71%, #5be1ff 60.94%, #00bae2 94.79%);
     --color-scroll-pink: #ffd7fd;
     --color-scroll-pink-lt: #ffe9fe;
-    --color-scroll-gradient: linear-gradient(317.42deg,
-            #ffe9fe 10.4%,
-            #ff96f9 83.03%);
+    --color-scroll-gradient: linear-gradient(317.42deg, #ffe9fe 10.4%, #ff96f9 83.03%);
     --ease-in: cubic-bezier(0.755, 0.05, 0.855, 0.06);
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     --ease-in-out: cubic-bezier(0.86, 0, 0.07, 1);
@@ -615,18 +518,24 @@ onUnmounted(() => {
 #smooth-content {
     background-color: #fff;
     overflow: visible;
-    height: 50000px;
+    height: 25000px;
 }
 
-.box {
+// 通用区块样式
+.hero-block,
+.video-narrative,
+.scrolling-gallery,
+.story-carousel,
+.mountain-reveal {
     height: 100vh;
     width: 100%;
     display: flex;
     justify-content: center;
 }
 
-.box-a {
-    .box-img {
+// 区块 A
+.hero-block {
+    .hero-image {
         display: flex;
         justify-content: center;
         height: 100vh;
@@ -640,8 +549,9 @@ onUnmounted(() => {
     }
 }
 
-.box-b {
-    .box-video {
+// 区块 B
+.video-narrative {
+    .video-player {
         display: flex;
         justify-content: center;
         height: 100vh;
@@ -654,31 +564,35 @@ onUnmounted(() => {
             object-fit: cover;
         }
 
-        .text-1 {
+        .narrative-text-first,
+        .narrative-text-second {
             position: absolute;
-            top: 100rem;
-            left: 11rem;
             opacity: 0;
             font-size: 4rem;
             color: #fff;
         }
 
-        .text-2 {
-            position: absolute;
+        .narrative-text-first {
+            top: 100rem;
+            left: 11rem;
+        }
+
+        .narrative-text-second {
             top: 30rem;
             right: 30%;
-            opacity: 0;
             font-size: 8rem;
-            color: #fff;
         }
     }
 }
 
-.box-c {
+// 区块 C
+.scrolling-gallery {
     justify-content: flex-start;
     overflow: hidden;
+    position: relative;
 
-    .start-title {
+    .gallery-title-start,
+    .gallery-title-end {
         font-size: 4rem;
         color: #000;
         position: absolute;
@@ -689,9 +603,10 @@ onUnmounted(() => {
         margin-inline: auto;
         width: fit-content;
         max-width: 100%;
+        z-index: 2;
     }
 
-    .img-list {
+    .gallery-track {
         --img-gap: 40px;
         --img-width: clamp(260px, 42vw, 520px);
         display: flex;
@@ -707,34 +622,28 @@ onUnmounted(() => {
             width: var(--img-width);
             height: 90%;
             object-fit: cover;
-            transform: scale(.5);
+            transform: scale(0.5);
             transform-origin: center center;
         }
     }
 
-    .end-title {
-        font-size: 4rem;
-        color: #000;
-        position: absolute;
-        top: 50%;
-        left: 0;
-        right: 0;
-        transform: translateY(-50%);
-        margin-inline: auto;
-        width: fit-content;
-        max-width: 100%;
+    .gallery-title-end {
+        top: auto;
+        bottom: 10%;
+        transform: none;
     }
 }
 
-.box-d {
-    .parallel {
+// 区块 D
+.story-carousel {
+    .multipage-story {
         height: 100%;
         width: 200%;
         position: relative;
         overflow: hidden;
         box-sizing: border-box;
 
-        .parallel-text {
+        .carousel-headline {
             font-size: 20vw;
             background: linear-gradient(to right, yellow, lime, aqua);
             background-clip: text;
@@ -748,9 +657,17 @@ onUnmounted(() => {
             margin-inline: auto;
             width: fit-content;
             max-width: 100%;
+            z-index: 2;
         }
 
-        div {
+        .story-page-1,
+        .story-page-2,
+        .story-page-3 {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 100%;
+
             video {
                 height: 80%;
                 position: absolute;
@@ -773,38 +690,25 @@ onUnmounted(() => {
             }
         }
 
-        .page1 {
-            position: absolute;
+        .story-page-1 {
             left: 0;
-            top: 0;
-            height: 100%;
-            width: 100%;
         }
 
-        .page2 {
-            position: absolute;
+        .story-page-2,
+        .story-page-3 {
             left: 100vw;
-            top: 0;
-            height: 100%;
-            width: 100%;
-        }
-
-        .page3 {
-            position: absolute;
-            left: 100vw;
-            top: 0;
-            height: 100%;
-            width: 100%;
         }
     }
 }
 
-.box-e {
-    .cos {
+// 区块 E
+.mountain-reveal {
+    .mountain-stack {
         height: 100%;
         width: 100%;
+        position: relative;
 
-        .cos-title {
+        .mountain-headline {
             font-size: 15vw;
             background: linear-gradient(to right, yellow, lime, aqua);
             background-clip: text;
@@ -821,7 +725,7 @@ onUnmounted(() => {
             z-index: 999;
         }
 
-        .cos-list {
+        .mountain-images-stack {
             height: 100%;
             position: relative;
 
@@ -839,7 +743,8 @@ onUnmounted(() => {
     }
 }
 
-.see-item {
+// 视差区块通用样式
+.scenery-item {
     height: 100vh;
     width: 100%;
     overflow: hidden;
@@ -852,7 +757,7 @@ onUnmounted(() => {
         object-fit: cover;
     }
 
-    .see-text {
+    .scenery-caption {
         font-size: 10vw;
         color: #fff;
         position: absolute;
@@ -863,10 +768,16 @@ onUnmounted(() => {
         margin-inline: auto;
         width: fit-content;
         max-width: 100%;
+        text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     }
-
 }
 
+video {
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+// 渐变色背景类（保持不变）
 .gradient-green {
     background: var(--gradient-macha);
     background-blend-mode: color-dodge;
