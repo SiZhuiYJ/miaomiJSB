@@ -40,7 +40,7 @@ const demoTargets: DemoTarget[] = [
 const storyPages = ref<StoryPages[]>([
     {
         id: 0,
-        videoIndex: 16,          // 对应 videoList[0] 实际是16
+        videoIndex: 16,
         headline: '民族风情',
         text: '丽江古城 · 夜色与歌',
         gradientClass: 'gradient-orange',
@@ -48,7 +48,7 @@ const storyPages = ref<StoryPages[]>([
     },
     {
         id: 1,
-        videoIndex: 44,          // videoList[1]
+        videoIndex: 44,
         headline: '',
         text: '大理洱海 · 风与自由',
         gradientClass: 'gradient-blue-2',
@@ -56,7 +56,7 @@ const storyPages = ref<StoryPages[]>([
     },
     {
         id: 2,
-        videoIndex: 54,          // videoList[3] 实际是54
+        videoIndex: 54,
         headline: '',
         text: '香格里拉 · 云上牧歌',
         gradientClass: 'gradient-blue',
@@ -67,9 +67,6 @@ const storyPages = ref<StoryPages[]>([
 const videoRefs = ref<(HTMLVideoElement | null)[]>([]);
 
 const video1 = useTemplateRef('video1Ref');
-// const video2 = useTemplateRef('video2Ref');
-// const video3 = useTemplateRef('video3Ref');
-// const video4 = useTemplateRef('video4Ref');
 
 // 创建画廊的 SplitText 实例
 const galleryImages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20];
