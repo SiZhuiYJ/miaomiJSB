@@ -128,12 +128,19 @@ onMounted(() => {
             trigger: '.hero-block',
             start: 'top top',
             end: '+=600',
+            pin: true,
             scrub: true,
             markers: true,
             animation: gsap.timeline()
-                .fromTo('.hero-image', { scale: 1 }, { scale: 0.8 })
+                .fromTo('.boundary', { width: '0%' }, { width: '100%' })
+                .fromTo('.top-expand .text', { marginBottom: '-60px' }, { marginBottom: '0' }, '>')
+                .fromTo('.botton-expand .text', { marginTop: '-60px' }, { marginTop: '0' }, '<')
+                .fromTo('.hero-image', { scale: 1 }, { scale: 0.8 }, '>')
                 .fromTo('.video-player', { width: '80%', height: '80vh' }, { width: '100%', height: '100vh' }, '<')
         });
+        // .top-expand,
+        // .botton-expand
+
 
         // 第二个区块：视频+文字动画
         ScrollTrigger.create({
@@ -235,77 +242,6 @@ onMounted(() => {
                 animation: storyTimeline,
             });
         }
-
-        // 第三个区块：分页故事
-        // page1Text = SplitText.create(".story-text-first", { type: "lines" });
-        // page2Text = SplitText.create(".story-text-second", { type: "chars" });
-        // page3Text = SplitText.create(".story-text-third", { type: "chars" });
-
-        // ScrollTrigger.create({
-        //     trigger: '.story-carousel',
-        //     pin: true,
-        //     start: 'top top',
-        //     end: '+=2000',
-        //     scrub: true,
-        //     markers: true,
-        //     animation: gsap.timeline()
-        //         .fromTo('.carousel-headline', { opacity: 1 }, { opacity: 0 })
-        //         .fromTo(`.video-${videoList.value[0]}`, { marginTop: '100vh' }, {
-        //             marginTop: 0,
-        //             onStart() {
-        //                 if (video2.value) {
-        //                     video2.value.currentTime = 0;
-        //                     video2.value.muted = true;
-        //                     video2.value.play();
-        //                 }
-        //             }
-        //         }, '<')
-        //         .from(page1Text?.lines, {
-        //             rotationX: -100,
-        //             transformOrigin: "50% 50% -160px",
-        //             opacity: 0,
-        //             duration: 0.8,
-        //             ease: "power3",
-        //             stagger: 0.25
-        //         }, '>')
-        //         .fromTo('.story-page-1', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
-        //         .fromTo('.story-page-2', { duration: 0.8, left: '100vw' }, {
-        //             left: 0,
-        //             onStart() {
-        //                 if (video3.value) {
-        //                     video3.value.currentTime = 0;
-        //                     video3.value.muted = true;
-        //                     video3.value.play();
-        //                 }
-        //             }
-        //         }, '<')
-        //         .from(page2Text?.chars, {
-        //             x: 150,
-        //             opacity: 0,
-        //             duration: 0.7,
-        //             ease: "power4",
-        //             stagger: 0.04
-        //         }, '>')
-        //         .fromTo('.story-page-2', { duration: 0.8, left: 0 }, { left: '-100vw' }, '>')
-        //         .fromTo('.story-page-3', { duration: 0.8, left: '100vw' }, {
-        //             left: 0,
-        //             onStart() {
-        //                 if (video4.value) {
-        //                     video4.value.currentTime = 0;
-        //                     video4.value.muted = true;
-        //                     video4.value.play();
-        //                 }
-        //             }
-        //         }, '<')
-        //         .from(page3Text?.chars, {
-        //             rotationX: -100,
-        //             transformOrigin: "50% 50% -160px",
-        //             opacity: 0,
-        //             duration: 0.8,
-        //             ease: "power3",
-        //             stagger: 0.25
-        //         }, '>')
-        // });
 
         // 第五区块：雪山与峡谷
         const cosTimeline = buildCosTimeline(mountainImages);
@@ -433,7 +369,17 @@ onUnmounted(() => {
             <div class="hero-block gradient-purple">
                 <div class="hero-image">
                     <img src="/gsap/yunnan/tourism/t-1.jpg" class="hero-img" alt="">
+                    <div class="expand-text">
+                        <span class="top-expand">
+                            <p class="text">云南不只有风景，</p>
+                        </span>
+                        <span class="boundary"></span>
+                        <span class="botton-expand">
+                            <p class="text">还有每一张旅途里的笑脸。</p>
+                        </span>
+                    </div>
                 </div>
+
             </div>
 
             <!-- 区块 B：视频叙述 -->
@@ -458,6 +404,7 @@ onUnmounted(() => {
                 <p class="gallery-title-end">下一站：把风景走成故事</p>
             </div>
 
+            <!-- 区块 D：分页故事 -->
             <div class="story-carousel">
                 <div class="multipage-story">
                     <div v-for="(page, idx) in storyPages" :key="page.id"
@@ -470,34 +417,6 @@ onUnmounted(() => {
                     </div>
                 </div>
             </div>
-
-            <!-- 区块 D：分页故事 -->
-            <!-- <div class="story-carousel">
-                <div class="multipage-story">
-                    <div class="story-page-1 gradient-orange">
-                        <p class="carousel-headline">民族风情</p>
-                        <video :src="`/gsap/yunnan/tourism/t-${videoList[0]}.mp4`" ref="video2Ref"
-                            :class="`video-${videoList[0]}`">
-                            您的浏览器不支持视频播放
-                        </video>
-                        <p class="story-text-first">丽江古城 · 夜色与歌</p>
-                    </div>
-                    <div class="story-page-2 gradient-blue-2">
-                        <video :src="`/gsap/yunnan/tourism/t-${videoList[1]}.mp4`" ref="video3Ref"
-                            :class="`video-${videoList[1]}`">
-                            您的浏览器不支持视频播放
-                        </video>
-                        <p class="story-text-second">大理洱海 · 风与自由</p>
-                    </div>
-                    <div class="story-page-3 gradient-blue">
-                        <video :src="`/gsap/yunnan/tourism/t-${videoList[3]}.mp4`" ref="video4Ref"
-                            :class="`video-${videoList[3]}`">
-                            您的浏览器不支持视频播放
-                        </video>
-                        <p class="story-text-third">香格里拉 · 云上牧歌</p>
-                    </div>
-                </div>
-            </div> -->
 
             <!-- 区块 E：雪山与峡谷（叠加图） -->
             <div class="mountain-reveal gradient-red">
@@ -599,6 +518,50 @@ onUnmounted(() => {
     justify-content: center;
 }
 
+.expand-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100vw;
+
+    .top-expand,
+    .botton-expand {
+        overflow: hidden;
+        height: 60px;
+        display: flex;
+        justify-content: center;
+
+
+        .text {
+
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            // margin-top: 60px;
+        }
+    }
+
+    .boundary {
+        height: 4px;
+        width: 100%;
+        border-radius: 2px;
+        background-color: #fff;
+
+    }
+
+    .top-expand {
+        align-items: flex-end;
+    }
+
+    .botton-expand {
+        align-items: flex-start;
+    }
+}
+
 // 区块 A
 .hero-block {
     .hero-image {
@@ -606,6 +569,7 @@ onUnmounted(() => {
         justify-content: center;
         height: 100vh;
         width: 100%;
+        position: relative;
 
         img {
             height: 100%;
