@@ -135,12 +135,13 @@ onMounted(() => {
                 .fromTo('.boundary', { width: '0%' }, { width: '100%' })
                 .fromTo('.top-expand .text', { marginBottom: '-60px' }, { marginBottom: '0' }, '>')
                 .fromTo('.botton-expand .text', { marginTop: '-60px' }, { marginTop: '0' }, '<')
+                .fromTo('.boundary', { width: '100%' }, { width: '60%' }, '>')
+                .fromTo('.top-expand .text', { marginBottom: '0' }, { marginBottom: '-60px' }, '>')
+                .fromTo('.botton-expand .text', { marginTop: '0' }, { marginTop: '-60px' }, '<')
+                .fromTo('.boundary', { width: '60%' }, { width: '0' }, '>')
                 .fromTo('.hero-image', { scale: 1 }, { scale: 0.8 }, '>')
                 .fromTo('.video-player', { width: '80%', height: '80vh' }, { width: '100%', height: '100vh' }, '<')
         });
-        // .top-expand,
-        // .botton-expand
-
 
         // 第二个区块：视频+文字动画
         ScrollTrigger.create({
@@ -369,7 +370,18 @@ onUnmounted(() => {
             <div class="hero-block gradient-purple">
                 <div class="hero-image">
                     <img src="/gsap/yunnan/tourism/t-1.jpg" class="hero-img" alt="">
-                    <div class="expand-text">
+                    <!-- 横向展开文字 -->
+                    <div class="expand-text-horizontal">
+                        <span class="top-expand">
+                            <p class="text">云南不只有风景，</p>
+                        </span>
+                        <span class="boundary"></span>
+                        <span class="botton-expand">
+                            <p class="text">还有每一张旅途里的笑脸。</p>
+                        </span>
+                    </div>
+                    <!-- 纵向展开文字 -->
+                    <div class="expand-text-vertical">
                         <span class="top-expand">
                             <p class="text">云南不只有风景，</p>
                         </span>
@@ -379,7 +391,6 @@ onUnmounted(() => {
                         </span>
                     </div>
                 </div>
-
             </div>
 
             <!-- 区块 B：视频叙述 -->
@@ -518,12 +529,16 @@ onUnmounted(() => {
     justify-content: center;
 }
 
-.expand-text {
+.expand-text-horizontal,
+.expand-text-vertical {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     display: flex;
+}
+
+.expand-text-horizontal {
     flex-direction: column;
     align-items: center;
     width: 100vw;
@@ -537,11 +552,9 @@ onUnmounted(() => {
 
 
         .text {
-
             color: #fff;
             font-size: 40px;
             font-weight: bold;
-            // margin-top: 60px;
         }
     }
 
@@ -561,6 +574,11 @@ onUnmounted(() => {
         align-items: flex-start;
     }
 }
+
+.expand-text-vertical {
+    
+}
+
 
 // 区块 A
 .hero-block {
