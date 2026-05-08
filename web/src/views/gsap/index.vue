@@ -123,22 +123,37 @@ onMounted(() => {
             effects: true, // 是否启用 GSAP 效果
         });
 
+        const verticalEl = main.value?.querySelector<HTMLElement>('.vertical');
+        const getVerticalTextWidth = () => Math.ceil(verticalEl?.scrollWidth || 0);
+        const getVerticalTextHeight = () => Math.ceil(verticalEl?.scrollHeight || 0);
+
+        if (verticalEl)
+            verticalEl.style.width = `${getVerticalTextWidth()}px`;
+
         // 第一个区块：图片缩放
         ScrollTrigger.create({
             trigger: '.hero-block',
             start: 'top top',
-            end: '+=600',
+            end: '+=1200',
             pin: true,
             scrub: true,
             markers: true,
             animation: gsap.timeline()
-                .fromTo('.boundary', { width: '0%' }, { width: '100%' })
+                .fromTo('.horizontal .boundary', { width: '0%' }, { width: '100%' })
                 .fromTo('.top-expand .text', { marginBottom: '-60px' }, { marginBottom: '0' }, '>')
                 .fromTo('.botton-expand .text', { marginTop: '-60px' }, { marginTop: '0' }, '<')
-                .fromTo('.boundary', { width: '100%' }, { width: '60%' }, '>')
-                .fromTo('.top-expand .text', { marginBottom: '0' }, { marginBottom: '-60px' }, '>')
+                .fromTo('.horizontal .boundary', { width: '100%' }, { width: '50%' }, '>')
+                .fromTo('.top-expand .text', { marginBottom: '0' }, { marginBottom: '-60px' }, '<')
                 .fromTo('.botton-expand .text', { marginTop: '0' }, { marginTop: '-60px' }, '<')
-                .fromTo('.boundary', { width: '60%' }, { width: '0' }, '>')
+                .fromTo('.horizontal .boundary', { width: '50%' }, { width: '0' }, '>')
+                .fromTo('.vertical .boundary', { height: '0' }, {
+                    height: () => `${getVerticalTextHeight()}px`,
+                    invalidateOnRefresh: true,
+                }, '>')
+                .fromTo('.vertical .right-expand', { width: '0' }, {
+                    width: () => `${getVerticalTextWidth() + 2}px`,
+                    invalidateOnRefresh: true,
+                }, '>')
                 .fromTo('.hero-image', { scale: 1 }, { scale: 0.8 }, '>')
                 .fromTo('.video-player', { width: '80%', height: '80vh' }, { width: '100%', height: '100vh' }, '<')
         });
@@ -371,7 +386,7 @@ onUnmounted(() => {
                 <div class="hero-image">
                     <img src="/gsap/yunnan/tourism/t-1.jpg" class="hero-img" alt="">
                     <!-- 横向展开文字 -->
-                    <div class="expand-text-horizontal">
+                    <div class="expand-text horizontal">
                         <span class="top-expand">
                             <p class="text">云南不只有风景，</p>
                         </span>
@@ -381,14 +396,14 @@ onUnmounted(() => {
                         </span>
                     </div>
                     <!-- 纵向展开文字 -->
-                    <div class="expand-text-vertical">
-                        <span class="top-expand">
-                            <p class="text">云南不只有风景，</p>
+                    <div class="expand-text vertical">
+                        <span class="right-expand">
+                            <p class="text">
+                                云南不只有风景，<br>
+                                还有每一张旅途里的笑脸。
+                            </p>
                         </span>
                         <span class="boundary"></span>
-                        <span class="botton-expand">
-                            <p class="text">还有每一张旅途里的笑脸。</p>
-                        </span>
                     </div>
                 </div>
             </div>
@@ -529,16 +544,16 @@ onUnmounted(() => {
     justify-content: center;
 }
 
-.expand-text-horizontal,
-.expand-text-vertical {
+.expand-text,
+.expand-text {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     display: flex;
 }
 
-.expand-text-horizontal {
+.horizontal {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     flex-direction: column;
     align-items: center;
     width: 100vw;
@@ -563,7 +578,6 @@ onUnmounted(() => {
         width: 100%;
         border-radius: 2px;
         background-color: #fff;
-
     }
 
     .top-expand {
@@ -575,8 +589,39 @@ onUnmounted(() => {
     }
 }
 
-.expand-text-vertical {
-    
+.vertical {
+    width: fit-content;
+    max-width: calc(100vw - 40px);
+    left: 20px;
+    bottom: 20px;
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+    align-items: center;
+
+    .right-expand {
+        display: flex;
+        justify-content: flex-end;
+        overflow: hidden;
+        width: fit-content;
+        height: auto;
+        max-width: 100%;
+        padding-left: 2px;
+
+        .text {
+            width: fit-content;
+            height: auto;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+    }
+
+    .boundary {
+        width: 4px;
+        border-radius: 2px;
+        background-color: #fff;
+    }
 }
 
 
