@@ -138,6 +138,7 @@ onMounted(() => {
             pin: true,
             scrub: true,
             markers: true,
+            invalidateOnRefresh: true,
             animation: gsap.timeline()
                 .fromTo('.horizontal .boundary', { width: '0%' }, { width: '100%' })
                 .fromTo('.top-expand .text', { marginBottom: '-60px' }, { marginBottom: '0' }, '>')
@@ -146,14 +147,8 @@ onMounted(() => {
                 .fromTo('.top-expand .text', { marginBottom: '0' }, { marginBottom: '-60px' }, '<')
                 .fromTo('.botton-expand .text', { marginTop: '0' }, { marginTop: '-60px' }, '<')
                 .fromTo('.horizontal .boundary', { width: '50%' }, { width: '0' }, '>')
-                .fromTo('.vertical .boundary', { height: '0' }, {
-                    height: () => `${getVerticalTextHeight()}px`,
-                    invalidateOnRefresh: true,
-                }, '>')
-                .fromTo('.vertical .right-expand', { width: '0' }, {
-                    width: () => `${getVerticalTextWidth() + 2}px`,
-                    invalidateOnRefresh: true,
-                }, '>')
+                .fromTo('.vertical .boundary', { height: '0' }, { height: () => `${getVerticalTextHeight()}px`, }, '>')
+                .fromTo('.vertical .right-expand', { width: '0' }, { width: () => `${getVerticalTextWidth() + 2}px`, }, '>')
                 .fromTo('.hero-image', { scale: 1 }, { scale: 0.8 }, '>')
                 .fromTo('.video-player', { width: '80%', height: '80vh' }, { width: '100%', height: '100vh' }, '<')
         });
