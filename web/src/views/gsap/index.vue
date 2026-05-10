@@ -134,23 +134,27 @@ onMounted(() => {
         ScrollTrigger.create({
             trigger: '.hero-block',
             start: 'top top',
-            end: '+=1200',
+            end: '+=2000',
             pin: true,
             scrub: true,
             markers: true,
             invalidateOnRefresh: true,
-            animation: gsap.timeline()
-                .fromTo('.horizontal .boundary', { width: '0%' }, { width: '100%' })
-                .fromTo('.top-expand .text', { marginBottom: '-60px' }, { marginBottom: '0' }, '>')
-                .fromTo('.botton-expand .text', { marginTop: '-60px' }, { marginTop: '0' }, '<')
-                .fromTo('.horizontal .boundary', { width: '100%' }, { width: '50%' }, '>')
-                .fromTo('.top-expand .text', { marginBottom: '0' }, { marginBottom: '-60px' }, '<')
-                .fromTo('.botton-expand .text', { marginTop: '0' }, { marginTop: '-60px' }, '<')
-                .fromTo('.horizontal .boundary', { width: '50%' }, { width: '0' }, '>')
+            animation: gsap
+                .timeline()
+                .fromTo('.hero-img-container .boundary', { left: '100%', }, { left: '0%', }, '>')
+                .fromTo('.hero-img-container', { width: '0', }, { width: '100%', }, '<')
+                .fromTo('.hero-img-container .boundary', { width: '4px', boxShadow: '10px 0 10px 10px rgb(255, 255, 255, 0.2)' }, { width: '0', boxShadow: '0 0 0 0 rgba(255, 255, 255, 0.2)' }, '>')
+                .fromTo('.horizontal .boundary', { width: '0%' }, { width: '100%' }, '>')
+                .fromTo('.top-expand .text', { marginTop: '60px' }, { marginTop: '0' }, '>')
+                .fromTo('.botton-expand .text', { marginBottom: '60px' }, { marginBottom: '0' }, '<')
+                .fromTo('.horizontal .boundary', { width: '100%', marginTop: '0' }, { width: '50%', marginTop: '-60px' }, '>')
+                .fromTo('.top-expand .text', { height: '60px' }, { height: '0' }, '<')
+                .fromTo('.botton-expand', { height: '60px' }, { height: '0' }, '>')
+                .fromTo('.horizontal .boundary', { width: '50%', rotation: 0, }, { width: '0', rotation: 180, ease: "back.inOut(1.7)", }, '>')
                 .fromTo('.vertical .boundary', { height: '0' }, { height: () => `${getVerticalTextHeight()}px`, }, '>')
                 .fromTo('.vertical .right-expand', { width: '0' }, { width: () => `${getVerticalTextWidth() + 2}px`, }, '>')
                 .fromTo('.hero-image', { scale: 1 }, { scale: 0.8 }, '>')
-                .fromTo('.video-player', { width: '80%', height: '80vh' }, { width: '100%', height: '100vh' }, '<')
+                // .fromTo('.video-player', { width: '80%', height: '80vh' }, { width: '100%', height: '100vh' }, '<')
         });
 
         // 第二个区块：视频+文字动画
@@ -379,7 +383,11 @@ onUnmounted(() => {
             <!-- 区块 A：图片缩放 -->
             <div class="hero-block gradient-purple">
                 <div class="hero-image">
-                    <img src="/gsap/yunnan/tourism/t-1.jpg" class="hero-img" alt="">
+                    <div class="hero-img-container">
+                        <img src="/gsap/yunnan/tourism/t-1.jpg" class="hero-img" alt="">
+                        <span class="boundary"></span>
+                    </div>
+
                     <!-- 横向展开文字 -->
                     <div class="expand-text horizontal">
                         <span class="top-expand">
@@ -565,6 +573,8 @@ onUnmounted(() => {
             color: #fff;
             font-size: 40px;
             font-weight: bold;
+            height: 60px;
+            overflow: hidden;
         }
     }
 
@@ -576,11 +586,12 @@ onUnmounted(() => {
     }
 
     .top-expand {
-        align-items: flex-end;
+        align-items: flex-start;
+
     }
 
     .botton-expand {
-        align-items: flex-start;
+        align-items: flex-end;
     }
 }
 
@@ -624,15 +635,34 @@ onUnmounted(() => {
 .hero-block {
     .hero-image {
         display: flex;
-        justify-content: center;
+        justify-content: flex-end;
         height: 100vh;
         width: 100%;
         position: relative;
 
-        img {
-            height: 100%;
+        .hero-img-container {
+            // 右居中
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
             width: 100%;
-            object-fit: cover;
+            height: 100%;
+            overflow: hidden;
+
+            img {
+                height: 100vh;
+                width: 100vw;
+                object-fit: cover;
+                transform-origin: right center;
+            }
+
+            .boundary {
+                position: absolute;
+                height: 100%;
+                width: 4px;
+                background-color: #fff;
+                box-shadow: 10px 0 10px 10px rgb(255 255 255 / 20%)
+            }
         }
     }
 }
