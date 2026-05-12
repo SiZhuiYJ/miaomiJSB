@@ -5,6 +5,10 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { ScrollSmoother } from 'gsap/ScrollSmoother';
 import { SplitText } from 'gsap/SplitText';
 import { buildStoryTimeline, buildGalleryTimeline, buildCosTimeline } from './utils';
+import { useDynamicRefs, useDVideoRefs, useDTextRefs } from './composables/useDynamicRefs';
+const { refs, setRef } = useDynamicRefs();
+const { vRefs, setVRef } = useDVideoRefs();
+const { tRefs, setTRef } = useDTextRefs();
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother, SplitText);
 
@@ -56,7 +60,7 @@ const storyPages = ref<StoryPages[]>([
     },
     {
         id: 2,
-        videoIndex: 54,
+        videoIndex: 57,
         headline: '',
         text: '香格里拉 · 云上牧歌',
         gradientClass: 'gradient-blue',
@@ -64,9 +68,13 @@ const storyPages = ref<StoryPages[]>([
     },
 ]);
 
-const videoRefs = ref<(HTMLVideoElement | null)[]>([]);
-
 const video1 = useTemplateRef('video1Ref');
+
+const galleryRef = useTemplateRef('galleryRef')
+
+const galleryTrackRef = useTemplateRef('galleryTrackRef')
+
+const multipageStoryRef = useTemplateRef('multipageStoryRef');
 
 // 创建画廊的 SplitText 实例
 const galleryImages = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20];
@@ -89,6 +97,7 @@ const seeList = [
 // 创建视频的 SplitText 实例
 const seeVideoList = [
     { key: 53, label: '渡海缆车' },
+    { key: 54, label: '玉龙雪山' },
     { key: 55, label: '出发啦~' }
 ];
 
@@ -143,18 +152,18 @@ onMounted(() => {
                 .timeline()
                 .fromTo('.hero-img-container .boundary', { left: '100%', }, { left: '0%', }, '>')
                 .fromTo('.hero-img-container', { width: '0', }, { width: '100%', }, '<')
-                .fromTo('.hero-img-container .boundary', { width: '4px', boxShadow: '10px 0 10px 10px rgb(255, 255, 255, 0.2)' }, { width: '0', boxShadow: '0 0 0 0 rgba(255, 255, 255, 0.2)' }, '>')
+                .fromTo('.hero-img-container .boundary', { width: '4px', }, { width: '0', }, '>')
                 .fromTo('.horizontal .boundary', { width: '0%' }, { width: '100%' }, '>')
                 .fromTo('.top-expand .text', { marginTop: '60px' }, { marginTop: '0' }, '>')
                 .fromTo('.botton-expand .text', { marginBottom: '60px' }, { marginBottom: '0' }, '<')
                 .fromTo('.horizontal .boundary', { width: '100%', marginTop: '0' }, { width: '50%', marginTop: '-60px' }, '>')
                 .fromTo('.top-expand .text', { height: '60px' }, { height: '0' }, '<')
                 .fromTo('.botton-expand', { height: '60px' }, { height: '0' }, '>')
-                .fromTo('.horizontal .boundary', { width: '50%', rotation: 0, }, { width: '0', rotation: 180, ease: "back.inOut(1.7)", }, '>')
-                .fromTo('.vertical .boundary', { height: '0' }, { height: () => `${getVerticalTextHeight()}px`, }, '>')
+                .fromTo('.horizontal .boundary', { width: '50%', rotation: 0, }, { width: '0', rotation: 90, ease: "back.inOut(1.7)", }, '>')
+                .fromTo('.vertical .boundary', { height: '0' }, { height: () => `${getVerticalTextHeight()}px`, ease: "back.inOut(1.7)", }, '>')
                 .fromTo('.vertical .right-expand', { width: '0' }, { width: () => `${getVerticalTextWidth() + 2}px`, }, '>')
                 .fromTo('.hero-image', { scale: 1 }, { scale: 0.8 }, '>')
-                // .fromTo('.video-player', { width: '80%', height: '80vh' }, { width: '100%', height: '100vh' }, '<')
+            // .fromTo('.video-player', { width: '80%', height: '80vh' }, { width: '100%', height: '100vh' }, '<')
         });
 
         // 第二个区块：视频+文字动画
@@ -183,13 +192,12 @@ onMounted(() => {
         });
 
         // 第三个区块：横向滚动画廊
-        const galleryTrack = main.value?.querySelector<HTMLElement>('.gallery-track');
-        if (galleryTrack) {
-            const galleryTimeline = buildGalleryTimeline(galleryTrack, 40);
-            const galleryImagesCount = galleryTrack.querySelectorAll('img').length; // 获取图片数量
+        if (galleryTrackRef.value) {
+            const galleryTimeline = buildGalleryTimeline(galleryTrackRef.value, 40);
+            const galleryImagesCount = galleryImages.length; // 获取图片数量
 
             ScrollTrigger.create({
-                trigger: '.scrolling-gallery',
+                trigger: galleryRef.value,
                 pin: true,
                 start: 'top top',
                 end: () => `+=${Math.max(400, galleryImagesCount * 450)}`, // 使用 galleryImagesCount
@@ -198,7 +206,6 @@ onMounted(() => {
                 animation: galleryTimeline,
             });
         }
-
 
         // 画廊开始标题动画
         startTitle = SplitText.create(".gallery-title-start", { type: "chars" });
@@ -220,13 +227,12 @@ onMounted(() => {
                 .fromTo('.gallery-title-start', { opacity: 1 }, { opacity: 0, duration: 0.5 }),
         });
 
-        const totalImages = main.value?.querySelectorAll('.gallery-track img')?.length || 0; // 再次获取或复用上面的变量
+        const totalImages = galleryImages.length || 0; // 再次获取或复用上面的变量
 
         // 画廊结束标题动画
         endTitle = SplitText.create(".gallery-title-end", { type: "chars" });
         ScrollTrigger.create({
             trigger: '.gallery-title-end',
-            // start: `top+=${Math.max(galleryItems.length * 450 - 800)} top`,
             start: `top+=${Math.max(totalImages * 450 - 800, 0)} top`,
             end: '+=800',
             scrub: true,
@@ -241,12 +247,17 @@ onMounted(() => {
                 }),
         });
 
-
-
         // 分页故事轮播
-        const storyContainer = main.value?.querySelector<HTMLElement>('.multipage-story');
-        if (storyContainer && storyPages.value.length) {
-            const storyTimeline = buildStoryTimeline(storyContainer, storyPages.value);
+        if (multipageStoryRef.value && storyPages.value.length) {
+
+            const storyTimeline = buildStoryTimeline(
+                multipageStoryRef.value,
+                storyPages.value,
+                refs.value,
+                vRefs.value,
+                tRefs.value
+            );
+
             ScrollTrigger.create({
                 trigger: '.story-carousel',
                 pin: true,
@@ -330,7 +341,7 @@ onMounted(() => {
                         y: () => -getParallaxDistance()
                     }, {
                         onStart() {
-                            const videoContext = main.value?.querySelector<HTMLVideoElement>(`.scenery-video-${value.key}`);
+                            const videoContext = vRefs.value[value.key];
                             if (videoContext) {
                                 videoContext.muted = true;
                                 videoContext.play();
@@ -424,9 +435,9 @@ onUnmounted(() => {
             </div>
 
             <!-- 区块 C：横向滚动画廊 -->
-            <div class="scrolling-gallery gradient-green-2">
+            <div ref="galleryRef" class="scrolling-gallery gradient-green-2">
                 <p class="gallery-title-start">云南100张旅拍，开始滚动放映</p>
-                <div class="gallery-track">
+                <div ref="galleryTrackRef" class="gallery-track">
                     <img v-for="value in galleryImages" :key="`yunnan-gallery-${value}`"
                         :src="`/gsap/yunnan/tourism/t-${value}.jpg`" :class="`gallery-img-${value}`" alt="云南旅拍" />
                 </div>
@@ -435,14 +446,13 @@ onUnmounted(() => {
 
             <!-- 区块 D：分页故事 -->
             <div class="story-carousel">
-                <div class="multipage-story">
-                    <div v-for="(page, idx) in storyPages" :key="page.id"
+                <div ref="multipageStoryRef" class="multipage-story">
+                    <div v-for="(page, idx) in storyPages" :key="page.id" :ref="setRef(idx)"
                         :class="['story-page', `story-page-${idx}`, page.gradientClass]" :data-index="idx">
                         <p v-if="page.headline" class="carousel-headline">{{ page.headline }}</p>
-                        <video :src="`/gsap/yunnan/tourism/t-${page.videoIndex}.mp4`"
-                            :ref="el => { if (el) videoRefs[idx] = el as HTMLVideoElement }"
+                        <video :src="`/gsap/yunnan/tourism/t-${page.videoIndex}.mp4`" :ref="setVRef(idx)"
                             :class="`story-video-${idx}`" muted playsinline />
-                        <p :class="`story-text-${idx}`">{{ page.text }}</p>
+                        <p :ref="setTRef(idx)" :class="`story-text-${idx}`">{{ page.text }}</p>
                     </div>
                 </div>
             </div>
@@ -468,8 +478,8 @@ onUnmounted(() => {
             <!-- 视差视频区块 -->
             <div v-for="item in seeVideoList" :key="`see-${item.key}`" :class="`scenery-block-${item.key}`"
                 class="scenery-item">
-                <video :src="`/gsap/yunnan/tourism/t-${item.key}.mp4`" :class="`scenery-video-${item.key}`" muted loop
-                    playsinline alt="云南风景" />
+                <video :ref="setVRef(item.key)" :src="`/gsap/yunnan/tourism/t-${item.key}.mp4`"
+                    :class="`scenery-video-${item.key}`" muted loop playsinline alt="云南风景" />
                 <p class="scenery-caption">{{ item.label }}</p>
             </div>
         </div>
@@ -532,7 +542,7 @@ onUnmounted(() => {
 #smooth-content {
     background-color: #fff;
     overflow: visible;
-    height: 25000px;
+    height: 30000px;
 }
 
 // 通用区块样式
@@ -661,7 +671,6 @@ onUnmounted(() => {
                 height: 100%;
                 width: 4px;
                 background-color: #fff;
-                box-shadow: 10px 0 10px 10px rgb(255 255 255 / 20%)
             }
         }
     }
@@ -747,8 +756,8 @@ onUnmounted(() => {
 
     .gallery-title-end {
         top: auto;
-        bottom: 10%;
-        transform: none;
+        bottom: 50%;
+        transform: translateY(50%);
     }
 }
 

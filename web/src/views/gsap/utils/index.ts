@@ -21,7 +21,10 @@ export interface StoryPageData {
  */
 export const buildStoryTimeline = (
     container: HTMLElement,
-    pages: StoryPageData[]
+    pages: StoryPageData[],
+    pageRefs?: Record<number, HTMLElement>,
+    videoRefs?: Record<number, HTMLVideoElement>,
+    textRefs?: Record<number, HTMLElement>
 ): gsap.core.Timeline => {
     const timeline = gsap.timeline({ defaults: { ease: 'none' } });
     const pageCount = pages.length;
@@ -31,7 +34,7 @@ export const buildStoryTimeline = (
 
     // 预先为每页创建 SplitText 实例
     pages.forEach((page, idx) => {
-        const textElem = container.querySelector<HTMLElement>(`.story-text-${idx}`);
+        const textElem = textRefs?.[idx] || container.querySelector<HTMLElement>(`.story-text-${idx}`);
         if (textElem) {
             const split = new SplitText(textElem, { type: page.textAnimType });
             splitInstances.push(split);
@@ -44,9 +47,9 @@ export const buildStoryTimeline = (
     const pageElements: HTMLElement[] = [];
     const videoElements: HTMLVideoElement[] = [];
     for (let i = 0; i < pageCount; i++) {
-        const pageElem = container.querySelector<HTMLElement>(`.story-page-${i}`);
+        const pageElem = pageRefs?.[i] || container.querySelector<HTMLElement>(`.story-page-${i}`);
         if (pageElem) pageElements.push(pageElem);
-        const videoElem = container.querySelector<HTMLVideoElement>(`.story-video-${i}`);
+        const videoElem = videoRefs?.[i] || container.querySelector<HTMLVideoElement>(`.story-video-${i}`);
         if (videoElem) videoElements.push(videoElem);
     }
 
