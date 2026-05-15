@@ -10,6 +10,7 @@ node_modules/
 
 # 临时文件
 web/public/gsap/yunnan
+first-screen-scroll-animation/public/gsap/yunnan
 
 # 日志文件
 logs/
