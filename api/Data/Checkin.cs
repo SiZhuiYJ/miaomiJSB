@@ -68,6 +68,11 @@ public partial class Checkin
     /// </summary>
     public DateTime UpdatedAt { get; set; }
 
+    /// <summary>
+    /// Normalized time_slot_id for uniqueness
+    /// </summary>
+    public ulong? TimeSlotIdKey { get; set; }
+
     public virtual CheckinPlan Plan { get; set; } = null!;
 
     public virtual CheckinPlanTimeSlot? TimeSlot { get; set; }

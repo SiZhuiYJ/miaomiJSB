@@ -1847,17 +1847,17 @@ public class ChatController(DailyCheckDbContext db, IHubContext<ChatHub> hubCont
         object? actionPayload = null,
         ChatMessage? relatedMessage = null)
     {
-        _db.ChatGroupActionLogs.Add(new ChatGroupActionLog
-        {
-            ConversationId = conversationId,
-            ActionType = actionType,
-            OperatorUserId = operatorUserId,
-            TargetUserId = targetUserId,
-            ActionReason = actionReason,
-            ActionPayload = actionPayload == null ? null : JsonSerializer.Serialize(actionPayload),
-            RelatedMessage = relatedMessage,
-            CreatedAt = DateTime.UtcNow
-        });
+        //_db.ChatGroupActionLogs.Add(new ChatGroupActionLog
+        //{
+        //    ConversationId = conversationId,
+        //    ActionType = actionType,
+        //    OperatorUserId = operatorUserId,
+        //    TargetUserId = targetUserId,
+        //    ActionReason = actionReason,
+        //    ActionPayload = actionPayload == null ? null : JsonSerializer.Serialize(actionPayload),
+        //    RelatedMessage = relatedMessage,
+        //    CreatedAt = DateTime.UtcNow
+        //});
     }
 
     async Task BroadcastSystemMessage(ChatMessage message, DateTime now)

@@ -2128,6 +2128,11 @@
             更新时间
             </summary>
         </member>
+        <member name="P:api.Data.Checkin.TimeSlotIdKey">
+            <summary>
+            Normalized time_slot_id for uniqueness
+            </summary>
+        </member>
         <member name="T:api.Data.CheckinPlan">
             <summary>
             打卡计划表

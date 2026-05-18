@@ -51,7 +51,6 @@ public partial class DailyCheckDbContext : DbContext
     public virtual DbSet<UserFriendship> UserFriendships { get; set; }
 
     public virtual DbSet<UserOauthAccount> UserOauthAccounts { get; set; }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder
@@ -161,6 +160,8 @@ public partial class DailyCheckDbContext : DbContext
 
             entity.HasIndex(e => new { e.ConversationId, e.LeftAt }, "idx_chat_members_conversation_active");
 
+            entity.HasIndex(e => new { e.ConversationId, e.LeftAt, e.JoinedAt }, "idx_chat_members_conversation_left_joined");
+
             entity.HasIndex(e => e.InvitedByUserId, "idx_chat_members_invited_by");
 
             entity.HasIndex(e => e.MutedByUserId, "idx_chat_members_muted_by");
@@ -172,6 +173,8 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasIndex(e => e.UserId, "idx_chat_members_user");
 
             entity.HasIndex(e => new { e.UserId, e.LeftAt }, "idx_chat_members_user_active");
+
+            entity.HasIndex(e => new { e.UserId, e.LeftAt, e.ConversationId, e.IsPinned, e.UpdatedAt }, "idx_chat_members_user_left_conversation");
 
             entity.HasIndex(e => new { e.ConversationId, e.UserId }, "ux_chat_members_conversation_user").IsUnique();
 
@@ -619,11 +622,15 @@ public partial class DailyCheckDbContext : DbContext
 
             entity.HasIndex(e => e.IsDeleted, "idx_checkins_is_deleted");
 
+            entity.HasIndex(e => new { e.PlanId, e.IsDeleted, e.CheckDate, e.TimeSlotId }, "idx_checkins_plan_deleted_date_slot");
+
             entity.HasIndex(e => e.Status, "idx_checkins_status");
 
             entity.HasIndex(e => new { e.UserId, e.CheckDate }, "idx_checkins_user_date");
 
             entity.HasIndex(e => new { e.PlanId, e.CheckDate, e.TimeSlotId }, "ux_checkins_plan_date_slot").IsUnique();
+
+            entity.HasIndex(e => new { e.PlanId, e.CheckDate, e.TimeSlotIdKey }, "ux_checkins_plan_date_slot_key").IsUnique();
 
             entity.Property(e => e.Id)
                 .HasComment("主键ID")
@@ -660,6 +667,10 @@ public partial class DailyCheckDbContext : DbContext
             entity.Property(e => e.TimeSlotId)
                 .HasComment("关联的打卡时间段ID")
                 .HasColumnName("time_slot_id");
+            entity.Property(e => e.TimeSlotIdKey)
+                .HasComputedColumnSql("coalesce(`time_slot_id`,0)", true)
+                .HasComment("Normalized time_slot_id for uniqueness")
+                .HasColumnName("time_slot_id_key");
             entity.Property(e => e.UpdatedAt)
                 .ValueGeneratedOnAddOrUpdate()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
@@ -700,6 +711,8 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasIndex(e => e.StartDate, "idx_plans_start_date");
 
             entity.HasIndex(e => e.UserId, "idx_plans_user");
+
+            entity.HasIndex(e => new { e.UserId, e.IsDeleted, e.StartDate }, "idx_plans_user_deleted_start");
 
             entity.Property(e => e.Id)
                 .HasComment("主键ID")
@@ -765,6 +778,8 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasIndex(e => e.IsActive, "idx_slots_active");
 
             entity.HasIndex(e => e.PlanId, "idx_slots_plan");
+
+            entity.HasIndex(e => new { e.PlanId, e.IsActive, e.OrderNum, e.StartTime }, "idx_slots_plan_active_order");
 
             entity.Property(e => e.Id)
                 .HasComment("主键ID")
@@ -1155,6 +1170,8 @@ public partial class DailyCheckDbContext : DbContext
             entity.HasIndex(e => e.SourceRequestId, "idx_friendships_source_request");
 
             entity.HasIndex(e => new { e.UserId, e.Status }, "idx_friendships_user_status");
+
+            entity.HasIndex(e => new { e.UserId, e.Status, e.IsStarred, e.AcceptedAt, e.CreatedAt }, "idx_friendships_user_status_order").IsDescending(false, false, true, true, true);
 
             entity.HasIndex(e => new { e.UserId, e.FriendUserId }, "ux_friendships_user_friend").IsUnique();
 

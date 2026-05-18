@@ -14,10 +14,16 @@ using System.Text;
 // 数据库
 //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 //#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
+
+#region 远程
 //    => optionsBuilder.UseMySql("server=8.137.127.7;database=dailycheck;charset=utf8;uid=dailycheck;pwd=CjxCewwA7CiMk4ce;port=3306", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.36-mysql"));
 // scaffold-dbcontext 'server=8.137.127.7;database=dailycheck;charset=utf8;uid=dailycheck;pwd=CjxCewwA7CiMk4ce;port=3306;' Pomelo.EntityFrameworkCore.MySql -OutputDir Data -context DailyCheckDbContext -Force
+#endregion
 
-
+#region 本地
+// server=127.0.0.1;database=dailycheck;charset=utf8;uid=root;pwd=CjxCewwA7CiMk4ce;port=3306
+// scaffold-dbcontext 'server=127.0.0.1;database=dailycheck;charset=utf8;uid=root;pwd=CjxCewwA7CiMk4ce;port=3306;' Pomelo.EntityFrameworkCore.MySql -OutputDir Data -context DailyCheckDbContext -Force
+#endregion
 var builder = WebApplication.CreateBuilder(args);
 
 #region 跨域配置
