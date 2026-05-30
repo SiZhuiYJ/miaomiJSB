@@ -10,11 +10,12 @@ const erasePathRef = ref<SVGPathElement | null>(null);
 const loadingPhase = ref<LoadingPhase>('idle');
 const COVER_DURATION = 4.6; // 封面动画时长
 const ERASE_DURATION = 4.4; // 擦除动画时长
-const FOLD_COUNT = 7; // 折叠次数，数字越大折返越密
-const PATH_START_X = -30; // 封面路径起始点 X 坐标
-const PATH_END_X = 130; // 封面路径结束点 X 坐标
-const PATH_START_Y = -24; // 封面路径起始点 Y 坐标
-const PATH_END_Y = 136; // 封面路径结束点 Y 坐标
+const FOLD_COUNT = 7; // 屏幕内可见折返拐点数，数字越大折返越密
+const PATH_STROKE_WIDTH = 48; // 路径宽度，边角露底时可以适当调大
+const PATH_START_X = -70; // 封面路径起始点 X 坐标
+const PATH_END_X = 170; // 封面路径结束点 X 坐标
+const PATH_START_Y = 0; // 屏幕内路径顶部 Y 坐标
+const PATH_END_Y = 100; // 屏幕内路径底部 Y 坐标
 const triggerLabel = computed(() => {
     const labelMap: Record<LoadingPhase, string> = {
         idle: '开始加载',
@@ -28,12 +29,13 @@ const triggerLabel = computed(() => {
 const isTriggerDisabled = computed(() => loadingPhase.value === 'covering' || loadingPhase.value === 'erasing');
 
 const buildZigZagPath = (foldCount: number) => {
-    const safeFoldCount = Math.max(1, Math.floor(foldCount));
+    const safeFoldCount = Math.max(0, Math.floor(foldCount));
+    const visibleSegmentCount = safeFoldCount + 1;
 
-    return Array.from({ length: safeFoldCount + 1 }, (_, index) => {
+    return Array.from({ length: visibleSegmentCount + 1 }, (_, index) => {
         const command = index === 0 ? 'M' : 'L';
         const x = index % 2 === 0 ? PATH_START_X : PATH_END_X;
-        const progress = index / safeFoldCount;
+        const progress = index / visibleSegmentCount;
         const y = PATH_START_Y + (PATH_END_Y - PATH_START_Y) * progress;
 
         return `${command} ${x} ${Number(y.toFixed(2))}`;
@@ -169,19 +171,25 @@ defineExpose({
         {{ triggerLabel }}
     </button>
 
-    <div id="Loading" ref="loadingRef" aria-hidden="true">
-        <svg class="loading-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <defs>
-                <mask id="loading-zigzag-mask" maskUnits="userSpaceOnUse" x="-40" y="-40" width="180" height="180">
-                    <rect x="-40" y="-40" width="180" height="180" fill="black" />
-                    <path ref="coverPathRef" class="loading-path loading-path-cover" :d="zigZagPath" />
-                    <path ref="erasePathRef" class="loading-path loading-path-erase" :d="zigZagPath" />
-                </mask>
-            </defs>
+    <Teleport to="body">
+        <div id="Loading" ref="loadingRef" aria-hidden="true">
+            <svg class="loading-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <defs>
+                    <mask id="loading-zigzag-mask" maskUnits="userSpaceOnUse" x="-100" y="-100" width="300"
+                        height="300">
+                        <rect x="-100" y="-100" width="300" height="300" fill="black" />
+                        <path ref="coverPathRef" class="loading-path loading-path-cover" :d="zigZagPath"
+                            :stroke-width="PATH_STROKE_WIDTH" />
+                        <path ref="erasePathRef" class="loading-path loading-path-erase" :d="zigZagPath"
+                            :stroke-width="PATH_STROKE_WIDTH" />
+                    </mask>
+                </defs>
 
-            <rect class="loading-fill" x="-40" y="-40" width="180" height="180" mask="url(#loading-zigzag-mask)" />
-        </svg>
-    </div>
+                <rect class="loading-fill" x="-100" y="-100" width="300" height="300"
+                    mask="url(#loading-zigzag-mask)" />
+            </svg>
+        </div>
+    </Teleport>
 </template>
 
 <style lang="scss" scoped>
@@ -229,7 +237,6 @@ defineExpose({
 
 .loading-path {
     fill: none;
-    stroke-width: 72;
     stroke-linecap: square;
     stroke-linejoin: bevel;
 }
