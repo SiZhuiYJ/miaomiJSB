@@ -2,14 +2,26 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import gsap from 'gsap';
 import TextView from '../text/index.vue';
-type LoadingPhase = 'idle' | 'covering' | 'covered' | 'erasing';
+
+type LoadingPhase = 'idle' | 'covering' | 'textEntering' | 'covered' | 'erasing';
+type TextViewControls = {
+    prepareIntro: () => void;
+    playTextAnimation: () => void;
+    pauseTextAnimation: () => void;
+    resetTextAnimation: () => void;
+};
 
 const loadingRef = ref<HTMLElement | null>(null);
 const coverPathRef = ref<SVGPathElement | null>(null);
 const erasePathRef = ref<SVGPathElement | null>(null);
+const textLayerRef = ref<HTMLElement | null>(null);
+const textViewRef = ref<TextViewControls | null>(null);
 const loadingPhase = ref<LoadingPhase>('idle');
-const COVER_DURATION = 4.6; // 封面动画时长
-const ERASE_DURATION = 4.4; // 擦除动画时长
+const COVER_DURATION = 2.1; // 封面动画时长
+const ERASE_DURATION = 2.1; // 擦除动画时长
+const TEXT_DROP_DURATION = 0.85;
+const TEXT_DROP_STAGGER = 0.08;
+const TEXT_PREVIEW_DURATION = 1.4;
 const FOLD_COUNT = 7; // 屏幕内可见折返拐点数，数字越大折返越密
 const PATH_STROKE_WIDTH = 48; // 路径宽度，边角露底时可以适当调大
 const PATH_START_X = -70; // 封面路径起始点 X 坐标
@@ -20,13 +32,18 @@ const triggerLabel = computed(() => {
     const labelMap: Record<LoadingPhase, string> = {
         idle: '开始加载',
         covering: '加载中',
+        textEntering: '文字入场',
         covered: '完成加载',
         erasing: '结束中',
     };
 
     return labelMap[loadingPhase.value];
 });
-const isTriggerDisabled = computed(() => loadingPhase.value === 'covering' || loadingPhase.value === 'erasing');
+const isTriggerDisabled = computed(() => (
+    loadingPhase.value === 'covering' ||
+    loadingPhase.value === 'textEntering' ||
+    loadingPhase.value === 'erasing'
+));
 
 const buildZigZagPath = (foldCount: number) => {
     const safeFoldCount = Math.max(0, Math.floor(foldCount));
@@ -46,6 +63,24 @@ const zigZagPath = buildZigZagPath(FOLD_COUNT);
 
 let loadingTimeline: gsap.core.Timeline | null = null;
 let shouldEraseAfterCover = false;
+
+const getTextChars = () => {
+    return Array.from(textLayerRef.value?.querySelectorAll<HTMLElement>('.char') ?? []);
+};
+
+const prepareLoadingText = () => {
+    textViewRef.value?.prepareIntro();
+    gsap.set(textLayerRef.value, {
+        autoAlpha: 0,
+    });
+};
+
+const resetLoadingText = () => {
+    textViewRef.value?.resetTextAnimation();
+    gsap.set(textLayerRef.value, {
+        autoAlpha: 0,
+    });
+};
 
 const resetPaths = () => {
     const coverPath = coverPathRef.value;
@@ -70,6 +105,7 @@ const playEraseAnimation = () => {
     loadingTimeline?.kill();
     shouldEraseAfterCover = false;
     loadingPhase.value = 'erasing';
+    textViewRef.value?.pauseTextAnimation();
 
     loadingTimeline = gsap.timeline({
         defaults: {
@@ -79,14 +115,16 @@ const playEraseAnimation = () => {
             loadingPhase.value = 'idle';
             gsap.set(loading, { autoAlpha: 0 });
             resetPaths();
+            resetLoadingText();
         },
     });
 
-    loadingTimeline.to(erasePath, {
-        strokeDashoffset: 0,
-        duration: ERASE_DURATION,
-        ease: 'power2.inOut',
-    });
+    loadingTimeline
+        .to(erasePath, {
+            strokeDashoffset: 0,
+            duration: ERASE_DURATION,
+            ease: 'power2.inOut',
+        }, 0);
 };
 
 const startLoading = async () => {
@@ -96,12 +134,15 @@ const startLoading = async () => {
 
     const loading = loadingRef.value;
     const coverPath = coverPathRef.value;
+    const textChars = getTextChars();
 
-    if (!loading || !coverPath) return;
+    if (!loading || !coverPath || !textChars.length) return;
 
     loadingTimeline?.kill();
     shouldEraseAfterCover = false;
     resetPaths();
+    resetLoadingText();
+    prepareLoadingText();
 
     loadingPhase.value = 'covering';
 
@@ -125,13 +166,32 @@ const startLoading = async () => {
             strokeDashoffset: 0,
             duration: COVER_DURATION,
             ease: 'power2.out',
-        });
+        })
+        .call(() => {
+            loadingPhase.value = 'textEntering';
+            gsap.set(textLayerRef.value, { autoAlpha: 1 });
+        })
+        .to(textChars, {
+            autoAlpha: 1,
+            y: 0,
+            rotation: 0,
+            duration: TEXT_DROP_DURATION,
+            ease: 'bounce.out',
+            stagger: {
+                each: TEXT_DROP_STAGGER,
+                from: 'start',
+            },
+        })
+        .call(() => {
+            textViewRef.value?.playTextAnimation();
+        })
+        .to({}, { duration: TEXT_PREVIEW_DURATION });
 };
 
 const finishLoading = () => {
     if (loadingPhase.value === 'idle' || loadingPhase.value === 'erasing') return;
 
-    if (loadingPhase.value === 'covering') {
+    if (loadingPhase.value === 'covering' || loadingPhase.value === 'textEntering') {
         shouldEraseAfterCover = true;
         return;
     }
@@ -150,9 +210,11 @@ const handleTriggerClick = () => {
     }
 };
 
-onMounted(() => {
+onMounted(async () => {
+    await nextTick();
     gsap.set(loadingRef.value, { autoAlpha: 0 });
     resetPaths();
+    resetLoadingText();
 });
 
 onUnmounted(() => {
@@ -185,10 +247,15 @@ defineExpose({
                     </mask>
                 </defs>
 
-                <rect class="loading-fill" x="-100" y="-100" width="300" height="300"
-                    mask="url(#loading-zigzag-mask)" />
+                <g mask="url(#loading-zigzag-mask)">
+                    <rect class="loading-fill" x="-100" y="-100" width="300" height="300" />
+                    <foreignObject class="loading-text-object" x="0" y="0" width="100" height="100">
+                        <div xmlns="http://www.w3.org/1999/xhtml" ref="textLayerRef" class="loading-text-layer">
+                            <TextView ref="textViewRef" :autoplay="false" />
+                        </div>
+                    </foreignObject>
+                </g>
             </svg>
-            <TextView style="position: fixed;top:50%;left: 50%;transform: translate(-50%, -50%);" />
         </div>
     </Teleport>
 </template>
@@ -227,9 +294,32 @@ defineExpose({
 }
 
 .loading-svg {
+    position: absolute;
+    inset: 0;
     display: block;
     width: 100%;
     height: 100%;
+}
+
+.loading-text-object {
+    overflow: visible;
+}
+
+.loading-text-layer {
+    --kaomoji-font-size: 6px;
+    --kaomoji-padding: 0;
+    --kaomoji-radius: 0;
+    --kaomoji-stroke-width: 0.45px;
+    --kaomoji-shadow: drop-shadow(0 0.55px 0.45px rgba(0, 0, 0, 0.3));
+
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    will-change: opacity;
 }
 
 .loading-fill {
