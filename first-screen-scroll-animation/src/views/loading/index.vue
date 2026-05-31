@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue';
 import gsap from 'gsap';
-
+import TextView from '../text/index.vue';
 type LoadingPhase = 'idle' | 'covering' | 'covered' | 'erasing';
 
 const loadingRef = ref<HTMLElement | null>(null);
@@ -188,6 +188,7 @@ defineExpose({
                 <rect class="loading-fill" x="-100" y="-100" width="300" height="300"
                     mask="url(#loading-zigzag-mask)" />
             </svg>
+            <TextView style="position: fixed;top:50%;left: 50%;transform: translate(-50%, -50%);" />
         </div>
     </Teleport>
 </template>
