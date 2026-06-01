@@ -38,6 +38,7 @@ const demoTargets: DemoTarget[] = [
     { key: 'c', label: '跳转到 C', selector: '.scrolling-gallery', position: 'top top' },
     { key: 'd', label: '跳转到 D', selector: '.story-carousel', position: 'top top' },
     { key: 'e', label: '跳转到 E', selector: '.mountain-reveal', position: 'top top' },
+    { key: 'bottom', label: '回到底部', selector: '#smooth-content', position: 'bottom bottom' }
 ];
 
 // 故事页面数据：每页的视频编号、标题文本、背景渐变类、文字动画类型等
@@ -211,8 +212,8 @@ onMounted(() => {
             invalidateOnRefresh: true,
             animation: gsap
                 .timeline()
-                .fromTo('.hero-img-container .boundary', { left: '100%', }, { left: '0%', }, '>')
-                .fromTo('.hero-img-container', { width: '0', }, { width: '100%', }, '<')
+                .fromTo('.hero-img-container .boundary', { left: '100%', }, { left: '0%', duration: 2.5, ease: "expoScale(0.5,7,none)", }, '>')
+                .fromTo('.hero-img-container', { width: '0', }, { width: '100%', duration: 2.5, ease: "expoScale(0.5,7,none)", }, '<')
                 .fromTo('.hero-img-container .boundary', { width: '4px', }, { width: '0', }, '>')
                 .fromTo('.horizontal .boundary', { width: '0%' }, { width: '100%' }, '>')
                 .fromTo('.top-expand .text', { marginTop: '60px' }, { marginTop: '0' }, '>')
@@ -224,14 +225,14 @@ onMounted(() => {
                 .fromTo('.vertical .boundary', { height: '0' }, { height: () => `${getVerticalTextHeight()}px`, ease: "back.inOut(1.7)", }, '>')
                 .fromTo('.vertical .right-expand', { width: '0' }, { width: () => `${getVerticalTextWidth() + 2}px`, }, '>')
                 .fromTo('.hero-image', { scale: 1 }, { scale: 0.8 }, '>')
-            // .fromTo('.video-player', { width: '80%', height: '80vh' }, { width: '100%', height: '100vh' }, '<')
+                .fromTo('.video-player', { width: '80%', height: '80vh' }, { width: '100%', height: '100vh' }, '<')
         });
 
         // 第二个区块：视频+文字动画
         ScrollTrigger.create({
             trigger: '.video-narrative',
             start: 'top top',
-            end: '+=1500',
+            end: '+=2000',
             scrub: true,
             pin: true,
             markers: true,
@@ -480,7 +481,7 @@ onUnmounted(() => {
             <!-- 区块 B：视频叙述 -->
             <div class="video-narrative gradient-green">
                 <div class="video-player">
-                    <video :src="`/gsap/yunnan/tourism/t-350.mp4`" ref="video1Ref" class="narrative-video"
+                    <video :src="`/gsap/yunnan/tourism/t-341.mp4`" ref="video1Ref" class="narrative-video"
                         preload="auto" muted playsinline>
                         您的浏览器不支持视频播放
                     </video>

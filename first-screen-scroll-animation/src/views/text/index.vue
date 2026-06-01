@@ -119,10 +119,10 @@ onUnmounted(() => {
 });
 
 defineExpose({
-    prepareIntro,
-    playTextAnimation,
-    pauseTextAnimation,
-    resetTextAnimation,
+    prepareIntro,// 预处理
+    playTextAnimation,// 播放动画
+    pauseTextAnimation,// 暂停动画
+    resetTextAnimation,// 重置动画
 });
 </script>
 
