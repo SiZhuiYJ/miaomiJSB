@@ -1,24 +1,21 @@
 * {
   box-sizing: border-box;
+  padding: 0;
+  margin: 0;
 }
 
 html,
 body,
 #app {
   margin: 0;
-  width: 100%;
-  min-height: 100%;
+  width: 100vw;
+  height: 100vh;
 }
 
 body {
   overflow-x: hidden;
   background: #fff;
-  font-family:
-    Inter,
-    "PingFang SC",
-    "Microsoft YaHei",
-    Arial,
-    sans-serif;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
 }
 
 button,
