@@ -18,6 +18,10 @@ body {
   font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
 }
 
+#app {
+  overflow-x: auto;
+}
+
 button,
 input,
 textarea,
