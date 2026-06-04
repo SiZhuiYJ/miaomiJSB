@@ -5,7 +5,7 @@ import bubbles from './views/bubbles/index.vue';
 </script>
 
 <template>
-  <!-- <GsapView />
-  <LoadingView /> -->
+  <GsapView />
+  <LoadingView />
   <bubbles />
 </template>
