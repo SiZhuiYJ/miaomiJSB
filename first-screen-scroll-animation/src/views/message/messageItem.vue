@@ -29,7 +29,7 @@ const emit = defineEmits<{
 // - introDuration：入场阶段耗时，也是文字跳动开始的时间点；
 // - exitDuration：退场上移淡出耗时；
 // - 停留时长不固定，来自每条消息的 duration/d。
-const introDuration = 1.0;
+const introDuration = 1.5;
 const exitDuration = 0.45;
 
 // 每条消息组件独立生成 SVG filter id，避免多个 Message 组件实例互相影响。
@@ -136,6 +136,7 @@ const restartAnimation = async () => {
 
     timeline.set(bodyElement, {
         // xPercent 由 GSAP 维护，与后续 y 动画合并到同一个 transform，避免覆盖水平居中。
+        scale: 0.7,
         xPercent: -50,
         y: introStartY,
         opacity: 1,
@@ -150,6 +151,7 @@ const restartAnimation = async () => {
     // 入场动画：标签从上方落到目标位置。
     timeline.to(bodyElement, {
         y: 0,
+        scale: 1,
         duration: introDuration,
         ease: 'back.out(3)',
     }, 0);
@@ -189,6 +191,7 @@ const restartAnimation = async () => {
     timeline.to(bodyElement, {
         y: exitY,
         opacity: 0,
+        scale: 0.7,
         duration: exitDuration,
         ease: 'power2.in',
     }, introDuration + props.message.duration);
