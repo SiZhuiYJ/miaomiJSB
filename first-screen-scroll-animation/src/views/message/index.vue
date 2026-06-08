@@ -111,9 +111,9 @@ const normalizeMessage = (
         id,
         content: getMessageContent(message),
         x: message.x ?? '50%',
-        y: message.y ?? `${60 + index * 72}px`,
-        s: message.s ?? '50px',
-        color: message.color ?? 'red',
+        y: message.y ?? `${30 + index * 50}px`,
+        s: message.s ?? '40px',
+        color: message.color ?? 'lawngreen',
         duration: parseDurationSeconds(message.duration ?? message.d, 5),
         delay: parseDurationSeconds(message.delay, 0),
         source,
@@ -256,6 +256,7 @@ defineExpose({
     // 固定在视口顶部外侧，消息本体通过 y 坐标进入可视区域。
     position: fixed;
     top: -2rem;
+    // top: 0;
     width: 100%;
     height: 2rem;
     background: red;
