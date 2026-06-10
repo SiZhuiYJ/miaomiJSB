@@ -46,6 +46,7 @@ export interface NotificationMessage {
   progress: number;
   isRemoving: boolean;
   tween?: gsap.core.Tween | null;
+  filterTween?: gsap.core.Tween | null;
 }
 
 const messages = ref<NotificationMessage[]>([]);
@@ -56,9 +57,76 @@ let messageIdCounter = 0;
 
 const activeMessages = computed(() => messages.value.slice(0, 5));
 
+const filterState = {
+  blur: 10,
+  alpha: 20,
+  offset: -9,
+};
+
+const activeFilterTweens = new Map<number, gsap.core.Tween>();
+
+const getFilterId = (id: number) => `notification-filter-${id}`;
+const getFilterBlurId = (id: number) => `${getFilterId(id)}-blur`;
+const getFilterMatrixId = (id: number) => `${getFilterId(id)}-matrix`;
+
+const getMatrixValues = (alpha: number, offset: number): string => `
+  1 0 0 0 0
+  0 1 0 0 0
+  0 0 1 0 0
+  0 0 0 ${alpha.toFixed(3)} ${offset.toFixed(3)}
+`;
+
+const initialMatrixValues = getMatrixValues(filterState.alpha, filterState.offset);
+
+const applyNotificationFilterState = (id: number, state: typeof filterState) => {
+  const blurElement = document.getElementById(getFilterBlurId(id));
+  const matrixElement = document.getElementById(getFilterMatrixId(id));
+
+  blurElement?.setAttribute("stdDeviation", state.blur.toFixed(3));
+  matrixElement?.setAttribute("values", getMatrixValues(state.alpha, state.offset));
+};
+
+const stopFilterAnimation = (id: number, element?: HTMLElement) => {
+  activeFilterTweens.get(id)?.kill();
+  activeFilterTweens.delete(id);
+
+  const message = messages.value.find((item) => item.id === id);
+  if (message) message.filterTween = null;
+  if (element) gsap.set(element, { filter: "none" });
+};
+
+const startFilterAnimation = (message: NotificationMessage, element: HTMLElement) => {
+  stopFilterAnimation(message.id, element);
+
+  const state = { ...filterState };
+  applyNotificationFilterState(message.id, state);
+  gsap.set(element, { filter: `url(#${getFilterId(message.id)})` });
+
+  const tween = gsap.to(state, {
+    blur: 0,
+    alpha: 1,
+    offset: 0,
+    duration: 0.5,
+    ease: "power2.out",
+    onUpdate: () => applyNotificationFilterState(message.id, state),
+    onComplete: () => {
+      applyNotificationFilterState(message.id, state);
+      gsap.set(element, { filter: "none" });
+      activeFilterTweens.delete(message.id);
+      message.filterTween = null;
+    },
+  });
+
+  message.filterTween = tween;
+  activeFilterTweens.set(message.id, tween);
+};
+
 const setItemRef = (el: any, id: number) => {
   if (el) itemRefs.value[id] = el as HTMLElement;
-  else delete itemRefs.value[id];
+  else {
+    stopFilterAnimation(id);
+    delete itemRefs.value[id];
+  }
 };
 
 const getLuminance = (hex: string) => {
@@ -174,11 +242,10 @@ const animateLayout = (callback: () => void) => {
         // start slightly overlapped to avoid rigid simultaneous motion
         tl.fromTo(
           m.el,
-          ({ y: m.deltaY, opacity: 0.95, filter: 'blur(2px)' } as any),
+          ({ y: m.deltaY, opacity: 0.95 } as any),
           ({
             y: 0,
             opacity: 1,
-            filter: 'blur(0px)',
             onStart: () => (m.el.style.willChange = 'transform, opacity'),
             onComplete: () => (m.el.style.willChange = ''),
           } as any),
@@ -217,6 +284,7 @@ const addMessage = (options: {
     startCountdown(existing, duration);
     const el = itemRefs.value[existing.id];
     if (el) {
+      startFilterAnimation(existing, el);
       gsap.to(el, { scale: 1.05, duration: 0.1, yoyo: true, repeat: 1 });
     }
     return;
@@ -236,21 +304,22 @@ const addMessage = (options: {
       progress: 1,
       isRemoving: false,
       tween: null,
+      filterTween: null,
     });
     messages.value.unshift(newMessage);
 
     nextTick(() => {
       const el = itemRefs.value[id];
       if (el) {
+        startFilterAnimation(newMessage, el);
         // 更明显的顶部滑入效果：从更上方进入并平滑落位
         gsap.fromTo(
           el,
-          { y: -80, opacity: 0, scale: 0.96, filter: "blur(6px)" },
+          { y: -80, opacity: 0, scale: 0.96 },
           {
             y: 0,
             opacity: 1,
             scale: 1,
-            filter: "blur(0px)",
             duration: 0.52,
             ease: "power4.out",
           },
@@ -282,6 +351,7 @@ const removeMessage = (id: number) => {
     message.isRemoving = true;
     if (message.tween) message.tween.kill();
     const el = itemRefs.value[id];
+    stopFilterAnimation(id, el);
     if (el) {
       const tl = gsap.timeline({
         onComplete: () => {
@@ -313,10 +383,28 @@ defineExpose({
   addMessage,
   removeMessage,
 });
+
+onUnmounted(() => {
+  messages.value.forEach((message) => {
+    message.tween?.kill();
+    message.filterTween?.kill();
+  });
+  activeFilterTweens.clear();
+});
 </script>
 
 <template>
   <div class="notification-container">
+    <svg class="notification-filter-defs" aria-hidden="true">
+      <defs>
+        <filter v-for="msg in activeMessages" :key="`filter-${msg.id}`" :id="getFilterId(msg.id)" x="-50%" y="-50%"
+          width="200%" height="200%" color-interpolation-filters="sRGB">
+          <feGaussianBlur :id="getFilterBlurId(msg.id)" in="SourceGraphic" stdDeviation="10" result="blur" />
+          <feColorMatrix :id="getFilterMatrixId(msg.id)" in="blur" mode="matrix" :values="initialMatrixValues" />
+        </filter>
+      </defs>
+    </svg>
+
     <div v-for="(msg, index) in activeMessages" :key="msg.id" :ref="(el) => setItemRef(el, msg.id)"
       class="notification-item" :style="getItemBaseStyle(msg, index)">
       <div class="bg-layer-persistent"></div>
@@ -368,6 +456,14 @@ defineExpose({
   box-sizing: border-box;
 }
 
+.notification-filter-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 .notification-item {
   pointer-events: auto;
   position: relative;
@@ -385,7 +481,7 @@ defineExpose({
   user-select: none;
   background: rgba(0, 0, 0, 0.12);
   overflow: hidden;
-  will-change: transform, opacity;
+  will-change: transform, opacity, filter;
   border: 2px solid currentColor;
   transition: all 0.3s ease;
 
@@ -452,7 +548,7 @@ defineExpose({
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
   flex: 1 1 auto;
   min-width: 0;
 }
