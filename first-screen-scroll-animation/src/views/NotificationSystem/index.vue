@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { toRgba, darkenColor } from "@/utils/color";
+import { computed, ref, nextTick, reactive, onUnmounted } from "vue";
+import { toRgba, darkenColor } from "./color";
 import gsap from "gsap";
 
 // import {Close} from ""
