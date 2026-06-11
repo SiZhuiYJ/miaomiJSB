@@ -13,10 +13,10 @@ import {
 } from "./views/NotificationSystem/notification";
 
 import NotificationSystem from "./views/NotificationSystem/index.vue";
+import NotificationSystemLab from "./views/NotificationSystemLab/index.vue";
 
 const notificationSystemRef = useTemplateRef("notificationSystemRef");
 onMounted(async () => {
-  //   toggleTransitionComplete(true);
 
   setNotificationInstance(notificationSystemRef.value);
 
@@ -46,4 +46,5 @@ onMounted(async () => {
   <LoadingView />
   <!-- <bubbles /> -->
   <NotificationSystem ref="notificationSystemRef" />
+  <NotificationSystemLab />
 </template>
