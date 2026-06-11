@@ -126,11 +126,7 @@ onBeforeUnmount(() => {
   <div ref="itemElement" class="notification-item" :style="itemBaseStyle">
     <div class="bg-layer-persistent"></div>
     <div class="fg-layer-progress" :style="progressStyle"></div>
-    <div
-      v-if="message.direction === 'spotlight'"
-      class="spotlight-glow"
-      :style="spotlightStyle"
-    ></div>
+    <div v-if="message.direction === 'spotlight'" class="spotlight-glow" :style="spotlightStyle"></div>
 
     <div class="content-wrapper" :style="{ color: dynamicTextColor }">
       <div v-if="message.closable" class="spacer"></div>
@@ -139,12 +135,8 @@ onBeforeUnmount(() => {
         <p>*</p>
         {{ message.count }}
       </span>
-      <span
-        v-if="message.closable"
-        class="close-btn"
-        :style="closeButtonStyle"
-        @click="emit('close', message.id)"
-      ></span>
+      <span v-if="message.closable" class="close-btn" :style="closeButtonStyle" @click="emit('close', message.id)">
+      </span>
     </div>
   </div>
 </template>
@@ -250,7 +242,7 @@ onBeforeUnmount(() => {
   transition: transform 0.3s;
   animation: smoothShake 1.2s infinite;
 
-  > p {
+  >p {
     font-weight: 400;
   }
 
