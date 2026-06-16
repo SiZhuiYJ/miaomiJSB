@@ -1,0 +1,107 @@
+:root {
+  color: #f6f3ee;
+  background: #050505;
+  font-family: Inter, 'Microsoft YaHei', 'PingFang SC', sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+button, textarea, input { font: inherit; }
+
+.app-shell {
+  min-height: 100vh;
+  padding: 40px clamp(16px, 4vw, 56px);
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255, 215, 0, .16), transparent 28rem),
+    linear-gradient(135deg, #050505 0%, #111827 100%);
+}
+
+.hero {
+  max-width: 960px;
+  margin: 0 auto 28px;
+  h1 { margin: 8px 0 12px; font-size: clamp(32px, 6vw, 64px); }
+  p { color: #c8d0dc; line-height: 1.8; }
+}
+
+.eyebrow { color: #ffd700; letter-spacing: .12em; text-transform: uppercase; }
+
+.workspace {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 22px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.panel, .help-grid article {
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 24px;
+  background: rgba(14, 14, 14, .86);
+  box-shadow: 0 22px 80px rgba(0, 0, 0, .28);
+}
+
+.panel { padding: 22px; }
+
+.panel__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  h2 { margin: 0; }
+  span { color: #9da7b5; }
+  .danger { color: #ff6767; font-weight: 700; }
+}
+
+.rich-editor, textarea {
+  width: 100%;
+  min-height: 280px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  border-radius: 18px;
+  padding: 18px;
+  color: #fff;
+  background: #0e0e0e;
+  outline: none;
+  line-height: 1.75;
+  resize: vertical;
+}
+
+.rich-editor {
+  white-space: pre-wrap;
+  mark { color: #278451; background: transparent; font-weight: 700; }
+}
+
+.color-tools, .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+label, button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 999px;
+  padding: 0 14px;
+  color: #f6f3ee;
+  background: rgba(255, 255, 255, .07);
+}
+
+button { cursor: pointer; transition: transform .2s, border-color .2s; }
+button:hover { transform: translateY(-1px); border-color: #ffd700; }
+button.primary { color: #121212; background: #ffd700; font-weight: 800; }
+button i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,.36); }
+
+.help-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+  max-width: 1280px;
+  margin: 22px auto 0;
+  article { padding: 20px; }
+  h3 { margin: 0 0 8px; color: #ffd700; }
+  p { margin: 0; color: #c8d0dc; line-height: 1.7; }
+}
