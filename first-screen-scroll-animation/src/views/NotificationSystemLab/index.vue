@@ -185,17 +185,9 @@ const removeMessage = (id: number) => {
 
 <template>
   <main class="notification-system-lab">
-    <NotificationMessageList
-      :messages="messages"
-      :active-messages="activeMessages"
-      @remove="removeMessage"
-      @set-item-ref="setItemRef"
-    />
-    <NotificationControlPanel
-      v-model="form"
-      :directions="directions"
-      @submit="addMessage"
-    />
+    <NotificationMessageList :messages="messages" :active-messages="activeMessages" @remove="removeMessage"
+      @set-item-ref="setItemRef" />
+    <NotificationControlPanel v-model="form" :directions="directions" @submit="addMessage" />
   </main>
 </template>
 
@@ -235,5 +227,4 @@ const removeMessage = (id: number) => {
     Arial,
     sans-serif;
 }
-
 </style>

@@ -15,36 +15,36 @@ import {
 import NotificationSystem from "./views/NotificationSystem/index.vue";
 import NotificationSystemLab from "./views/NotificationSystemLab/index.vue";
 
-const notificationSystemRef = useTemplateRef("notificationSystemRef");
-onMounted(async () => {
+// const notificationSystemRef = useTemplateRef("notificationSystemRef");
+// onMounted(async () => {
 
-  setNotificationInstance(notificationSystemRef.value);
+//   setNotificationInstance(notificationSystemRef.value);
 
-  // 测试通知系统（减少测试数量以避免性能问题）
-  notify({
-    content: "欢迎使用每日打卡系统",
-    color: "#10b981",
-    duration: 30000,
-  });
+//   // 测试通知系统（减少测试数量以避免性能问题）
+//   notify({
+//     content: "欢迎使用每日打卡系统",
+//     color: "#10b981",
+//     duration: 30000,
+//   });
 
-  // 延迟测试不同类型的通知
-  setTimeout(() => {
-    notifySuccess("登录成功！");
-  }, 2000);
-  setTimeout(() => {
-    notifyWarning("请注意打卡时间");
-  }, 4000);
-  setTimeout(() => {
-    notifyError("网络连接异常");
-  }, 6000);
-});
+//   // 延迟测试不同类型的通知
+//   setTimeout(() => {
+//     notifySuccess("登录成功！");
+//   }, 2000);
+//   setTimeout(() => {
+//     notifyWarning("请注意打卡时间");
+//   }, 4000);
+//   setTimeout(() => {
+//     notifyError("网络连接异常");
+//   }, 6000);
+// });
 </script>
 
 <template>
-  <!-- <message /> -->
+  <message />
   <!-- <GsapView /> -->
   <LoadingView />
   <!-- <bubbles /> -->
-  <NotificationSystem ref="notificationSystemRef" />
+  <!-- <NotificationSystem ref="notificationSystemRef" /> -->
   <NotificationSystemLab />
 </template>
