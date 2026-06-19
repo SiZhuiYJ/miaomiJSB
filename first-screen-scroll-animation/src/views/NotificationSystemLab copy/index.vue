@@ -135,12 +135,7 @@ const addMessage = () => {
 
       gsap.fromTo(
         el,
-        {
-          y: -20,
-          opacity: 0,
-          scale: 0.9,
-          filter: "blur(4px)"
-        },
+        { y: -20, opacity: 0, scale: 0.9, filter: "blur(4px)" },
         {
           y: 0,
           opacity: 1,
@@ -178,22 +173,15 @@ const removeMessage = (id: number) => {
       },
     });
 
-    tl.to(
-      el,
-      {
-        scale: 0.95,
-        opacity: 0,
-        filter: "blur(4px)",
-        duration: 0.3,
-        ease: "power2.in",
-      }).to(el, {
-        height: 0,
-        marginBottom: 0,
-        duration: 0.2
-      }, "-=0.1");
+    tl.to(el, {
+      scale: 0.95,
+      opacity: 0,
+      filter: "blur(4px)",
+      duration: 0.3,
+      ease: "power2.in",
+    }).to(el, { height: 0, marginBottom: 0, duration: 0.2 }, "-=0.1");
   });
 };
-
 </script>
 
 <template>

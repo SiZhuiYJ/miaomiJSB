@@ -82,7 +82,7 @@ const applyMessageFilterState = (state: typeof filterState) => {
     blurElement?.setAttribute('stdDeviation', state.blur.toFixed(3));
     matrixElement?.setAttribute('values', getMatrixValues(state.alpha, state.offset));
 };
-
+ 
 const clearAnimation = () => {
     timeline?.kill();
     timeline = null;
