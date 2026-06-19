@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
 import type { CSSProperties } from "vue";
 import type { NotificationMessage } from "../types";
 
@@ -15,7 +15,7 @@ const emit = defineEmits<{
   setItemRef: [el: HTMLElement | null, id: number];
 }>();
 
-const itemElement = ref<HTMLElement | null>(null);
+const itemElement = useTemplateRef("itemElement");
 
 const getLuminance = (hex: string) => {
   const normalized = hex.replace("#", "");
@@ -98,6 +98,36 @@ const getSpotlightStyle = (msg: NotificationMessage) =>
     transition: "opacity 0.3s",
   }) as CSSProperties;
 
+// SVG blob 初始滤镜状态：
+// - blur 决定融合模糊强度；
+// - alpha/offset 是 feColorMatrix 的 alpha 通道参数，用来制造“粘连”效果。
+const filterState = {
+  blur: 10,
+  alpha: 20,
+  offset: -9,
+};
+
+// 生成 feColorMatrix values。
+// 当 alpha=1 且 offset=0 时，这个矩阵等价于不改变透明度，也就是“无滤镜”状态的一部分。
+const getMatrixValues = (alpha: number, offset: number): string => `
+    1 0 0 0 0
+    0 1 0 0 0
+    0 0 1 0 0
+    0 0 0 ${alpha.toFixed(3)} ${offset.toFixed(3)}
+`;
+
+const initialMatrixValues = getMatrixValues(filterState.alpha, filterState.offset);
+
+// 将当前 JS 状态写回对应 SVG filter 节点。
+const applyMessageFilterState = (state: typeof filterState) => {
+  const blurElement = document.getElementById(`${props.message.id}-blur`);
+  const matrixElement = document.getElementById(`${props.message.id}-matrix`);
+
+  blurElement?.setAttribute('stdDeviation', state.blur.toFixed(3));
+  matrixElement?.setAttribute('values', getMatrixValues(state.alpha, state.offset));
+};
+
+
 onMounted(() => {
   emit("setItemRef", itemElement.value, props.message.id);
 });
@@ -108,42 +138,35 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div
-    ref="itemElement"
-    class="notification-item"
-    :style="getItemBaseStyle(message, index)"
-  >
-    <div class="bg-layer-persistent"></div>
-    <div class="fg-layer-progress" :style="getProgressStyle(message)"></div>
-    <div
-      v-if="message.direction === 'spotlight'"
-      class="spotlight-glow"
-      :style="getSpotlightStyle(message)"
-    ></div>
+  <div ref="itemElement" class="notification-item" :style="getItemBaseStyle(message, index)" :title="`${message.id}`">
+    <div class="message-body">
+      <div class="bg-layer-persistent"></div>
+      <div class="fg-layer-progress" :style="getProgressStyle(message)"></div>
+      <div v-if="message.direction === 'spotlight'" class="spotlight-glow" :style="getSpotlightStyle(message)"></div>
 
-    <div class="content-wrapper" :style="{ color: getDynamicTextColor(message) }">
-      <div v-if="message.closable" class="spacer"></div>
-      <span class="text-content" :title="message.content">
-        {{ message.content }}
-      </span>
-      <span
-        v-if="message.count > 1"
-        class="count-badge"
-        :style="{ backgroundColor: getBadgeBg(message) }"
-      >
-        {{ message.count }}
-      </span>
-      <button
-        v-if="message.closable"
-        class="close-btn"
-        type="button"
-        aria-label="关闭通知"
-        @click="emit('remove', message.id)"
-      >
-        ×
-      </button>
+      <div class="content-wrapper" :style="{ color: getDynamicTextColor(message) }">
+        <div v-if="message.closable" class="spacer"></div>
+        <span class="text-content" :title="message.content">
+          {{ message.content }}
+        </span>
+        <span v-if="message.count > 1" class="count-badge" :style="{ backgroundColor: getBadgeBg(message) }">
+          {{ message.count }}
+        </span>
+        <button v-if="message.closable" class="close-btn" type="button" aria-label="关闭通知"
+          @click="emit('remove', message.id)">
+          ×
+        </button>
+      </div>
     </div>
   </div>
+  <svg style="display: none;">
+    <defs>
+      <filter :id="`filter-${message.id}`" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur :id="`${message.id}-blur`" in="SourceGraphic" stdDeviation="10" result="blur" />
+        <feColorMatrix :id="`${message.id}-matrix`" in="blur" mode="matrix" :values="initialMatrixValues" />
+      </filter>
+    </defs>
+  </svg>
 </template>
 
 <style scoped lang="scss">
@@ -151,7 +174,6 @@ onBeforeUnmount(() => {
   pointer-events: auto;
   position: relative;
   margin-bottom: 8px;
-  padding: 8px 20px;
   border-radius: var(--main-radius);
   width: fit-content;
   max-width: calc(100vw - 40px);
@@ -165,6 +187,16 @@ onBeforeUnmount(() => {
   background: #fff;
   overflow: hidden;
   will-change: transform, opacity;
+}
+
+.message-body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
 }
 
 .bg-layer-persistent {
@@ -190,12 +222,10 @@ onBeforeUnmount(() => {
   top: 0;
   bottom: 0;
   width: 60px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.6),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.6),
+      transparent);
   z-index: 3;
   pointer-events: none;
 }

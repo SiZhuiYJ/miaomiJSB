@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { gsap } from 'gsap';
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch, useTemplateRef } from 'vue';
 
 interface MessageItemModel {
     id: string;
@@ -35,7 +35,7 @@ const exitDuration = 0.45;
 // 每条消息组件独立生成 SVG filter id，避免多个 Message 组件实例互相影响。
 const filterId = `message-item-${Math.random().toString(36).slice(2)}`;
 
-const messageElement = ref<HTMLElement | null>(null);
+const messageElement = useTemplateRef('messageElement');
 let timeline: gsap.core.Timeline | null = null;
 let isMounted = false;
 
@@ -82,7 +82,7 @@ const applyMessageFilterState = (state: typeof filterState) => {
     blurElement?.setAttribute('stdDeviation', state.blur.toFixed(3));
     matrixElement?.setAttribute('values', getMatrixValues(state.alpha, state.offset));
 };
- 
+
 const clearAnimation = () => {
     timeline?.kill();
     timeline = null;

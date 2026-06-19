@@ -24,6 +24,7 @@ const emit = defineEmits<{
       :index="index"
       @remove="emit('remove', $event)"
       @set-item-ref="(...args) => emit('setItemRef', ...args)"
+      
     />
 
     <div v-if="messages.length > 5" class="hidden-count-badge">
