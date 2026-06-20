@@ -5,25 +5,30 @@ import gsap from "gsap";
 import MessageItem from "./messageItem.vue";
 import type {
   NotificationMessage,
+  NotificationOptions,
 } from "./types.ts";
 
+const MAX_VISIBLE_MESSAGES = 5;
+const DEFAULT_NOTIFICATION_DURATION = 5000;
+const DEFAULT_NOTIFICATION_COLOR = "#3b82f6";
+
 const messages = ref<NotificationMessage[]>([]);
-const itemRefs = ref<Record<number, HTMLElement>>({});
+const itemRefs = new Map<number, HTMLElement>();
 
 let nextMessageId = 0;
 
-const activeMessages = computed(() => messages.value.slice(0, 5));
+const activeMessages = computed(() => messages.value.slice(0, MAX_VISIBLE_MESSAGES));
 
 const setItemRef = (
   el: Element | ComponentPublicInstance | null,
   id: number,
 ) => {
   if (el instanceof HTMLElement) {
-    itemRefs.value[id] = el;
+    itemRefs.set(id, el);
     return;
   }
 
-  delete itemRefs.value[id];
+  itemRefs.delete(id);
 };
 
 type LayoutAnimationOptions = {
@@ -32,7 +37,7 @@ type LayoutAnimationOptions = {
 };
 
 const getMessageBodyElement = (id: number) => {
-  const el = itemRefs.value[id];
+  const el = itemRefs.get(id);
   return el?.querySelector<HTMLElement>(".message-body") ?? null;
 };
 
@@ -141,6 +146,13 @@ const animateLayout = (
 
 const startCountdown = (message: NotificationMessage, duration: number) => {
   message.progress = 1;
+  message.tween?.kill();
+
+  if (duration <= 0) {
+    message.tween = null;
+    return;
+  }
+
   message.tween = gsap.to(message, {
     progress: 0,
     duration: duration / 1000,
@@ -149,17 +161,41 @@ const startCountdown = (message: NotificationMessage, duration: number) => {
   });
 };
 
-const addMessage = (options: {
-  content: string;
-  color?: string;
-  duration?: number;
-  closable?: boolean;
-  direction?: NotificationMessage["direction"];
-}) => {
+const animateDuplicateMessage = (message: NotificationMessage) => {
+  const bodyEl = getMessageBodyElement(message.id);
+  if (!bodyEl) return;
+
+  gsap.to(bodyEl, {
+    scale: 1.05,
+    duration: 0.1,
+    yoyo: true,
+    repeat: 1,
+    overwrite: "auto",
+  });
+};
+
+const createMessage = (
+  id: number,
+  options: Required<NotificationOptions>,
+) =>
+  reactive<NotificationMessage>({
+    id,
+    content: options.content,
+    color: options.color,
+    duration: options.duration,
+    closable: options.closable,
+    direction: options.direction,
+    count: 1,
+    progress: 1,
+    isRemoving: false,
+    tween: null,
+  });
+
+const addMessage = (options: NotificationOptions) => {
   const {
     content,
-    color = "#3b82f6",
-    duration = 500000,
+    color = DEFAULT_NOTIFICATION_COLOR,
+    duration = DEFAULT_NOTIFICATION_DURATION,
     closable = true,
     direction = "rtl",
   } = options;
@@ -168,51 +204,35 @@ const addMessage = (options: {
     (m) =>
       m.content === content &&
       m.color.toLowerCase() === color.toLowerCase() &&
+      m.closable === closable &&
+      m.direction === direction &&
       !m.isRemoving,
   );
 
   if (existing) {
     existing.count++;
-    existing.tween?.kill();
+    existing.duration = duration;
     startCountdown(existing, duration);
-
-    const el = itemRefs.value[existing.id];
-    if (el) {
-      const bodyEl = getMessageBodyElement(existing.id);
-      if (bodyEl) {
-        gsap.to(bodyEl,
-          {
-            scale: 1.05,
-            duration: 0.1,
-            yoyo: true,
-            repeat: 1
-          });
-      }
-    }
+    animateDuplicateMessage(existing);
 
     return;
   }
 
   animateLayout(() => {
     const id = ++nextMessageId;
-    const newMessage = reactive<NotificationMessage>({
-      id,
+    const newMessage = createMessage(id, {
       content,
-      color: color,
+      color,
       duration,
-      closable: closable,
-      direction: direction,
-      count: 1,
-      progress: 1,
-      isRemoving: false,
-      tween: null,
+      closable,
+      direction,
     });
 
     messages.value.unshift(newMessage);
 
     // 下一帧添加动画
     nextTick(() => {
-      const el = itemRefs.value[id];
+      const el = itemRefs.get(id);
       if (!el) return;
 
       const bodyEl = getMessageBodyElement(id);
@@ -223,7 +243,7 @@ const addMessage = (options: {
           y: -20,
           opacity: 0,
           scale: 0.9,
-          filter: "blur(4px)"
+          filter: "blur(4px)",
         },
         {
           y: 0,
@@ -234,10 +254,24 @@ const addMessage = (options: {
           ease: "back.out(3)",
           onComplete: () => {
             startCountdown(newMessage, duration);
-          }
+          },
         },
       );
     });
+  });
+};
+
+const removeMessageFromList = (id: number, index: number) => {
+  const state = captureActiveLayout();
+
+  messages.value = messages.value.filter((m) => m.id !== id);
+
+  nextTick(() => {
+    playLayoutAnimation(state, {
+      startIndex: index,
+      staggerDirection: "from-index",
+    });
+    playRevealedMessageAnimation(state, { startIndex: index });
   });
 };
 
@@ -251,42 +285,15 @@ const removeMessage = (id: number) => {
   message.isRemoving = true;
   message.tween?.kill();
 
-  const el = itemRefs.value[id];
-  if (!el) {
-    const state = captureActiveLayout();
-    messages.value = messages.value.filter((m) => m.id !== id);
-    nextTick(() => {
-      playLayoutAnimation(state, { startIndex: index, staggerDirection: "from-index" });
-      playRevealedMessageAnimation(state, { startIndex: index });
-    });
-    return;
-  }
   const bodyEl = getMessageBodyElement(id);
 
   if (!bodyEl) {
-    const state = captureActiveLayout();
-    messages.value = messages.value.filter((m) => m.id !== id);
-    nextTick(() => {
-      playLayoutAnimation(state, { startIndex: index, staggerDirection: "from-index" });
-      playRevealedMessageAnimation(state, { startIndex: index });
-    });
+    removeMessageFromList(id, index);
     return;
   }
 
   const tl = gsap.timeline({
-    onComplete: () => {
-      const state = captureActiveLayout();
-
-      messages.value = messages.value.filter((m) => m.id !== id);
-
-      nextTick(() => {
-        playLayoutAnimation(state, {
-          startIndex: index,
-          staggerDirection: "from-index",
-        });
-        playRevealedMessageAnimation(state, { startIndex: index });
-      });
-    },
+    onComplete: () => removeMessageFromList(id, index),
   });
 
   tl.to(bodyEl,
@@ -301,7 +308,7 @@ const removeMessage = (id: number) => {
       y: -20,
       height: 0,
       marginBottom: 0,
-      duration: 0.2
+      duration: 0.2,
     }, "-=0.1");
 };
 
@@ -313,12 +320,15 @@ defineExpose({
 
 <template>
   <Teleport to="body">
-    <div class="notification-container">
+    <div
+      class="notification-container"
+      :style="{ '--visible-count': `${MAX_VISIBLE_MESSAGES}` }"
+    >
       <MessageItem v-for="(msg, index) in activeMessages" :key="msg.id" :message="msg" :index="index"
         @remove="removeMessage" @set-item-ref="setItemRef" />
 
-      <div v-if="messages.length > 5" class="hidden-count-badge">
-        + {{ messages.length - 5 }} 条未显示通知
+      <div v-if="messages.length > MAX_VISIBLE_MESSAGES" class="hidden-count-badge">
+        + {{ messages.length - MAX_VISIBLE_MESSAGES }} 条未显示通知
       </div>
     </div>
   </Teleport>
@@ -359,7 +369,7 @@ defineExpose({
 // 元素穿透
   pointer-events: none;
   position: absolute;
-  top: calc(var(--item-height) * 5 + var(--item-gap));
+  top: calc(var(--item-height) * var(--visible-count) + var(--item-gap));
   font-size: 10px;
   color: var(--slate-400);
   font-weight: 700;

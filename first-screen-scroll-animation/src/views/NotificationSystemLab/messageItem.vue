@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { gsap } from 'gsap';
+import { gsap } from "gsap";
 import { onBeforeUnmount, onMounted, useTemplateRef } from "vue";
 import type { CSSProperties } from "vue";
 import type { NotificationMessage } from "./types";
@@ -18,11 +18,29 @@ const emit = defineEmits<{
 
 const itemElement = useTemplateRef("itemElement");
 const messageSurfaceElement = useTemplateRef("messageSurfaceElement");
+const roundElement = useTemplateRef("roundElement");
+const blurElement = useTemplateRef("blurElement");
+const matrixElement = useTemplateRef("matrixElement");
 
-let timeline: gsap.core.Timeline | null = null;
+let filterTimeline: gsap.core.Timeline | null = null;
+
+const normalizeHexColor = (color: string) => {
+  const normalized = color.trim().replace("#", "");
+
+  if (/^[\da-f]{3}$/i.test(normalized)) {
+    return normalized
+      .split("")
+      .map((char) => char + char)
+      .join("");
+  }
+
+  return /^[\da-f]{6}$/i.test(normalized) ? normalized : null;
+};
 
 const getLuminance = (hex: string) => {
-  const normalized = hex.replace("#", "");
+  const normalized = normalizeHexColor(hex);
+  if (!normalized) return 0;
+
   const r = parseInt(normalized.slice(0, 2), 16);
   const g = parseInt(normalized.slice(2, 4), 16);
   const b = parseInt(normalized.slice(4, 6), 16);
@@ -32,8 +50,7 @@ const getLuminance = (hex: string) => {
 
 const getDynamicTextColor = (msg: NotificationMessage) => {
   const luminance = getLuminance(msg.color);
-  // return luminance < 0.6 ? "#ffffff" : "#1e293b";
-  return luminance < 0.6 ? "#ffffff" : "#ffffff";
+  return luminance < 0.6 ? "#ffffff" : "#1e293b";
 };
 
 const getBadgeBg = (msg: NotificationMessage) =>
@@ -106,7 +123,7 @@ const getSpotlightStyle = (msg: NotificationMessage) =>
 // SVG blob 初始滤镜状态：
 // - blur 决定融合模糊强度；
 // - alpha/offset 是 feColorMatrix 的 alpha 通道参数，用来制造“粘连”效果。
-const filterState = {
+const INITIAL_FILTER_STATE = {
   blur: 10,
   alpha: 20,
   offset: -9,
@@ -121,15 +138,18 @@ const getMatrixValues = (alpha: number, offset: number): string => `
     0 0 0 ${alpha.toFixed(3)} ${offset.toFixed(3)}
 `;
 
-const initialMatrixValues = getMatrixValues(filterState.alpha, filterState.offset);
+const initialMatrixValues = getMatrixValues(
+  INITIAL_FILTER_STATE.alpha,
+  INITIAL_FILTER_STATE.offset,
+);
 
 // 将当前 JS 状态写回对应 SVG filter 节点。
-const applyMessageFilterState = (state: typeof filterState) => {
-  const blurElement = document.getElementById(`${props.message.id}-blur`);
-  const matrixElement = document.getElementById(`${props.message.id}-matrix`);
-
-  blurElement?.setAttribute('stdDeviation', state.blur.toFixed(3));
-  matrixElement?.setAttribute('values', getMatrixValues(state.alpha, state.offset));
+const applyMessageFilterState = (state: typeof INITIAL_FILTER_STATE) => {
+  blurElement.value?.setAttribute("stdDeviation", state.blur.toFixed(3));
+  matrixElement.value?.setAttribute(
+    "values",
+    getMatrixValues(state.alpha, state.offset),
+  );
 };
 
 const animateMessagePress = (scale: number, duration: number, ease: string) => {
@@ -153,19 +173,19 @@ const restoreMessage = () => {
 };
 
 const closeMessage = () => {
+  if (props.message.isRemoving) return;
+
   restoreMessage();
   emit("remove", props.message.id);
 };
 
 onMounted(() => {
-  // 先把 SVG filter 恢
-  //     // state 是这条消息自己的滤镜动画状态，不能复用全局 filterState 对象。
-  const state = { ...filterState };
+  const state = { ...INITIAL_FILTER_STATE };
 
   // 先把 SVG filter 恢复到初始 blob 状态，避免复用 DOM 时继承上次 identity 状态。
   applyMessageFilterState(state);
 
-  gsap.timeline()
+  filterTimeline = gsap.timeline()
     // 初始化气泡滤镜和标签位置，确保重复播放时不会继承上一次的终态。
     .set(itemElement.value, {
       filter: `url(#${`filter-${props.message.id}`})`,
@@ -177,30 +197,43 @@ onMounted(() => {
       alpha: 1,
       offset: 0,
       duration: 0.6,
-      ease: 'power2.out',
+      ease: "power2.out",
       onUpdate: () => applyMessageFilterState(state),
       onComplete: () => {
         // 参数到达 identity 后再切换 filter:none，此时视觉上已经没有跳变。
         applyMessageFilterState(state);
-        gsap.set(itemElement.value, { filter: 'none' });
+        gsap.set(itemElement.value, { filter: "none" });
       },
-    })
-  gsap.to('.round', {
-    top: '0',
-    duration: 0.6,
-  });
+    });
+
+  if (roundElement.value) {
+    gsap.to(roundElement.value, {
+      top: "0",
+      duration: 0.6,
+      ease: "power2.out",
+    });
+  }
 
   emit("setItemRef", itemElement.value, props.message.id);
 });
 
 onBeforeUnmount(() => {
+  filterTimeline?.kill();
+  filterTimeline = null;
+
+  [itemElement.value, messageSurfaceElement.value, roundElement.value].forEach(
+    (el) => {
+      if (el) gsap.killTweensOf(el);
+    },
+  );
+
   emit("setItemRef", null, props.message.id);
 });
 </script>
 
 <template>
   <div ref="itemElement" class="notification-item" :style="getItemBaseStyle(message, index)">
-    <div class="round"></div>
+    <div ref="roundElement" class="round"></div>
     <div class="message-body" :style="{ '--top-index': `${index}`, }">
       <div ref="messageSurfaceElement" class="message-surface">
         <div class="bg-layer-persistent"></div>
@@ -213,7 +246,7 @@ onBeforeUnmount(() => {
             {{ message.content }}
           </span>
           <span v-if="message.count > 1" class="count-badge" :style="{ backgroundColor: getBadgeBg(message) }">
-            <p>*</p>
+            <span aria-hidden="true">*</span>
             {{ message.count }}
           </span>
           <button v-if="message.closable" class="close-btn" type="button" aria-label="关闭通知"
@@ -226,8 +259,8 @@ onBeforeUnmount(() => {
     <svg style="display: none;">
       <defs>
         <filter :id="`filter-${message.id}`" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur :id="`${message.id}-blur`" in="SourceGraphic" stdDeviation="10" result="blur" />
-          <feColorMatrix :id="`${message.id}-matrix`" in="blur" mode="matrix" :values="initialMatrixValues" />
+          <feGaussianBlur ref="blurElement" in="SourceGraphic" stdDeviation="10" result="blur" />
+          <feColorMatrix ref="matrixElement" in="blur" mode="matrix" :values="initialMatrixValues" />
         </filter>
       </defs>
     </svg>
@@ -240,7 +273,7 @@ onBeforeUnmount(() => {
   pointer-events: auto;
   position: absolute;
   top: calc(var(--item-height) - var(--item-height) * 2);
-  min-width: 50%;
+  width: max-content;
   max-width: calc(100vw - 40px);
   min-width: 140px;
   min-height: var(--item-height);
@@ -266,6 +299,7 @@ onBeforeUnmount(() => {
   left: 50%;
   transform: translateX(-50%);
   width: fit-content;
+  max-width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
@@ -275,7 +309,9 @@ onBeforeUnmount(() => {
 
 .message-surface {
   position: relative;
+  box-sizing: border-box;
   width: fit-content;
+  max-width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
@@ -349,6 +385,8 @@ onBeforeUnmount(() => {
 
 .count-badge {
   display: flex;
+  align-items: center;
+  gap: 2px;
   font-weight: 900;
   padding: 1px 6px;
   border-radius: 8px;
@@ -358,7 +396,7 @@ onBeforeUnmount(() => {
   transition: transform 0.3s;
   animation: smoothShake 1.2s infinite;
 
-  >p {
+  >span {
     font-weight: 400;
   }
 
@@ -413,9 +451,12 @@ onBeforeUnmount(() => {
   --close-color: #{$close-color};
   --border-color: #{$border-color};
 
+  position: relative;
   opacity: 1;
   width: $size;
   height: $size;
+  padding: 0;
+  flex: 0 0 auto;
   border-radius: 50%;
   border-width: 5px;
   border-spacing: 5px;

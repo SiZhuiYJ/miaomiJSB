@@ -24,6 +24,14 @@ export interface NotificationMessage {
   tween: gsap.core.Tween | null;
 }
 
+export interface NotificationOptions {
+  content: string;
+  color?: string;
+  duration?: number;
+  closable?: boolean;
+  direction?: NotificationDirection;
+}
+
 export interface NotificationForm {
   content: string;
   color: string;

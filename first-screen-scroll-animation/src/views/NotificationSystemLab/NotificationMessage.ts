@@ -1,24 +1,5 @@
 import type { ComponentPublicInstance } from "vue";
-
-// Define the shape of the notification options based on the component's interface
-// We duplicate this interface to avoid hard dependency on the component file for types,
-// but keep it compatible.
-export interface NotificationOptions {
-    content: string;
-    color?: string;
-    duration?: number;
-    closable?: boolean;
-    direction?:
-    | "ltr"
-    | "rtl"
-    | "ttb"
-    | "btt"
-    | "center"
-    | "rtl"
-    | "ripple"
-    | "spotlight"
-    | "fade";
-}
+import type { NotificationOptions } from "./types";
 
 // Define the shape of the component instance method we need
 interface NotificationInstance extends ComponentPublicInstance {
