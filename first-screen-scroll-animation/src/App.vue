@@ -10,34 +10,63 @@ import {
   notifySuccess,
   notifyWarning,
   notifyError,
-} from "./views/NotificationSystem/notification";
+} from "./views/NotificationSystemLab/NotificationMessage.ts";
 
-import NotificationSystem from "./views/NotificationSystem/index.vue";
 import NotificationSystemLab from "./views/NotificationSystemLab/index.vue";
 
-// const notificationSystemRef = useTemplateRef("notificationSystemRef");
-// onMounted(async () => {
+const notificationSystemRef = useTemplateRef("notificationSystemLabRef");
+onMounted(async () => {
 
-//   setNotificationInstance(notificationSystemRef.value);
+  setNotificationInstance(notificationSystemRef.value);
 
-//   // 测试通知系统（减少测试数量以避免性能问题）
-//   notify({
-//     content: "欢迎使用每日打卡系统",
-//     color: "#10b981",
-//     duration: 30000,
-//   });
+  // 测试通知系统（减少测试数量以避免性能问题）
+  notify({
+    content: "欢迎使用每日打卡系统",
+    color: "#10b981",
+    duration: 300000,
+  });
 
-//   // 延迟测试不同类型的通知
-//   setTimeout(() => {
-//     notifySuccess("登录成功！");
-//   }, 2000);
-//   setTimeout(() => {
-//     notifyWarning("请注意打卡时间");
-//   }, 4000);
-//   setTimeout(() => {
-//     notifyError("网络连接异常");
-//   }, 6000);
-// });
+  // 延迟测试不同类型的通知
+  setTimeout(() => {
+    notifySuccess("登录成功！");
+  }, 2000);
+  setTimeout(() => {
+    notifyWarning("请注意打卡时间");
+  }, 4000);
+  setTimeout(() => {
+    notifyError("网络连接异常");
+  }, 6000);
+
+  setTimeout(() => {
+    notify({
+      content: "欢迎使用每日打卡系统",
+      color: "#10b981",
+      duration: 300000,
+    });
+  }, 6000)
+  setTimeout(() => {
+    notify({
+      content: "欢迎使用系统0",
+      color: "#10b121",
+      duration: 3000,
+    });
+    notify({
+      content: "欢迎使用系统1",
+      color: "#10b121",
+      duration: 30000,
+    });
+    notify({
+      content: "欢迎使用系统2",
+      color: "#10b121",
+      duration: 3000,
+    });
+    notify({
+      content: "欢迎使用系统2",
+      color: "#10b121",
+      duration: 30000,
+    });
+  }, 8000);
+});
 </script>
 
 <template>
@@ -45,6 +74,5 @@ import NotificationSystemLab from "./views/NotificationSystemLab/index.vue";
   <!-- <GsapView /> -->
   <LoadingView />
   <!-- <bubbles /> -->
-  <!-- <NotificationSystem ref="notificationSystemRef" /> -->
-  <NotificationSystemLab />
+  <NotificationSystemLab ref="notificationSystemLabRef" />
 </template>

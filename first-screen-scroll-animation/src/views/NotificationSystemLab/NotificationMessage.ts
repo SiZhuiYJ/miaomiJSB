@@ -4,11 +4,11 @@ import type { ComponentPublicInstance } from "vue";
 // We duplicate this interface to avoid hard dependency on the component file for types,
 // but keep it compatible.
 export interface NotificationOptions {
-  content: string;
-  color?: string;
-  duration?: number;
-  closable?: boolean;
-  direction?:
+    content: string;
+    color?: string;
+    duration?: number;
+    closable?: boolean;
+    direction?:
     | "ltr"
     | "rtl"
     | "ttb"
@@ -22,7 +22,7 @@ export interface NotificationOptions {
 
 // Define the shape of the component instance method we need
 interface NotificationInstance extends ComponentPublicInstance {
-  addMessage: (options: NotificationOptions) => void;
+    addMessage: (options: NotificationOptions) => void;
 }
 
 let notificationInstance: NotificationInstance | null = null;
@@ -32,68 +32,68 @@ let notificationInstance: NotificationInstance | null = null;
  * This should be called once in the root App component.
  */
 export const setNotificationInstance = (
-  instance: NotificationInstance | null,
+    instance: NotificationInstance | null,
 ) => {
-  notificationInstance = instance;
+    notificationInstance = instance;
 };
 
 /**
  * Show a notification message.
  */
 export const notify = (options: NotificationOptions) => {
-  if (notificationInstance) {
-    notificationInstance.addMessage(options);
-  } else {
-    console.warn(
-      "NotificationSystem instance is not registered. Make sure to add <NotificationSystem /> in App.vue",
-    );
-  }
+    if (notificationInstance) {
+        notificationInstance.addMessage(options);
+    } else {
+        console.warn(
+            "NotificationSystem instance is not registered. Make sure to add <NotificationSystem /> in App.vue",
+        );
+    }
 };
 
 /**
  * Helper for success messages
  */
 export const notifySuccess = (content: string, duration?: number) => {
-  notify({
-    content,
-    color: "#10b981", // Emerald 500
-    direction: "rtl",
-    duration,
-  });
+    notify({
+        content,
+        color: "#10b981", // Emerald 500
+        direction: "rtl",
+        duration,
+    });
 };
 
 /**
  * Helper for error messages
  */
 export const notifyError = (content: string, duration?: number) => {
-  notify({
-    content,
-    color: "#ef4444", // Red 500
-    direction: "rtl", // Default to rtl or another style
-    duration,
-  });
+    notify({
+        content,
+        color: "#ef4444", // Red 500
+        direction: "rtl", // Default to rtl or another style
+        duration,
+    });
 };
 
 /**
  * Helper for warning messages
  */
 export const notifyWarning = (content: string, duration?: number) => {
-  notify({
-    content,
-    color: "#f59e0b", // Amber 500
-    direction: "rtl",
-    duration,
-  });
+    notify({
+        content,
+        color: "#f59e0b", // Amber 500
+        direction: "rtl",
+        duration,
+    });
 };
 
 /**
  * Helper for info messages
  */
 export const notifyInfo = (content: string, duration?: number) => {
-  notify({
-    content,
-    color: "#3b82f6", // Blue 500
-    direction: "rtl",
-    duration,
-  });
+    notify({
+        content,
+        color: "#3b82f6", // Blue 500
+        direction: "rtl",
+        duration,
+    });
 };

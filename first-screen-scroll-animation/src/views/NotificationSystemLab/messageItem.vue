@@ -2,7 +2,7 @@
 import { gsap } from 'gsap';
 import { onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
 import type { CSSProperties } from "vue";
-import type { NotificationMessage } from "../types";
+import type { NotificationMessage } from "./types";
 
 interface Props {
   message: NotificationMessage;
@@ -31,7 +31,8 @@ const getLuminance = (hex: string) => {
 
 const getDynamicTextColor = (msg: NotificationMessage) => {
   const luminance = getLuminance(msg.color);
-  return luminance < 0.6 ? "#ffffff" : "#1e293b";
+  // return luminance < 0.6 ? "#ffffff" : "#1e293b";
+  return luminance < 0.6 ? "#ffffff" : "#ffffff";
 };
 
 const getBadgeBg = (msg: NotificationMessage) =>
@@ -173,7 +174,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="itemElement" class="notification-item" :style="getItemBaseStyle(message, index)" :title="`${index}`">
+  <div ref="itemElement" class="notification-item" :style="getItemBaseStyle(message, index)">
     <div class="round"></div>
     <div class="message-body" :style="{ '--top-index': `${index}`, }">
       <div class="bg-layer-persistent"></div>
@@ -186,11 +187,11 @@ onBeforeUnmount(() => {
           {{ message.content }}
         </span>
         <span v-if="message.count > 1" class="count-badge" :style="{ backgroundColor: getBadgeBg(message) }">
+          <p>*</p>
           {{ message.count }}
         </span>
         <button v-if="message.closable" class="close-btn" type="button" aria-label="关闭通知"
           @click="emit('remove', message.id)">
-          ×
         </button>
       </div>
     </div>
@@ -241,7 +242,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 20px;
+  padding: 10px 10px;
   border-radius: var(--main-radius);
   background-color: #fff;
   box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.12);
@@ -307,34 +308,126 @@ onBeforeUnmount(() => {
 }
 
 .count-badge {
+  display: flex;
   font-weight: 900;
   padding: 1px 6px;
   border-radius: 8px;
   font-size: 0.7rem;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 2px rgb(255 255 255);
   flex-shrink: 0;
+  transition: transform 0.3s;
+  animation: smoothShake 1.2s infinite;
+
+  >p {
+    font-weight: 400;
+  }
+
+  &:hover {
+    opacity: 1;
+    animation: none;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes smoothShake {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  10% {
+    transform: rotate(9deg) scale(1);
+  }
+
+  20% {
+    transform: rotate(-9deg) scale(1);
+  }
+
+  30% {
+    transform: rotate(6deg) scale(1);
+  }
+
+  40% {
+    transform: rotate(-6deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
 }
 
 .close-btn {
-  cursor: pointer;
-  opacity: 0.5;
-  font-size: 1rem;
-  transition: all 0.2s;
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  padding: 0;
-  border: 0;
-  color: inherit;
-  background: transparent;
-}
+  $close-color: #ffffff;
+  $border-color: #000000;
+  $size: 20px;
+  $plus-size: 14px;
+  $plus-thickness: 2px;
+  $border-width: 1px;
+  $transition-duration: 0.2s;
+  $rotate-duration: 0.5s;
+  $scale-factor: 1.2;
 
-.close-btn:hover {
+  --close-color: #{$close-color};
+  --border-color: #{$border-color};
+
   opacity: 1;
-  transform: rotate(90deg) scale(1.2);
+  width: $size;
+  height: $size;
+  border-radius: 50%;
+  border-width: 5px;
+  border-spacing: 5px;
+  border: $border-width dashed transparent;
+  background-color: transparent;
+  background-image:
+    linear-gradient($close-color, $close-color),
+    linear-gradient($close-color, $close-color);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size:
+    $plus-size $plus-thickness,
+    $plus-thickness $plus-size;
+  transition:
+    background-color $transition-duration ease,
+    box-shadow $transition-duration ease,
+    transform $rotate-duration ease;
+  cursor: pointer;
+  transform: rotate(45deg);
+
+  &:hover {
+    border: $border-width dashed var(--close-color);
+    transform: rotate(225deg) scale($scale-factor);
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 0 6px var(--close-color);
+    opacity: 0;
+    transition: 0.3s;
+  }
+
+  &:focus-visible {
+    outline: 0;
+  }
+
+  &:hover,
+  &:focus {
+    border-color: var(--close-color);
+  }
+
+  &:active {
+
+    &::after {
+      transition: 0s;
+      box-shadow: none;
+      opacity: 0.4;
+    }
+  }
 }
 
 @media (max-width: 640px) {
@@ -343,7 +436,7 @@ onBeforeUnmount(() => {
   }
 
   .message-body {
-    padding: 8px 16px;
+    padding: 8px 8px;
   }
 }
 </style>

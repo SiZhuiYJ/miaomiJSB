@@ -2,35 +2,13 @@
 import { computed, nextTick, reactive, ref } from "vue";
 import type { ComponentPublicInstance } from "vue";
 import gsap from "gsap";
-import NotificationControlPanel from "./components/NotificationControlPanel.vue";
-import NotificationMessageList from "./components/NotificationMessageList.vue";
+import MessageItem from "./messageItem.vue";
 import type {
-  NotificationDirectionOption,
-  NotificationForm,
   NotificationMessage,
-} from "./types";
+} from "./types.ts";
 
 const messages = ref<NotificationMessage[]>([]);
 const itemRefs = ref<Record<number, HTMLElement>>({});
-const form = reactive<NotificationForm>({
-  content: "新增：纵向双向收拢动画",
-  color: "#f43f5e",
-  duration: 5000,
-  closable: true,
-  direction: "vSplit",
-});
-
-const directions: NotificationDirectionOption[] = [
-  { n: "左向右收", v: "ltr" },
-  { n: "右向左收", v: "rtl" },
-  { n: "上向下收", v: "ttb" },
-  { n: "下向上收", v: "btt" },
-  { n: "横向双收", v: "center" },
-  { n: "纵向双收", v: "vSplit" },
-  { n: "波纹推移", v: "ripple" },
-  { n: "聚光灯", v: "spotlight" },
-  { n: "柔和消融", v: "fade" },
-];
 
 let nextMessageId = 0;
 
@@ -97,7 +75,7 @@ const addMessage = (options: {
   const {
     content,
     color = "#3b82f6",
-    duration = 5000,
+    duration = 500000,
     closable = true,
     direction = "rtl",
   } = options;
@@ -225,20 +203,29 @@ const removeMessage = (id: number) => {
   });
 };
 
+defineExpose({
+  addMessage,
+  removeMessage,
+});
 </script>
 
 <template>
+  <Teleport to="body">
+    <div class="notification-container">
+      <MessageItem v-for="(msg, index) in activeMessages" :key="msg.id" :message="msg" :index="index"
+        @remove="removeMessage" @set-item-ref="setItemRef" />
 
-  <main class="notification-system-lab">
-    <NotificationControlPanel v-model="form" :directions="directions" @submit="addMessage(form)" />
-  </main>
-  <NotificationMessageList ref="NotificationMessage" :messages="messages" :active-messages="activeMessages"
-    @remove="removeMessage" @set-item-ref="setItemRef" />
+      <div v-if="messages.length > 5" class="hidden-count-badge">
+        + {{ messages.length - 5 }} 条未显示通知
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped lang="scss">
-.notification-system-lab {
+.notification-container {
   --item-height: 44px;
+  --item-gap: 8px;
   --main-radius: 22px;
   --slate-50: #f8fafc;
   --slate-100: #f1f5f9;
@@ -258,19 +245,25 @@ const removeMessage = (id: number) => {
   --purple-50: #f5f3ff;
   --purple-600: #7c3aed;
 
+  position: absolute;
+  top: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 9999;
+  width: 100%;
+}
 
-  min-height: 100vh;
-  background-color: var(--slate-50);
-  color: var(--slate-900);
-  font-family:
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    "Helvetica Neue",
-    Arial,
-    sans-serif;
+.hidden-count-badge {
+  position: absolute;
+  top: calc(var(--item-height) * 5 + var(--item-gap));
+  font-size: 10px;
+  color: var(--slate-400);
+  font-weight: 700;
+  padding: 0.25rem 0.75rem;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 </style>
