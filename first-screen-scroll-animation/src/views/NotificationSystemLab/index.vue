@@ -81,8 +81,8 @@ const playLayoutAnimation = (
       {
         y: 0,
         duration: 0.58,
-        delay: step * 0.22,
-        ease: "power4.out",
+        delay: step * 0.06,
+        ease: "back.out(1.5)",
       },
     );
   });
