@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { gsap } from 'gsap';
 import { onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
 import type { CSSProperties } from "vue";
 import type { NotificationMessage } from "../types";
@@ -16,6 +17,8 @@ const emit = defineEmits<{
 }>();
 
 const itemElement = useTemplateRef("itemElement");
+
+let timeline: gsap.core.Timeline | null = null;
 
 const getLuminance = (hex: string) => {
   const normalized = hex.replace("#", "");
@@ -129,6 +132,38 @@ const applyMessageFilterState = (state: typeof filterState) => {
 
 
 onMounted(() => {
+  // 先把 SVG filter 恢
+  //     // state 是这条消息自己的滤镜动画状态，不能复用全局 filterState 对象。
+  const state = { ...filterState };
+
+  // 先把 SVG filter 恢复到初始 blob 状态，避免复用 DOM 时继承上次 identity 状态。
+  applyMessageFilterState(state);
+
+  gsap.timeline()
+    // 初始化气泡滤镜和标签位置，确保重复播放时不会继承上一次的终态。
+    .set(itemElement.value, {
+      filter: `url(#${`filter-${props.message.id}`})`,
+    })
+    // SVG filter 不能从 url() 平滑过渡到 none，所以先把滤镜参数动到 identity。
+    // 0.6s 开始收束，和入场动画重叠，视觉上是气泡落下后逐渐变清晰。
+    .to(state, {
+      blur: 0,
+      alpha: 1,
+      offset: 0,
+      duration: 0.6,
+      ease: 'power2.out',
+      onUpdate: () => applyMessageFilterState(state),
+      onComplete: () => {
+        // 参数到达 identity 后再切换 filter:none，此时视觉上已经没有跳变。
+        applyMessageFilterState(state);
+        gsap.set(itemElement.value, { filter: 'none' });
+      },
+    })
+  gsap.to('.round', {
+    top: '0',
+    duration: 0.6,
+  });
+
   emit("setItemRef", itemElement.value, props.message.id);
 });
 
@@ -138,8 +173,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="itemElement" class="notification-item" :style="getItemBaseStyle(message, index)" :title="`${message.id}`">
-    <div class="message-body">
+  <div ref="itemElement" class="notification-item" :style="getItemBaseStyle(message, index)" :title="`${index}`">
+    <div class="round"></div>
+    <div class="message-body" :style="{ '--top-index': `${index}`, }">
       <div class="bg-layer-persistent"></div>
       <div class="fg-layer-progress" :style="getProgressStyle(message)"></div>
       <div v-if="message.direction === 'spotlight'" class="spotlight-glow" :style="getSpotlightStyle(message)"></div>
@@ -158,52 +194,65 @@ onBeforeUnmount(() => {
         </button>
       </div>
     </div>
+    <svg style="display: none;">
+      <defs>
+        <filter :id="`filter-${message.id}`" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur :id="`${message.id}-blur`" in="SourceGraphic" stdDeviation="10" result="blur" />
+          <feColorMatrix :id="`${message.id}-matrix`" in="blur" mode="matrix" :values="initialMatrixValues" />
+        </filter>
+      </defs>
+    </svg>
   </div>
-  <svg style="display: none;">
-    <defs>
-      <filter :id="`filter-${message.id}`" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur :id="`${message.id}-blur`" in="SourceGraphic" stdDeviation="10" result="blur" />
-        <feColorMatrix :id="`${message.id}-matrix`" in="blur" mode="matrix" :values="initialMatrixValues" />
-      </filter>
-    </defs>
-  </svg>
+
 </template>
 
 <style scoped lang="scss">
 .notification-item {
   pointer-events: auto;
-  position: relative;
-  margin-bottom: 8px;
-  border-radius: var(--main-radius);
-  width: fit-content;
+  position: absolute;
+  top: calc(var(--item-height) - var(--item-height) * 2);
+  min-width: 50%;
   max-width: calc(100vw - 40px);
   min-width: 140px;
   min-height: var(--item-height);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.12);
+  background-color: currentColor;
   user-select: none;
-  background: #fff;
-  overflow: hidden;
   will-change: transform, opacity;
 }
 
-.message-body {
-  position: relative;
+.round {
+  display: flex;
+  position: absolute;
+  bottom: -5px;
+  height: 10px;
   width: 100%;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.message-body {
+  --top-index: 0;
+  position: relative;
+  top: calc(var(--item-height) * (var(--top-index) + 1) + var(--item-gap));
+  left: 50%;
+  transform: translateX(-50%);
+  width: fit-content;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 20px;
+  padding: 10px 20px;
+  border-radius: var(--main-radius);
+  background-color: #fff;
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
 }
 
 .bg-layer-persistent {
   position: absolute;
   inset: 0;
   z-index: 1;
-  opacity: 0.15;
+  opacity: 0.3;
   background-color: currentColor;
   border-radius: var(--main-radius);
 }
@@ -290,9 +339,11 @@ onBeforeUnmount(() => {
 
 @media (max-width: 640px) {
   .notification-item {
-    padding: 6px 16px;
-    min-height: 40px;
     min-width: 120px;
+  }
+
+  .message-body {
+    padding: 8px 16px;
   }
 }
 </style>

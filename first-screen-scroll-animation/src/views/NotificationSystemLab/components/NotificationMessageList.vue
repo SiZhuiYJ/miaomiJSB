@@ -13,40 +13,52 @@ const emit = defineEmits<{
   remove: [id: number];
   setItemRef: [el: HTMLElement | null, id: number];
 }>();
+
+
 </script>
 
 <template>
-  <div class="notification-container">
-    <MessageItem
-      v-for="(msg, index) in activeMessages"
-      :key="msg.id"
-      :message="msg"
-      :index="index"
-      @remove="emit('remove', $event)"
-      @set-item-ref="(...args) => emit('setItemRef', ...args)"
-      
-    />
+  <Teleport to="body">
+    <div class="notification-container">
+      <MessageItem v-for="(msg, index) in activeMessages" :key="msg.id" :message="msg" :index="index"
+        @remove="emit('remove', $event)" @set-item-ref="(...args) => emit('setItemRef', ...args)" />
 
-    <div v-if="messages.length > 5" class="hidden-count-badge">
-      + {{ messages.length - 5 }} 条未显示通知
+      <div v-if="messages.length > 5" class="hidden-count-badge">
+        + {{ messages.length - 5 }} 条未显示通知
+      </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <style scoped lang="scss">
 .notification-container {
-  position: fixed;
-  top: env(safe-area-inset-top, 20px);
-  left: 50%;
-  transform: translateX(-50%);
+  --item-height: 44px;
+  --item-gap: 8px;
+  --main-radius: 22px;
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+  --rose-50: #fff1f2;
+  --rose-600: #e11d48;
+  --emerald-50: #ecfdf5;
+  --emerald-600: #059669;
+  --purple-50: #f5f3ff;
+  --purple-600: #7c3aed;
+
+  position: absolute;
+  top: 0;
+  display: flex;
+  justify-content: center;
   z-index: 9999;
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-  padding: 12px;
-  box-sizing: border-box;
 }
 
 .hidden-count-badge {

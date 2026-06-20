@@ -87,15 +87,25 @@ const startCountdown = (message: NotificationMessage, duration: number) => {
   });
 };
 
-const addMessage = () => {
-  const content = form.content.trim();
-  if (!content) return;
+const addMessage = (options: {
+  content: string;
+  color?: string;
+  duration?: number;
+  closable?: boolean;
+  direction?: NotificationMessage["direction"];
+}) => {
+  const {
+    content,
+    color = "#3b82f6",
+    duration = 5000,
+    closable = true,
+    direction = "rtl",
+  } = options;
 
-  const duration = Math.max(1, Number(form.duration) || 5000);
   const existing = messages.value.find(
     (m) =>
       m.content === content &&
-      m.color.toLowerCase() === form.color.toLowerCase() &&
+      m.color.toLowerCase() === color.toLowerCase() &&
       !m.isRemoving,
   );
 
@@ -106,8 +116,18 @@ const addMessage = () => {
 
     const el = itemRefs.value[existing.id];
     if (el) {
-      gsap.to(el, { scale: 1.05, duration: 0.1, yoyo: true, repeat: 1 });
+      const bodyEl = el.querySelector<HTMLElement>('.message-body');
+      if (bodyEl) {
+        gsap.to(bodyEl,
+          {
+            scale: 1.05,
+            duration: 0.1,
+            yoyo: true,
+            repeat: 1
+          });
+      }
     }
+
     return;
   }
 
@@ -116,10 +136,10 @@ const addMessage = () => {
     const newMessage = reactive<NotificationMessage>({
       id,
       content,
-      color: form.color,
+      color: color,
       duration,
-      closable: form.closable,
-      direction: form.direction,
+      closable: closable,
+      direction: direction,
       count: 1,
       progress: 1,
       isRemoving: false,
@@ -133,8 +153,10 @@ const addMessage = () => {
       const el = itemRefs.value[id];
       if (!el) return;
 
+      const bodyEl = el.querySelector<HTMLElement>('.message-body');
+      if (!bodyEl) return;
       gsap.fromTo(
-        el,
+        bodyEl,
         {
           y: -20,
           opacity: 0,
@@ -147,10 +169,12 @@ const addMessage = () => {
           scale: 1,
           filter: "blur(0px)",
           duration: 0.6,
-          ease: "back.out(1.6)",
+          ease: "back.out(3)",
+          onComplete: () => {
+            startCountdown(newMessage, duration);
+          }
         },
       );
-      startCountdown(newMessage, duration);
     });
   });
 };
@@ -171,6 +195,12 @@ const removeMessage = (id: number) => {
       messages.value = messages.value.filter((m) => m.id !== id);
       return;
     }
+    const bodyEl = el.querySelector<HTMLElement>('.message-body');
+
+    if (!bodyEl) {
+      messages.value = messages.value.filter((m) => m.id !== id);
+      return;
+    }
 
     const tl = gsap.timeline({
       onComplete: () => {
@@ -178,15 +208,16 @@ const removeMessage = (id: number) => {
       },
     });
 
-    tl.to(
-      el,
+    tl.to(bodyEl,
       {
+        y: 0,
         scale: 0.95,
         opacity: 0,
         filter: "blur(4px)",
         duration: 0.3,
         ease: "power2.in",
-      }).to(el, {
+      }).to(bodyEl, {
+        y: -20,
         height: 0,
         marginBottom: 0,
         duration: 0.2
@@ -197,11 +228,12 @@ const removeMessage = (id: number) => {
 </script>
 
 <template>
+
   <main class="notification-system-lab">
-    <NotificationMessageList :messages="messages" :active-messages="activeMessages" @remove="removeMessage"
-      @set-item-ref="setItemRef" />
-    <NotificationControlPanel v-model="form" :directions="directions" @submit="addMessage" />
+    <NotificationControlPanel v-model="form" :directions="directions" @submit="addMessage(form)" />
   </main>
+  <NotificationMessageList ref="NotificationMessage" :messages="messages" :active-messages="activeMessages"
+    @remove="removeMessage" @set-item-ref="setItemRef" />
 </template>
 
 <style scoped lang="scss">
@@ -225,6 +257,7 @@ const removeMessage = (id: number) => {
   --emerald-600: #059669;
   --purple-50: #f5f3ff;
   --purple-600: #7c3aed;
+
 
   min-height: 100vh;
   background-color: var(--slate-50);
