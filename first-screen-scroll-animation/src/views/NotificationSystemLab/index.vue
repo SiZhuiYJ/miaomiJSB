@@ -320,10 +320,7 @@ defineExpose({
 
 <template>
   <Teleport to="body">
-    <div
-      class="notification-container"
-      :style="{ '--visible-count': `${MAX_VISIBLE_MESSAGES}` }"
-    >
+    <div class="notification-container" :style="{ '--visible-count': `${MAX_VISIBLE_MESSAGES}` }">
       <MessageItem v-for="(msg, index) in activeMessages" :key="msg.id" :message="msg" :index="index"
         @remove="removeMessage" @set-item-ref="setItemRef" />
 
@@ -337,7 +334,7 @@ defineExpose({
 <style scoped lang="scss">
 .notification-container {
   --item-height: 44px;
-  --item-gap: 8px;
+  --item-gap: 4px;
   --main-radius: 22px;
   --slate-50: #f8fafc;
   --slate-100: #f1f5f9;
@@ -357,6 +354,7 @@ defineExpose({
   --purple-50: #f5f3ff;
   --purple-600: #7c3aed;
 
+  pointer-events: none;
   position: absolute;
   top: 0;
   display: flex;
@@ -366,10 +364,9 @@ defineExpose({
 }
 
 .hidden-count-badge {
-// 元素穿透
   pointer-events: none;
   position: absolute;
-  top: calc(var(--item-height) * var(--visible-count) + var(--item-gap));
+  top: calc((var(--item-height) + var(--item-gap)) * var(--visible-count) + var(--item-gap));
   font-size: 10px;
   color: var(--slate-400);
   font-weight: 700;

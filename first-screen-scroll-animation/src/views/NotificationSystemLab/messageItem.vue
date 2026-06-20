@@ -249,9 +249,9 @@ onBeforeUnmount(() => {
             <span aria-hidden="true">*</span>
             {{ message.count }}
           </span>
-          <button v-if="message.closable" class="close-btn" type="button" aria-label="关闭通知"
-            @pointerdown="shrinkMessage" @pointerup="restoreMessage" @pointercancel="restoreMessage"
-            @pointerleave="restoreMessage" @click="closeMessage">
+          <button v-if="message.closable" class="close-btn" type="button" aria-label="关闭通知" @pointerdown="shrinkMessage"
+            @pointerup="restoreMessage" @pointercancel="restoreMessage" @pointerleave="restoreMessage"
+            @click="closeMessage">
           </button>
         </div>
       </div>
@@ -283,6 +283,7 @@ onBeforeUnmount(() => {
 }
 
 .round {
+  pointer-events: none;
   display: flex;
   position: absolute;
   bottom: -5px;
@@ -295,7 +296,7 @@ onBeforeUnmount(() => {
 .message-body {
   --top-index: 0;
   position: relative;
-  top: calc(var(--item-height) * (var(--top-index) + 1) + var(--item-gap));
+  top: calc((var(--item-height) + var(--item-gap)) * (var(--top-index) + 1) + var(--item-gap));
   left: 50%;
   transform: translateX(-50%);
   width: fit-content;
@@ -384,6 +385,7 @@ onBeforeUnmount(() => {
 }
 
 .count-badge {
+  cursor: pointer;
   display: flex;
   align-items: center;
   gap: 2px;
