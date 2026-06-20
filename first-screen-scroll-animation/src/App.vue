@@ -58,12 +58,12 @@ onMounted(async () => {
     notify({
       content: "欢迎使用系统2",
       color: "#10b121",
-      duration: 3000,
+      duration: 6000,
     });
     notify({
-      content: "欢迎使用系统2",
+      content: "欢迎使用系统3",
       color: "#10b121",
-      duration: 30000,
+      duration: 60000,
     });
   }, 8000);
 });

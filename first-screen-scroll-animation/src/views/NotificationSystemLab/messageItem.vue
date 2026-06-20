@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { gsap } from 'gsap';
-import { onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
+import { onBeforeUnmount, onMounted, useTemplateRef } from "vue";
 import type { CSSProperties } from "vue";
 import type { NotificationMessage } from "./types";
 
@@ -17,6 +17,7 @@ const emit = defineEmits<{
 }>();
 
 const itemElement = useTemplateRef("itemElement");
+const messageSurfaceElement = useTemplateRef("messageSurfaceElement");
 
 let timeline: gsap.core.Timeline | null = null;
 
@@ -131,6 +132,30 @@ const applyMessageFilterState = (state: typeof filterState) => {
   matrixElement?.setAttribute('values', getMatrixValues(state.alpha, state.offset));
 };
 
+const animateMessagePress = (scale: number, duration: number, ease: string) => {
+  const surfaceEl = messageSurfaceElement.value;
+  if (!surfaceEl || props.message.isRemoving) return;
+
+  gsap.to(surfaceEl, {
+    scale,
+    duration,
+    ease,
+    overwrite: "auto",
+  });
+};
+
+const shrinkMessage = () => {
+  animateMessagePress(0.96, 0.1, "power2.out");
+};
+
+const restoreMessage = () => {
+  animateMessagePress(1, 0.18, "back.out(2.4)");
+};
+
+const closeMessage = () => {
+  restoreMessage();
+  emit("remove", props.message.id);
+};
 
 onMounted(() => {
   // 先把 SVG filter 恢
@@ -177,22 +202,25 @@ onBeforeUnmount(() => {
   <div ref="itemElement" class="notification-item" :style="getItemBaseStyle(message, index)">
     <div class="round"></div>
     <div class="message-body" :style="{ '--top-index': `${index}`, }">
-      <div class="bg-layer-persistent"></div>
-      <div class="fg-layer-progress" :style="getProgressStyle(message)"></div>
-      <div v-if="message.direction === 'spotlight'" class="spotlight-glow" :style="getSpotlightStyle(message)"></div>
+      <div ref="messageSurfaceElement" class="message-surface">
+        <div class="bg-layer-persistent"></div>
+        <div class="fg-layer-progress" :style="getProgressStyle(message)"></div>
+        <div v-if="message.direction === 'spotlight'" class="spotlight-glow" :style="getSpotlightStyle(message)"></div>
 
-      <div class="content-wrapper" :style="{ color: getDynamicTextColor(message) }">
-        <div v-if="message.closable" class="spacer"></div>
-        <span class="text-content" :title="message.content">
-          {{ message.content }}
-        </span>
-        <span v-if="message.count > 1" class="count-badge" :style="{ backgroundColor: getBadgeBg(message) }">
-          <p>*</p>
-          {{ message.count }}
-        </span>
-        <button v-if="message.closable" class="close-btn" type="button" aria-label="关闭通知"
-          @click="emit('remove', message.id)">
-        </button>
+        <div class="content-wrapper" :style="{ color: getDynamicTextColor(message) }">
+          <div v-if="message.closable" class="spacer"></div>
+          <span class="text-content" :title="message.content">
+            {{ message.content }}
+          </span>
+          <span v-if="message.count > 1" class="count-badge" :style="{ backgroundColor: getBadgeBg(message) }">
+            <p>*</p>
+            {{ message.count }}
+          </span>
+          <button v-if="message.closable" class="close-btn" type="button" aria-label="关闭通知"
+            @pointerdown="shrinkMessage" @pointerup="restoreMessage" @pointercancel="restoreMessage"
+            @pointerleave="restoreMessage" @click="closeMessage">
+          </button>
+        </div>
       </div>
     </div>
     <svg style="display: none;">
@@ -242,11 +270,23 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  will-change: transform, opacity, filter;
+}
+
+.message-surface {
+  position: relative;
+  width: fit-content;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 10px 10px;
   border-radius: var(--main-radius);
   background-color: #fff;
   box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.12);
   overflow: hidden;
+  transform-origin: center center;
+  will-change: transform;
 }
 
 .bg-layer-persistent {
@@ -435,7 +475,7 @@ onBeforeUnmount(() => {
     min-width: 120px;
   }
 
-  .message-body {
+  .message-surface {
     padding: 8px 8px;
   }
 }

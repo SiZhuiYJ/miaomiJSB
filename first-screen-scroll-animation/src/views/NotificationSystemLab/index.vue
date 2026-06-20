@@ -88,6 +88,46 @@ const playLayoutAnimation = (
   });
 };
 
+const playRevealedMessageAnimation = (
+  state: Map<number, number>,
+  { startIndex = 0 }: LayoutAnimationOptions = {},
+) => {
+  const revealedItems = activeMessages.value
+    .map((msg, index) => {
+      if (state.has(msg.id)) return null;
+
+      const bodyEl = getMessageBodyElement(msg.id);
+      if (!bodyEl) return null;
+
+      return { bodyEl, index };
+    })
+    .filter((item): item is { bodyEl: HTMLElement; index: number } => Boolean(item));
+
+  revealedItems.forEach(({ bodyEl, index }) => {
+    gsap.killTweensOf(bodyEl);
+
+    gsap.fromTo(
+      bodyEl,
+      {
+        y: 24,
+        scale: 0.72,
+        opacity: 0,
+        filter: "blur(4px)",
+        transformOrigin: "center bottom",
+      },
+      {
+        y: 0,
+        scale: 1,
+        opacity: 1,
+        filter: "blur(0px)",
+        duration: 0.52,
+        delay: Math.max(0, index - startIndex) * 0.04,
+        ease: "back.out(2.4)",
+      },
+    );
+  });
+};
+
 const animateLayout = (
   callback: () => void,
   options?: LayoutAnimationOptions,
@@ -215,7 +255,10 @@ const removeMessage = (id: number) => {
   if (!el) {
     const state = captureActiveLayout();
     messages.value = messages.value.filter((m) => m.id !== id);
-    nextTick(() => playLayoutAnimation(state, { startIndex: index, staggerDirection: "from-index" }));
+    nextTick(() => {
+      playLayoutAnimation(state, { startIndex: index, staggerDirection: "from-index" });
+      playRevealedMessageAnimation(state, { startIndex: index });
+    });
     return;
   }
   const bodyEl = getMessageBodyElement(id);
@@ -223,7 +266,10 @@ const removeMessage = (id: number) => {
   if (!bodyEl) {
     const state = captureActiveLayout();
     messages.value = messages.value.filter((m) => m.id !== id);
-    nextTick(() => playLayoutAnimation(state, { startIndex: index, staggerDirection: "from-index" }));
+    nextTick(() => {
+      playLayoutAnimation(state, { startIndex: index, staggerDirection: "from-index" });
+      playRevealedMessageAnimation(state, { startIndex: index });
+    });
     return;
   }
 
@@ -238,6 +284,7 @@ const removeMessage = (id: number) => {
           startIndex: index,
           staggerDirection: "from-index",
         });
+        playRevealedMessageAnimation(state, { startIndex: index });
       });
     },
   });
@@ -309,6 +356,8 @@ defineExpose({
 }
 
 .hidden-count-badge {
+// 元素穿透
+  pointer-events: none;
   position: absolute;
   top: calc(var(--item-height) * 5 + var(--item-gap));
   font-size: 10px;
