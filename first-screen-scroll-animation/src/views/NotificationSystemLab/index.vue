@@ -26,33 +26,77 @@ const setItemRef = (
   delete itemRefs.value[id];
 };
 
-const animateLayout = (callback: () => void) => {
+type LayoutAnimationOptions = {
+  startIndex?: number;
+  staggerDirection?: "top-to-bottom" | "from-index";
+};
+
+const getMessageBodyElement = (id: number) => {
+  const el = itemRefs.value[id];
+  return el?.querySelector<HTMLElement>(".message-body") ?? null;
+};
+
+const captureActiveLayout = () => {
   const state = new Map<number, number>();
 
   activeMessages.value.forEach((msg) => {
-    const el = itemRefs.value[msg.id];
-    if (el) state.set(msg.id, el.getBoundingClientRect().top);
+    const bodyEl = getMessageBodyElement(msg.id);
+    if (bodyEl) state.set(msg.id, bodyEl.getBoundingClientRect().top);
   });
+
+  return state;
+};
+
+const playLayoutAnimation = (
+  state: Map<number, number>,
+  { startIndex = 0, staggerDirection = "top-to-bottom" }: LayoutAnimationOptions = {},
+) => {
+  const movingItems = activeMessages.value
+    .map((msg, index) => {
+      const bodyEl = getMessageBodyElement(msg.id);
+      const oldTop = state.get(msg.id);
+
+      if (!bodyEl || oldTop === undefined) return null;
+
+      const newTop = bodyEl.getBoundingClientRect().top;
+      const deltaY = oldTop - newTop;
+
+      if (Math.abs(deltaY) < 1) return null;
+
+      return { bodyEl, deltaY, index };
+    })
+    .filter((item): item is { bodyEl: HTMLElement; deltaY: number; index: number } => Boolean(item));
+
+  movingItems.forEach(({ bodyEl, deltaY, index }, orderIndex) => {
+    gsap.killTweensOf(bodyEl, "y");
+
+    const step =
+      staggerDirection === "from-index"
+        ? Math.max(0, index - startIndex)
+        : orderIndex;
+
+    gsap.fromTo(
+      bodyEl,
+      { y: deltaY },
+      {
+        y: 0,
+        duration: 0.58,
+        delay: step * 0.22,
+        ease: "power4.out",
+      },
+    );
+  });
+};
+
+const animateLayout = (
+  callback: () => void,
+  options?: LayoutAnimationOptions,
+) => {
+  const state = captureActiveLayout();
 
   callback();
 
-  nextTick(() => {
-    state.forEach((oldTop, id) => {
-      const el = itemRefs.value[id];
-      if (!el) return;
-
-      const newTop = el.getBoundingClientRect().top;
-      const deltaY = oldTop - newTop;
-
-      if (deltaY !== 0) {
-        gsap.fromTo(
-          el,
-          { y: deltaY },
-          { y: 0, duration: 0.5, ease: "power4.out" },
-        );
-      }
-    });
-  });
+  nextTick(() => playLayoutAnimation(state, options));
 };
 
 const startCountdown = (message: NotificationMessage, duration: number) => {
@@ -94,7 +138,7 @@ const addMessage = (options: {
 
     const el = itemRefs.value[existing.id];
     if (el) {
-      const bodyEl = el.querySelector<HTMLElement>('.message-body');
+      const bodyEl = getMessageBodyElement(existing.id);
       if (bodyEl) {
         gsap.to(bodyEl,
           {
@@ -131,7 +175,7 @@ const addMessage = (options: {
       const el = itemRefs.value[id];
       if (!el) return;
 
-      const bodyEl = el.querySelector<HTMLElement>('.message-body');
+      const bodyEl = getMessageBodyElement(id);
       if (!bodyEl) return;
       gsap.fromTo(
         bodyEl,
@@ -164,43 +208,54 @@ const removeMessage = (id: number) => {
   const message = messages.value[index];
   if (!message || message.isRemoving) return;
 
-  animateLayout(() => {
-    message.isRemoving = true;
-    message.tween?.kill();
+  message.isRemoving = true;
+  message.tween?.kill();
 
-    const el = itemRefs.value[id];
-    if (!el) {
+  const el = itemRefs.value[id];
+  if (!el) {
+    const state = captureActiveLayout();
+    messages.value = messages.value.filter((m) => m.id !== id);
+    nextTick(() => playLayoutAnimation(state, { startIndex: index, staggerDirection: "from-index" }));
+    return;
+  }
+  const bodyEl = getMessageBodyElement(id);
+
+  if (!bodyEl) {
+    const state = captureActiveLayout();
+    messages.value = messages.value.filter((m) => m.id !== id);
+    nextTick(() => playLayoutAnimation(state, { startIndex: index, staggerDirection: "from-index" }));
+    return;
+  }
+
+  const tl = gsap.timeline({
+    onComplete: () => {
+      const state = captureActiveLayout();
+
       messages.value = messages.value.filter((m) => m.id !== id);
-      return;
-    }
-    const bodyEl = el.querySelector<HTMLElement>('.message-body');
 
-    if (!bodyEl) {
-      messages.value = messages.value.filter((m) => m.id !== id);
-      return;
-    }
-
-    const tl = gsap.timeline({
-      onComplete: () => {
-        messages.value = messages.value.filter((m) => m.id !== id);
-      },
-    });
-
-    tl.to(bodyEl,
-      {
-        y: 0,
-        scale: 0.95,
-        opacity: 0,
-        filter: "blur(4px)",
-        duration: 0.3,
-        ease: "power2.in",
-      }).to(bodyEl, {
-        y: -20,
-        height: 0,
-        marginBottom: 0,
-        duration: 0.2
-      }, "-=0.1");
+      nextTick(() => {
+        playLayoutAnimation(state, {
+          startIndex: index,
+          staggerDirection: "from-index",
+        });
+      });
+    },
   });
+
+  tl.to(bodyEl,
+    {
+      y: 0,
+      scale: 0.95,
+      opacity: 0,
+      filter: "blur(4px)",
+      duration: 0.3,
+      ease: "power2.in",
+    }).to(bodyEl, {
+      y: -20,
+      height: 0,
+      marginBottom: 0,
+      duration: 0.2
+    }, "-=0.1");
 };
 
 defineExpose({
