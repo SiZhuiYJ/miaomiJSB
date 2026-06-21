@@ -96,8 +96,7 @@ export async function Decrypt(file: FileInfo, config: Record<string, any>): Prom
       rt_data = await KgmDecrypt(file.raw, raw.name, raw.ext);
       break;
     case 'ofl_en':
-      rt_data = await JooxDecrypt(file.raw, raw.name, raw.ext);
-      break;
+      throw '当前临时环境缺少 Joox 解密依赖，暂不支持 ofl_en 文件';
     case 'x2m':
     case 'x3m':
       rt_data = await XimalayaDecrypt(file.raw, raw.name, raw.ext);

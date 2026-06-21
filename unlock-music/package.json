@@ -12,8 +12,8 @@
   "private": true,
   "scripts": {
     "postinstall": "patch-package",
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
+    "serve": "NODE_OPTIONS=--openssl-legacy-provider vue-cli-service serve",
+    "build": "NODE_OPTIONS=--openssl-legacy-provider vue-cli-service build",
     "build:all": "./scripts/build-and-package.sh --all",
     "test": "jest",
     "pretty": "prettier --write src/{**/*,*}.{js,ts,jsx,tsx,vue}",
