@@ -1,5 +1,6 @@
 # 依赖项和构建输出
 node_modules/
+unlock-music/dist
 /dist
 /dist-ssr
 /build
