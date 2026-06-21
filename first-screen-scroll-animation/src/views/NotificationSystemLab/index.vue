@@ -85,9 +85,9 @@ const playLayoutAnimation = (
       { y: deltaY },
       {
         y: 0,
-        duration: 0.58,
-        delay: step * 0.06,
-        ease: "back.out(1.5)",
+        duration: 0.48,
+        delay: step * 0.07,
+        ease: "back.out(1.1)",
       },
     );
   });
@@ -333,8 +333,8 @@ defineExpose({
 
 <style scoped lang="scss">
 .notification-container {
-  --item-height: 44px;
-  --item-gap: 4px;
+  --item-height: 37px;
+  --item-gap: 5px;
   --main-radius: 22px;
   --slate-50: #f8fafc;
   --slate-100: #f1f5f9;

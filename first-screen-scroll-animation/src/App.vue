@@ -102,7 +102,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <message />
+  <!-- <message /> -->
   <!-- <GsapView /> -->
   <LoadingView />
   <!-- <bubbles /> -->

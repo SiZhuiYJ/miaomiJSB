@@ -24,6 +24,8 @@ const matrixElement = useTemplateRef("matrixElement");
 
 let filterTimeline: gsap.core.Timeline | null = null;
 
+
+
 const normalizeHexColor = (color: string) => {
   const normalized = color.trim().replace("#", "");
 
@@ -273,6 +275,7 @@ onBeforeUnmount(() => {
   pointer-events: auto;
   position: absolute;
   top: calc(var(--item-height) - var(--item-height) * 2);
+  // top: 0;
   width: max-content;
   max-width: calc(100vw - 40px);
   min-width: 140px;
@@ -296,7 +299,7 @@ onBeforeUnmount(() => {
 .message-body {
   --top-index: 0;
   position: relative;
-  top: calc((var(--item-height) + var(--item-gap)) * (var(--top-index) + 1) + var(--item-gap));
+  top: calc((var(--item-height) + var(--item-gap)) * (var(--top-index) + 1));
   left: 50%;
   transform: translateX(-50%);
   width: fit-content;
@@ -317,7 +320,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 10px;
+  padding: 8px 8px;
   border-radius: var(--main-radius);
   background-color: #fff;
   box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.12);
@@ -481,6 +484,7 @@ onBeforeUnmount(() => {
 
   &:hover {
     border: $border-width dashed var(--close-color);
+    // transform: rotate(945deg) scale($scale-factor);
     transform: rotate(225deg) scale($scale-factor);
   }
 
@@ -518,8 +522,8 @@ onBeforeUnmount(() => {
     min-width: 120px;
   }
 
-  .message-surface {
-    padding: 8px 8px;
-  }
+  // .message-surface {
+  //   padding: 8px 8px;
+  // }
 }
 </style>
