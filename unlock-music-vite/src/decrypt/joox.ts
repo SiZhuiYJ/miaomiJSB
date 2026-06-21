@@ -1,6 +1,6 @@
 import jooxFactory from '@unlock-music/joox-crypto';
 
-import { DecryptResult } from './entity';
+import type { DecryptResult } from './entity';
 import { AudioMimeType, GetArrayBuffer, SniffAudioExt } from './utils';
 
 import { MergeUint8Array } from '@/utils/MergeUint8Array';
