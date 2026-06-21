@@ -6,11 +6,11 @@ import {
   GetMetaFromFile,
   type IMusicMeta,
   SniffAudioExt,
+  ToArrayBuffer,
   WriteMetaToFlac,
   WriteMetaToMp3,
 } from '@/decrypt/utils';
 import { parseBlob as metaParseBlob } from 'music-metadata-browser';
-import jimp from 'jimp';
 
 import AES from 'crypto-js/aes';
 import PKCS7 from 'crypto-js/pad-pkcs7';
@@ -25,6 +25,46 @@ import type { DecryptResult } from '@/decrypt/entity';
 const CORE_KEY = EncHex.parse('687a4852416d736f356b496e62617857');
 const META_KEY = EncHex.parse('2331346C6A6B5F215C5D2630553C2728');
 const MagicHeader = [0x43, 0x54, 0x45, 0x4e, 0x46, 0x44, 0x41, 0x4d];
+const MaxCoverBytes = 1 << 24;
+
+async function blobFromCanvas(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+      } else {
+        reject(new Error('failed to encode cover image'));
+      }
+    }, type, quality);
+  });
+}
+
+async function shrinkCoverImage(buffer: ArrayBuffer, mime: string): Promise<{ buffer: ArrayBuffer; mime: string }> {
+  let currentBuffer = buffer;
+  let currentMime = mime;
+
+  while (currentBuffer.byteLength >= MaxCoverBytes) {
+    const bitmap = await createImageBitmap(new Blob([currentBuffer], { type: currentMime }));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(bitmap.width / 2));
+    canvas.height = Math.max(1, Math.round(bitmap.height / 2));
+
+    const context = canvas.getContext('2d');
+    if (!context) {
+      bitmap.close();
+      throw new Error('canvas is not available');
+    }
+
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+
+    const imageBlob = await blobFromCanvas(canvas, 'image/jpeg', 0.86);
+    currentBuffer = await imageBlob.arrayBuffer();
+    currentMime = imageBlob.type || 'image/jpeg';
+  }
+
+  return { buffer: currentBuffer, mime: currentMime };
+}
 
 export async function Decrypt(file: File, raw_filename: string, _: string): Promise<DecryptResult> {
   return new NcmDecrypt(await GetArrayBuffer(file), raw_filename).decrypt();
@@ -183,10 +223,14 @@ class NcmDecrypt {
     if (this.oriMeta.albumPic)
       try {
         this.image = await GetImageFromURL(this.oriMeta.albumPic);
-        while (this.image && this.image.buffer.byteLength >= 1 << 24) {
-          let img = await jimp.read(Buffer.from(this.image.buffer));
-          await img.resize(Math.round(img.getHeight() / 2), jimp.AUTO);
-          this.image.buffer = await img.getBufferAsync('image/jpeg');
+        if (this.image && this.image.buffer.byteLength >= MaxCoverBytes) {
+          const resized = await shrinkCoverImage(this.image.buffer, this.image.mime);
+          URL.revokeObjectURL(this.image.url);
+          this.image = {
+            ...this.image,
+            ...resized,
+            url: URL.createObjectURL(new Blob([resized.buffer], { type: resized.mime })),
+          };
         }
       } catch (e) {
         console.log('fetch cover image failed', e);
@@ -198,7 +242,7 @@ class NcmDecrypt {
   async _writeMeta() {
     if (!this.audio || !this.newMeta) throw Error('invalid sequence');
 
-    if (!this.blob) this.blob = new Blob([this.audio], { type: this.mime });
+    if (!this.blob) this.blob = new Blob([ToArrayBuffer(this.audio)], { type: this.mime });
     const ori = await metaParseBlob(this.blob);
 
     let shouldWrite = !ori.common.album && !ori.common.artists && !ori.common.title;
@@ -211,7 +255,7 @@ class NcmDecrypt {
         console.info(`writing meta for ${this.format} is not being supported for now`);
         return;
       }
-      this.blob = new Blob([this.audio], { type: this.mime });
+      this.blob = new Blob([ToArrayBuffer(this.audio)], { type: this.mime });
     }
   }
 

@@ -1,5 +1,5 @@
 import type { DecryptResult } from '@/decrypt/entity';
-import { FileSystemDirectoryHandle } from '@/shims-fs';
+import type { FileSystemDirectoryHandle } from '@/shims-fs';
 
 export enum FilenamePolicy {
   ArtistAndTitle,
@@ -15,17 +15,28 @@ export const FilenamePolicies: { key: FilenamePolicy; text: string }[] = [
   { key: FilenamePolicy.SameAsOriginal, text: '同源文件名' },
 ];
 
+FilenamePolicies[0].text = '歌手 - 歌曲名';
+FilenamePolicies[1].text = '歌曲名';
+FilenamePolicies[2].text = '歌曲名 - 歌手';
+FilenamePolicies[3].text = '同源文件名';
+
 export function GetDownloadFilename(data: DecryptResult, policy: FilenamePolicy): string {
+  const artist = data.artist?.trim() || 'Unknown Artist';
+  const title = data.title?.trim() || data.rawFilename?.trim() || 'Untitled';
+  const source = data.rawFilename?.trim() || title;
+  const ext = data.ext || data.rawExt || 'mp3';
+  const safe = (value: string) => value.replace(/[<>:"/\\|?*\x00-\x1f]/g, '_').trim() || 'Untitled';
+
   switch (policy) {
     case FilenamePolicy.TitleOnly:
-      return `${data.title}.${data.ext}`;
+      return `${safe(title)}.${ext}`;
     case FilenamePolicy.TitleAndArtist:
-      return `${data.title} - ${data.artist}.${data.ext}`;
+      return `${safe(`${title} - ${artist}`)}.${ext}`;
     case FilenamePolicy.SameAsOriginal:
-      return `${data.rawFilename}.${data.ext}`;
+      return `${safe(source)}.${ext}`;
     default:
     case FilenamePolicy.ArtistAndTitle:
-      return `${data.artist} - ${data.title}.${data.ext}`;
+      return `${safe(`${artist} - ${title}`)}.${ext}`;
   }
 }
 
@@ -74,7 +85,7 @@ export class DecryptQueue {
     const fn = this.pending.shift();
     if (fn)
       fn()
-        .then(() => this.consume)
+        .then(() => this.consume())
         .catch(console.error);
   }
 }

@@ -1,7 +1,7 @@
 import jooxFactory from '@unlock-music/joox-crypto';
 
 import type { DecryptResult } from './entity';
-import { AudioMimeType, GetArrayBuffer, SniffAudioExt } from './utils';
+import { AudioMimeType, GetArrayBuffer, SniffAudioExt, ToArrayBuffer } from './utils';
 
 import { MergeUint8Array } from '@/utils/MergeUint8Array';
 import { storage } from '@/utils/storage';
@@ -25,7 +25,7 @@ export async function Decrypt(file: Blob, raw_filename: string, raw_ext: string)
 
   const songId = raw_filename.match(/^(\d+)\s\[mqms\d*]$/i)?.[1];
   const { album, artist, imgUrl, blob, title } = await extractQQMusicMeta(
-    new Blob([musicDecoded], { type: mime }),
+    new Blob([ToArrayBuffer(musicDecoded)], { type: mime }),
     raw_filename,
     ext,
     songId,

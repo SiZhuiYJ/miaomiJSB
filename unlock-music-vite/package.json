@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" --",
+    "build": "npm run type-check && npm run build-only",
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build"
@@ -13,13 +13,16 @@
   "dependencies": {
     "@xhacker/kgmwasm": "^1.0.0",
     "@xhacker/qmcwasm": "^1.0.0",
-    "browser-id3-writer": "^6.3.1",
+    "browser-id3-writer": "^4.4.0",
+    "buffer": "^6.0.3",
     "core-js": "^3.49.0",
     "crypto-js": "^4.2.0",
     "element-plus": "^2.14.2",
-    "iconv-lite": "^0.7.2",
-    "jimp": "^1.6.1",
-    "music-metadata-browser": "^2.5.11",
+    "iconv-lite": "^0.6.3",
+    "metaflac-js": "^1.0.5",
+    "music-metadata-browser": "^2.2.7",
+    "sass": "^1.101.0",
+    "threads": "^1.7.0",
     "vue": "^3.5.38"
   },
   "devDependencies": {
@@ -28,8 +31,6 @@
     "@types/node": "^24.13.2",
     "@vitejs/plugin-vue": "^6.0.7",
     "@vue/tsconfig": "^0.9.1",
-    "npm-run-all2": "^9.0.2",
-    "scss": "^0.2.4",
     "typescript": "~6.0.0",
     "unplugin-auto-import": "^21.0.0",
     "unplugin-vue-components": "^32.1.0",
@@ -38,6 +39,6 @@
     "vue-tsc": "^3.3.5"
   },
   "engines": {
-    "node": "^22.18.0 || >=24.12.0"
+    "node": ">=22.18.0"
   }
 }

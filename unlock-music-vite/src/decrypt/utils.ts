@@ -69,10 +69,18 @@ export function GetArrayBuffer(obj: Blob): Promise<ArrayBuffer> {
   });
 }
 
+export function ToArrayBuffer(data: ArrayBuffer | Uint8Array): ArrayBuffer {
+  if (data instanceof ArrayBuffer) return data;
+
+  const copy = new Uint8Array(data.byteLength);
+  copy.set(data);
+  return copy.buffer;
+}
+
 export function GetCoverFromFile(metadata: IAudioMetadata): string {
   if (metadata.common?.picture && metadata.common.picture.length > 0) {
     return URL.createObjectURL(
-      new Blob([metadata.common.picture[0].data], { type: metadata.common.picture[0].format }),
+      new Blob([ToArrayBuffer(metadata.common.picture[0].data)], { type: metadata.common.picture[0].format }),
     );
   }
   return '';

@@ -5,6 +5,7 @@ import {
   GetMetaFromFile,
   SniffAudioExt,
   SplitFilename,
+  ToArrayBuffer,
 } from '@/decrypt/utils';
 
 import { Decrypt as QmcDecrypt, HandlerMap } from '@/decrypt/qmc';
@@ -17,7 +18,7 @@ import { parseBlob as metaParseBlob } from 'music-metadata-browser';
 export async function Decrypt(file: Blob, raw_filename: string, raw_ext: string): Promise<DecryptResult> {
   const buffer = await GetArrayBuffer(file);
 
-  let musicDecoded = new Uint8Array();
+  let musicDecoded: Uint8Array<ArrayBufferLike> = new Uint8Array();
   if (globalThis.WebAssembly) {
     console.log('qmc: using wasm decoder');
 
@@ -35,9 +36,9 @@ export async function Decrypt(file: Blob, raw_filename: string, raw_ext: string)
   const newName = SplitFilename(raw_filename);
   let audioBlob: Blob;
   if (ext !== '' || newName.ext === 'mp3') {
-    audioBlob = new Blob([musicDecoded], { type: AudioMimeType[ext] });
+    audioBlob = new Blob([ToArrayBuffer(musicDecoded)], { type: AudioMimeType[ext] });
   } else if (newName.ext in HandlerMap) {
-    audioBlob = new Blob([musicDecoded], { type: 'application/octet-stream' });
+    audioBlob = new Blob([ToArrayBuffer(musicDecoded)], { type: 'application/octet-stream' });
     return QmcDecrypt(audioBlob, newName.name, newName.ext);
   } else {
     throw '不支持的QQ音乐缓存格式';

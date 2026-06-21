@@ -5,6 +5,7 @@ import {
   GetCoverFromFile,
   GetMetaFromFile,
   SniffAudioExt,
+  ToArrayBuffer,
 } from '@/decrypt/utils';
 import { parseBlob as metaParseBlob } from 'music-metadata-browser';
 import type { DecryptResult } from '@/decrypt/entity';
@@ -28,7 +29,7 @@ export async function Decrypt(file: File, raw_filename: string, raw_ext: string)
   } else {
     if (!BytesHasPrefix(new Uint8Array(oriData), KgmHeader)) throw Error('Not a valid kgm(a) file!');
   }
-  let musicDecoded = new Uint8Array();
+  let musicDecoded: Uint8Array<ArrayBufferLike> = new Uint8Array();
   if (globalThis.WebAssembly) {
     const kgmDecrypted = await DecryptKgmWasm(oriData, raw_ext);
     if (kgmDecrypted.success) {
@@ -41,7 +42,7 @@ export async function Decrypt(file: File, raw_filename: string, raw_ext: string)
 
   const ext = SniffAudioExt(musicDecoded);
   const mime = AudioMimeType[ext];
-  let musicBlob = new Blob([musicDecoded], { type: mime });
+  let musicBlob = new Blob([ToArrayBuffer(musicDecoded)], { type: mime });
   const musicMeta = await metaParseBlob(musicBlob);
   const { title, artist } = GetMetaFromFile(raw_filename, musicMeta.common.title, String(musicMeta.common.artists || musicMeta.common.artist || ""));
   return {

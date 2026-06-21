@@ -1,5 +1,5 @@
 import { parseBlob as metaParseBlob } from 'music-metadata-browser';
-import { AudioMimeType, SniffAudioExt, GetArrayBuffer, GetMetaFromFile } from './utils';
+import { AudioMimeType, SniffAudioExt, GetArrayBuffer, GetMetaFromFile, ToArrayBuffer } from './utils';
 import type { DecryptResult } from '@/decrypt/entity';
 
 const HandlerMap: Map<string, (data: Uint8Array) => Uint8Array> = new Map([
@@ -16,7 +16,7 @@ export async function Decrypt(file: File, raw_filename: string, raw_ext: string)
   const ext = SniffAudioExt(musicDecoded, 'm4a');
   const mime = AudioMimeType[ext];
 
-  let musicBlob = new Blob([musicDecoded], { type: mime });
+  let musicBlob = new Blob([ToArrayBuffer(musicDecoded)], { type: mime });
 
   const musicMeta = await metaParseBlob(musicBlob);
 

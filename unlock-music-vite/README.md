@@ -1,42 +1,27 @@
 # unlock-music-vite
 
-This template should help get you started developing with Vue 3 in Vite.
+项目文档：[项目结构和功能实现文档](docs/project-structure-and-implementation.md)
 
-## Recommended IDE Setup
+Unlock Music 的 Vite + Vue 3 迁移版本。
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Type Support for `.vue` Imports in TS
-
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
+## 开发
 
 ```sh
 npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
 npm run dev
 ```
 
-### Type-Check, Compile and Minify for Production
+## 构建
 
 ```sh
 npm run build
 ```
+
+`npm run build` 会先执行 `vue-tsc --build`，再执行 `vite build`。
+
+## 迁移说明
+
+- UI 入口已从默认 Vite 模板替换为 Unlock Music 文件处理界面。
+- 旧解密模块已接入 Vite 构建，并补齐浏览器端 `Buffer` polyfill。
+- 解密算法依赖按旧项目 API 固定到兼容版本。
+- JOOX 的 `@unlock-music/joox-crypto` 包不在 npm 可用范围内，当前仍保持原有禁用行为。
