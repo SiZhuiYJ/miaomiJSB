@@ -1,6 +1,7 @@
 export type SearchType = 'song' | 'album' | 'playlist'
 export type Provider = 'netease' | 'qq' | 'all'
 export type LyricFormat = 'lrc' | 'srt'
+export type AudioQuality = 'standard' | 'higher' | 'exhigh' | 'lossless' | 'hires'
 
 export interface SearchItem {
   provider: 'netease' | 'qq'
@@ -52,6 +53,7 @@ export interface TrackResponse {
 export interface SongLinkResponse {
   url: string
   source: string
+  quality: AudioQuality
 }
 
 export interface ConvertLyricsResponse {

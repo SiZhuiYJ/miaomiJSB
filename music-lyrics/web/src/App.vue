@@ -28,6 +28,7 @@ const activeContainer = ref<SearchItem | null>(null)
 const activeSongId = ref('')
 const songLink = ref('')
 const songLinkSource = ref('')
+const songLinkQuality = ref('')
 const busy = ref('')
 const error = ref('')
 
@@ -44,6 +45,7 @@ async function search() {
     lyrics.value = null
     songLink.value = ''
     songLinkSource.value = ''
+    songLinkQuality.value = ''
     tracks.value = []
     activeContainer.value = null
     activeSongId.value = ''
@@ -114,6 +116,7 @@ async function loadLyrics(item: SearchItem | SongInfo) {
   await run(`lyrics:${provider}:${songId}`, async () => {
     songLink.value = ''
     songLinkSource.value = ''
+    songLinkQuality.value = ''
     activeSongId.value = `${provider}:${songId}`
     lyrics.value = await postJson<LyricsResponse>('/api/lyrics', {
       provider,
@@ -139,14 +142,21 @@ async function getSongLink() {
   const current = lyrics.value?.song
   if (!current) return
   await run(`link:${current.provider}:${current.displayId}`, async () => {
-    const response = await postJson<SongLinkResponse>('/api/song-link', {
-      provider: current.provider,
-      songId: current.displayId,
-      ...cookiesPayload(),
-    })
-    songLink.value = response.url
-    songLinkSource.value = response.source
+    await requestSongLink(current)
   })
+}
+
+async function requestSongLink(song: SongInfo) {
+  const response = await postJson<SongLinkResponse>('/api/song-link', {
+    provider: song.provider,
+    songId: song.displayId,
+    quality: pageOptions.value.audioQuality,
+    ...cookiesPayload(),
+  })
+  songLink.value = response.url
+  songLinkSource.value = `${response.source} · ${qualityLabel(response.quality)}`
+  songLinkQuality.value = response.quality
+  return response
 }
 
 async function convertLyrics() {
@@ -175,6 +185,24 @@ function downloadLyrics() {
   anchor.download = `${safeFilename(lyrics.value.song.title)}.${lyrics.value.format}`
   anchor.click()
   URL.revokeObjectURL(url)
+}
+
+async function downloadAudio() {
+  const current = lyrics.value?.song
+  if (!current) return
+
+  await run(`download-audio:${current.provider}:${current.displayId}`, async () => {
+    const response = songLink.value && songLinkQuality.value === pageOptions.value.audioQuality
+      ? { url: songLink.value, source: songLinkSource.value, quality: pageOptions.value.audioQuality }
+      : await requestSongLink(current)
+
+    const anchor = document.createElement('a')
+    anchor.href = response.url
+    anchor.download = `${safeFilename(`${current.title} - ${artistsLabel(current.artists)}`)}.${audioExtension(response.url)}`
+    anchor.target = '_blank'
+    anchor.rel = 'noreferrer'
+    anchor.click()
+  })
 }
 
 function searchPayload() {
@@ -231,6 +259,25 @@ function formatDuration(durationMs?: number | null) {
   const minutes = Math.floor(totalSeconds / 60)
   const seconds = totalSeconds % 60
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
+}
+
+function qualityLabel(quality: string) {
+  const labels: Record<string, string> = {
+    standard: '标准',
+    higher: '较高',
+    exhigh: '极高',
+    lossless: '无损',
+    hires: 'Hi-Res',
+  }
+  return labels[quality] || quality
+}
+
+function audioExtension(url: string) {
+  const path = new URL(url, window.location.href).pathname.toLowerCase()
+  if (path.endsWith('.flac')) return 'flac'
+  if (path.endsWith('.m4a')) return 'm4a'
+  if (path.endsWith('.ogg')) return 'ogg'
+  return 'mp3'
 }
 
 function safeFilename(value: string) {
@@ -314,6 +361,17 @@ function safeFilename(value: string) {
         <label class="check-field">
           <input v-model="pageOptions.includeTransliteration" type="checkbox" @change="refreshLyricsFormat" />
           合并音译
+        </label>
+
+        <label>
+          音质
+          <select v-model="pageOptions.audioQuality">
+            <option value="standard">标准</option>
+            <option value="higher">较高</option>
+            <option value="exhigh">极高</option>
+            <option value="lossless">无损</option>
+            <option value="hires">Hi-Res</option>
+          </select>
         </label>
 
         <details class="cookie-box">
@@ -418,6 +476,7 @@ function safeFilename(value: string) {
             <button type="button" :disabled="!lyrics" @click="copyLyrics">复制</button>
             <button type="button" :disabled="!lyrics" @click="downloadLyrics">下载</button>
             <button type="button" :disabled="!lyrics" @click="getSongLink">试听链接</button>
+            <button type="button" :disabled="!lyrics" @click="downloadAudio">下载音频</button>
           </div>
         </div>
 

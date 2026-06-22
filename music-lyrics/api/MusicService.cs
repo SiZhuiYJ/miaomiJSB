@@ -165,9 +165,9 @@ public sealed class MusicService
 
         var link = provider switch
         {
-            ProviderKind.NetEase => await _netEase.GetSongLinkAsync(songId, request.NetEaseCookie, ct),
-            ProviderKind.QQ => await _qq.GetSongLinkAsync(songId, request.QqCookie, ct),
-            _ => new SongLinkResponse("", "")
+            ProviderKind.NetEase => await _netEase.GetSongLinkAsync(songId, request.Quality, request.NetEaseCookie, ct),
+            ProviderKind.QQ => await _qq.GetSongLinkAsync(songId, request.Quality, request.QqCookie, ct),
+            _ => new SongLinkResponse("", "", "")
         };
 
         if (string.IsNullOrWhiteSpace(link.Url))
@@ -438,12 +438,13 @@ internal sealed class NetEaseMusicProvider
             JsonHelpers.GetNestedString(doc.RootElement, "romalrc", "lyric"));
     }
 
-    public async Task<SongLinkResponse> GetSongLinkAsync(string songId, string? cookie, CancellationToken ct)
+    public async Task<SongLinkResponse> GetSongLinkAsync(string songId, string quality, string? cookie, CancellationToken ct)
     {
-        var url = await TryGetPlayerUrlV1Async(songId, cookie, ct);
+        var level = NormalizeNetEaseQuality(quality);
+        var url = await TryGetPlayerUrlV1Async(songId, level, cookie, ct);
         if (!string.IsNullOrWhiteSpace(url))
         {
-            return new SongLinkResponse(url, "netease-player-url-v1");
+            return new SongLinkResponse(url, "netease-player-url-v1", level);
         }
 
         try
@@ -451,7 +452,7 @@ internal sealed class NetEaseMusicProvider
             using var doc = await PostWeApiAsync("https://music.163.com/weapi/song/enhance/player/url?csrf_token=", new Dictionary<string, object?>
             {
                 ["ids"] = $"[{songId}]",
-                ["br"] = "999000",
+                ["br"] = QualityToBitrate(level).ToString(CultureInfo.InvariantCulture),
                 ["csrf_token"] = ""
             }, cookie, ct);
 
@@ -460,28 +461,28 @@ internal sealed class NetEaseMusicProvider
                 || data.ValueKind != JsonValueKind.Array
                 || data.GetArrayLength() == 0)
             {
-                return NetEaseOuterUrl(songId);
+                return NetEaseOuterUrl(songId, level);
             }
 
             url = JsonHelpers.GetString(data[0], "url");
             return string.IsNullOrWhiteSpace(url)
-                ? NetEaseOuterUrl(songId)
-                : new SongLinkResponse(url, "netease-player-url");
+                ? NetEaseOuterUrl(songId, level)
+                : new SongLinkResponse(url, "netease-player-url", level);
         }
         catch
         {
-            return NetEaseOuterUrl(songId);
+            return NetEaseOuterUrl(songId, level);
         }
     }
 
-    private async Task<string> TryGetPlayerUrlV1Async(string songId, string? cookie, CancellationToken ct)
+    private async Task<string> TryGetPlayerUrlV1Async(string songId, string level, string? cookie, CancellationToken ct)
     {
         try
         {
             using var doc = await PostWeApiAsync("https://music.163.com/weapi/song/enhance/player/url/v1?csrf_token=", new Dictionary<string, object?>
             {
                 ["ids"] = $"[{songId}]",
-                ["level"] = "standard",
+                ["level"] = level,
                 ["encodeType"] = "mp3",
                 ["csrf_token"] = ""
             }, cookie, ct);
@@ -502,9 +503,29 @@ internal sealed class NetEaseMusicProvider
         }
     }
 
-    private static SongLinkResponse NetEaseOuterUrl(string songId)
+    private static SongLinkResponse NetEaseOuterUrl(string songId, string quality)
     {
-        return new SongLinkResponse($"https://music.163.com/song/media/outer/url?id={WebUtility.UrlEncode(songId)}.mp3", "netease-outer-url");
+        return new SongLinkResponse($"https://music.163.com/song/media/outer/url?id={WebUtility.UrlEncode(songId)}.mp3", "netease-outer-url", quality);
+    }
+
+    private static string NormalizeNetEaseQuality(string quality)
+    {
+        return quality.Trim().ToLowerInvariant() switch
+        {
+            "standard" or "higher" or "exhigh" or "lossless" or "hires" => quality.Trim().ToLowerInvariant(),
+            _ => "standard"
+        };
+    }
+
+    private static int QualityToBitrate(string quality)
+    {
+        return quality switch
+        {
+            "higher" => 192000,
+            "exhigh" => 320000,
+            "lossless" or "hires" => 999000,
+            _ => 128000
+        };
     }
 
     private async Task<IReadOnlyList<SongInfo>> GetSongsAsync(IEnumerable<string> songIds, string? cookie, CancellationToken ct)
@@ -838,7 +859,7 @@ internal sealed class QqMusicProvider
             DecodeBase64Text(JsonHelpers.GetString(doc.RootElement, "roma")));
     }
 
-    public async Task<SongLinkResponse> GetSongLinkAsync(string songId, string? cookie, CancellationToken ct)
+    public async Task<SongLinkResponse> GetSongLinkAsync(string songId, string quality, string? cookie, CancellationToken ct)
     {
         var song = await GetSongAsync(songId, cookie, ct);
         var guid = RandomNumberGenerator.GetInt32(100000000, int.MaxValue).ToString(CultureInfo.InvariantCulture);
@@ -882,7 +903,16 @@ internal sealed class QqMusicProvider
         var sip = doc.RootElement.GetProperty("req").GetProperty("data").GetProperty("sip");
         var purl = doc.RootElement.GetProperty("req_0").GetProperty("data").GetProperty("midurlinfo")[0].GetProperty("purl").GetString();
         var url = string.IsNullOrWhiteSpace(purl) || sip.GetArrayLength() == 0 ? "" : sip[0].GetString() + purl;
-        return new SongLinkResponse(url, "qq-vkey");
+        return new SongLinkResponse(url, "qq-vkey", NormalizeQqQuality(quality));
+    }
+
+    private static string NormalizeQqQuality(string quality)
+    {
+        return quality.Trim().ToLowerInvariant() switch
+        {
+            "standard" or "higher" or "exhigh" or "lossless" or "hires" => quality.Trim().ToLowerInvariant(),
+            _ => "standard"
+        };
     }
 
     private string GetCookie(string? cookie)

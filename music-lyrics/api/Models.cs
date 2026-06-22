@@ -26,6 +26,7 @@ public sealed record LyricsRequest(
 public sealed record SongLinkRequest(
     string Provider,
     string SongId,
+    string Quality = "standard",
     string? NetEaseCookie = null,
     string? QqCookie = null);
 
@@ -45,7 +46,7 @@ public sealed record LyricsResponse(
     string Format,
     string Output);
 
-public sealed record SongLinkResponse(string Url, string Source);
+public sealed record SongLinkResponse(string Url, string Source, string Quality);
 
 public sealed record ConvertLyricsResponse(string Output);
 

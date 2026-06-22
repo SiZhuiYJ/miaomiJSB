@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { LyricFormat, Provider, SearchType } from '../api'
+import type { AudioQuality, LyricFormat, Provider, SearchType } from '../api'
 
 export interface SearchHistoryItem {
   id: string
@@ -21,6 +21,7 @@ interface AppState {
     lyricFormat: LyricFormat
     includeTranslation: boolean
     includeTransliteration: boolean
+    audioQuality: AudioQuality
     converterFrom: LyricFormat
     converterTo: LyricFormat
     converterDurationMs: number
@@ -35,6 +36,7 @@ const defaultPageOptions: AppState['pageOptions'] = {
   lyricFormat: 'lrc',
   includeTranslation: true,
   includeTransliteration: false,
+  audioQuality: 'standard',
   converterFrom: 'lrc',
   converterTo: 'srt',
   converterDurationMs: 0,
