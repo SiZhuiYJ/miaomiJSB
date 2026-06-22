@@ -9,9 +9,12 @@ export default defineConfig({
   plugins: [
     vue(),
     vueDevTools(),
-  ], 
+  ],
   server: {
     host: '0.0.0.0',
+    proxy: {
+      '/api': 'http://localhost:5000',
+    },
   },
   preview: {
     host: '0.0.0.0',
