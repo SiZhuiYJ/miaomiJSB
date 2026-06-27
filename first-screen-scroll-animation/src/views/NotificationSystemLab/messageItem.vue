@@ -362,6 +362,7 @@ onBeforeUnmount(() => {
 
 .content-wrapper {
   position: relative;
+  height: calc(var(--item-height) - 16px);
   z-index: 10;
   display: flex;
   align-items: center;

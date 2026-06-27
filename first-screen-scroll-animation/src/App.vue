@@ -2,7 +2,6 @@
 import GsapView from './views/gsap/index.vue';
 import LoadingView from './views/loading/index.vue';
 import bubbles from './views/bubbles/index.vue';
-import message from './views/message/index.vue';
 import bingImg from './views/bingImg/index.vue';
 import puzzle from './views/puzzle/index.vue';
 import NotificationControlPanel from './views/notificationControlPanel/index.vue';
@@ -104,7 +103,6 @@ onMounted(async () => {
 </script>
 
 <template>
-  <!-- <message /> -->
   <!-- <GsapView /> -->
   <!-- <bingImg /> -->
   <puzzle />
