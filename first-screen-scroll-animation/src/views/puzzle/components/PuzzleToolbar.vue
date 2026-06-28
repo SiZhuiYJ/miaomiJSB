@@ -17,6 +17,9 @@ const {
   quality,
   fileInputRef,
   images,
+  imageUploadFeedback,
+  imageUploadStatus,
+  isImageUploadLimitReached,
   getRangeStyle,
   addFiles,
   clearImages,
@@ -77,9 +80,11 @@ const handleFileChange = (event: Event) => {
     </div>
     <div class="actions">
       <input ref="fileInputRef" accept="image/*" multiple type="file" hidden @change="handleFileChange">
-      <button type="button" @click="fileInputRef?.click()">选择图片</button>
+      <button type="button" :disabled="isImageUploadLimitReached" @click="fileInputRef?.click()">选择图片</button>
       <button type="button" :disabled="!images.length" @click="exportPuzzle">导出高清图片</button>
       <button class="ghost" type="button" :disabled="!images.length" @click="clearImages">清空</button>
+      <span class="upload-meter">图片 {{ imageUploadStatus }}</span>
+      <span v-if="imageUploadFeedback" class="upload-feedback">{{ imageUploadFeedback }}</span>
     </div>
   </section>
 </template>

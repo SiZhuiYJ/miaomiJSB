@@ -44,6 +44,8 @@ export interface ImageQueueDragState {
   hasMoved: boolean;
 }
 
+export type QueueUploadMode = 'insert' | 'replace';
+
 export interface Bounds {
   minX: number;
   maxX: number;
@@ -159,6 +161,7 @@ export const usePuzzleEditor = () => {
   const quality = ref(0.96);
   const selectedIndex = ref(0);
   const images = ref<PuzzleImage[]>([]);
+  const imageUploadFeedback = ref('');
   const cellsState = ref<CellState[]>([]);
   const horizontalSegments = ref<SeamSegment[][]>([]);
   const verticalSegments = ref<SeamSegment[][]>([]);
@@ -193,6 +196,10 @@ export const usePuzzleEditor = () => {
   
   const ratio = computed(() => ratios.value.find((item) => item.value === ratioKey.value)?.ratio ?? 1);
   const cellCount = computed(() => rows.value * cols.value);
+  const imageUploadLimit = computed(() => cellCount.value);
+  const remainingImageSlots = computed(() => Math.max(0, imageUploadLimit.value - images.value.length));
+  const isImageUploadLimitReached = computed(() => remainingImageSlots.value <= 0);
+  const imageUploadStatus = computed(() => `${images.value.length} / ${imageUploadLimit.value}`);
   const selectedCell = computed(() => cellsState.value[selectedIndex.value]);
   const selectedImage = computed(() => {
     const cell = selectedCell.value;
@@ -375,6 +382,40 @@ export const usePuzzleEditor = () => {
     transform: 'translate(-50%, -50%)',
   });
   /* ----------------------------- Images ------------------------------ */
+  const revokeImages = (items: PuzzleImage[]) => {
+    items.forEach((image) => URL.revokeObjectURL(image.src));
+  };
+  const getImageFiles = (fileList: FileList | null) => (fileList ? Array.from(fileList).filter((file) => file.type.startsWith('image/')) : []);
+  const loadImageFile = (file: File) => new Promise<PuzzleImage>((resolve, reject) => {
+    const src = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => resolve({ id: imageId++, name: file.name, src, naturalWidth: image.naturalWidth, naturalHeight: image.naturalHeight });
+    image.onerror = () => {
+      URL.revokeObjectURL(src);
+      reject(new Error(`Failed to load image: ${file.name}`));
+    };
+    image.src = src;
+  });
+  const loadImageFiles = async (fileList: FileList | null, limit: number) => {
+    const files = getImageFiles(fileList);
+    const safeLimit = Math.max(0, Math.floor(limit));
+    const acceptedFiles = files.slice(0, safeLimit);
+    const loadedResults = await Promise.allSettled(acceptedFiles.map(loadImageFile));
+    const loaded = loadedResults.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
+    return {
+      loaded,
+      skippedCount: Math.max(0, files.length - acceptedFiles.length),
+      failedCount: acceptedFiles.length - loaded.length,
+      imageFileCount: files.length,
+    };
+  };
+  const setUploadFeedback = (loadedCount: number, skippedCount = 0, failedCount = 0) => {
+    const messages: string[] = [];
+    if (loadedCount) messages.push(`已添加 ${loadedCount} 张图片`);
+    if (skippedCount) messages.push(`超过当前 ${imageUploadLimit.value} 张上限，已忽略 ${skippedCount} 张`);
+    if (failedCount) messages.push(`${failedCount} 张图片读取失败`);
+    imageUploadFeedback.value = messages.join('，');
+  };
   const fillCells = () => {
     cellsState.value = Array.from({ length: cellCount.value }, (_, index) => {
       const previous = cellsState.value[index];
@@ -386,24 +427,80 @@ export const usePuzzleEditor = () => {
       };
     });
   };
+  const enforceImageUploadLimit = () => {
+    const overflowCount = images.value.length - imageUploadLimit.value;
+    if (overflowCount <= 0) return;
+    const removedImages = images.value.splice(imageUploadLimit.value);
+    revokeImages(removedImages);
+    imageUploadFeedback.value = `已按当前格子上限保留前 ${imageUploadLimit.value} 张图片`;
+  };
   const addFiles = async (fileList: FileList | null) => {
-    if (!fileList) return;
-    const files = Array.from(fileList).filter((file) => file.type.startsWith('image/'));
-    const loaded = await Promise.all(files.map((file) => new Promise<PuzzleImage>((resolve) => {
-      const src = URL.createObjectURL(file);
-      const image = new Image();
-      image.onload = () => resolve({ id: imageId++, name: file.name, src, naturalWidth: image.naturalWidth, naturalHeight: image.naturalHeight });
-      image.src = src;
-    })));
+    const { loaded, skippedCount, failedCount, imageFileCount } = await loadImageFiles(fileList, remainingImageSlots.value);
+    if (!imageFileCount) {
+      imageUploadFeedback.value = '请选择图片文件';
+      return;
+    }
+    if (!loaded.length) {
+      setUploadFeedback(0, skippedCount, failedCount);
+      return;
+    }
     images.value.push(...loaded);
     fillCells();
     selectedIndex.value = 0;
+    setUploadFeedback(loaded.length, skippedCount, failedCount);
+  };
+  const insertFiles = async (index: number, fileList: FileList | null) => {
+    const targetIndex = clamp(Math.trunc(index), 0, images.value.length);
+    const { loaded, skippedCount, failedCount, imageFileCount } = await loadImageFiles(fileList, remainingImageSlots.value);
+    if (!imageFileCount) {
+      imageUploadFeedback.value = '请选择图片文件';
+      return;
+    }
+    if (!loaded.length) {
+      setUploadFeedback(0, skippedCount, failedCount);
+      return;
+    }
+    images.value.splice(targetIndex, 0, ...loaded);
+    fillCells();
+    selectedIndex.value = clamp(selectedIndex.value, 0, Math.max(0, cellCount.value - 1));
+    setUploadFeedback(loaded.length, skippedCount, failedCount);
+  };
+  const replaceImage = async (index: number, fileList: FileList | null) => {
+    const targetIndex = Math.trunc(index);
+    if (targetIndex < 0 || targetIndex >= images.value.length) return;
+    const currentImage = images.value[targetIndex];
+    const [file] = getImageFiles(fileList);
+    if (!currentImage || !file) {
+      imageUploadFeedback.value = '请选择图片文件';
+      return;
+    }
+    try {
+      const nextImage = await loadImageFile(file);
+      images.value.splice(targetIndex, 1, nextImage);
+      URL.revokeObjectURL(currentImage.src);
+      imageUploadFeedback.value = `已替换第 ${targetIndex + 1} 张图片`;
+    } catch {
+      imageUploadFeedback.value = '图片读取失败';
+    }
+  };
+  const removeImage = (index: number) => {
+    const targetIndex = Math.trunc(index);
+    if (targetIndex < 0 || targetIndex >= images.value.length) return;
+    const [removedImage] = images.value.splice(targetIndex, 1);
+    if (!removedImage) return;
+    URL.revokeObjectURL(removedImage.src);
+    if (images.value.length) fillCells();
+    else cellsState.value = [];
+    selectedIndex.value = clamp(selectedIndex.value, 0, Math.max(0, cellCount.value - 1));
+    stopImageQueueDrag();
+    imageUploadFeedback.value = `已移除 ${removedImage.name}`;
   };
   const clearImages = () => {
-    images.value.forEach((image) => URL.revokeObjectURL(image.src));
+    revokeImages(images.value);
     images.value = [];
     cellsState.value = [];
     selectedIndex.value = 0;
+    imageUploadFeedback.value = '';
     stopImageQueueDrag();
   };
   const moveImage = (fromIndex: number, toIndex: number) => {
@@ -1031,6 +1128,7 @@ export const usePuzzleEditor = () => {
   watch([rows, cols], () => {
     rows.value = clamp(rows.value, 1, 10);
     cols.value = clamp(cols.value, 1, 10);
+    enforceImageUploadLimit();
     resetSeams();
     fillCells();
     selectedIndex.value = clamp(selectedIndex.value, 0, Math.max(0, cellCount.value - 1));
@@ -1067,6 +1165,11 @@ export const usePuzzleEditor = () => {
     quality,
     selectedIndex,
     images,
+    imageUploadLimit,
+    remainingImageSlots,
+    isImageUploadLimitReached,
+    imageUploadStatus,
+    imageUploadFeedback,
     imageQueueDragState,
     draggedImageId,
     cellsState,
@@ -1090,6 +1193,9 @@ export const usePuzzleEditor = () => {
     getLineStyle,
     getHandleStyle,
     addFiles,
+    insertFiles,
+    replaceImage,
+    removeImage,
     clearImages,
     startImageQueueDrag,
     selectCell,

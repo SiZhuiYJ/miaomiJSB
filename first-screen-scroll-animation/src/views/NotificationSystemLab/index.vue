@@ -362,19 +362,4 @@ defineExpose({
   z-index: 9999;
   width: 100%;
 }
-
-.hidden-count-badge {
-  pointer-events: none;
-  position: absolute;
-  top: calc((var(--item-height) + var(--item-gap)) * var(--visible-count) + var(--item-gap));
-  font-size: 10px;
-  color: var(--slate-400);
-  font-weight: 700;
-  padding: 0.25rem 0.75rem;
-  background-color: rgba(255, 255, 255, 0.8);
-  border-radius: 9999px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
 </style>

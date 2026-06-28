@@ -520,7 +520,7 @@ onBeforeUnmount(() => {
 
 @media (max-width: 640px) {
   .notification-item {
-    min-width: 120px;
+    min-width: 200px;
   }
 
   // .message-surface {
