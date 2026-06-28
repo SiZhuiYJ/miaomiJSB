@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>主播推流</title>
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #0d0d10;
+      color: #e8e8e8;
+      min-height: 100vh;
+    }
+    .header {
+      height: 52px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #14141a;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .back {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 6px 14px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.06);
+      color: #a0a0b0;
+      text-decoration: none;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+    .back iconify-icon { font-size: 16px; margin-right: 4px; }
+    .badge iconify-icon { font-size: 14px; color: #ff4d6d; }
+    .btn iconify-icon { font-size: 16px; margin-right: 4px; }
+    .title { font-size: 15px; font-weight: 600; color: #fff; }
+    .badge {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: rgba(255,77,109,0.15);
+      color: #ff4d6d;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge.on { display: inline-flex; }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .main {
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 24px;
+    }
+    .preview-card {
+      background: #14141a;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+      max-width: 1200px;
+    }
+    .preview-header {
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #6b6b7b;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .preview-header::before {
+      content: '';
+      width: 3px;
+      height: 14px;
+      background: #ff4d6d;
+      border-radius: 2px;
+    }
+    .video-wrap {
+      aspect-ratio: 16/9;
+      background: #000;
+      position: relative;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .video-empty {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #4a4a5a;
+      font-size: 14px;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .video-empty iconify-icon {
+      font-size: 48px;
+      color: #3a3a4a;
+      opacity: 0.8;
+    }
+    .control-panel {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 10px 22px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .start {
+      background: linear-gradient(135deg, #ff4d6d, #e83857);
+      box-shadow: 0 4px 16px rgba(255,77,109,0.3);
+    }
+    .stop { background: rgba(255,255,255,0.1); color: #a0a0b0; }
+    .link { background: rgba(0,174,236,0.15); color: #00aeec; border: 1px solid rgba(0,174,236,0.3); }
+    .tip {
+      font-size: 13px;
+      color: #6b6b7b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tip iconify-icon {
+      font-size: 16px;
+      color: #5a5a6a;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <a class="back" href="index.html"><iconify-icon icon="mdi:arrow-left"></iconify-icon>返回</a>
+      <span class="title">主播推流</span>
+    </div>
+    <div class="badge" id="liveBadge"><iconify-icon icon="mdi:record-circle"></iconify-icon>直播中</div>
+  </header>
+
+  <main class="main">
+    <div class="preview-card">
+      <div class="preview-header">画面预览</div>
+      <div class="control-panel">
+        <div class="btns">
+          <button class="btn start" id="btnStart"><iconify-icon icon="mdi:record-circle-outline"></iconify-icon>开始推流</button>
+          <button class="btn stop" id="btnStop" disabled><iconify-icon icon="mdi:stop-circle-outline"></iconify-icon>停止推流</button>
+          <a class="btn link" href="viewer.html" target="_blank"><iconify-icon icon="mdi:open-in-new"></iconify-icon>打开观看页</a>
+        </div>
+        <div class="tip">
+          <iconify-icon icon="mdi:information-outline"></iconify-icon>
+          <span id="tip">允许摄像头和麦克风权限后开始推流</span>
+        </div>
+      </div>
+      <div class="video-wrap">
+        <video id="video" autoplay muted playsinline></video>
+        <div class="video-empty" id="videoEmpty">
+          <iconify-icon icon="mdi:video-outline"></iconify-icon>
+          <span>点击开始推流后显示摄像头画面</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const WS = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+    const ICE = [{ urls: 'stun:stun.l.google.com:19302' }];
+
+    let stream, ws, sessions = new Map();
+    const video = document.getElementById('video');
+    const tip = document.getElementById('tip');
+    const liveBadge = document.getElementById('liveBadge');
+    const videoEmpty = document.getElementById('videoEmpty');
+
+    async function start() {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      video.srcObject = stream;
+      videoEmpty.style.display = 'none';
+      ws = new WebSocket(WS);
+      ws.onopen = () => ws.send(JSON.stringify({ type: 'join', role: 'publisher' }));
+      ws.onmessage = async (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'viewer-joined') await offer(msg.viewerId);
+        if (msg.type === 'answer') {
+          const s = sessions.get(msg.viewerId);
+          if (s) {
+            await s.pc.setRemoteDescription(msg.sdp);
+            for (const c of s.pending) await s.pc.addIceCandidate(c);
+            s.pending = [];
+          }
+        }
+        if (msg.type === 'candidate' && msg.target === 'publisher') {
+          const s = sessions.get(msg.viewerId);
+          if (!s) return;
+          if (s.pc.remoteDescription) await s.pc.addIceCandidate(msg.candidate);
+          else s.pending.push(msg.candidate);
+        }
+        if (msg.type === 'viewer-left') {
+          sessions.get(msg.viewerId)?.pc.close();
+          sessions.delete(msg.viewerId);
+        }
+      };
+      document.getElementById('btnStart').disabled = true;
+      document.getElementById('btnStop').disabled = false;
+      liveBadge.classList.add('on');
+      tip.textContent = '推流中，观众可在观看页接入';
+    }
+
+    async function offer(viewerId) {
+      sessions.get(viewerId)?.pc.close();
+      const pc = new RTCPeerConnection({ iceServers: ICE });
+      sessions.set(viewerId, { pc, pending: [] });
+      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      pc.onicecandidate = (e) => {
+        if (e.candidate) ws.send(JSON.stringify({ type: 'candidate', target: 'viewer', viewerId, candidate: e.candidate }));
+      };
+      const sdp = await pc.createOffer();
+      await pc.setLocalDescription(sdp);
+      ws.send(JSON.stringify({ type: 'offer', viewerId, sdp: pc.localDescription }));
+    }
+
+    function stop() {
+      ws?.close();
+      sessions.forEach((s) => s.pc.close());
+      sessions.clear();
+      stream?.getTracks().forEach((t) => t.stop());
+      stream = null;
+      video.srcObject = null;
+      videoEmpty.style.display = 'flex';
+      document.getElementById('btnStart').disabled = false;
+      document.getElementById('btnStop').disabled = true;
+      liveBadge.classList.remove('on');
+      tip.textContent = '已停止';
+    }
+
+    document.getElementById('btnStart').onclick = () => start().catch((e) => tip.textContent = e.message);
+    document.getElementById('btnStop').onclick = stop;
+  </script>
+</body>
+</html>

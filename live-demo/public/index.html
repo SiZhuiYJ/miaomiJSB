@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>直播 Demo</title>
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #0d0d10;
+      color: #e8e8e8;
+      min-height: 100vh;
+    }
+    .header {
+      height: 56px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(20,20,26,0.95);
+    }
+    .logo {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hero {
+      max-width: 960px;
+      margin: 80px auto 0;
+      padding: 0 24px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 36px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+    .hero p {
+      font-size: 15px;
+      color: #8b8b9a;
+      margin-bottom: 48px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .card {
+      background: linear-gradient(145deg, #1a1a22 0%, #14141a 100%);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 32px 24px;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(255,255,255,0.15);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    }
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .card-icon iconify-icon { font-size: 26px; }
+    .card-pub .card-icon iconify-icon { color: #ff4d6d; }
+    .card-view .card-icon iconify-icon { color: #00aeec; }
+    .logo iconify-icon { font-size: 22px; color: #ff4d6d; }
+    .card-pub .card-icon { background: rgba(255,77,109,0.15); }
+    .card-view .card-icon { background: rgba(0,174,236,0.15); }
+    .card h2 { font-size: 18px; color: #fff; margin-bottom: 8px; }
+    .card span { font-size: 13px; color: #6b6b7b; }
+    .card-pub:hover h2 { color: #ff4d6d; }
+    .card-view:hover h2 { color: #00aeec; }
+    .steps {
+      max-width: 640px;
+      margin: 40px auto 0;
+      padding: 20px 24px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 10px;
+      text-align: left;
+      font-size: 13px;
+      color: #6b6b7b;
+      line-height: 2;
+    }
+    .steps strong { color: #a0a0b0; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo"><iconify-icon icon="mdi:play-circle"></iconify-icon> Live Demo</div>
+  </header>
+
+  <section class="hero">
+    <h1>浏览器直播 Demo</h1>
+    <p>WebRTC 实时推流 · 低延迟观看 · 弹幕互动</p>
+    <div class="cards">
+      <a class="card card-pub" href="publisher.html">
+        <div class="card-icon"><iconify-icon icon="mdi:broadcast"></iconify-icon></div>
+        <h2>主播推流</h2>
+        <span>打开摄像头，开始直播</span>
+      </a>
+      <a class="card card-view" href="viewer.html">
+        <div class="card-icon"><iconify-icon icon="mdi:television-play"></iconify-icon></div>
+        <h2>观众观看</h2>
+        <span>实时观看，发送弹幕</span>
+      </a>
+    </div>
+    <div class="steps">
+      <strong>使用步骤：</strong> 终端运行 <code>npm start</code> → 先打开「主播推流」→ 再打开「观众观看」
+    </div>
+  </section>
+</body>
+</html>

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>观看直播</title>
+  <script src="https://code.iconify.design/iconify-icon/2.1.0/iconify-icon.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      background: #0d0d10;
+      color: #e8e8e8;
+      min-height: 100vh;
+    }
+    .header {
+      height: 52px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #14141a;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .back {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 6px 14px;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.06);
+      color: #a0a0b0;
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .back iconify-icon { font-size: 16px; margin-right: 4px; }
+    .live-tag iconify-icon { font-size: 10px; margin-right: 3px; }
+    .btn iconify-icon { font-size: 15px; margin-right: 4px; }
+    .side-header iconify-icon { font-size: 16px; color: #00aeec; }
+    .room-title { font-size: 15px; font-weight: 600; color: #fff; }
+    .live-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: #ff4d6d;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    .main {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 0 24px;
+      display: flex;
+      gap: 16px;
+    }
+    .player-section { flex: 1; min-width: 0; }
+    .player-box {
+      background: #14141a;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .video-wrap {
+      aspect-ratio: 16/9;
+      background: #000;
+      position: relative;
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      background: #000;
+    }
+    #danmakuLayer {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .danmaku-item {
+      position: absolute;
+      right: 0;
+      white-space: nowrap;
+      font-size: 22px;
+      font-weight: 600;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.9);
+      animation: danmaku-move linear forwards;
+    }
+    @keyframes danmaku-move {
+      from { transform: translateX(0); }
+      to { transform: translateX(calc(-100% - 1200px)); }
+    }
+    .player-toolbar {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0,0,0,0.3);
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .danmaku-bar {
+      flex: 1;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .danmaku-bar input {
+      flex: 1;
+      margin: 0;
+      padding: 9px 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      background: rgba(255,255,255,0.06);
+      color: #fff;
+      font-size: 13px;
+      transition: border-color 0.2s;
+    }
+    .danmaku-bar input::placeholder { color: #5a5a6a; }
+    .danmaku-bar input:focus {
+      outline: none;
+      border-color: rgba(0,174,236,0.5);
+      background: rgba(255,255,255,0.08);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      padding: 9px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #fff;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      flex-shrink: 0;
+    }
+    .btn:hover { opacity: 0.85; }
+    .send {
+      background: linear-gradient(135deg, #00aeec, #0090c8);
+      border-radius: 20px;
+      padding: 9px 20px;
+    }
+    .player-actions {
+      padding: 12px 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .connect { background: rgba(0,174,236,0.15); color: #00aeec; border: 1px solid rgba(0,174,236,0.25); }
+    .sound { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.25); }
+    .stop { background: rgba(255,255,255,0.06); color: #8b8b9a; }
+    .status-bar {
+      margin-top: 12px;
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 8px;
+      font-size: 13px;
+      color: #6b6b7b;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4a4a5a;
+      flex-shrink: 0;
+    }
+    .status-dot.on {
+      background: #22c55e;
+      box-shadow: 0 0 6px #22c55e;
+    }
+    .side-panel {
+      width: 280px;
+      flex-shrink: 0;
+      background: #14141a;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .side-header {
+      padding: 14px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .side-header::before { display: none; }
+    .side-body {
+      flex: 1;
+      padding: 16px;
+      font-size: 13px;
+      color: #5a5a6a;
+      line-height: 1.8;
+    }
+    .side-body li { margin-left: 16px; margin-bottom: 6px; }
+    @media (max-width: 900px) {
+      .side-panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <a class="back" href="index.html"><iconify-icon icon="mdi:arrow-left"></iconify-icon>返回</a>
+      <span class="live-tag"><iconify-icon icon="mdi:circle"></iconify-icon>LIVE</span>
+      <span class="room-title">直播间</span>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="player-section">
+      <div class="player-box">
+        <div class="video-wrap">
+          <video id="video" autoplay playsinline muted></video>
+          <div id="danmakuLayer"></div>
+        </div>
+        <div class="player-toolbar">
+          <div class="danmaku-bar">
+            <input id="danmakuInput" type="text" maxlength="50" placeholder="发个弹幕呗~" />
+            <button class="btn send" id="btnDanmaku"><iconify-icon icon="mdi:send"></iconify-icon>发送</button>
+          </div>
+        </div>
+        <div class="player-actions">
+          <button class="btn connect" id="btnConnect"><iconify-icon icon="mdi:access-point"></iconify-icon>连接直播</button>
+          <button class="btn sound" id="btnSound" style="display:none;"><iconify-icon icon="mdi:volume-high"></iconify-icon>开启声音</button>
+          <button class="btn stop" id="btnStop"><iconify-icon icon="mdi:close-circle-outline"></iconify-icon>断开连接</button>
+        </div>
+      </div>
+      <div class="status-bar">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="tip">等待推流...</span>
+      </div>
+    </section>
+
+    <aside class="side-panel">
+      <div class="side-header"><iconify-icon icon="mdi:information-outline"></iconify-icon>直播说明</div>
+      <div class="side-body">
+        <ul>
+          <li>先打开主播推流页</li>
+          <li>点击「开始推流」</li>
+          <li>本页自动连接画面</li>
+          <li>点击「开启声音」听直播</li>
+          <li>底部输入框发弹幕</li>
+        </ul>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const WS = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+    const ICE = [{ urls: 'stun:stun.l.google.com:19302' }];
+    const COLORS = ['#fff', '#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff9ff3'];
+    const id = 'v_' + Math.random().toString(36).slice(2, 8);
+
+    let ws, pc, pending = [];
+    const video = document.getElementById('video');
+    const tip = document.getElementById('tip');
+    const statusDot = document.getElementById('statusDot');
+    const btnSound = document.getElementById('btnSound');
+    const danmakuLayer = document.getElementById('danmakuLayer');
+    const danmakuInput = document.getElementById('danmakuInput');
+
+    function setStatus(text, live) {
+      tip.textContent = text;
+      statusDot.classList.toggle('on', !!live);
+    }
+
+    btnSound.onclick = () => {
+      video.muted = false;
+      btnSound.style.display = 'none';
+      setStatus('直播中（有声音）', true);
+    };
+
+    function showDanmaku(text, color) {
+      const el = document.createElement('div');
+      el.className = 'danmaku-item';
+      el.textContent = text;
+      el.style.color = color || '#fff';
+      el.style.top = `${8 + Math.random() * 75}%`;
+      el.style.animationDuration = `${8 + Math.random() * 6}s`;
+      danmakuLayer.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+
+    function sendDanmaku() {
+      const text = danmakuInput.value.trim();
+      if (!text || !ws || ws.readyState !== WebSocket.OPEN) return;
+      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+      ws.send(JSON.stringify({ type: 'danmaku', text, color }));
+      danmakuInput.value = '';
+    }
+
+    async function onOffer(msg) {
+      pc?.close();
+      pc = new RTCPeerConnection({ iceServers: ICE });
+      pending = [];
+      pc.ontrack = (e) => {
+        video.srcObject = e.streams[0] || new MediaStream([e.track]);
+        video.muted = true;
+        video.play();
+        btnSound.style.display = 'inline-flex';
+        setStatus('直播中，点击「开启声音」', true);
+      };
+      pc.onicecandidate = (e) => {
+        if (e.candidate) ws.send(JSON.stringify({ type: 'candidate', target: 'publisher', viewerId: id, candidate: e.candidate }));
+      };
+      await pc.setRemoteDescription(msg.sdp);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      ws.send(JSON.stringify({ type: 'answer', viewerId: id, sdp: pc.localDescription }));
+      for (const c of pending) await pc.addIceCandidate(c);
+      pending = [];
+    }
+
+    function connect() {
+      ws?.close();
+      pc?.close();
+      video.srcObject = null;
+      danmakuLayer.innerHTML = '';
+      setStatus('连接中...', false);
+      ws = new WebSocket(WS);
+      ws.onopen = () => ws.send(JSON.stringify({ type: 'join', role: 'viewer', id }));
+      ws.onmessage = async (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'waiting') setStatus('等待主播推流...', false);
+        if (msg.type === 'publisher-left') {
+          pc?.close();
+          video.srcObject = null;
+          btnSound.style.display = 'none';
+          setStatus('直播已结束', false);
+        }
+        if (msg.type === 'offer') await onOffer(msg);
+        if (msg.type === 'candidate' && msg.target === 'viewer') {
+          if (pc?.remoteDescription) await pc.addIceCandidate(msg.candidate);
+          else pending.push(msg.candidate);
+        }
+        if (msg.type === 'danmaku') showDanmaku(msg.text, msg.color);
+      };
+    }
+
+    function disconnect() {
+      ws?.close();
+      pc?.close();
+      video.srcObject = null;
+      video.muted = true;
+      btnSound.style.display = 'none';
+      danmakuLayer.innerHTML = '';
+      setStatus('已断开', false);
+    }
+
+    document.getElementById('btnConnect').onclick = connect;
+    document.getElementById('btnStop').onclick = disconnect;
+    document.getElementById('btnDanmaku').onclick = sendDanmaku;
+    danmakuInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendDanmaku();
+    });
+    connect();
+  </script>
+</body>
+</html>
