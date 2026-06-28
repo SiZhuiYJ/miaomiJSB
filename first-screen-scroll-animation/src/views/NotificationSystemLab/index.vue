@@ -355,7 +355,7 @@ defineExpose({
   --purple-600: #7c3aed;
 
   pointer-events: none;
-  position: absolute;
+  position: fixed;
   top: 0;
   display: flex;
   justify-content: center;

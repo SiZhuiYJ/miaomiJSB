@@ -19,4 +19,6 @@ providePuzzleContext(puzzle);
   </main>
 </template>
 
-<style lang="scss" src="./styles.scss"></style>
+<style scoped lang="scss">
+@use "./styles.scss";
+</style>

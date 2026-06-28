@@ -71,21 +71,18 @@ const handleFileChange = (event: Event) => {
         </select>
       </label>
       <label v-if="exportQualityEnabled">导出质量：{{ Math.round(quality * 100) }}%
-        <input v-model.number="quality" :style="getRangeStyle(quality, 0.82, 1)" min="0.82" max="1" step="0.01" type="range">
+        <input v-model.number="quality" :style="getRangeStyle(quality, 0.82, 1)" min="0.82" max="1" step="0.01"
+          type="range">
       </label>
     </div>
     <div class="actions">
-      <input
-        ref="fileInputRef"
-        accept="image/*"
-        multiple
-        type="file"
-        hidden
-        @change="handleFileChange"
-      >
+      <input ref="fileInputRef" accept="image/*" multiple type="file" hidden @change="handleFileChange">
       <button type="button" @click="fileInputRef?.click()">选择图片</button>
       <button type="button" :disabled="!images.length" @click="exportPuzzle">导出高清图片</button>
       <button class="ghost" type="button" :disabled="!images.length" @click="clearImages">清空</button>
     </div>
   </section>
 </template>
+<style scoped lang="scss">
+@use "../styles.scss";
+</style>
