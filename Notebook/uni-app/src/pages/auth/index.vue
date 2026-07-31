@@ -51,7 +51,7 @@ const code = ref('');
 const sendingCode = ref(false);
 
 function generateRandomuserAccount() {
-  userAccount.value = 'user_' + Math.random().toString(36).slice(2, 10);
+  userAccount.value = 'mmjsb_' + Math.random().toString(36).slice(2, 10);
   userAccountError.value = '';
 }
 

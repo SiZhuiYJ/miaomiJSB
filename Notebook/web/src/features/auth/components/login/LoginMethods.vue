@@ -4,7 +4,7 @@ const model = defineModel<'email' | 'account' | 'email-code'>()
 
 <template>
     <div class="login-methods">
-        <el-radio-group v-model="model" fill="#409eff">
+        <el-radio-group v-model="model" fill="#ffb3f1">
             <el-radio-button label="邮箱密码" value="email" />
             <el-radio-button label="账号密码" value="account" />
             <el-radio-button label="邮箱验证" value="email-code" />

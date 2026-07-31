@@ -63,7 +63,7 @@ defineExpose({
     </form>
 
     <!-- 邮箱验证码登录 -->
-    <EmailCodeLogin v-else-if="loginMethod === 'email-code'" v-model:email="email" :code="code"
+    <EmailCodeLogin v-else-if="loginMethod === 'email-code'" v-model:email="email" v-model:code="code"
         :sending-code="sendingCode" :countdown="countdown" :login-method="loginMethod" @send-code="$emit('sendCode')"
         @submit="handleSubmit" />
 
@@ -83,7 +83,7 @@ defineExpose({
     border-radius: 8px;
     border: none;
     background: linear-gradient(to right, var(--accent-color), var(--accent-alt));
-    color: var(--accent-on);
+    color: #fff;
     font-weight: 600;
     cursor: pointer;
     transition: opacity 0.2s;

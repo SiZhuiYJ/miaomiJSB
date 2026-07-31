@@ -529,7 +529,7 @@ async function handleDeactivateConfirm(): Promise<void> {
   border-radius: 6px;
   border: none;
   background: linear-gradient(to right, var(--accent-color), var(--accent-alt));
-  color: var(--accent-on);
+  color: #fff;
   cursor: pointer;
 
   &:disabled {

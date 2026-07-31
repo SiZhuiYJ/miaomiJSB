@@ -105,20 +105,19 @@ public class EmailService : IEmailService
 
         var quotes = emailSection.GetSection("Quotes").Get<string[]>();
         _quotes = quotes != null && quotes.Length > 0
-            ? quotes.Where(q => !string.IsNullOrWhiteSpace(q)).ToArray()
+            ? [.. quotes.Where(q => !string.IsNullOrWhiteSpace(q))]
             : DefaultQuotes;
 
         var rules = emailSection.GetSection("Greetings").Get<GreetingRule[]>();
-        _greetingRules = (rules ?? Array.Empty<GreetingRule>())
+        _greetingRules = [.. (rules ?? [])
             .Where(r => !string.IsNullOrWhiteSpace(r.Text))
-            .Where(r => r.StartHour >= 0 && r.StartHour < 24 && r.EndHour > 0 && r.EndHour <= 24 && r.StartHour != r.EndHour)
-            .ToList();
+            .Where(r => r.StartHour >= 0 && r.StartHour < 24 && r.EndHour > 0 && r.EndHour <= 24 && r.StartHour != r.EndHour)];
 
         if (_greetingRules.Count == 0)
-            _greetingRules = DefaultGreetingRules.ToList();
+            _greetingRules = [.. DefaultGreetingRules];
     }
 
-    private SmtpConfig LoadSmtpConfig(IConfigurationSection section)
+    private static SmtpConfig LoadSmtpConfig(IConfigurationSection section)
     {
         var config = new SmtpConfig
         {
@@ -139,6 +138,7 @@ public class EmailService : IEmailService
     /// </summary>
     /// <param name="toEmail">接收验证码的目标邮箱地址。</param>
     /// <param name="code">要发送的验证码内容。</param>
+    /// <param name="actionType">验证码用途提示。</param>
     /// <param name="cancellationToken">取消操作标记。</param>
     public async Task SendVerificationCodeAsync(string toEmail, string code, string? actionType, CancellationToken cancellationToken = default)
     {
@@ -202,7 +202,7 @@ public class EmailService : IEmailService
         }
     }
 
-    private async Task SendEmailInternalAsync(SmtpConfig config, string toEmail, string subject, string body, CancellationToken cancellationToken)
+    private static async Task SendEmailInternalAsync(SmtpConfig config, string toEmail, string subject, string body, CancellationToken cancellationToken)
     {
         using var client = new SmtpClient(config.Host)
         {

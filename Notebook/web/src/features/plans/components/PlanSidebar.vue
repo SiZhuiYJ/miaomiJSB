@@ -80,7 +80,7 @@ function handleCreate(): void {
   border: none;
   padding: 4px 10px;
   background: var(--accent-alt);
-  color: var(--accent-on);
+  color: #fff;
   font-size: 13px;
   cursor: pointer;
 }

@@ -2723,6 +2723,7 @@
             </summary>
             <param name="toEmail">接收验证码的目标邮箱地址。</param>
             <param name="code">要发送的验证码内容。</param>
+            <param name="actionType">验证码用途提示。</param>
             <param name="cancellationToken">取消操作标记。</param>
         </member>
         <member name="M:api.Infrastructure.LocalFileService.SaveChatFileAsync(System.UInt64,System.UInt64,Microsoft.AspNetCore.Http.IFormFile,System.Threading.CancellationToken)">

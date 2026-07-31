@@ -410,17 +410,17 @@ temp/
 # 项目特定的忽略目录
 # 项目根级别的配置和构建目录
 .github/
-api/obj_build/
-api/obj_build_verify/
-api/obj/
-api/bin/
-api/bin_verify/
+Notebook/api/obj_build/
+Notebook/api/obj_build_verify/
+Notebook/api/obj/
+Notebook/api/bin/
+Notebook/api/bin_verify/
 api/.vs/
 api/.config/
-api/obj_restore/
+Notebook/api/obj_restore/
 web/.vscode/
 web/.vite/
-api.Release/
+Notebook/api.Release/
 .lingma/
 
 # Vite 依赖缓存目录

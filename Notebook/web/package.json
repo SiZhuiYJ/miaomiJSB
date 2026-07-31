@@ -21,6 +21,7 @@
     "@vue-office/excel": "^1.7.14",
     "@vue-office/pdf": "^2.0.10",
     "@vue-office/pptx": "^1.0.1",
+    "ani-cursor.js": "^1.0.3",
     "axios": "^1.7.9",
     "element-plus": "^2.13.7",
     "fast-glob": "^3.3.3",

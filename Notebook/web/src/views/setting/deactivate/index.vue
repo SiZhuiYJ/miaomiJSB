@@ -163,7 +163,7 @@ async function handleDeactivateConfirm(): Promise<void> {
     border-radius: 10px;
     border: none;
     background: var(--theme-primary);
-    color: var(--accent-on);
+    color: #fff;
     cursor: pointer;
 
     &:disabled {

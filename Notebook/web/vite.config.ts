@@ -58,6 +58,7 @@ import prismjs from "vite-plugin-prismjs";
 
 // 定义路径别名函数（简化配置，避免重复书写）
 const resolve = (dir: string) => path.resolve(__dirname, dir);
+const elementPlusResolver = ElementPlusResolver({ importStyle: "css" });
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -94,12 +95,12 @@ export default defineConfig(({ mode }) => {
       // 自动导入插件，自动导入Vue和Pinia相关函数，并自动注册Element Plus组件
       AutoImport({
         imports: ["vue", "pinia"],
-        resolvers: [ElementPlusResolver()],
+        resolvers: [elementPlusResolver],
         dts: "src/auto-imports.d.ts",
       }),
       // 组件自动注册插件，自动注册Element Plus组件
       Components({
-        resolvers: [ElementPlusResolver()],
+        resolvers: [elementPlusResolver],
         dts: "src/components.d.ts",
       }),
       // SVG图标插件，用于处理SVG雪碧图

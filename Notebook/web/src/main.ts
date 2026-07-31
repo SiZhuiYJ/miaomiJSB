@@ -1,5 +1,6 @@
 import { createApp } from 'vue';
 import App from "./App.vue";
+import { setupMikuCursor } from "./libs/mikuCursor";
 
 // 导入style样式
 import "./styles/index.scss";
@@ -7,11 +8,8 @@ import "./styles/index.scss";
 // svg图标
 import "virtual:svg-icons-register";
 
-// element-plus 主题样式
-import "element-plus/dist/index.css";
+// element-plus 暗色主题变量，组件样式由 Vite resolver 按需引入
 import "element-plus/theme-chalk/dark/css-vars.css";
-
-// element-plus icon导入
 
 const app = createApp(App);
 
@@ -48,5 +46,7 @@ window.addEventListener("unhandledrejection", (event) => {
 window.addEventListener("error", (event) => {
   console.error("全局脚本错误:", event.error || event.message);
 });
+
+setupMikuCursor();
 
 app.mount("#app");

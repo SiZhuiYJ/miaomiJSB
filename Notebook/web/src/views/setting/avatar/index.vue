@@ -124,6 +124,6 @@ async function uploadImage() {
   background-color: var(--accent-alt);
   border-radius: 16px;
   font-size: 36px;
-  color: var(--accent-on);
+  color: #fff;
 }
 </style>

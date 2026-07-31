@@ -39,7 +39,7 @@ watch(email, (newEmail) => {
 });
 
 function generateRandomuserAccount(): void {
-  userAccount.value = "user_" + Math.random().toString(36).slice(2, 10);
+  userAccount.value = "mmjsb_" + Math.random().toString(36).slice(2, 10);
   userAccountError.value = ""; // Clear error when generating new
 }
 
