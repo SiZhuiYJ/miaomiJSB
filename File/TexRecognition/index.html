@@ -1,30 +1,65 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
+<!DOCTYPE html>
+<html lang="zh-CN">
 
 <head>
-     
-    <meta charset="UTF-8">
-     
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>浏览器端 OCR 演示 - PP-OCRv6 + onnxruntime-web</title>
-     
-    <script src="https: //cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.min.js"></script>
+     
+    <meta charset="UTF-8">
+     
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>浏览器端 OCR 演示 - PP-OCRv6 + onnxruntime-web</title>
+     
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/ort.min.js"></script>
 </head>
 
 <body>
-      <h1>浏览器端 OCR</h1>
-      <input type="file" id="fileInput" accept="image /*">
-      <canvas id="canvas"></canvas>
-      <div id="resultBody"></div>
+      <h1>浏览器端 OCR</h1>
+      <div class="controls">
+          <input type="file" id="fileInput" accept="image/*">
+          <button type="button" id="runButton" disabled>开始识别</button>
+      </div>
+      <canvas id="canvas"></canvas>
+      <div id="resultBody"></div>
 
-     
+    <style>
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        #runButton {
+            padding: 4px 12px;
+            cursor: pointer;
+        }
+
+        #runButton:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+    </style>
+
+     
     <script>
         let detSession = null, recSession = null, charList = null;
         let currentImageData = null, modelsLoaded = false;
+        let ocrRunning = false;
 
+        const fileInput = document.getElementById('fileInput');
+        const runButton = document.getElementById('runButton');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const resultBody = document.getElementById('resultBody');
+
+        ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/';
+        ort.env.wasm.numThreads = 1;
+
+        function updateRunButton() {
+            runButton.disabled = !modelsLoaded || !currentImageData || ocrRunning;
+            runButton.textContent = ocrRunning ? '识别中...' : '开始识别';
+        }
+
+        resultBody.textContent = '模型加载中...';
 
         // PP-OCRv6 参数
         const DET_MAX_SIDE = 960;
@@ -159,32 +194,59 @@
 
         // 加载模型
         async function loadModels() {
-            // 加载字符集
-            const keysResp = await fetch('./ppocr_keys_v6_tiny.json');
-            const dict = await keysResp.json();
-            // blank(0) + 6904 字符 + space = 6906，对应模型输出维数
-            charList = ['', ...dict, ' '];
-            console.log('[OCR] 字符集:', dict.length, '+2 =', charList.length);
+            try {
+                // 加载字符集
+                const keysResp = await fetch('./ppocr_keys_v6_tiny.json');
+                const dict = await keysResp.json();
+                // blank(0) + 6904 字符 + space = 6906，对应模型输出维数
+                charList = ['', ...dict, ' '];
+                console.log('[OCR] 字符集:', dict.length, '+2 =', charList.length);
 
-            // 检测模型（WebGL 后端）
-            detSession = await ort.InferenceSession.create(
-                './models/PP-OCRv6_det_tiny.onnx', { executionProviders: ['webgl'] }
-            );
+                // 检测模型（WASM 后端）
+                detSession = await ort.InferenceSession.create(
+                    './models/PP-OCRv6_det_tiny.onnx', { executionProviders: ['wasm'] }
+                );
 
-            // 识别模型
-            recSession = await ort.InferenceSession.create(
-                './models/PP-OCRv6_rec_tiny.onnx', { executionProviders: ['webgl'] }
-            );
+                // 识别模型
+                recSession = await ort.InferenceSession.create(
+                    './models/PP-OCRv6_rec_tiny.onnx', { executionProviders: ['wasm'] }
+                );
 
-            modelsLoaded = true;
-            resultBody.textContent = 'PP-OCRv6 就绪，上传图片开始识别';
-            console.log('[OCR] 模型加载完成');
+                modelsLoaded = true;
+                updateRunButton();
+                console.log('[OCR] 模型加载完成');
+
+                if (currentImageData) {
+                    await runOCR();
+                } else {
+                    resultBody.textContent = 'PP-OCRv6 就绪，上传图片开始识别';
+                }
+            } catch (err) {
+                console.error('[OCR] 模型加载失败:', err);
+                resultBody.textContent = '模型加载失败，请检查网络、CDN 或模型文件路径';
+                updateRunButton();
+            }
         }
 
         // 主 OCR 流水线
         async function runOCR() {
-            if (!modelsLoaded || !currentImageData) return;
-            resultBody.textContent = '';
+            if (ocrRunning) return;
+            if (!currentImageData) {
+                resultBody.textContent = '请先选择一张图片';
+                updateRunButton();
+                return;
+            }
+            if (!modelsLoaded) {
+                resultBody.textContent = '图片已加载，模型还在加载中，加载完成后会自动识别';
+                updateRunButton();
+                return;
+            }
+
+            ocrRunning = true;
+            updateRunButton();
+            resultBody.textContent = '识别中...';
+
+            try {
 
             const imgData = currentImageData;
             const origW = imgData.width, origH = imgData.height;
@@ -241,7 +303,7 @@
 
                 const decoded = ctcDecode(recOutput.data, T, C);
                 const text = decoded.text.trim();
-                console.log(`#${i + 1} conf=${decoded.confidence.toFixed(4)} chars=${decoded.charCount} → "${text.slice(0, 50)}"`);
+                console.log(`#${i + 1} conf=${decoded.confidence.toFixed(4)} chars=${decoded.charCount} → "${text.slice(0, 50)}"`);
                 if (text) results.push({ box: b, text, confidence: decoded.confidence });
             }
 
@@ -256,15 +318,26 @@
 
             // 6. 显示识别结果
             resultBody.textContent = results.map(
-                (r, i) => `#${i + 1}  conf ${(r.confidence * 100).toFixed(2)}%  ${r.text}`
+                (r, i) => `#${i + 1}  conf ${(r.confidence * 100).toFixed(2)}%  ${r.text}`
             ).join('\n');
             console.log('[OCR] 完成:', results.length, '个文本块');
+            } catch (err) {
+                console.error('[OCR] 识别失败:', err);
+                resultBody.textContent = '识别失败，请打开浏览器控制台查看错误';
+            } finally {
+                ocrRunning = false;
+                updateRunButton();
+            }
         }
 
         // 图片上传
-        document.getElementById('fileInput').addEventListener('change', (e) => {
+        fileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
+            currentImageData = null;
+            updateRunButton();
+            resultBody.textContent = '图片加载中...';
+
             const reader = new FileReader();
             reader.onload = (ev) => {
                 const img = new Image();
@@ -273,19 +346,25 @@
                     canvas.height = img.naturalHeight;
                     ctx.drawImage(img, 0, 0);
                     currentImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    resultBody.textContent = '图片已加载，点击上方再次运行 OCR';
+                    updateRunButton();
+
+                    if (modelsLoaded) {
+                        runOCR();
+                    } else {
+                        resultBody.textContent = '图片已加载，模型还在加载中，加载完成后会自动识别';
+                    }
                 };
                 img.src = ev.target.result;
             };
             reader.readAsDataURL(file);
         });
 
-        // 点击 canvas 触发识别
-        canvas.addEventListener('click', () => {
-            if (currentImageData && modelsLoaded) runOCR();
-        });
+        // 点击按钮或图片都可以重新识别
+        runButton.addEventListener('click', runOCR);
+        canvas.addEventListener('click', runOCR);
 
         canvas.width = 800; canvas.height = 400;
+        updateRunButton();
         loadModels();
     </script>
 </body>
