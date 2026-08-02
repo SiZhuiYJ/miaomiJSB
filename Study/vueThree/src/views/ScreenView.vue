@@ -9,15 +9,27 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 )
+
 // 设置相机位置
 camera.position.set(0, 10, 100)
 scene.add(camera)
+
 // 添加物体
-const geometry = new THREE.BoxGeometry(10, 10, 10)
-const material = new THREE.MeshBasicMaterial({ color: 0xff0000 })
+const geometry = new THREE.BoxGeometry(100, 100, 100)
+const material = new THREE.MeshPhysicalMaterial({ color: 0xff0000 })
+material.roughness = 0.5 // 设置粗糙度
+material.metalness = 0.5 // 设置金属度
 const mesh = new THREE.Mesh(geometry, material)
 mesh.position.set(0, 0, 0)
 scene.add(mesh)
+
+// 添加光源
+const pointLight = new THREE.DirectionalLight(0xffffff, 1)
+pointLight.intensity = 1// 设置光源强度
+pointLight.castShadow = true// 设置光源投射阴影
+pointLight.position.set(10, 200, 10)// 设置光源位置
+scene.add(pointLight)
+
 // 创建一个渲染器
 const renderer = new THREE.WebGLRenderer()
 // 设置渲染器的尺寸
