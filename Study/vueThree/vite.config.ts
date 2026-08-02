@@ -15,12 +15,4 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-  server: {
-    proxy: {
-      '/npm': {
-        target: 'https://cdn.jsdelivr.net',
-        changeOrigin: true,
-      },
-    },
-  },
 })

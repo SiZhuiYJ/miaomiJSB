@@ -6,7 +6,8 @@ const MODEL_ROOT = '/ocr'
 const DET_MODEL_URL = `${MODEL_ROOT}/models/PP-OCRv6_det_tiny.onnx`
 const REC_MODEL_URL = `${MODEL_ROOT}/models/PP-OCRv6_rec_tiny.onnx`
 const DICT_URL = `${MODEL_ROOT}/ppocr_keys_v6_tiny.json`
-const ORT_CDN = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/'
+const ORT_CDN = '/npm/onnxruntime-web@1.27.0/dist/'
+// const ORT_CDN = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/'
 
 const DET_MAX_SIDE = 960
 const DET_MEAN = [0.485, 0.456, 0.406] as const
