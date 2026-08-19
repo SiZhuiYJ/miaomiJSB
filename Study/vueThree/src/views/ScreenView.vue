@@ -1,22 +1,26 @@
 <script setup lang="ts">
+import { useTemplateRef, onMounted } from 'vue'
 import * as THREE from 'three'
+const screen = useTemplateRef('screen')
 // 创建一个场景
 const scene = new THREE.Scene()
+scene.background = null
 // 创建一个透视相机
 const camera = new THREE.PerspectiveCamera(
-  75,
+  45,
   window.innerWidth / window.innerHeight,
   0.1,
-  1000
+  2000
 )
 
 // 设置相机位置
-camera.position.set(0, 10, 100)
+camera.position.set(0, 10, 1000)
 scene.add(camera)
 
 // 添加物体
-const geometry = new THREE.BoxGeometry(100, 100, 100)
-const material = new THREE.MeshPhysicalMaterial({ color: 0xff0000 })
+const geometry = new THREE.BoxGeometry(300, 300, 100)
+// const material = new THREE.MeshPhysicalMaterial({ color: 0xff0000 })
+const material = new THREE.MeshStandardMaterial({ color: 0xff0000 })
 material.roughness = 0.5 // 设置粗糙度
 material.metalness = 0.5 // 设置金属度
 const mesh = new THREE.Mesh(geometry, material)
@@ -31,20 +35,22 @@ pointLight.position.set(10, 200, 10)// 设置光源位置
 scene.add(pointLight)
 
 // 创建一个渲染器
-const renderer = new THREE.WebGLRenderer()
+const renderer = new THREE.WebGLRenderer({
+  alpha: true
+})
 // 设置渲染器的尺寸
 renderer.setSize(window.innerWidth, window.innerHeight)
 console.log(renderer)
 // 将渲染器的dom元素添加到body中
-document.body.appendChild(renderer.domElement)
+screen.value?.appendChild(renderer.domElement)
 // 使用渲染器，通过相机将场景渲染出来
 renderer.render(scene, camera)
 
 // 摄像头移动，通过传入偏移量xyz
 function moveCamera(x: number, y: number, z: number) {
-  camera.position.x += x
-  camera.position.y += y
-  camera.position.z += z
+  camera.position.x += x * 10
+  camera.position.y += y * 10
+  camera.position.z += z * 10
   console.log(camera.position)
   renderer.render(scene, camera)
 }
@@ -110,16 +116,30 @@ window.addEventListener('mousemove', (event) => {
 window.addEventListener('mouseup', () => {
   isDragging = false
 })
-
+onMounted(() => {
+  if (screen.value) {
+    screen.value.appendChild(renderer.domElement)
+    const width = screen.value.clientWidth
+    const height = screen.value.clientHeight
+    renderer.setSize(width, height)
+    camera.aspect = width / height
+    camera.updateProjectionMatrix()
+  }
+})
 </script>
 
 <template>
-  <div class="screen">
-    <!-- 控制器 -->
+  <div class="screen" ref="screen">
+
   </div>
 </template>
 
 <style>
+.screen {
+  width: 100%;
+  height: 100%;
+}
+
 @media (min-width: 1024px) {
   .screen {
     min-height: 100vh;
