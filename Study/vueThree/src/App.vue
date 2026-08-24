@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
+import router from './router'
 </script>
 
 <template>
   <header class="navigation-bar">
     <div class="wrapper">
       <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/screen">Screen</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
+        <RouterLink v-for="value in router.getRoutes()" :key="value.name" :to="value.path">
+          {{ value.name }}
+        </RouterLink>
       </nav>
     </div>
   </header>
@@ -18,8 +18,6 @@ import HelloWorld from './components/HelloWorld.vue'
 </template>
 
 <style scoped>
-header {}
-
 .navigation-bar {
   position: fixed;
   top: 0;

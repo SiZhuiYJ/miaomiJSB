@@ -14,11 +14,11 @@ const camera = new THREE.PerspectiveCamera(
 )
 
 // 设置相机位置
-camera.position.set(0, 10, 1000)
+camera.position.set(0, 10, 100)
 scene.add(camera)
 
 // 添加物体
-const geometry = new THREE.BoxGeometry(300, 300, 100)
+const geometry = new THREE.BoxGeometry(30, 30, 10)
 // const material = new THREE.MeshPhysicalMaterial({ color: 0xff0000 })
 const material = new THREE.MeshStandardMaterial({ color: 0xff0000 })
 material.roughness = 0.5 // 设置粗糙度
@@ -36,8 +36,10 @@ scene.add(pointLight)
 
 // 创建一个渲染器
 const renderer = new THREE.WebGLRenderer({
+  antialias: true,
   alpha: true
 })
+
 // 设置渲染器的尺寸
 renderer.setSize(window.innerWidth, window.innerHeight)
 console.log(renderer)
@@ -145,6 +147,7 @@ onMounted(() => {
     min-height: 100vh;
     display: flex;
     align-items: center;
+    justify-content: center;
   }
 }
 </style>
