@@ -672,3 +672,6 @@ api/obj/Release/net10.0/linux-x64/rjsmrazor.dswa.cache.json
 api/obj/Release/net10.0/rjsmcshtml.dswa.cache.json
 api/obj/Release/net10.0/rjsmrazor.dswa.cache.json
 api/bin_verify/
+
+# 模型文件
+Study/vueThree/src/features/game/components/models
