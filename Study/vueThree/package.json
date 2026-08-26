@@ -11,9 +11,9 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
-    "@types/three": "^0.185.3",
     "@yohawing/three-mmd-loader": "^0.8.2",
     "pinia": "^4.0.2",
+    "pinia-plugin-persistedstate": "^4.7.1",
     "three": "^0.185.1",
     "vue": "rc",
     "vue-router": "^5.2.0"
@@ -21,6 +21,7 @@
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",
     "@types/node": "^24.13.3",
+    "@types/three": "^0.185.4",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/tsconfig": "^0.9.1",
     "npm-run-all2": "^9.0.2",

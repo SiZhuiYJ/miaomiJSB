@@ -22,7 +22,7 @@ const router = createRouter({
     {
       path: '/model',
       name: 'model',
-      component: () => import('../views/modelView.vue'),
+      component: () => import('../views/ModelView.vue'),
     },
     {
       path: '/about',

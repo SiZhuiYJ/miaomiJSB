@@ -3,6 +3,7 @@ import { useTemplateRef, onMounted, onBeforeUnmount } from 'vue'
 import * as THREE from 'three'
 import { Sky } from 'three/examples/jsm/objects/Sky.js'
 
+
 // 地块基础高度
 const baseHeight = 10
 const tileSize = 10
@@ -21,6 +22,7 @@ const mapData: MapCellType[][] = [
     [1, 1, 1, 0, 1, 1, 1, 1, 1, 1],
     [1, 1, 1, 1, 1, 1, 1, 2, 1, 2],
 ]
+
 
 const game = useTemplateRef<HTMLDivElement>('game')
 
