@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@types/three": "^0.185.3",
+    "@yohawing/three-mmd-loader": "^0.8.2",
     "pinia": "^4.0.2",
     "three": "^0.185.1",
     "vue": "rc",

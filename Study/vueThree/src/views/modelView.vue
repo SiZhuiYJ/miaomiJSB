@@ -1,34 +1,20 @@
-<template>
-    <div id="container" ref="containerRef">
-        <div id="info">
-            <a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> webgl - animation -
-            keyframes<br />
-            Model:
-            <a href="https://artstation.com/artwork/1AGwX" target="_blank" rel="noopener">Littlest Tokyo</a>
-            by
-            <a href="https://artstation.com/glenatron" target="_blank" rel="noopener">Glen Fox</a>, CC Attribution.
-        </div>
-    </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, useTemplateRef } from 'vue'
 import * as THREE from 'three'
 import Stats from 'three/addons/libs/stats.module.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { Sky } from 'three/addons/objects/Sky.js'
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
-import { DRACOLoader, DRACO_GLTF_CONFIG } from 'three/addons/loaders/DRACOLoader.js'
-
+import { SkeletonHelper } from 'three'
+import { ThreeMmdLoader } from '@yohawing/three-mmd-loader';
 // ===================== 响应式引用 =====================
-const containerRef = ref<HTMLDivElement | null>(null)
-
+const model = useTemplateRef<HTMLDivElement>('model')
+const loader = new ThreeMmdLoader()
 // ===================== Three.js 核心对象 =====================
 let renderer: THREE.WebGLRenderer
 let scene: THREE.Scene
 let camera: THREE.PerspectiveCamera
 let controls: OrbitControls
-let mixer: THREE.AnimationMixer
+let hutao: any
 let timer: THREE.Timer
 let stats: Stats
 let pmremGenerator: THREE.PMREMGenerator
@@ -45,14 +31,15 @@ const onResize = (): void => {
 const animate = (): void => {
     timer.update()
     const delta = timer.getDelta()
-    mixer.update(delta)
+    if (hutao)
+        hutao.update(delta)
     controls.update()
     stats.update()
     renderer.render(scene, camera)
 }
 
 // ===================== 初始化场景 =====================
-const initScene = (container: HTMLDivElement): void => {
+const initScene = async (container: HTMLDivElement): Promise<void> => {
     // ----- 渲染器 -----
     renderer = new THREE.WebGLRenderer({ antialias: true })
     renderer.setPixelRatio(window.devicePixelRatio)
@@ -100,44 +87,26 @@ const initScene = (container: HTMLDivElement): void => {
     stats = new Stats()
     container.appendChild(stats.dom)
 
-    // ----- 加载模型 (GLTF + DRACO) -----
-    const dracoLoader = new DRACOLoader()
-    dracoLoader.setDecoderPath(DRACO_GLTF_CONFIG)
+    // ----- 加载模型 (mmd) -----
+    // hutao = await loader.loadModel('public/models/hutao/hutao/hutao.pmx')
+    // hutao = await loader.loadModel('public/models/mmd/【桑多涅】_by_原神_e06bb339ac99ae18f7cf88d619e9b975/桑多涅.pmx')
+    hutao = await loader.loadModel('public/models/mmd/星穹铁道—流萤·春日手信_by_崩坏：星穹铁道_948486d4ddcc6988bd90019585983d7a/星穹铁道—流萤·春日手信/星穹铁道—流萤·春日手信.pmx')
+    hutao.root.position.set(0, 0, 0)
+    hutao.root.scale.set(0.1, 0.1, 0.1)
+    scene.add(hutao.root)
 
-    const loader = new GLTFLoader()
-    loader.setDRACOLoader(dracoLoader)
+    const skeletonHelper = new SkeletonHelper(hutao.root)
+    skeletonHelper.visible = false // 设置为 true 可以显示骨骼线框
+    scene.add(skeletonHelper)
 
-    loader.load(
-        '/models/gltf/LittlestTokyo.glb',
-        (gltf) => {
-            const model = gltf.scene
-            model.position.set(1, 1, 0)
-            model.scale.set(0.01, 0.01, 0.01)
-            scene.add(model)
+    // ----- 加载动画 (mmd) -----
+    const { animation } = await loader.loadAnimation('public/models/hutao/move/荧-嚣张.vmd')
+    // const { animation } = await loader.loadAnimation('public/models/hutao/move/ayaka-dance.vmd')
+    console.log('动画数据:', animation)
+    hutao.setAnimation(animation, true)
 
-            // 修复：检查 animations 是否存在且至少有一个 clip
-            const animClip = gltf.animations?.[0]
-            if (!animClip) {
-                console.warn('模型没有可用的动画片段')
-                return
-            }
-
-            mixer = new THREE.AnimationMixer(model)
-            mixer.clipAction(animClip).play()
-
-            // 启动动画循环（模型加载完成后才启动）
-            renderer.setAnimationLoop(animate)
-        },
-        undefined,
-        (error) => {
-            console.error('模型加载失败:', error)
-            // 在界面上显示错误提示
-            const infoDiv = document.getElementById('info')
-            if (infoDiv) {
-                infoDiv.innerHTML += '<br><span style="color:red;">模型加载失败，请检查文件路径。</span>'
-            }
-        },
-    )
+    // 启动动画循环（模型加载完成后才启动）
+    renderer.setAnimationLoop(animate)
 
     // ----- 窗口自适应事件 -----
     window.addEventListener('resize', onResize)
@@ -173,7 +142,7 @@ const disposeScene = (): void => {
 
 // ===================== 生命周期 =====================
 onMounted(() => {
-    const container = containerRef.value
+    const container = model.value
     if (!container) {
         console.error('容器元素不存在')
         return
@@ -183,58 +152,16 @@ onMounted(() => {
 
 onUnmounted(() => {
     disposeScene()
-})
+}) 
 </script>
 
-<style scoped>
-/* ----- 全局重置 & 容器 ----- */
-#container {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    background-color: #e2e0e0;
-    color: #000;
-}
+<template>
+    <div class="model" ref="model"></div>
+</template>
 
-/* ----- 信息面板 (覆盖在右上角) ----- */
-#info {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-    font-size: 14px;
-    line-height: 1.6;
-    text-align: center;
-    pointer-events: none;
-    background: rgba(255, 255, 255, 0.6);
-    padding: 6px 16px;
-    border-radius: 8px;
-    backdrop-filter: blur(4px);
-    user-select: none;
-    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-}
-
-#info a {
-    color: #2983ff;
-    pointer-events: auto;
-    text-decoration: none;
-    font-weight: 500;
-}
-
-#info a:hover {
-    text-decoration: underline;
-}
-
-/* ----- 覆盖 Stats 默认样式 (微调位置) ----- */
-:deep(.stats-panel) {
-    position: absolute !important;
-    top: auto !important;
-    bottom: 20px !important;
-    left: 20px !important;
-    right: auto !important;
-    z-index: 20 !important;
-    opacity: 0.85;
+<style>
+.model {
+    width: 100%;
+    height: 100%;
 }
 </style>
