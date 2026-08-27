@@ -8,7 +8,8 @@ import { ThreeMmdLoader } from '@yohawing/three-mmd-loader';
 import { MmdPhysicsController } from '@/features/game/composables/mmdPhysic'
 import { useGameStore } from '@/features/game/stores'
 import { storeToRefs } from 'pinia'
-
+import { ModelCache } from '@/features/game/utils/modelCache';
+const modelCache = new ModelCache({ maxSize: 3 });
 const gameStore = useGameStore()
 
 // 使用 storeToRefs 解构出响应式的 state 和 getters
@@ -161,44 +162,71 @@ function disposeObject(obj: THREE.Object3D) {
 
 // ========== 切换处理函数 ==========
 const loadCharacter = async (characterId: string) => {
-    // 加载器
-    if (!mmdLoader) return
-    // 1. 清理旧模型
-    if (currentModel) {
+    if (!mmdLoader) return;
+
+    // 1. 尝试从缓存获取
+    const cachedModel = modelCache.get(characterId);
+    if (cachedModel) {
+        // 命中缓存：切换显示
+        if (currentModel) {
+            currentModel.root.visible = false;
+            physicsController.reset(currentModel);
+        }
+        currentModel = cachedModel;
+        currentModel.root.visible = true;
+        // 确保模型在场景中（如果之前被移除，重新添加；但通常不移除）
+        if (!currentModel.root.parent) {
+            scene.add(currentModel.root);
+        }
+        isModelLoaded.value = true;
+
         // 先停止动画（如果有）
         if (typeof currentModel.stopAnimation === 'function') {
             currentModel.stopAnimation()
         }
 
-        // 从场景移除
-        scene.remove(currentModel.root)
-
-        // 递归释放 GPU 内存
-        disposeObject(currentModel.root)
-
-        // 如果库本身提供了 dispose 方法，也调用一下
-        if (typeof currentModel.dispose === 'function') {
-            currentModel.dispose()
+        const character = GetCharacterById(characterId);
+        if (character?.defaultMotion) {
+            await loadMotion(character.defaultMotion);
         }
-        physicsController.reset(currentModel)
-        currentModel = null
-        isModelLoaded.value = false
+        return;
     }
 
-    // 2. 查找角色配置
-    const character = GetCharacterById(characterId)
-    if (!character) return
+    // 2. 未命中：加载新模型
+    const character = GetCharacterById(characterId);
+    if (!character) return;
 
-    // 3. 加载新模型
     try {
-        currentModel = await mmdLoader.loadModel(character.modelPath)
-        // 设置位置/缩放等
-        currentModel.root.position.set(0, 0, 0)
-        currentModel.root.scale.set(0.9, 0.9, 0.9)
-        console.log(currentCharacter)
-        scene.add(currentModel.root)
-        isModelLoaded.value = true
+        // 隐藏当前模型（保留在场景中）
+        if (currentModel) {
+            currentModel.root.visible = false;
+        }
 
+        // 加载新模型
+        const newModel = await mmdLoader.loadModel(character.modelPath);
+        newModel.root.position.set(0, 0, 0);
+        newModel.root.scale.set(0.9, 0.9, 0.9);
+        newModel.root.visible = true;
+        scene.add(newModel.root);
+
+        // 存入缓存（如果触发淘汰，淘汰的模型已自动释放资源，但需要从场景移除）
+        const evicted = modelCache.set(characterId, newModel);
+        if (evicted) {
+            // 从场景移除被淘汰的模型（已释放 GPU 资源，但场景引用还在）
+            // 注意：被淘汰的模型可能正是 currentModel，但因为我们是新加载，不会有冲突
+            // 但如果淘汰的是之前隐藏的模型，我们需要将其从场景移除
+            if (evicted.root.parent) {
+                evicted.root.parent.remove(evicted.root);
+            }
+            // 如果 evicted 就是 currentModel，则 currentModel 应置空（因为已销毁）
+            if (currentModel === evicted) {
+                currentModel = null;
+            }
+        }
+
+        currentModel = newModel;
+        isModelLoaded.value = true;
+        physicsController.reset(currentModel);
         // 4. 加载默认动作（如果有）
         if (currentMotionId.value) {
             // 否则加载当前选中的动作（可能属于另一个角色，但路径要存在）
