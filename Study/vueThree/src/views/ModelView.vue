@@ -5,7 +5,7 @@ import Stats from 'three/addons/libs/stats.module.js'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { Sky } from 'three/addons/objects/Sky.js'
 import { ThreeMmdLoader } from '@yohawing/three-mmd-loader';
-
+import { MmdPhysicsController } from '@/features/game/composables/mmdPhysic'
 import { useGameStore } from '@/features/game/stores'
 import { storeToRefs } from 'pinia'
 
@@ -15,14 +15,12 @@ const gameStore = useGameStore()
 const { currentCharacterId, currentMotionId } = storeToRefs(gameStore)
 const { currentCharacter, currentMotion, GetCharacterById, GetMotionById } = useGameStore()
 
-
 // ===================== 响应式引用 =====================
 const model = useTemplateRef<HTMLDivElement>('model')
 // 当前加载的模型对象
 let currentModel: any = null
 // 当前模型是否已加载
 const isModelLoaded = ref(false)
-
 // ===================== Three.js 核心对象 =====================
 let renderer: THREE.WebGLRenderer
 let scene: THREE.Scene
@@ -31,7 +29,9 @@ let controls: OrbitControls
 let timer: THREE.Timer
 let stats: Stats
 let pmremGenerator: THREE.PMREMGenerator
-
+let animationStartTime: number = 0
+let mmdLoader: ThreeMmdLoader
+let physicsController: MmdPhysicsController
 // ===================== 窗口自适应 =====================
 const onResize = (): void => {
     if (!camera || !renderer) return
@@ -43,9 +43,9 @@ const onResize = (): void => {
 // ========== 动画循环（修改） ==========
 const animate = (): void => {
     timer.update()
-    const elapsedTime = timer.getElapsed(); // 获取从开始经过的总秒数
-    if (currentModel) {
-        currentModel.update(elapsedTime); // 传入绝对时间
+    const elapsedTime = timer.getElapsed() - animationStartTime; // 获取从开始经过的总秒数
+    if (currentModel && physicsController) {
+        physicsController.update(currentModel, elapsedTime); // 传入绝对时间
     }
     controls.update()
     stats.update()
@@ -84,14 +84,30 @@ const initScene = async (container: HTMLDivElement): Promise<void> => {
     // skyScene 会被垃圾回收
 
     // ----- 相机 -----
-    camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 100)
-    camera.position.set(0, 0, 0)
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100)
+    camera.position.set(0, 80, 0)
 
     // ----- 轨道控制器 -----
     controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
-    controls.target.set(0, 0.7, 0)
+    controls.target.set(0, 0.5, 0)
     controls.update()
+
+    // 物理化
+    // const mmdBullet = await loadCustomBulletMmdModule()
+    // physicsBackend = createCustomBulletMmdPhysicsBackend(mmdBullet)
+    physicsController = new MmdPhysicsController({
+        enabled: true,
+        fixedTimeStep: 1 / 60,// mmd物理步长
+        maxSubSteps: 4,// 防止单帧物理计算过多
+        ik: true,
+        frameRate: 60// 默认30fps
+    })
+    await physicsController.init()
+    mmdLoader = physicsController.createLoader()
+    // mmdLoader = new ThreeMmdLoader()
+
+    loadCharacter(currentCharacterId.value)
 
     // ----- 计时器 (替代 Clock) -----
     timer = new THREE.Timer()
@@ -145,6 +161,8 @@ function disposeObject(obj: THREE.Object3D) {
 
 // ========== 切换处理函数 ==========
 const loadCharacter = async (characterId: string) => {
+    // 加载器
+    if (!mmdLoader) return
     // 1. 清理旧模型
     if (currentModel) {
         // 先停止动画（如果有）
@@ -162,7 +180,7 @@ const loadCharacter = async (characterId: string) => {
         if (typeof currentModel.dispose === 'function') {
             currentModel.dispose()
         }
-
+        physicsController.reset(currentModel)
         currentModel = null
         isModelLoaded.value = false
     }
@@ -173,11 +191,11 @@ const loadCharacter = async (characterId: string) => {
 
     // 3. 加载新模型
     try {
-        const loader = new ThreeMmdLoader()
-        currentModel = await loader.loadModel(character.modelPath)
+        currentModel = await mmdLoader.loadModel(character.modelPath)
         // 设置位置/缩放等
         currentModel.root.position.set(0, 0, 0)
         currentModel.root.scale.set(0.9, 0.9, 0.9)
+        console.log(currentCharacter)
         scene.add(currentModel.root)
         isModelLoaded.value = true
 
@@ -206,7 +224,9 @@ const loadMotion = async (motionPath: string) => {
         const { animation } = await loader.loadAnimation(motionPath)
         console.log('动画', animation);
         // 应用动画，并开启循环
-        currentModel.setAnimation(animation)
+        currentModel.setAnimation(animation, true)
+        animationStartTime = timer.getElapsed() // 记录动画开始时间
+        physicsController.reset(currentModel)
     } catch (error) {
         console.error('加载动作失败:', error)
     }
@@ -247,6 +267,9 @@ const disposeScene = (): void => {
 
     // 释放 PMREMGenerator
     pmremGenerator?.dispose()
+
+    physicsController?.dispose()
+    physicsController = undefined!
 
     // 移除 stats DOM
     if (stats?.dom && stats.dom.parentNode) {

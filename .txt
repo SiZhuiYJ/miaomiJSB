@@ -1,2 +1,3 @@
-npm install @yohawing/three-mmd-loader three
-import { MMDLoader } from '@yohawing/three-mmd-loader';
+   
+               this.backend?.reset()
+                   this.backend?.dispose()

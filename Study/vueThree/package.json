@@ -15,6 +15,7 @@
     "pinia": "^4.0.2",
     "pinia-plugin-persistedstate": "^4.7.1",
     "three": "^0.185.1",
+    "vconsole": "^3.15.1",
     "vue": "rc",
     "vue-router": "^5.2.0"
   },
