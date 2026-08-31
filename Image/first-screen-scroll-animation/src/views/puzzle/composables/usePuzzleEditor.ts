@@ -242,7 +242,7 @@ export const usePuzzleEditor = () => {
   const maxOutputHeight = computed(() => Math.round(maxOutputWidth.value / ratio.value));
   const boardWrapStyle = computed(() => ({
     aspectRatio: `${ratio.value}`,
-    width: `min(100%, 980px, calc((100vh - 250px) * ${ratio.value}))`,
+    width: `min(100%, 980px, calc((100vh - 300px) * ${ratio.value}))`,
   }));
   const getRangeStyle = (value: number, min: number, max: number): CSSProperties => {
     const percent = max === min ? 0 : ((value - min) / (max - min)) * 100;

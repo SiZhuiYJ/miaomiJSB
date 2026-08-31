@@ -41,7 +41,7 @@ const {
             </div>
           </template>
           <button v-else class="empty-cell" type="button" :title="`为第 ${cellInfo.index + 1} 格添加图片`"
-            @click.stop="openFilePickerForCell(cellInfo.index)">+ 添加图片</button>
+            @click.stop="openFilePickerForCell(cellInfo.index)">+</button>
         </article>
 
         <template v-if="images.length">

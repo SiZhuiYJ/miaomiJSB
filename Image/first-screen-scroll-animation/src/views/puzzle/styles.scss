@@ -1,28 +1,35 @@
 .puzzle-page {
   min-height: 100vh;
-  padding: 28px;
+  padding: 8px;
   color: #172033;
   background: radial-gradient(circle at top left, #e0f2fe, transparent 34%), linear-gradient(135deg, #f8fafc, #e2e8f0);
 }
 
 .panel {
   border: 1px solid rgba(148, 163, 184, .28);
-  border-radius: 24px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, .82);
   box-shadow: 0 20px 60px rgba(15, 23, 42, .12);
   backdrop-filter: blur(18px);
+
+}
+
+.workspace .panel {
+  height: calc(100vh - 16px);
+  max-height: calc(100vh - 16px);
+  overflow: auto;
 }
 
 .toolbar {
   display: grid;
   grid-template-columns: minmax(240px, .8fr) 1.6fr auto;
-  gap: 22px;
+  gap: 8px;
   align-items: end;
-  padding: 24px;
+  padding: 8px;
 }
 
 .brand h1 {
-  margin: 10px 0 8px;
+  margin: 8px;
   font-size: clamp(28px, 4vw, 46px);
 }
 
@@ -35,7 +42,7 @@
 
 .brand__badge {
   display: inline-flex;
-  padding: 6px 12px;
+  padding: 8px;
   border-radius: 999px;
   color: #0369a1;
   background: #e0f2fe;
@@ -45,12 +52,12 @@
 .control-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(120px, 1fr));
-  gap: 14px;
+  gap: 8px;
 }
 
 label {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   font-size: 13px;
   font-weight: 700;
   color: #475569;
@@ -62,7 +69,7 @@ button {
   min-height: 40px;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
-  padding: 0 12px;
+  padding: 0 8px;
   font: inherit;
 }
 
@@ -81,11 +88,9 @@ input[type='range'] {
 input[type='range']::-webkit-slider-runnable-track {
   height: 6px;
   border-radius: 999px;
-  background: linear-gradient(
-    to right,
-    #0ea5e9 0 var(--range-progress, 0%),
-    #cbd5e1 var(--range-progress, 0%) 100%
-  );
+  background: linear-gradient(to right,
+      #0ea5e9 0 var(--range-progress, 0%),
+      #cbd5e1 var(--range-progress, 0%) 100%);
 }
 
 input[type='range']::-webkit-slider-thumb {
@@ -140,7 +145,7 @@ button:disabled {
 
 .actions {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .upload-meter,
@@ -158,15 +163,15 @@ button:disabled {
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 22px;
-  margin-top: 22px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .canvas-shell {
   display: grid;
   place-items: center;
   min-height: 560px;
-  padding: 26px;
+  padding: 8px;
 }
 
 .board-wrap {
@@ -177,7 +182,7 @@ button:disabled {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: 12px;
   box-shadow: 0 16px 50px rgba(15, 23, 42, .18);
   overscroll-behavior: contain;
 }
@@ -258,18 +263,18 @@ button:disabled {
 }
 
 .side {
-  padding: 22px;
+  padding: 8px;
 }
 
 .side h2 {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
 }
 
 .thumbs {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
-  gap: 10px;
-  margin: 18px 0;
+  gap: 8px;
+  margin: 8px 0;
 }
 
 .thumb {
@@ -279,7 +284,7 @@ button:disabled {
   aspect-ratio: 1;
   padding: 0;
   border: 3px solid transparent;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #e2e8f0;
   cursor: grab;
   touch-action: none;
@@ -378,7 +383,7 @@ button:disabled {
   display: grid;
   gap: 8px;
   padding: 14px;
-  border-radius: 16px;
+  border-radius: 12px;
   color: #475569;
   background: #f8fafc;
 }
@@ -441,7 +446,7 @@ button:disabled {
   }
 
   .panel {
-    border-radius: 18px;
+    border-radius: 12px;
   }
 
   .toolbar,
