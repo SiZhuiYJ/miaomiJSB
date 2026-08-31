@@ -22,6 +22,7 @@ const {
   startSegmentDrag,
   verticalLineSegments,
   zoomCellFromWheel,
+  openFilePickerForCell,
 } = usePuzzleContext();
 </script>
 
@@ -39,7 +40,8 @@ const {
                 :style="getImageStyle(cellInfo.row, cellInfo.col, cellInfo.cell, cellInfo.image)" draggable="false">
             </div>
           </template>
-          <button v-else class="empty-cell" type="button" @click.stop="fileInputRef?.click()">+ 添加图片</button>
+          <button v-else class="empty-cell" type="button" :title="`为第 ${cellInfo.index + 1} 格添加图片`"
+            @click.stop="openFilePickerForCell(cellInfo.index)">+ 添加图片</button>
         </article>
 
         <template v-if="images.length">

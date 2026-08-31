@@ -56,7 +56,8 @@ const handleQueueFileChange = (event: Event) => {
       <article v-for="(image, index) in images" :key="image.id" class="thumb" :class="{
         active: selectedImage?.id === image.id,
         dragging: draggedImageId === image.id,
-        'drop-target': imageQueueDragState.overIndex === index && draggedImageId !== image.id,
+        'drag-source': imageQueueDragState.active && imageQueueDragState.startIndex === index && imageQueueDragState.hasMoved,
+        'drop-target': imageQueueDragState.active && imageQueueDragState.overIndex === index && imageQueueDragState.startIndex !== index && imageQueueDragState.hasMoved,
       }" :data-image-queue-index="index" role="button" tabindex="0" :aria-label="`拖拽排序 ${image.name}`" @contextmenu.prevent
         @pointerdown="startImageQueueDrag($event, index)">
         <img :src="image.src" :alt="image.name" draggable="false">

@@ -2,7 +2,20 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import type { CSSProperties } from 'vue';
 
 export type GapStyle = 'seamless' | 'line' | 'feather';
-export type RatioKey = '1:1' | '4:3' | '3:4' | '16:9' | '9:16' | '3:2' | '2:3' | 'screen';
+export type RatioKey = 
+  | '1:1'
+  | '5:4' | '4:5'
+  | '4:3' | '3:4'
+  | '3:2' | '2:3'
+  | '16:10' | '10:16'
+  | '16:9' | '9:16'
+  | '21:9' | '9:21'
+  | 'a4' | 'a4-vertical'
+  | 'bilibili-cover'
+  | 'wechat-moments'
+  | 'xiaohongshu'
+  | 'wechat-article'
+  | 'screen';
 export type DragMode = 'image' | 'pinch' | 'segment' | 'endpoint';
 export type SegmentKind = 'horizontal' | 'vertical';
 export type EndpointKey = 'start' | 'end';
@@ -36,6 +49,7 @@ export interface PointerPosition {
 export interface ImageQueueDragState {
   active: boolean;
   imageId: number | null;
+  startIndex: number;
   overIndex: number;
   startX: number;
   startY: number;
@@ -124,14 +138,26 @@ export const usePuzzleEditor = () => {
     { label: '6 × 5', rows: 6, cols: 5 },
   ];
   const ratios = ref<RatioOption[]>([
-    { label: '正方形 1:1', value: '1:1', ratio: 1 },
-    { label: '横版 4:3', value: '4:3', ratio: 4 / 3 },
-    { label: '竖版 3:4', value: '3:4', ratio: 3 / 4 },
-    { label: '宽屏 16:9', value: '16:9', ratio: 16 / 9 },
-    { label: '手机 9:16', value: '9:16', ratio: 9 / 16 },
-    { label: '相机 3:2', value: '3:2', ratio: 3 / 2 },
-    { label: '竖版 2:3', value: '2:3', ratio: 2 / 3 },
-    { label: '当前显示器', value: 'screen', ratio: 16 / 9 },
+    { label: '◆ 正方形 1:1', value: '1:1', ratio: 1 },
+    { label: '▢ 大画幅 5:4（传统相框）', value: '5:4', ratio: 5 / 4 },
+    { label: '▢ 大画幅 4:5（Instagram竖方）', value: '4:5', ratio: 4 / 5 },
+    { label: '🖥️ 电脑/显示器 16:10（MacBook Pro）', value: '16:10', ratio: 16 / 10 },
+    { label: '🖥️ 电脑/显示器 10:16（竖屏MacBook）', value: '10:16', ratio: 10 / 16 },
+    { label: '🖥️ 电脑 16:9（主流宽屏）', value: '16:9', ratio: 16 / 9 },
+    { label: '🖥️ 电脑 9:16（竖屏显示器）', value: '9:16', ratio: 9 / 16 },
+    { label: '🖥️ 超宽屏 21:9（带鱼屏）', value: '21:9', ratio: 21 / 9 },
+    { label: '🖥️ 超宽屏 9:21（竖带鱼屏）', value: '9:21', ratio: 9 / 21 },
+    { label: '📱 平板 4:3（iPad横屏）', value: '4:3', ratio: 4 / 3 },
+    { label: '📱 平板 3:4（iPad竖屏）', value: '3:4', ratio: 3 / 4 },
+    { label: '📷 相机 3:2（全画幅/APS-C横）', value: '3:2', ratio: 3 / 2 },
+    { label: '📷 相机 2:3（全画幅/APS-C竖）', value: '2:3', ratio: 2 / 3 },
+    { label: '📄 A4 横向 1.414:1', value: 'a4', ratio: Math.sqrt(2) },
+    { label: '📄 A4 纵向 1:1.414', value: 'a4-vertical', ratio: 1 / Math.sqrt(2) },
+    { label: '🎬 B站封面 16:10', value: 'bilibili-cover', ratio: 16 / 10 },
+    { label: '💬 微信朋友圈 3:4（推荐）', value: 'wechat-moments', ratio: 3 / 4 },
+    { label: '📕 小红书封面 3:4（单图推荐）', value: 'xiaohongshu', ratio: 3 / 4 },
+    { label: '📰 微信公众号封面 2.35:1', value: 'wechat-article', ratio: 2.35 },
+    { label: '💻 当前显示器', value: 'screen', ratio: 16 / 9 },
   ]);
   const defaultExportFormat: ExportFormatOption = { label: 'JPEG (.jpg)', value: 'jpeg', mimeType: 'image/jpeg', extension: 'jpg', supportsQuality: true };
   const exportFormats: ExportFormatOption[] = [
@@ -150,6 +176,7 @@ export const usePuzzleEditor = () => {
   
   const fileInputRef = ref<HTMLInputElement>();
   const boardRef = ref<HTMLElement>();
+  const pendingCellIndex = ref<number | null>(null);
   const rows = ref(2);
   const cols = ref(2);
   const gapStyle = ref<GapStyle>('line');
@@ -184,6 +211,7 @@ export const usePuzzleEditor = () => {
   const imageQueueDragState = reactive<ImageQueueDragState>({
     active: false,
     imageId: null,
+    startIndex: -1,
     overIndex: -1,
     startX: 0,
     startY: 0,
@@ -203,11 +231,13 @@ export const usePuzzleEditor = () => {
   const selectedCell = computed(() => cellsState.value[selectedIndex.value]);
   const selectedImage = computed(() => {
     const cell = selectedCell.value;
-    return cell ? images.value[cell.imageIndex] : undefined;
+    if (!cell || cell.imageIndex < 0 || cell.imageIndex >= images.value.length) return undefined;
+    return images.value[cell.imageIndex];
   });
   const selectedExportFormat = computed<ExportFormatOption>(() => exportFormats.find((item) => item.value === exportFormat.value) ?? defaultExportFormat);
   const exportQualityEnabled = computed(() => selectedExportFormat.value.supportsQuality);
   const selectedZoomPercent = computed(() => Math.round((selectedCell.value?.zoom ?? 1) * 100));
+  const activePresetIndex = computed(() => presets.findIndex((p) => p.rows === rows.value && p.cols === cols.value));
   const maxOutputWidth = computed(() => (ratio.value >= 1 ? 3840 : Math.round(3840 * ratio.value)));
   const maxOutputHeight = computed(() => Math.round(maxOutputWidth.value / ratio.value));
   const boardWrapStyle = computed(() => ({
@@ -223,7 +253,8 @@ export const usePuzzleEditor = () => {
     const row = Math.floor(index / cols.value);
     const col = index % cols.value;
     const cell = cellsState.value[index];
-    return { index, row, col, cell, image: cell ? images.value[cell.imageIndex] : undefined };
+    const image = cell && cell.imageIndex >= 0 && cell.imageIndex < images.value.length ? images.value[cell.imageIndex] : undefined;
+    return { index, row, col, cell, image };
   }));
   const horizontalLineSegments = computed(() => horizontalSegments.value.flat());
   const verticalLineSegments = computed(() => verticalSegments.value.flat());
@@ -419,8 +450,17 @@ export const usePuzzleEditor = () => {
   const fillCells = () => {
     cellsState.value = Array.from({ length: cellCount.value }, (_, index) => {
       const previous = cellsState.value[index];
+      const previousValid = previous && previous.imageIndex >= 0 && previous.imageIndex < images.value.length;
+      if (previousValid) {
+        return {
+          imageIndex: previous.imageIndex,
+          offsetX: previous.offsetX ?? 0,
+          offsetY: previous.offsetY ?? 0,
+          zoom: previous.zoom ?? 1,
+        };
+      }
       return {
-        imageIndex: images.value.length ? index % images.value.length : previous?.imageIndex ?? 0,
+        imageIndex: index < images.value.length ? index : -1,
         offsetX: previous?.offsetX ?? 0,
         offsetY: previous?.offsetY ?? 0,
         zoom: previous?.zoom ?? 1,
@@ -432,9 +472,12 @@ export const usePuzzleEditor = () => {
     if (overflowCount <= 0) return;
     const removedImages = images.value.splice(imageUploadLimit.value);
     revokeImages(removedImages);
+    fillCells();
     imageUploadFeedback.value = `已按当前格子上限保留前 ${imageUploadLimit.value} 张图片`;
   };
   const addFiles = async (fileList: FileList | null) => {
+    const targetCellIndex = pendingCellIndex.value;
+    pendingCellIndex.value = null;
     const { loaded, skippedCount, failedCount, imageFileCount } = await loadImageFiles(fileList, remainingImageSlots.value);
     if (!imageFileCount) {
       imageUploadFeedback.value = '请选择图片文件';
@@ -444,10 +487,26 @@ export const usePuzzleEditor = () => {
       setUploadFeedback(0, skippedCount, failedCount);
       return;
     }
+    const firstLoadedIndex = images.value.length;
     images.value.push(...loaded);
     fillCells();
-    selectedIndex.value = 0;
+    if (targetCellIndex !== null && targetCellIndex >= 0 && targetCellIndex < cellCount.value && loaded.length) {
+      const targetCell = cellsState.value[targetCellIndex];
+      if (targetCell) targetCell.imageIndex = firstLoadedIndex;
+      selectedIndex.value = targetCellIndex;
+    } else {
+      selectedIndex.value = 0;
+    }
     setUploadFeedback(loaded.length, skippedCount, failedCount);
+  };
+  const openFilePickerForCell = (cellIndex: number) => {
+    if (isImageUploadLimitReached.value) return;
+    pendingCellIndex.value = clamp(Math.trunc(cellIndex), 0, cellCount.value - 1);
+    const input = fileInputRef.value;
+    if (input) {
+      input.value = '';
+      input.click();
+    }
   };
   const insertFiles = async (index: number, fileList: FileList | null) => {
     const targetIndex = clamp(Math.trunc(index), 0, images.value.length);
@@ -478,6 +537,7 @@ export const usePuzzleEditor = () => {
       const nextImage = await loadImageFile(file);
       images.value.splice(targetIndex, 1, nextImage);
       URL.revokeObjectURL(currentImage.src);
+      fillCells();
       imageUploadFeedback.value = `已替换第 ${targetIndex + 1} 张图片`;
     } catch {
       imageUploadFeedback.value = '图片读取失败';
@@ -503,13 +563,14 @@ export const usePuzzleEditor = () => {
     imageUploadFeedback.value = '';
     stopImageQueueDrag();
   };
-  const moveImage = (fromIndex: number, toIndex: number) => {
-    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= images.value.length || toIndex >= images.value.length) return;
+  const swapImages = (indexA: number, indexB: number) => {
+    if (indexA === indexB || indexA < 0 || indexB < 0 || indexA >= images.value.length || indexB >= images.value.length) return;
     const nextImages = [...images.value];
-    const [movedImage] = nextImages.splice(fromIndex, 1);
-    if (!movedImage) return;
-    nextImages.splice(toIndex, 0, movedImage);
+    const temp = nextImages[indexA];
+    nextImages[indexA] = nextImages[indexB];
+    nextImages[indexB] = temp;
     images.value = nextImages;
+    fillCells();
   };
   const getImageQueueTargetIndex = (clientX: number, clientY: number) => {
     const queueItems = Array.from(document.querySelectorAll<HTMLElement>('[data-image-queue-index]'));
@@ -539,6 +600,7 @@ export const usePuzzleEditor = () => {
     Object.assign(imageQueueDragState, {
       active: true,
       imageId: image.id,
+      startIndex: index,
       overIndex: index,
       startX: event.clientX,
       startY: event.clientY,
@@ -560,14 +622,13 @@ export const usePuzzleEditor = () => {
     }
 
     const targetIndex = getImageQueueTargetIndex(event.clientX, event.clientY);
-    const currentIndex = images.value.findIndex((image) => image.id === imageQueueDragState.imageId);
-    if (targetIndex < 0 || currentIndex < 0) return;
+    if (targetIndex < 0) return;
     imageQueueDragState.overIndex = targetIndex;
-    moveImage(currentIndex, targetIndex);
   };
   const stopImageQueueDrag = () => {
     imageQueueDragState.active = false;
     imageQueueDragState.imageId = null;
+    imageQueueDragState.startIndex = -1;
     imageQueueDragState.overIndex = -1;
     imageQueueDragState.hasMoved = false;
     window.removeEventListener('pointermove', handleImageQueueDrag);
@@ -576,6 +637,9 @@ export const usePuzzleEditor = () => {
   };
   const endImageQueueDrag = (event: PointerEvent) => {
     event.preventDefault();
+    if (imageQueueDragState.hasMoved && imageQueueDragState.startIndex >= 0 && imageQueueDragState.overIndex >= 0) {
+      swapImages(imageQueueDragState.startIndex, imageQueueDragState.overIndex);
+    }
     stopImageQueueDrag();
   };
   const selectCell = (index: number) => { selectedIndex.value = index; };
@@ -1180,6 +1244,7 @@ export const usePuzzleEditor = () => {
     selectedExportFormat,
     exportQualityEnabled,
     selectedZoomPercent,
+    activePresetIndex,
     maxOutputWidth,
     maxOutputHeight,
     boardWrapStyle,
@@ -1212,5 +1277,6 @@ export const usePuzzleEditor = () => {
     startSegmentDrag,
     startHandleDrag,
     exportPuzzle,
+    openFilePickerForCell,
   };
 };

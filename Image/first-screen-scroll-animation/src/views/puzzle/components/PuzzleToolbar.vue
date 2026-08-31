@@ -25,6 +25,7 @@ const {
   clearImages,
   applyPresetByIndex,
   exportPuzzle,
+  activePresetIndex,
 } = usePuzzleContext();
 
 const handleFileChange = (event: Event) => {
@@ -43,15 +44,17 @@ const handleFileChange = (event: Event) => {
     </div>
     <div class="control-grid">
       <label>拼图模式
-        <select @change="applyPresetByIndex(Number(($event.target as HTMLSelectElement).value))">
+        <select :value="activePresetIndex"
+          @change="applyPresetByIndex(Number(($event.target as HTMLSelectElement).value))">
           <option v-for="(preset, index) in presets" :key="preset.label" :value="index">{{ preset.label }}</option>
         </select>
       </label>
       <label>行数<input v-model.number="rows" min="1" max="10" type="number"></label>
       <label>列数<input v-model.number="cols" min="1" max="10" type="number"></label>
-      <label>画布比例
-        <select v-model="ratioKey">
-          <option v-for="item in ratios" :key="item.value" :value="item.value">{{ item.label }}</option>
+
+      <label>导出格式
+        <select v-model="exportFormat">
+          <option v-for="item in exportFormats" :key="item.value" :value="item.value">{{ item.label }}</option>
         </select>
       </label>
       <label>分隔样式
@@ -68,14 +71,15 @@ const handleFileChange = (event: Event) => {
       <label v-if="gapStyle === 'feather'">羽化强度：{{ featherSize }}
         <input v-model.number="featherSize" :style="getRangeStyle(featherSize, 4, 48)" min="4" max="48" type="range">
       </label>
-      <label>导出格式
-        <select v-model="exportFormat">
-          <option v-for="item in exportFormats" :key="item.value" :value="item.value">{{ item.label }}</option>
-        </select>
-      </label>
+
       <label v-if="exportQualityEnabled">导出质量：{{ Math.round(quality * 100) }}%
         <input v-model.number="quality" :style="getRangeStyle(quality, 0.82, 1)" min="0.82" max="1" step="0.01"
           type="range">
+      </label>
+      <label>画布比例
+        <select v-model="ratioKey">
+          <option v-for="item in ratios" :key="item.value" :value="item.value">{{ item.label }}</option>
+        </select>
       </label>
     </div>
     <div class="actions">
