@@ -2,7 +2,7 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import type { CSSProperties } from 'vue';
 
 export type GapStyle = 'seamless' | 'line' | 'feather';
-export type RatioKey = 
+export type RatioKey =
   | '1:1'
   | '5:4' | '4:5'
   | '4:3' | '3:4'
@@ -165,7 +165,7 @@ export const usePuzzleEditor = () => {
     { label: 'PNG (.png)', value: 'png', mimeType: 'image/png', extension: 'png', supportsQuality: false },
     { label: 'WebP (.webp)', value: 'webp', mimeType: 'image/webp', extension: 'webp', supportsQuality: true },
   ];
-  
+
   const MIN_ENDPOINT_GAP = 0.018;
   const FALLBACK_BOARD_WIDTH = 960;
   const MIN_IMAGE_ZOOM = 0.5;
@@ -173,7 +173,7 @@ export const usePuzzleEditor = () => {
   const IMAGE_ZOOM_STEP = 0.08;
   const IMAGE_OFFSET_LIMIT = 150;
   const QUEUE_DRAG_THRESHOLD = 6;
-  
+
   const fileInputRef = ref<HTMLInputElement>();
   const boardRef = ref<HTMLElement>();
   const pendingCellIndex = ref<number | null>(null);
@@ -221,7 +221,7 @@ export const usePuzzleEditor = () => {
   });
   let imageId = 0;
   const activeImagePointers = new Map<number, PointerPosition>();
-  
+
   const ratio = computed(() => ratios.value.find((item) => item.value === ratioKey.value)?.ratio ?? 1);
   const cellCount = computed(() => rows.value * cols.value);
   const imageUploadLimit = computed(() => cellCount.value);
@@ -263,7 +263,7 @@ export const usePuzzleEditor = () => {
   const seamHandles = computed<SeamHandle[]>(() => {
     const snapshot = { horizontal: horizontalSegments.value, vertical: verticalSegments.value };
     const handles: SeamHandle[] = [];
-  
+
     for (let row = 0; row <= rows.value; row += 1) {
       for (let col = 0; col <= cols.value; col += 1) {
         const connections = getJunctionConnections(row, col);
@@ -271,10 +271,10 @@ export const usePuzzleEditor = () => {
         if (connections.length && point) handles.push({ id: `j-${row}-${col}`, row, col, point, connections });
       }
     }
-  
+
     return handles;
   });
-  
+
   /* ----------------------------- Geometry ----------------------------- */
   const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, Math.min(min, max)), Math.max(min, max));
   const createPoint = (x: number, y: number): MeshPoint => ({ x, y });
@@ -295,7 +295,7 @@ export const usePuzzleEditor = () => {
       if (!previous || !samePoint(previous, point)) result.push(point);
       return result;
     }, []);
-  
+
     const first = compacted[0];
     const last = compacted[compacted.length - 1];
     if (compacted.length > 1 && first && last && samePoint(first, last)) compacted.pop();
@@ -309,7 +309,7 @@ export const usePuzzleEditor = () => {
     });
     ctx.closePath();
   };
-  
+
   /* -------------------------- Seam Segments -------------------------- */
   const createHorizontalSegments = () => Array.from({ length: Math.max(0, rows.value - 1) }, (_, row) => Array.from({ length: cols.value }, (_, col): SeamSegment => {
     const y = (row + 1) / rows.value;
@@ -352,24 +352,24 @@ export const usePuzzleEditor = () => {
   const getVerticalSegment = (row: number, col: number) => verticalSegments.value[row]?.[col];
   const getJunctionConnections = (row: number, col: number): SeamConnection[] => {
     const connections: SeamConnection[] = [];
-  
+
     if (row > 0 && row < rows.value) {
       if (col > 0) connections.push({ kind: 'horizontal', row: row - 1, col: col - 1, endpoint: 'end' });
       if (col < cols.value) connections.push({ kind: 'horizontal', row: row - 1, col, endpoint: 'start' });
     }
-  
+
     if (col > 0 && col < cols.value) {
       if (row > 0) connections.push({ kind: 'vertical', row: row - 1, col: col - 1, endpoint: 'end' });
       if (row < rows.value) connections.push({ kind: 'vertical', row, col: col - 1, endpoint: 'start' });
     }
-  
+
     return connections;
   };
   const getHandlePoint = (snapshot: SeamSnapshot, row: number, col: number) => {
     const points = getJunctionConnections(row, col)
       .map((connection) => getSnapshotConnectionSegment(snapshot, connection)?.[connection.endpoint])
       .filter((point): point is MeshPoint => Boolean(point));
-  
+
     if (!points.length) return undefined;
     return createPoint(
       points.reduce((sum, point) => sum + point.x, 0) / points.length,
@@ -567,8 +567,10 @@ export const usePuzzleEditor = () => {
     if (indexA === indexB || indexA < 0 || indexB < 0 || indexA >= images.value.length || indexB >= images.value.length) return;
     const nextImages = [...images.value];
     const temp = nextImages[indexA];
-    nextImages[indexA] = nextImages[indexB];
-    nextImages[indexB] = temp;
+    if (nextImages[indexB])
+      nextImages[indexA] = nextImages[indexB];
+    if (temp)
+      nextImages[indexB] = temp;
     images.value = nextImages;
     fillCells();
   };
@@ -675,7 +677,7 @@ export const usePuzzleEditor = () => {
     const imageAspect = image.naturalWidth / image.naturalHeight;
     const width = imageAspect > cellAspect ? (imageAspect / cellAspect) * 100 * cell.zoom : 100 * cell.zoom;
     const height = imageAspect > cellAspect ? 100 * cell.zoom : (cellAspect / imageAspect) * 100 * cell.zoom;
-  
+
     return {
       left: `${(100 - width) / 2 + cell.offsetX}%`,
       top: `${(100 - height) / 2 + cell.offsetY}%`,
@@ -683,7 +685,7 @@ export const usePuzzleEditor = () => {
       height: `${height}%`,
     };
   };
-  
+
   /* ---------------------------- Controls ----------------------------- */
   const applyPreset = (preset: { rows: number; cols: number }) => {
     rows.value = preset.rows;
@@ -704,7 +706,7 @@ export const usePuzzleEditor = () => {
       let maxX = 1 - MIN_ENDPOINT_GAP;
       const minY = segment.row / rows.value + MIN_ENDPOINT_GAP;
       const maxY = (segment.row + 2) / rows.value - MIN_ENDPOINT_GAP;
-  
+
       if (endpoint === 'start' && segment.col === 0) {
         minX = 0;
         maxX = 0;
@@ -716,15 +718,15 @@ export const usePuzzleEditor = () => {
       } else {
         minX = Math.max(minX, segment.start.x + MIN_ENDPOINT_GAP);
       }
-  
+
       return { minX, maxX, minY, maxY };
     }
-  
+
     const minX = segment.col / cols.value + MIN_ENDPOINT_GAP;
     const maxX = (segment.col + 2) / cols.value - MIN_ENDPOINT_GAP;
     let minY = MIN_ENDPOINT_GAP;
     let maxY = 1 - MIN_ENDPOINT_GAP;
-  
+
     if (endpoint === 'start' && segment.row === 0) {
       minY = 0;
       maxY = 0;
@@ -736,12 +738,12 @@ export const usePuzzleEditor = () => {
     } else {
       minY = Math.max(minY, segment.start.y + MIN_ENDPOINT_GAP);
     }
-  
+
     return { minX, maxX, minY, maxY };
   };
   const getHandleBounds = (snapshot: SeamSnapshot, row: number, col: number) => {
     const bounds = { minX: 0, maxX: 1, minY: 0, maxY: 1 };
-  
+
     getJunctionConnections(row, col).forEach((connection) => {
       const segment = getSnapshotConnectionSegment(snapshot, connection);
       if (!segment) return;
@@ -751,13 +753,13 @@ export const usePuzzleEditor = () => {
       bounds.minY = Math.max(bounds.minY, endpointBounds.minY);
       bounds.maxY = Math.min(bounds.maxY, endpointBounds.maxY);
     });
-  
+
     return bounds;
   };
   const setHandlePoint = (snapshot: SeamSnapshot, row: number, col: number, x: number, y: number) => {
     const bounds = getHandleBounds(snapshot, row, col);
     const nextPoint = createPoint(clamp(x, bounds.minX, bounds.maxX), clamp(y, bounds.minY, bounds.maxY));
-  
+
     getJunctionConnections(row, col).forEach((connection) => {
       const segment = getSnapshotConnectionSegment(snapshot, connection);
       if (!segment) return;
@@ -825,7 +827,7 @@ export const usePuzzleEditor = () => {
       bindWindowDrag();
       return;
     }
-  
+
     Object.assign(dragState, {
       active: true,
       mode: 'image',
@@ -887,7 +889,7 @@ export const usePuzzleEditor = () => {
       cell.offsetY = clamp(dragState.startCell.offsetY + ((pinch.centerY - dragState.startY) / dragState.startRectHeight) * 100, -IMAGE_OFFSET_LIMIT, IMAGE_OFFSET_LIMIT);
       return;
     }
-  
+
     if (dragState.mode === 'image') {
       const cell = cellsState.value[dragState.index];
       if (!cell) return;
@@ -895,18 +897,18 @@ export const usePuzzleEditor = () => {
       cell.offsetY = clamp(dragState.startCell.offsetY + (dyPx / dragState.startRectHeight) * 100, -IMAGE_OFFSET_LIMIT, IMAGE_OFFSET_LIMIT);
       return;
     }
-  
+
     const nextSeams = cloneSeams(dragState.startSeams);
     const dx = dxPx / rect.width;
     const dy = dyPx / rect.height;
-  
+
     if (dragState.mode === 'segment') translateSegmentHandles(nextSeams, dragState.startSeams, dragState.kind, dragState.row, dragState.col, dx, dy);
     if (dragState.mode === 'endpoint') {
       const startPoint = getHandlePoint(dragState.startSeams, dragState.row, dragState.col);
       if (!startPoint) return;
       setHandlePoint(nextSeams, dragState.row, dragState.col, startPoint.x + dx, startPoint.y + dy);
     }
-  
+
     horizontalSegments.value = nextSeams.horizontal;
     verticalSegments.value = nextSeams.vertical;
   };
@@ -926,7 +928,7 @@ export const usePuzzleEditor = () => {
         return;
       }
     }
-  
+
     stopDrag();
   };
   const stopDrag = () => {
@@ -974,7 +976,7 @@ export const usePuzzleEditor = () => {
   });
   const hardenMaskEdges = (ctx: CanvasRenderingContext2D, width: number, height: number, points: MeshPoint[], feather: number, edges: HardMaskEdges) => {
     const strip = Math.ceil(feather * 2 + 2);
-  
+
     ctx.save();
     drawPath(ctx, points);
     ctx.clip();
@@ -991,7 +993,7 @@ export const usePuzzleEditor = () => {
     mask.height = height;
     const maskCtx = mask.getContext('2d');
     if (!maskCtx) return mask;
-  
+
     maskCtx.imageSmoothingEnabled = true;
     maskCtx.imageSmoothingQuality = 'high';
     maskCtx.filter = feather > 0 ? `blur(${feather}px)` : 'none';
@@ -1024,18 +1026,18 @@ export const usePuzzleEditor = () => {
     layer.height = layerHeight;
     const layerCtx = layer.getContext('2d');
     if (!layerCtx) return undefined;
-  
+
     layerCtx.imageSmoothingEnabled = true;
     layerCtx.imageSmoothingQuality = 'high';
     drawCoverImage(layerCtx, image, imageData, cell, bounds.minX - layerX, bounds.minY - layerY, bounds.width, bounds.height, padding);
-  
+
     const localPoints = points.map((point) => createPoint(point.x - layerX, point.y - layerY));
     const hardEdges = getHardMaskEdges(row, col, layerX, layerY, canvasWidth, canvasHeight);
     const mask = createFeatherMask(layerWidth, layerHeight, localPoints, feather, hardEdges);
     layerCtx.globalCompositeOperation = 'destination-in';
     layerCtx.drawImage(mask, 0, 0);
     layerCtx.globalCompositeOperation = 'source-over';
-  
+
     return { canvas: layer, x: layerX, y: layerY };
   };
   const drawFeatherBlend = (
@@ -1050,29 +1052,29 @@ export const usePuzzleEditor = () => {
     const green = new Uint32Array(pixelCount);
     const blue = new Uint32Array(pixelCount);
     const alpha = new Uint16Array(pixelCount);
-  
+
     renderCells.forEach(({ row, col, cell, imageData, image, points, bounds }) => {
       const layer = createFeatheredCellLayer(image, imageData, cell, row, col, points, bounds, feather, width, height);
       if (!layer) return;
       const layerCtx = layer.canvas.getContext('2d');
       if (!layerCtx) return;
       const data = layerCtx.getImageData(0, 0, layer.canvas.width, layer.canvas.height).data;
-  
+
       for (let y = 0; y < layer.canvas.height; y += 1) {
         const targetY = layer.y + y;
         if (targetY < 0 || targetY >= height) continue;
-  
+
         for (let x = 0; x < layer.canvas.width; x += 1) {
           const targetX = layer.x + x;
           if (targetX < 0 || targetX >= width) continue;
-  
+
           const sourceIndex = (y * layer.canvas.width + x) * 4;
           const sourceAlpha = data[sourceIndex + 3] ?? 0;
           if (!sourceAlpha) continue;
           const sourceRed = data[sourceIndex] ?? 0;
           const sourceGreen = data[sourceIndex + 1] ?? 0;
           const sourceBlue = data[sourceIndex + 2] ?? 0;
-  
+
           const targetIndex = targetY * width + targetX;
           red[targetIndex] = (red[targetIndex] ?? 0) + sourceRed * sourceAlpha;
           green[targetIndex] = (green[targetIndex] ?? 0) + sourceGreen * sourceAlpha;
@@ -1081,12 +1083,12 @@ export const usePuzzleEditor = () => {
         }
       }
     });
-  
+
     const output = ctx.createImageData(width, height);
     for (let index = 0; index < pixelCount; index += 1) {
       const targetIndex = index * 4;
       const weight = alpha[index] ?? 0;
-  
+
       if (!weight) {
         output.data[targetIndex] = 255;
         output.data[targetIndex + 1] = 255;
@@ -1094,7 +1096,7 @@ export const usePuzzleEditor = () => {
         output.data[targetIndex + 3] = 255;
         continue;
       }
-  
+
       const coverage = Math.min(255, weight) / 255;
       const inverseCoverage = 1 - coverage;
       output.data[targetIndex] = Math.round(((red[index] ?? 0) / weight) * coverage + 255 * inverseCoverage);
@@ -1102,7 +1104,7 @@ export const usePuzzleEditor = () => {
       output.data[targetIndex + 2] = Math.round(((blue[index] ?? 0) / weight) * coverage + 255 * inverseCoverage);
       output.data[targetIndex + 3] = 255;
     }
-  
+
     ctx.putImageData(output, 0, 0);
   };
   const drawHardCell = (
@@ -1123,7 +1125,7 @@ export const usePuzzleEditor = () => {
     ctx.strokeStyle = lineColor.value;
     ctx.lineWidth = Math.max(1, lineWidth.value * scale);
     ctx.lineCap = 'round';
-  
+
     allLineSegments.value.forEach((segment) => {
       ctx.beginPath();
       ctx.moveTo(segment.start.x * ctx.canvas.width, segment.start.y * ctx.canvas.height);
@@ -1157,7 +1159,7 @@ export const usePuzzleEditor = () => {
     ctx.imageSmoothingQuality = 'high';
     ctx.fillStyle = gapStyle.value === 'line' ? lineColor.value : '#fff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
+
     const boardWidth = boardRef.value?.clientWidth || FALLBACK_BOARD_WIDTH;
     const exportScale = canvas.width / boardWidth;
     const feather = Math.max(1, featherSize.value * exportScale);
@@ -1166,14 +1168,14 @@ export const usePuzzleEditor = () => {
       if (!cellInfo.cell || !cellInfo.image) return [];
       const image = exportImages.get(cellInfo.image.id);
       if (!image) return [];
-  
+
       const points = getCellPoints(cellInfo.row, cellInfo.col).map((point) => ({ x: point.x * canvas.width, y: point.y * canvas.height }));
       const bounds = getBounds(points);
       if (bounds.width <= 0 || bounds.height <= 0) return [];
-  
+
       return [{ row: cellInfo.row, col: cellInfo.col, cell: cellInfo.cell, imageData: cellInfo.image, image, points, bounds }];
     });
-  
+
     if (gapStyle.value === 'feather') {
       drawFeatherBlend(ctx, renderCells, feather);
     } else {
@@ -1188,7 +1190,7 @@ export const usePuzzleEditor = () => {
     link.href = encoded.dataUrl;
     link.click();
   };
-  
+
   watch([rows, cols], () => {
     rows.value = clamp(rows.value, 1, 10);
     cols.value = clamp(cols.value, 1, 10);

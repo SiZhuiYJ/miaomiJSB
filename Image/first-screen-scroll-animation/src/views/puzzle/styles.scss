@@ -17,7 +17,14 @@
 .workspace .panel {
   height: calc(100vh - 16px);
   max-height: calc(100vh - 16px);
+}
+
+.canvas-shell.panel {
   overflow: auto;
+}
+
+.side.panel {
+  overflow: hidden;
 }
 
 .toolbar {
@@ -36,6 +43,7 @@
 .brand p,
 .hint {
   margin: 0;
+  font-size: 12px;
   color: #64748b;
   line-height: 1.7;
 }
@@ -263,7 +271,58 @@ button:disabled {
 }
 
 .side {
-  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.side__header {
+  padding: 8px 8px 0;
+  flex-shrink: 0;
+}
+
+.side__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 0 0 8px;
+  /* 2. Firefox 浏览器兼容（轨道透明，滑块灰色） */
+  scrollbar-width: thin;
+  scrollbar-color: #888 transparent;
+  /* 滑块颜色 轨道颜色 */
+}
+
+/* 3. WebKit 内核浏览器 (Chrome, Edge, Safari) */
+.side__scroll::-webkit-scrollbar {
+  width: 8px;
+  /* 垂直滚动条宽度设为6px */
+  height: 8px;
+  /* 水平滚动条高度同步设为6px（按需） */
+}
+
+/* 隐藏轨道：背景设为完全透明 */
+.side__scroll::-webkit-scrollbar-track {
+  background: transparent;
+  /* 如果还想完全去掉轨道占位阴影，可以加： */
+  /* box-shadow: none; */
+}
+
+/* 给滑块（拖动条）设置颜色，否则完全透明就看不见了 */
+.side__scroll::-webkit-scrollbar-thumb {
+  background: #888888;
+  border-radius: 10px;
+  /* 让滑块圆润一些，视觉更舒服 */
+}
+
+/* （可选）滑块悬停效果 */
+.side__scroll::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+.side__footer {
+  flex-shrink: 0;
+  padding: 0 8px 8px;
 }
 
 .side h2 {
@@ -344,10 +403,11 @@ button:disabled {
 
 .thumb__actions {
   position: absolute;
+  left: 6px;
   right: 6px;
   bottom: 6px;
   display: flex;
-  gap: 4px;
+  justify-content: space-between;
   opacity: 0;
   pointer-events: none;
   transition: opacity .18s ease;
@@ -362,10 +422,10 @@ button:disabled {
 .thumb__action {
   display: grid;
   place-items: center;
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
-  min-height: 24px;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  min-height: 20px;
   padding: 0;
   border-radius: 50%;
   color: #fff;
@@ -382,16 +442,39 @@ button:disabled {
 .meta {
   display: grid;
   gap: 8px;
-  padding: 14px;
   border-radius: 12px;
   color: #475569;
   background: #f8fafc;
+  /* 定义两列，宽度均分 */
+  grid-template-columns: 1fr 1fr;
+
+}
+
+/* 选中第 3 个及之后的所有元素，令其占满两列 */
+.meta>*:nth-child(n+3) {
+  grid-column: 1 / -1;
+  /* 从第1条列网格线跨到最后1条（即占满整行） */
+}
+
+.meta>span,
+.meta__name {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.zoom-row span {
+  display: inline;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
 }
 
 .zoom-panel {
   display: grid;
   gap: 10px;
-  margin-top: 8px;
 }
 
 .zoom-row,
@@ -428,7 +511,7 @@ button:disabled {
   font-size: 13px;
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 980px) {
 
   .toolbar,
   .workspace {
